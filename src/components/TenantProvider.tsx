@@ -31,9 +31,26 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     async function fetchTenantInfo() {
       let business = null;
       const currentPath = window.location.pathname;
+      const hostname = window.location.hostname;
       const isAdminRoute = currentPath === '/admin' || currentPath.includes('/admin');
 
-      if (isAdminRoute) {
+      // First, check if accessing via custom domain
+      if (!isAdminRoute) {
+        const { data: customDomain } = await supabase
+          .from('custom_domains')
+          .select('business_id, businesses(*)')
+          .eq('domain', hostname)
+          .eq('status', 'verified')
+          .eq('dns_configured', true)
+          .maybeSingle();
+
+        if (customDomain?.businesses) {
+          business = customDomain.businesses;
+        }
+      }
+
+      // If not found via custom domain, proceed with existing logic
+      if (!business && isAdminRoute) {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
@@ -69,7 +86,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             business = data;
           }
         }
-      } else {
+      } else if (!business) {
         const pathParts = currentPath.split('/').filter(p => p);
         const firstSegment = pathParts[0];
 

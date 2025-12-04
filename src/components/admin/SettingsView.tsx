@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Mail, MessageSquare, Bell, Building, CreditCard, Crown, Store, Layout } from 'lucide-react';
+import { Settings, Mail, MessageSquare, Bell, Building, CreditCard, Crown, Store, Layout, Globe } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -7,8 +7,9 @@ import CustomerEmails from './settings/CustomerEmails';
 import NotificationTemplates from './settings/NotificationTemplates';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
+import CustomDomainSettings from './settings/CustomDomainSettings';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'payment' | 'email' | 'sms' | 'templates' | 'subscription';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'payment' | 'email' | 'sms' | 'templates' | 'subscription' | 'domains';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -16,6 +17,7 @@ export default function SettingsView() {
   const tabs = [
     { id: 'profile' as SettingsTab, name: 'Store Profile', icon: Store },
     { id: 'general' as SettingsTab, name: 'General', icon: Building },
+    { id: 'domains' as SettingsTab, name: 'Custom Domains', icon: Globe },
     { id: 'appearance' as SettingsTab, name: 'Booking Form', icon: Layout },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
@@ -55,6 +57,7 @@ export default function SettingsView() {
       <div className="bg-white border border-stone-200 p-6">
         {activeTab === 'profile' && <StoreProfile />}
         {activeTab === 'general' && <GeneralSettings />}
+        {activeTab === 'domains' && <CustomDomainSettings />}
         {activeTab === 'appearance' && <BookingFormAppearance />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}

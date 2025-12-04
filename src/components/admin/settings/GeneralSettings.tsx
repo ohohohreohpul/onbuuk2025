@@ -499,65 +499,40 @@ export default function GeneralSettings() {
       <div>
         <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">
           <Globe className="w-5 h-5" />
-          <span>Domain Settings</span>
-          {!premiumFeatures.isPro && (
-            <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full flex items-center space-x-1">
-              <Crown className="w-3 h-3" />
-              <span>Pro</span>
-            </span>
-          )}
+          <span>Subdomain Settings</span>
         </h3>
 
         <div className="space-y-4">
-          {premiumFeatures.isPro ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Subdomain
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={business.subdomain || ''}
-                    onChange={(e) => setBusiness({ ...business, subdomain: e.target.value })}
-                    className="flex-1 px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
-                    placeholder="yourbusiness"
-                  />
-                  <span className="text-stone-600">.buuk.io</span>
-                </div>
-                <p className="text-xs text-stone-500 mt-1">
-                  Your booking page will be accessible at this subdomain
-                </p>
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-2">
+              Subdomain
+            </label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={business.subdomain || ''}
+                onChange={(e) => setBusiness({ ...business, subdomain: e.target.value })}
+                className="flex-1 px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
+                placeholder="yourbusiness"
+              />
+              <span className="text-stone-600">.buuk.io</span>
+            </div>
+            <p className="text-xs text-stone-500 mt-1">
+              Your booking page will be accessible at this subdomain
+            </p>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Custom Domain (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={business.custom_domain || ''}
-                  onChange={(e) => setBusiness({ ...business, custom_domain: e.target.value })}
-                  className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
-                  placeholder="bookings.yourbusiness.com"
-                />
-                <p className="text-xs text-stone-500 mt-1">
-                  Connect your own domain for a professional look
-                </p>
+          {premiumFeatures.isPro && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded">
+              <div className="flex items-start space-x-2">
+                <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-blue-900 font-medium">Want to use your own domain?</p>
+                  <p className="text-sm text-blue-800 mt-1">
+                    Go to the <strong>Custom Domains</strong> tab to connect your own domain like bookings.yourbusiness.com
+                  </p>
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="bg-stone-50 border border-stone-200 rounded p-4 text-center">
-              <Globe className="w-8 h-8 text-stone-400 mx-auto mb-2" />
-              <p className="text-sm text-stone-600 mb-2">Upgrade to Pro to use custom domains and subdomains</p>
-              <button
-                type="button"
-                className="text-sm text-amber-600 hover:text-amber-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleUpgrade}
-                disabled={upgrading}
-              >
-                {upgrading ? 'Processing...' : 'Upgrade Now →'}
-              </button>
             </div>
           )}
         </div>
