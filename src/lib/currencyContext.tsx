@@ -1,0 +1,100 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from './supabase';
+import { formatCurrency as formatCurrencyUtil, getCurrencySymbol as getSymbol } from './currency';
+import { useTenant } from './tenantContext';
+
+interface CurrencyContextType {
+  currency: string;
+  setCurrency: (currency: string) => void;
+  formatPrice: (cents: number) => string;
+  formatAmount: (amount: number) => string;
+  currencySymbol: string;
+}
+
+const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+
+export function CurrencyProvider({ children }: { children: ReactNode }) {
+  const { businessId } = useTenant();
+  const [currency, setCurrencyState] = useState<string>('USD');
+
+  useEffect(() => {
+    loadCurrency();
+  }, [businessId]);
+
+  const loadCurrency = async () => {
+    if (!businessId) return;
+
+    const { data } = await supabase
+      .from('site_settings')
+      .select('currency')
+      .eq('business_id', businessId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (data?.currency) {
+      setCurrencyState(data.currency);
+    }
+  };
+
+  const setCurrency = async (newCurrency: string) => {
+    setCurrencyState(newCurrency);
+
+    if (businessId) {
+      const { data: existing } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('business_id', businessId)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('site_settings')
+          .update({ currency: newCurrency })
+          .eq('business_id', businessId);
+      } else {
+        await supabase
+          .from('site_settings')
+          .insert({
+            key: `currency_${businessId}`,
+            value: newCurrency,
+            category: 'general',
+            business_id: businessId,
+            currency: newCurrency,
+          });
+      }
+    }
+  };
+
+  const formatPrice = (cents: number): string => {
+    return formatCurrencyUtil(cents, currency);
+  };
+
+  const formatAmount = (amount: number): string => {
+    return formatCurrencyUtil(Math.round(amount * 100), currency);
+  };
+
+  const currencySymbol = getSymbol(currency);
+
+  return (
+    <CurrencyContext.Provider
+      value={{
+        currency,
+        setCurrency,
+        formatPrice,
+        formatAmount,
+        currencySymbol,
+      }}
+    >
+      {children}
+    </CurrencyContext.Provider>
+  );
+}
+
+export function useCurrency() {
+  const context = useContext(CurrencyContext);
+  if (context === undefined) {
+    throw new Error('useCurrency must be used within a CurrencyProvider');
+  }
+  return context;
+}

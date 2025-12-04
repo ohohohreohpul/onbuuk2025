@@ -1,0 +1,371 @@
+import { useState, useEffect } from 'react';
+import { X, Trash2, CreditCard, Calendar, DollarSign, Download, Mail } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useCurrency } from '../../lib/currencyContext';
+import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
+
+interface GiftCard {
+  id: string;
+  code: string;
+  original_value_cents: number;
+  current_balance_cents: number;
+  status: string;
+  purchased_at: string;
+  expires_at: string | null;
+  purchased_for_email: string | null;
+}
+
+interface Transaction {
+  id: string;
+  amount_cents: number;
+  transaction_type: string;
+  description: string;
+  created_at: string;
+  created_by: string | null;
+}
+
+interface GiftCardDetailModalProps {
+  giftCard: GiftCard;
+  businessName: string;
+  designUrl: string | null;
+  termsAndConditions: string | null;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+export function GiftCardDetailModal({
+  giftCard,
+  businessName,
+  designUrl,
+  termsAndConditions,
+  onClose,
+  onUpdate,
+}: GiftCardDetailModalProps) {
+  const { currencySymbol, formatAmount } = useCurrency();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [redeeming, setRedeeming] = useState(false);
+  const [redeemAmount, setRedeemAmount] = useState('');
+  const [redeemDescription, setRedeemDescription] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [giftCard.id]);
+
+  const loadTransactions = async () => {
+    const { data } = await supabase
+      .from('gift_card_transactions')
+      .select('*')
+      .eq('gift_card_id', giftCard.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setTransactions(data);
+    }
+    setLoading(false);
+  };
+
+  const handleRedeem = async () => {
+    if (!redeemAmount || parseFloat(redeemAmount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    const amountCents = Math.round(parseFloat(redeemAmount) * 100);
+
+    if (amountCents > giftCard.current_balance_cents) {
+      alert('Redemption amount exceeds current balance');
+      return;
+    }
+
+    setRedeeming(true);
+
+    try {
+      const newBalance = giftCard.current_balance_cents - amountCents;
+      const newStatus = newBalance === 0 ? 'fully_redeemed' : 'active';
+
+      await supabase.from('gift_card_transactions').insert({
+        gift_card_id: giftCard.id,
+        amount_cents: amountCents,
+        transaction_type: 'redemption',
+        description: redeemDescription || 'Manual redemption',
+      });
+
+      await supabase
+        .from('gift_cards')
+        .update({
+          current_balance_cents: newBalance,
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', giftCard.id);
+
+      setRedeemAmount('');
+      setRedeemDescription('');
+      loadTransactions();
+      onUpdate();
+    } catch (error) {
+      console.error('Error redeeming gift card:', error);
+      alert('Failed to redeem gift card');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this gift card? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const { error } = await supabase.from('gift_cards').delete().eq('id', giftCard.id);
+
+      if (error) throw error;
+
+      alert('Gift card deleted successfully');
+      onUpdate();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting gift card:', error);
+      alert('Failed to delete gift card');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      await downloadGiftCardPDF({
+        code: giftCard.code,
+        amount: giftCard.original_value_cents / 100,
+        designUrl: designUrl,
+        termsAndConditions: termsAndConditions,
+        businessName: businessName,
+        expiresAt: giftCard.expires_at,
+        currencySymbol: currencySymbol,
+      });
+    } catch (error) {
+      console.error('Error downloading gift card:', error);
+      alert('Failed to download gift card PDF');
+    }
+  };
+
+  const isExpired = giftCard.expires_at && new Date(giftCard.expires_at) < new Date();
+  const balancePercentage = (giftCard.current_balance_cents / giftCard.original_value_cents) * 100;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">Gift Card Details</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="col-span-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="w-6 h-6" />
+                  <span className="text-sm opacity-90">Gift Card</span>
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    giftCard.status === 'active'
+                      ? 'bg-green-500 text-white'
+                      : giftCard.status === 'fully_redeemed'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-red-500 text-white'
+                  }`}
+                >
+                  {giftCard.status.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold">
+                  {formatAmount(giftCard.current_balance_cents / 100)}
+                </div>
+                <div className="text-sm opacity-90">
+                  Original Value: {formatAmount(giftCard.original_value_cents / 100)}
+                </div>
+                <div className="w-full bg-blue-400 rounded-full h-2 mt-3">
+                  <div
+                    className="bg-white h-2 rounded-full transition-all"
+                    style={{ width: `${balancePercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-gray-600">Code:</span>
+                <div className="font-mono font-medium text-gray-800 mt-1">{giftCard.code}</div>
+              </div>
+              <div>
+                <span className="text-gray-600">Purchased:</span>
+                <div className="font-medium text-gray-800 mt-1">
+                  {new Date(giftCard.purchased_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              {giftCard.expires_at && (
+                <div>
+                  <span className="text-gray-600">Expires:</span>
+                  <div
+                    className={`font-medium mt-1 ${
+                      isExpired ? 'text-red-600' : 'text-gray-800'
+                    }`}
+                  >
+                    {new Date(giftCard.expires_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                    {isExpired && ' (Expired)'}
+                  </div>
+                </div>
+              )}
+              {giftCard.purchased_for_email && (
+                <div>
+                  <span className="text-gray-600">Recipient:</span>
+                  <div className="font-medium text-gray-800 mt-1">
+                    {giftCard.purchased_for_email}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 pt-3 border-t border-gray-200">
+            <button
+              onClick={handleDownload}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download PDF</span>
+            </button>
+            {giftCard.purchased_for_email && (
+              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded transition-colors">
+                <Mail className="w-4 h-4" />
+                <span>Email PDF</span>
+              </button>
+            )}
+          </div>
+
+          {giftCard.status === 'active' && !isExpired && (
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+                <DollarSign className="w-5 h-5" />
+                <span>Redeem Gift Card</span>
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    value={redeemAmount}
+                    onChange={(e) => setRedeemAmount(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                    step="0.01"
+                    max={giftCard.current_balance_cents / 100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={redeemDescription}
+                    onChange={(e) => setRedeemDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Booking #123"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleRedeem}
+                disabled={redeeming || !redeemAmount}
+                className="mt-4 w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {redeeming ? 'Processing...' : 'Redeem Amount'}
+              </button>
+            </div>
+          )}
+
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+              <Calendar className="w-5 h-5" />
+              <span>Transaction History</span>
+            </h3>
+            {loading ? (
+              <div className="text-center py-4 text-gray-500">Loading...</div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">No transactions yet</div>
+            ) : (
+              <div className="space-y-2">
+                {transactions.map((txn) => (
+                  <div
+                    key={txn.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                  >
+                    <div>
+                      <div className="font-medium text-gray-800">{txn.description}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(txn.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`font-semibold ${
+                          txn.transaction_type === 'redemption'
+                            ? 'text-red-600'
+                            : 'text-green-600'
+                        }`}
+                      >
+                        {txn.transaction_type === 'redemption' ? '-' : '+'}
+                        {formatAmount(Math.abs(txn.amount_cents / 100))}
+                      </div>
+                      <div className="text-xs text-gray-500 capitalize">
+                        {txn.transaction_type}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{deleting ? 'Deleting...' : 'Delete Gift Card'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

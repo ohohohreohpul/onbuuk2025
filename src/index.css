@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1c1917;
+  --color-primary-hover: #44403c;
+  --color-secondary: #78716c;
+  --color-text-primary: #1c1917;
+  --color-text-secondary: #57534e;
+  --color-background: #ffffff;
+  --color-background-secondary: #fafaf9;
+  --color-border: #e7e5e4;
+  --color-accent: #1c1917;
+}
+
+@layer utilities {
+  .bg-custom-primary {
+    background-color: var(--color-primary);
+  }
+
+  .bg-custom-primary-hover:hover {
+    background-color: var(--color-primary-hover);
+  }
+
+  .text-custom-primary {
+    color: var(--color-text-primary);
+  }
+
+  .text-custom-secondary {
+    color: var(--color-text-secondary);
+  }
+
+  .border-custom {
+    border-color: var(--color-border);
+  }
+
+  .bg-custom-secondary {
+    background-color: var(--color-background-secondary);
+  }
+}
