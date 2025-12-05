@@ -7,12 +7,16 @@ import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 interface CustomDomain {
   id: string;
   domain: string;
-  status: 'pending' | 'verified' | 'failed';
+  status: 'pending' | 'verified' | 'failed' | 'provisioning' | 'active';
   dns_configured: boolean;
   ssl_status: string;
+  ssl_certificate_status: 'pending' | 'provisioning' | 'active' | 'failed';
   verified_at: string | null;
   last_checked_at: string | null;
   error_message: string | null;
+  netlify_api_error: string | null;
+  netlify_domain_id: string | null;
+  provisioned_at: string | null;
   is_primary: boolean;
   created_at: string;
 }
@@ -203,22 +207,34 @@ export default function CustomDomainSettings() {
   };
 
   const handleRemoveDomain = async (domainId: string, domain: string) => {
-    if (!confirm(`Are you sure you want to remove ${domain}?`)) {
+    if (!confirm(`Are you sure you want to remove ${domain}? This will remove it from Netlify and your database.`)) {
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('custom_domains')
-        .delete()
-        .eq('id', domainId);
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/remove-domain-from-netlify`;
 
-      if (error) throw error;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ domain_id: domainId }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        alert(`Failed to remove domain: ${result.error}`);
+        return;
+      }
 
       setDomains(domains.filter(d => d.id !== domainId));
+      alert('Domain removed successfully!');
     } catch (error) {
       console.error('Error removing domain:', error);
-      alert('Failed to remove domain.');
+      alert('Failed to remove domain. Please try again.');
     }
   };
 
@@ -229,11 +245,29 @@ export default function CustomDomainSettings() {
   };
 
   const getStatusBadge = (domain: CustomDomain) => {
+    if (domain.status === 'active' || (domain.status === 'verified' && domain.ssl_certificate_status === 'active')) {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+          <Check className="w-3 h-3" />
+          <span>Active</span>
+        </span>
+      );
+    }
+
+    if (domain.status === 'provisioning') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          <span>Adding to Platform</span>
+        </span>
+      );
+    }
+
     if (domain.status === 'verified' && domain.dns_configured) {
       return (
         <span className="inline-flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
           <Check className="w-3 h-3" />
-          <span>Verified</span>
+          <span>DNS Verified</span>
         </span>
       );
     }
@@ -250,7 +284,43 @@ export default function CustomDomainSettings() {
     return (
       <span className="inline-flex items-center space-x-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded">
         <AlertCircle className="w-3 h-3" />
-        <span>Pending</span>
+        <span>Pending DNS</span>
+      </span>
+    );
+  };
+
+  const getSSLBadge = (domain: CustomDomain) => {
+    if (domain.ssl_certificate_status === 'active') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
+          <Check className="w-3 h-3" />
+          <span>SSL Active</span>
+        </span>
+      );
+    }
+
+    if (domain.ssl_certificate_status === 'provisioning') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          <span>SSL Provisioning</span>
+        </span>
+      );
+    }
+
+    if (domain.ssl_certificate_status === 'failed') {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">
+          <X className="w-3 h-3" />
+          <span>SSL Failed</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center space-x-1 px-2 py-1 bg-stone-100 text-stone-600 text-xs font-medium rounded">
+        <AlertCircle className="w-3 h-3" />
+        <span>SSL Pending</span>
       </span>
     );
   };
@@ -359,6 +429,7 @@ export default function CustomDomainSettings() {
                     <div className="flex items-center space-x-3 mb-2">
                       <h4 className="text-lg font-medium text-stone-800">{domain.domain}</h4>
                       {getStatusBadge(domain)}
+                      {domain.netlify_domain_id && getSSLBadge(domain)}
                       {domain.is_primary && (
                         <span className="px-2 py-1 bg-stone-800 text-white text-xs font-medium rounded">
                           Primary
@@ -373,9 +444,19 @@ export default function CustomDomainSettings() {
                       </div>
                     )}
 
+                    {domain.netlify_api_error && (
+                      <div className="flex items-start space-x-2 text-sm text-red-600 mb-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>Platform error: {domain.netlify_api_error}</span>
+                      </div>
+                    )}
+
                     <div className="text-sm text-stone-600 space-y-1">
                       {domain.verified_at && (
-                        <p>Verified: {new Date(domain.verified_at).toLocaleDateString()}</p>
+                        <p>DNS Verified: {new Date(domain.verified_at).toLocaleDateString()}</p>
+                      )}
+                      {domain.provisioned_at && (
+                        <p>Added to Platform: {new Date(domain.provisioned_at).toLocaleDateString()}</p>
                       )}
                       {domain.last_checked_at && (
                         <p className="text-xs">
@@ -383,6 +464,18 @@ export default function CustomDomainSettings() {
                         </p>
                       )}
                     </div>
+
+                    {domain.status === 'provisioning' && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <div className="flex items-start space-x-2">
+                          <RefreshCw className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                          <div className="text-sm text-blue-800">
+                            <p className="font-medium">Adding domain to platform...</p>
+                            <p className="mt-1 text-xs">This usually takes 5-15 minutes. SSL certificate will be provisioned automatically.</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -508,23 +601,43 @@ export default function CustomDomainSettings() {
       )}
 
       <div className="bg-stone-50 border border-stone-200 rounded-lg p-6">
-        <h4 className="font-medium text-stone-800 mb-3">Need Help?</h4>
-        <div className="text-sm text-stone-600 space-y-2">
-          <p>
-            <strong>Step 1:</strong> Add your custom domain above
-          </p>
-          <p>
-            <strong>Step 2:</strong> Go to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)
-          </p>
-          <p>
-            <strong>Step 3:</strong> Add a CNAME record with the values shown above
-          </p>
-          <p>
-            <strong>Step 4:</strong> Wait a few minutes and click "Verify" to check the DNS configuration
-          </p>
-          <p>
-            <strong>Step 5:</strong> Once verified, Netlify will automatically provision an SSL certificate
-          </p>
+        <h4 className="font-medium text-stone-800 mb-3">Setup Process</h4>
+        <div className="text-sm text-stone-600 space-y-3">
+          <div className="flex items-start space-x-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center text-xs font-medium">1</span>
+            <div>
+              <p className="font-medium text-stone-800">Add Your Domain</p>
+              <p className="text-xs mt-1">Enter your custom domain (e.g., booking.yourdomain.com)</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center text-xs font-medium">2</span>
+            <div>
+              <p className="font-medium text-stone-800">Configure DNS</p>
+              <p className="text-xs mt-1">Add a CNAME record at your domain registrar pointing to {netlifyUrl}</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center text-xs font-medium">3</span>
+            <div>
+              <p className="font-medium text-stone-800">Verify DNS</p>
+              <p className="text-xs mt-1">Wait a few minutes and click "Verify" - DNS changes can take 5-60 minutes</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center text-xs font-medium">4</span>
+            <div>
+              <p className="font-medium text-stone-800">Platform Configuration</p>
+              <p className="text-xs mt-1">Your domain is automatically added to our platform after DNS verification</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-stone-800 text-white rounded-full flex items-center justify-center text-xs font-medium">5</span>
+            <div>
+              <p className="font-medium text-stone-800">SSL Certificate</p>
+              <p className="text-xs mt-1">SSL certificate is provisioned automatically (5-15 minutes) - your domain will be live with HTTPS</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

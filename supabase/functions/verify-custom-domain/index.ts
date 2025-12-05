@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
       updateData.verified_at = new Date().toISOString();
       updateData.error_message = null;
       updateData.cname_verified_at = new Date().toISOString();
-      updateData.ssl_status = "provisioning"; // Netlify will handle SSL
+      updateData.ssl_certificate_status = "provisioning";
     } else {
       updateData.status = "failed";
       updateData.error_message = dnsCheck.error;
@@ -135,12 +135,45 @@ Deno.serve(async (req: Request) => {
       throw updateError;
     }
 
+    // If DNS is configured and domain hasn't been added to Netlify yet, add it now
+    let netlifyResult = null;
+    if (dnsCheck.configured && !domain.netlify_domain_id) {
+      try {
+        const addDomainResponse = await fetch(
+          `${supabaseUrl}/functions/v1/add-domain-to-netlify`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({ domain_id }),
+          }
+        );
+
+        if (addDomainResponse.ok) {
+          netlifyResult = await addDomainResponse.json();
+        } else {
+          const errorData = await addDomainResponse.json();
+          console.error("Failed to add domain to Netlify:", errorData);
+          netlifyResult = { success: false, error: errorData.error };
+        }
+      } catch (netlifyError) {
+        console.error("Error calling add-domain-to-netlify:", netlifyError);
+        netlifyResult = {
+          success: false,
+          error: netlifyError instanceof Error ? netlifyError.message : "Failed to add domain to platform",
+        };
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         configured: dnsCheck.configured,
         error: dnsCheck.error,
         domain: domain.domain,
+        netlify_status: netlifyResult,
       }),
       {
         status: 200,
