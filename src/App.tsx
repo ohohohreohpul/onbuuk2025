@@ -95,6 +95,8 @@ function AppContent() {
     return 'booking';
   });
 
+  const [checkingSession, setCheckingSession] = useState(false);
+
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('type=recovery') || hash.includes('type=magiclink')) {
@@ -104,6 +106,54 @@ function AppContent() {
       setAppMode('reset-password');
     }
   }, []);
+
+  useEffect(() => {
+    if (appMode === 'landing' || appMode === 'login') {
+      checkForExistingSession();
+    }
+  }, [appMode]);
+
+  const checkForExistingSession = async () => {
+    setCheckingSession(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        const { data: adminUser } = await supabase
+          .from('admin_users')
+          .select('id, business_id, role, full_name, businesses(permalink)')
+          .eq('email', session.user.email)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (adminUser) {
+          const adminUserData = {
+            id: adminUser.id,
+            email: session.user.email,
+            full_name: adminUser.full_name,
+            role: adminUser.role,
+            is_active: true,
+            business_id: adminUser.business_id,
+          };
+
+          localStorage.setItem('admin_user', JSON.stringify(adminUserData));
+          localStorage.setItem('current_business_id', adminUser.business_id);
+
+          const permalink = (adminUser.businesses as any)?.permalink;
+          if (permalink) {
+            localStorage.setItem('business_permalink', permalink);
+          }
+
+          window.location.href = '/admin';
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Session check error:', err);
+    } finally {
+      setCheckingSession(false);
+    }
+  };
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
   const [bookingState, setBookingState] = useState<BookingState>({
     service: null,
@@ -128,6 +178,17 @@ function AppContent() {
   }
 
   if (appMode === 'landing') {
+    if (checkingSession) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-stone-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
+            <div className="text-stone-600">Loading...</div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <LandingPage
         onSignIn={() => (window.location.href = '/login')}
@@ -137,6 +198,17 @@ function AppContent() {
   }
 
   if (appMode === 'login') {
+    if (checkingSession) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-stone-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
+            <div className="text-stone-600">Loading...</div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <BusinessLogin
         onBack={() => (window.location.href = '/')}
