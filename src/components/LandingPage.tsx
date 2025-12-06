@@ -2,24 +2,59 @@ import { LogIn, UserPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
 
 interface LandingPageProps {
   onSignIn: () => void;
   onSignUp: () => void;
 }
 
+const carouselImages = [
+  '/pexels-skylar-kang-6045539.jpg',
+  '/pexels-yankrukov-5793650.jpg',
+  '/pexels-rdne-7697677.jpg'
+];
+
 export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % carouselImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen flex bg-white">
-      <div
-        className="hidden lg:block lg:w-[45%] relative overflow-hidden"
-      >
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: "url('https://images.pexels.com/photos/3826679/pexels-photo-3826679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')"
-          }}
-        />
+      <div className="hidden lg:block lg:w-[45%] relative overflow-hidden">
+        {carouselImages.map((image, index) => (
+          <div
+            key={image}
+            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              backgroundImage: `url('${image}')`
+            }}
+          />
+        ))}
+
+        {/* Bottom shadow gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 via-black/30 to-transparent z-10" />
+
+        {/* Tagline */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-12">
+          <div className="flex items-center gap-3 text-white">
+            <span className="text-4xl font-light">Get booked, on</span>
+            <img
+              src="/buuklogo copy copy.png"
+              alt="buuk"
+              className="h-12 object-contain"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 lg:w-[55%] flex flex-col">
