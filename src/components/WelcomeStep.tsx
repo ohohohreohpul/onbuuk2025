@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, Gift, AlertCircle } from 'lucide-react';
+import { User, Calendar, Gift, AlertCircle, Check, Clock, CheckCircle2, X } from 'lucide-react';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCustomerAuth } from '../hooks/useCustomerAuth';
 import { CustomerAuth } from './customer/CustomerAuth';
 import { useTenant } from '../lib/tenantContext';
 import { supabase } from '../lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface WelcomeStepProps {
   onBookAppointment: () => void;
@@ -63,7 +67,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-stone-600">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -72,117 +76,127 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="space-y-3 sm:space-y-4 flex-1">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light text-custom-primary tracking-tight">
-            {getText('welcome', 'title', 'Book Your Appointment')}
-          </h1>
-          <p className="text-custom-secondary text-base sm:text-lg leading-relaxed">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground tracking-tight">
+              {getText('welcome', 'title', 'Book Your Appointment')}
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
             {getText('welcome', 'description', 'Select from our available services and choose a time that works best for you. We look forward to serving you!')}
           </p>
         </div>
-        <button
+        <Button
+          variant="outline"
           onClick={handleAccountClick}
-          className="flex items-center gap-2 px-4 py-2 text-custom-primary hover:bg-stone-100 rounded-lg transition-colors self-start sm:self-auto"
-          title={customer ? 'My Account' : 'Sign In'}
+          className="self-start sm:self-auto"
         >
-          <User className="w-5 h-5" />
-          <span className="text-sm">{customer ? 'My Account' : 'Sign In'}</span>
-        </button>
+          <User className="w-4 h-4 mr-2" />
+          {customer ? 'My Account' : 'Sign In'}
+        </Button>
       </div>
 
       {showAuth && <CustomerAuth onClose={() => setShowAuth(false)} />}
 
       {showCancelledMessage && (
-        <div className="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded flex items-start space-x-2 sm:space-x-3 animate-fade-in">
-          <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-xs sm:text-sm text-amber-800 flex-1">
-            <p className="font-medium">Payment Cancelled</p>
-            <p className="mt-1">Your payment was cancelled. No charges were made. You can try booking again whenever you're ready.</p>
-          </div>
-          <button
+        <Alert className="relative">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Payment Cancelled</AlertTitle>
+          <AlertDescription>
+            Your payment was cancelled. No charges were made. You can try booking again whenever you're ready.
+          </AlertDescription>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 h-6 w-6"
             onClick={() => setShowCancelledMessage(false)}
-            className="text-amber-600 hover:text-amber-800 flex-shrink-0"
-            aria-label="Close"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+            <X className="h-4 w-4" />
+          </Button>
+        </Alert>
       )}
 
-      <div className="space-y-4 sm:space-y-6 pt-2 sm:pt-4">
-        <div className="flex items-start space-x-3 sm:space-x-4">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-stone-800 font-medium mb-1 text-sm sm:text-base">Professional Service</h3>
-            <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
-              Our experienced team is dedicated to providing you with exceptional service.
-            </p>
-          </div>
-        </div>
+      <div className="grid gap-4 sm:gap-6">
+        <Card className="border-muted">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Check className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1 text-sm sm:text-base">Professional Service</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                  Our experienced team is dedicated to providing you with exceptional service.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex items-start space-x-3 sm:space-x-4">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-stone-800 font-medium mb-1 text-sm sm:text-base">Flexible Scheduling</h3>
-            <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
-              Choose the time that works best for you with our easy online booking system.
-            </p>
-          </div>
-        </div>
+        <Card className="border-muted">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1 text-sm sm:text-base">Flexible Scheduling</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                  Choose the time that works best for you with our easy online booking system.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex items-start space-x-3 sm:space-x-4">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-stone-800 font-medium mb-1 text-sm sm:text-base">Easy Process</h3>
-            <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
-              Simple and straightforward booking in just a few steps. Confirmation sent instantly.
-            </p>
-          </div>
-        </div>
+        <Card className="border-muted">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1 text-sm sm:text-base">Easy Process</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                  Simple and straightforward booking in just a few steps. Confirmation sent instantly.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="pt-6 sm:pt-8 space-y-3 sm:space-y-4">
+      <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4">
         {!enableBookings && !enableGiftCards && (
-          <div className="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded flex items-start space-x-2 sm:space-x-3">
-            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="text-xs sm:text-sm text-amber-800">
-              <p className="font-medium">Online booking is temporarily unavailable</p>
-              <p className="mt-1">Please contact us directly to make a booking or purchase a gift card.</p>
-            </div>
-          </div>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Online booking is temporarily unavailable</AlertTitle>
+            <AlertDescription>
+              Please contact us directly to make a booking or purchase a gift card.
+            </AlertDescription>
+          </Alert>
         )}
 
         {enableBookings && (
-          <button
+          <Button
             onClick={onBookAppointment}
-            className="w-full px-6 sm:px-8 py-3 sm:py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 flex items-center justify-center gap-2 sm:gap-3 min-h-[44px] touch-manipulation"
+            size="lg"
+            className="w-full h-12"
           >
-            <Calendar className="w-5 h-5" />
+            <Calendar className="w-5 h-5 mr-2" />
             {getText('welcome', 'button', 'Book an Appointment')}
-          </button>
+          </Button>
         )}
 
         {enableGiftCards && (
-          <button
+          <Button
             onClick={onPurchaseGiftCard}
-            className="w-full px-6 sm:px-8 py-3 sm:py-4 border-2 border-custom-primary text-custom-primary text-sm tracking-wide hover:bg-stone-50 transition-colors duration-200 flex items-center justify-center gap-2 sm:gap-3 min-h-[44px] touch-manipulation"
+            variant="outline"
+            size="lg"
+            className="w-full h-12"
           >
-            <Gift className="w-5 h-5" />
+            <Gift className="w-5 h-5 mr-2" />
             Purchase a Gift Card
-          </button>
+          </Button>
         )}
       </div>
     </div>
