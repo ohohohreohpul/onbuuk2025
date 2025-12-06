@@ -119,7 +119,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         <Card className="border-muted">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Check className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">
@@ -135,7 +135,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         <Card className="border-muted">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">
@@ -151,7 +151,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         <Card className="border-muted">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1">

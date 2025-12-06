@@ -10,11 +10,11 @@ interface LandingPageProps {
 
 export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-white to-slate-50">
+    <div className="min-h-screen flex bg-white">
       <div
         className="hidden lg:block lg:w-[45%] relative overflow-hidden"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary/70 z-10" />
+        <div className="absolute inset-0 bg-primary/95 z-10" />
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -75,7 +75,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               <Card className="group cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all duration-200" onClick={onSignIn}>
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <div className="w-12 h-12 bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <LogIn className="w-6 h-6 text-primary" />
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -94,10 +94,10 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                 </CardContent>
               </Card>
 
-              <Card className="group cursor-pointer border-2 border-primary bg-gradient-to-br from-primary to-primary/90 text-primary-foreground hover:shadow-xl transition-all duration-200" onClick={onSignUp}>
+              <Card className="group cursor-pointer border-2 border-primary bg-primary text-primary-foreground hover:shadow-xl transition-all duration-200" onClick={onSignUp}>
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors backdrop-blur-sm">
+                    <div className="w-12 h-12 bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors backdrop-blur-sm">
                       <UserPlus className="w-6 h-6 text-white" />
                     </div>
                     <Badge className="bg-white/20 border-white/40 text-white backdrop-blur-sm text-xs">
