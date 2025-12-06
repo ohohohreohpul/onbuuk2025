@@ -28,6 +28,7 @@ import GiftCardSuccess from './components/GiftCardSuccess';
 import PaymentCancelled from './components/PaymentCancelled';
 import { useTenant } from './lib/tenantContext';
 import { CurrencyProvider } from './lib/currencyContext';
+import { ThemeProvider } from './lib/themeContext';
 import { supabase, Service, ServiceDuration } from './lib/supabase';
 import { useBookingCustomization } from './hooks/useBookingCustomization';
 
@@ -457,9 +458,11 @@ function AppContent() {
 function App() {
   return (
     <TenantProvider>
-      <CurrencyProvider>
-        <AppContent />
-      </CurrencyProvider>
+      <ThemeProvider>
+        <CurrencyProvider>
+          <AppContent />
+        </CurrencyProvider>
+      </ThemeProvider>
     </TenantProvider>
   );
 }
