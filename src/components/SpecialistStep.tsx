@@ -59,7 +59,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-[#008374] animate-spin"></div>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
       <div className="flex-shrink-0 mb-4">
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-4 inline-flex items-center"
+          className="text-gray-600 hover:text-black text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
@@ -83,29 +83,29 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           onClick={() => setSelectedSpecialistId(null)}
           className={`w-full text-left p-5 border transition-all duration-200 ${
             selectedSpecialistId === null
-              ? 'border-stone-800 bg-stone-50'
-              : 'border-stone-200 hover:border-stone-300 bg-white'
+              ? 'border-[#008374] bg-[#f9f9f9]'
+              : 'border-gray-200 hover:border-[#008374] bg-white'
           }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-stone-600" />
+              <div className="w-12 h-12 bg-[#008374] bg-opacity-10 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-[#008374]" />
               </div>
               <div>
-                <h3 className="text-stone-800 font-medium">Anyone Available</h3>
-                <p className="text-stone-600 text-sm mt-0.5">
+                <h3 className="text-black font-medium">Anyone Available</h3>
+                <p className="text-gray-600 text-sm mt-0.5">
                   We'll assign the first available specialist
                 </p>
               </div>
             </div>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 ${
               selectedSpecialistId === null
                 ? 'bg-custom-primary border-custom'
-                : 'border-stone-300'
+                : 'border-gray-300'
             }`}>
               {selectedSpecialistId === null && (
-                <div className="w-2 h-2 bg-white rounded-full"></div>
+                <div className="w-2.5 h-2.5 bg-white"></div>
               )}
             </div>
           </div>
@@ -113,10 +113,10 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
 
         <div className="relative py-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-stone-200"></div>
+            <div className="w-full border-t border-gray-200"></div>
           </div>
           <div className="relative flex justify-center">
-            <span className="px-3 bg-white text-xs text-stone-500 uppercase tracking-wider">
+            <span className="px-3 bg-white text-xs text-gray-500 uppercase tracking-wider">
               or choose a specialist
             </span>
           </div>
@@ -128,13 +128,13 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
             onClick={() => setSelectedSpecialistId(specialist.id)}
             className={`w-full text-left p-5 border transition-all duration-200 ${
               selectedSpecialistId === specialist.id
-                ? 'border-stone-800 bg-stone-50'
-                : 'border-stone-200 hover:border-stone-300 bg-white'
+                ? 'border-[#008374] bg-[#f9f9f9]'
+                : 'border-gray-200 hover:border-[#008374] bg-white'
             }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 rounded-full bg-stone-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-12 h-12 bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {specialist.image_url ? (
                     <img
                       src={specialist.image_url}
@@ -142,25 +142,25 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-5 h-5 text-stone-600" />
+                    <User className="w-5 h-5 text-gray-600" />
                   )}
                 </div>
                 <div>
-                  <h3 className="text-stone-800 font-medium">{specialist.name}</h3>
+                  <h3 className="text-black font-medium">{specialist.name}</h3>
                   {specialist.bio && (
-                    <p className="text-stone-600 text-sm mt-1 leading-relaxed">
+                    <p className="text-gray-600 text-sm mt-1 leading-relaxed">
                       {specialist.bio}
                     </p>
                   )}
                 </div>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-4 ${
+              <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 ml-4 ${
                 selectedSpecialistId === specialist.id
                   ? 'bg-custom-primary border-custom'
-                  : 'border-stone-300'
+                  : 'border-gray-300'
               }`}>
                 {selectedSpecialistId === specialist.id && (
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                  <div className="w-2.5 h-2.5 bg-white"></div>
                 )}
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
         ))}
 
         {specialists.length === 0 && (
-          <div className="text-center py-6 text-stone-500 text-sm">
+          <div className="text-center py-6 text-gray-500 text-sm">
             No specialists found for this service. We'll assign one for you.
           </div>
         )}

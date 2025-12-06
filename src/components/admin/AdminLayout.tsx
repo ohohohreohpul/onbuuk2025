@@ -110,9 +110,9 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 flex">
-      <aside className="w-64 bg-stone-900 text-white flex flex-col">
-        <div className="p-6 border-b border-stone-800">
+    <div className="min-h-screen bg-gray-50 flex">
+      <aside className="w-64 bg-[#008374] text-white flex flex-col">
+        <div className="p-6 border-b border-white border-opacity-10">
           {logoUrl ? (
             <div className="flex items-center justify-center mb-3">
               <img
@@ -122,9 +122,9 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
               />
             </div>
           ) : (
-            <h1 className="text-xl font-light tracking-wide text-center mb-3">Admin Panel</h1>
+            <h1 className="text-xl font-semibold tracking-wide text-center mb-3">Admin Panel</h1>
           )}
-          <p className="text-stone-400 text-sm text-center">{adminUser?.full_name}</p>
+          <p className="text-white text-opacity-70 text-sm text-center">{adminUser?.full_name}</p>
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -145,7 +145,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                     <>
                       <button
                         onClick={() => toggleGroup(group.id)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-stone-400 hover:text-white transition-colors text-xs font-medium uppercase tracking-wider"
+                        className="w-full flex items-center justify-between px-3 py-2 text-white text-opacity-70 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider"
                       >
                         <span>{group.label}</span>
                         {isExpanded ? (
@@ -162,10 +162,10 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                               <li key={item.id}>
                                 <button
                                   onClick={() => onViewChange(item.id)}
-                                  className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
+                                  className={`w-full flex items-center space-x-3 px-4 py-2.5 transition-colors ${
                                     currentView === item.id
-                                      ? 'bg-stone-800 text-white'
-                                      : 'text-stone-300 hover:bg-stone-800/50 hover:text-white'
+                                      ? 'bg-[#89BA16] text-white'
+                                      : 'text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 hover:text-white'
                                   }`}
                                 >
                                   <Icon className="w-4 h-4" />
@@ -185,10 +185,10 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                           <li key={item.id}>
                             <button
                               onClick={() => onViewChange(item.id)}
-                              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                              className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${
                                 currentView === item.id
-                                  ? 'bg-stone-800 text-white'
-                                  : 'text-stone-300 hover:bg-stone-800/50 hover:text-white'
+                                  ? 'bg-[#89BA16] text-white'
+                                  : 'text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 hover:text-white'
                               }`}
                             >
                               <Icon className="w-5 h-5" />
@@ -205,12 +205,12 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-stone-800 space-y-2">
+        <div className="p-4 border-t border-white border-opacity-10 space-y-2">
           <a
             href="https://onbuuk.com/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center space-x-3 px-4 py-2 text-stone-400 hover:bg-stone-800/50 hover:text-white rounded-lg transition-colors text-sm"
+            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
           >
             <Book className="w-4 h-4" />
             <span>Documentation</span>
@@ -221,7 +221,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
             href="https://onbuuk.com/support"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center space-x-3 px-4 py-2 text-stone-400 hover:bg-stone-800/50 hover:text-white rounded-lg transition-colors text-sm"
+            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
           >
             <HelpCircle className="w-4 h-4" />
             <span>Get Help</span>
@@ -230,18 +230,18 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
           <button
             onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 text-stone-400 hover:bg-stone-800/50 hover:text-white rounded-lg transition-colors text-sm"
+            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
           >
             <LogOut className="w-4 h-4" />
             <span>Logout</span>
           </button>
 
-          <div className="pt-4 mt-4 border-t border-stone-800">
+          <div className="pt-4 mt-4 border-t border-white border-opacity-10">
             <a
               href="https://onbuuk.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center space-x-2 text-stone-500 hover:text-stone-300 transition-colors text-xs"
+              className="flex items-center justify-center space-x-2 text-white text-opacity-50 hover:text-white hover:text-opacity-70 transition-colors text-xs"
             >
               <span>Powered by</span>
               <span className="font-semibold">Buuk</span>
@@ -251,7 +251,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-white">
         <ProfileCompletionBanner onSetupClick={() => onViewChange('settings')} />
         <div className="max-w-7xl mx-auto p-8">
           {children}

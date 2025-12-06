@@ -47,7 +47,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
       <div className="flex-shrink-0 mb-4">
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-4 inline-flex items-center"
+          className="text-gray-600 hover:text-black text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
@@ -58,9 +58,9 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-5 mb-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4" />
+              <User className="w-4 h-4 text-[#008374]" />
               <span>Full Name</span>
             </div>
           </label>
@@ -69,8 +69,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={`w-full px-4 py-3 border ${
-              errors.name ? 'border-red-300' : 'border-stone-200'
-            } focus:outline-none focus:border-stone-800 transition-colors`}
+              errors.name ? 'border-red-300' : 'border-gray-200'
+            } focus:outline-none focus:border-[#008374] transition-colors`}
             placeholder="Enter your full name"
           />
           {errors.name && (
@@ -79,9 +79,9 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <Mail className="w-4 h-4" />
+              <Mail className="w-4 h-4 text-[#008374]" />
               <span>Email Address</span>
             </div>
           </label>
@@ -90,8 +90,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={`w-full px-4 py-3 border ${
-              errors.email ? 'border-red-300' : 'border-stone-200'
-            } focus:outline-none focus:border-stone-800 transition-colors`}
+              errors.email ? 'border-red-300' : 'border-gray-200'
+            } focus:outline-none focus:border-[#008374] transition-colors`}
             placeholder="your.email@example.com"
           />
           {errors.email && (
@@ -100,9 +100,9 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4" />
+              <Phone className="w-4 h-4 text-[#008374]" />
               <span>Phone Number</span>
             </div>
           </label>
@@ -111,8 +111,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className={`w-full px-4 py-3 border ${
-              errors.phone ? 'border-red-300' : 'border-stone-200'
-            } focus:outline-none focus:border-stone-800 transition-colors`}
+              errors.phone ? 'border-red-300' : 'border-gray-200'
+            } focus:outline-none focus:border-[#008374] transition-colors`}
             placeholder="+49 123 456789"
           />
           {errors.phone && (
@@ -121,14 +121,14 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">
+          <label className="block text-sm font-semibold text-black mb-2">
             Additional Notes (Optional)
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            className="w-full px-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800 transition-colors resize-none"
+            className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] transition-colors resize-none"
             placeholder="Any special requests or health considerations we should know about..."
           />
         </div>

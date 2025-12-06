@@ -61,7 +61,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
       <div className="flex-shrink-0 mb-4">
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-4 inline-flex items-center"
+          className="text-gray-600 hover:text-black text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
@@ -73,8 +73,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">
         <div>
           <div className="flex items-center space-x-2 mb-3">
-            <Calendar className="w-4 h-4 text-stone-600" />
-            <label className="text-sm font-medium text-stone-700">Date</label>
+            <Calendar className="w-4 h-4 text-[#008374]" />
+            <label className="text-sm font-semibold text-black">Date</label>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {availableDays.map((day) => {
@@ -85,11 +85,11 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                   onClick={() => setSelectedDate(dateValue)}
                   className={`p-3 border text-left transition-all duration-200 ${
                     selectedDate === dateValue
-                      ? 'border-stone-800 bg-stone-50'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                      ? 'border-[#008374] bg-[#f9f9f9]'
+                      : 'border-gray-200 hover:border-[#008374] bg-white'
                   }`}
                 >
-                  <div className="text-sm font-medium text-stone-800">
+                  <div className="text-sm font-medium text-black">
                     {formatDateDisplay(day)}
                   </div>
                 </button>
@@ -101,8 +101,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
         {selectedDate && (
           <div>
             <div className="flex items-center space-x-2 mb-3">
-              <Clock className="w-4 h-4 text-stone-600" />
-              <label className="text-sm font-medium text-stone-700">Time</label>
+              <Clock className="w-4 h-4 text-[#008374]" />
+              <label className="text-sm font-semibold text-black">Time</label>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {timeSlots.map((time) => (
@@ -111,11 +111,11 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                   onClick={() => setSelectedTime(time)}
                   className={`p-3 border text-center transition-all duration-200 ${
                     selectedTime === time
-                      ? 'border-stone-800 bg-stone-50'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                      ? 'border-[#008374] bg-[#f9f9f9]'
+                      : 'border-gray-200 hover:border-[#008374] bg-white'
                   }`}
                 >
-                  <div className="text-sm text-stone-800">{time}</div>
+                  <div className="text-sm text-black">{time}</div>
                 </button>
               ))}
             </div>
@@ -127,7 +127,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
         <button
           onClick={handleContinue}
           disabled={!selectedDate || !selectedTime}
-          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-stone-300 disabled:cursor-not-allowed"
+          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           Continue
         </button>

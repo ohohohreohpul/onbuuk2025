@@ -121,7 +121,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-[#008374] animate-spin"></div>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
       <div className="flex-shrink-0 mb-4">
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-4 inline-flex items-center"
+          className="text-gray-600 hover:text-black text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
@@ -142,8 +142,8 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
 
       {products.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-stone-500">
-            <Package className="w-12 h-12 mx-auto mb-3 text-stone-400" />
+          <div className="text-center text-gray-500">
+            <Package className="w-12 h-12 mx-auto mb-3 text-gray-400" />
             <p>No add-on products available for this service</p>
             <button
               onClick={() => onNext([])}
@@ -162,9 +162,9 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
               const isAtMax = maxQty !== null && maxQty !== undefined && quantity >= maxQty;
 
               return (
-                <div key={product.id} className="bg-white border border-stone-200 p-5">
+                <div key={product.id} className="bg-white border border-gray-200 p-5">
                   <div className="flex items-start space-x-4">
-                    <div className="w-20 h-20 flex-shrink-0 bg-stone-100 rounded overflow-hidden">
+                    <div className="w-20 h-20 flex-shrink-0 bg-gray-100 overflow-hidden">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -173,7 +173,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Package className="w-8 h-8 text-stone-400" />
+                          <Package className="w-8 h-8 text-gray-400" />
                         </div>
                       )}
                     </div>
@@ -181,13 +181,13 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="text-lg font-medium text-stone-800">{product.name}</h3>
-                          <p className="text-sm text-stone-600 mt-1">{product.description}</p>
+                          <h3 className="text-lg font-medium text-black">{product.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{product.description}</p>
                           {maxQty && (
-                            <p className="text-xs text-stone-500 mt-1">Max {maxQty} per booking</p>
+                            <p className="text-xs text-gray-500 mt-1">Max {maxQty} per booking</p>
                           )}
                         </div>
-                        <span className="text-lg font-medium text-stone-800 ml-4">
+                        <span className="text-lg font-medium text-black ml-4">
                           {formatPrice(product.price_cents)}
                         </span>
                       </div>
@@ -196,17 +196,17 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                         <button
                           onClick={() => updateQuantity(product.id, -1)}
                           disabled={quantity === 0}
-                          className="w-8 h-8 flex items-center justify-center border border-stone-300 hover:border-stone-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-[#008374] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <Minus className="w-4 h-4 text-stone-600" />
+                          <Minus className="w-4 h-4 text-gray-600" />
                         </button>
-                        <span className="text-stone-800 font-medium w-8 text-center">{quantity}</span>
+                        <span className="text-black font-medium w-8 text-center">{quantity}</span>
                         <button
                           onClick={() => updateQuantity(product.id, 1)}
                           disabled={isAtMax}
-                          className="w-8 h-8 flex items-center justify-center border border-stone-300 hover:border-stone-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-[#008374] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <Plus className="w-4 h-4 text-stone-600" />
+                          <Plus className="w-4 h-4 text-gray-600" />
                         </button>
                       </div>
                     </div>
@@ -218,10 +218,10 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
 
           <div className="flex-shrink-0 space-y-4">
             {selectedProducts.size > 0 && (
-              <div className="p-4 bg-stone-50 border border-stone-200">
+              <div className="p-4 bg-[#f9f9f9] border border-gray-200">
                 <div className="flex items-center justify-between text-lg">
-                  <span className="text-stone-700">Add-Ons Total:</span>
-                  <span className="font-medium text-stone-800">{formatPrice(getTotalPrice())}</span>
+                  <span className="text-gray-700">Add-Ons Total:</span>
+                  <span className="font-medium text-black">{formatPrice(getTotalPrice())}</span>
                 </div>
               </div>
             )}

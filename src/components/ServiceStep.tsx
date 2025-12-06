@@ -86,7 +86,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       <div className="flex-shrink-0 mb-3 sm:mb-4">
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-3 sm:mb-4 inline-flex items-center touch-manipulation"
+          className="text-gray-600 hover:text-black text-sm mb-3 sm:mb-4 inline-flex items-center touch-manipulation transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
@@ -98,7 +98,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 sm:space-y-8 mb-3 sm:mb-4">
         {categories.map((category) => (
           <div key={category}>
-            <h3 className="text-base sm:text-lg font-medium text-stone-800 mb-3 sm:mb-4 pb-2 border-b border-stone-200">
+            <h3 className="text-base sm:text-lg font-semibold text-black mb-3 sm:mb-4 pb-2 border-b border-gray-200">
               {category}
             </h3>
             <div className="space-y-2 sm:space-y-3">
@@ -108,29 +108,29 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                   onClick={() => handleServiceSelect(service)}
                   className={`w-full text-left p-3 sm:p-5 border transition-all duration-200 min-h-[60px] touch-manipulation ${
                     selectedService?.id === service.id
-                      ? 'border-stone-800 bg-stone-50'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
+                      ? 'border-[#008374] bg-[#f9f9f9]'
+                      : 'border-gray-200 hover:border-[#008374] bg-white'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 sm:gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-stone-800 font-medium mb-1 flex items-center gap-2 text-sm sm:text-base flex-wrap">
+                      <h3 className="text-black font-medium mb-1 flex items-center gap-2 text-sm sm:text-base flex-wrap">
                         <span>{service.name}</span>
                         {service.is_pair_massage && (
-                          <span className="text-xs px-2 py-0.5 bg-stone-200 text-stone-700 rounded-full whitespace-nowrap">
+                          <span className="text-xs px-2 py-0.5 bg-[#008374] bg-opacity-10 text-[#008374] border border-[#008374] whitespace-nowrap">
                             Couples Available
                           </span>
                         )}
                       </h3>
-                      <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">{service.description}</p>
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">{service.description}</p>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1 ${
+                    <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1 ${
                       selectedService?.id === service.id
                         ? 'bg-custom-primary border-custom'
-                        : 'border-stone-300'
+                        : 'border-gray-300'
                     }`}>
                       {selectedService?.id === service.id && (
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                        <div className="w-2.5 h-2.5 bg-white"></div>
                       )}
                     </div>
                   </div>
@@ -143,29 +143,29 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
 
       <div className="flex-shrink-0 space-y-4">
         {selectedService?.is_pair_massage && (
-          <div className="p-5 border border-stone-200 bg-stone-50 space-y-3">
-            <p className="text-stone-700 text-sm font-medium">Booking Type</p>
-            <div className="space-y-2">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="booking-type"
-                  checked={!isPairBooking}
-                  onChange={() => setIsPairBooking(false)}
-                  className="w-4 h-4 text-stone-800 focus:ring-stone-500"
-                />
-                <span className="text-stone-700 text-sm">Individual session</span>
-              </label>
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="booking-type"
-                  checked={isPairBooking}
-                  onChange={() => setIsPairBooking(true)}
-                  className="w-4 h-4 text-stone-800 focus:ring-stone-500"
-                />
-                <span className="text-stone-700 text-sm">Couples session (for 2 people)</span>
-              </label>
+          <div className="p-5 border border-gray-200 bg-[#f9f9f9] space-y-3">
+            <p className="text-black text-sm font-semibold">Booking Type</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIsPairBooking(false)}
+                className={`px-4 py-3 text-sm font-medium border-2 transition-all duration-200 ${
+                  !isPairBooking
+                    ? 'bg-[#008374] border-[#008374] text-white'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-[#008374]'
+                }`}
+              >
+                Individual session
+              </button>
+              <button
+                onClick={() => setIsPairBooking(true)}
+                className={`px-4 py-3 text-sm font-medium border-2 transition-all duration-200 ${
+                  isPairBooking
+                    ? 'bg-[#008374] border-[#008374] text-white'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-[#008374]'
+                }`}
+              >
+                Couples session
+              </button>
             </div>
           </div>
         )}
@@ -173,7 +173,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
         <button
           onClick={handleContinue}
           disabled={!selectedService}
-          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-stone-300 disabled:cursor-not-allowed"
+          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           Continue
         </button>
