@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Save, Upload, Image as ImageIcon, Type, X, Palette } from 'lucide-react';
+import { Save, Upload, Image as ImageIcon, Type, X, Palette, Eye, RefreshCw } from 'lucide-react';
+import { useTheme } from '../../lib/themeContext';
 
 interface FormImage {
   id: string;
@@ -68,23 +69,79 @@ const TEXT_FIELDS = {
 };
 
 const COLOR_OPTIONS = [
-  { key: 'primary', label: 'Primary Button Color', description: 'Main button background color' },
-  { key: 'primary_hover', label: 'Primary Button Hover', description: 'Button color on hover' },
-  { key: 'text_primary', label: 'Primary Text Color', description: 'Main headings and titles' },
-  { key: 'text_secondary', label: 'Secondary Text Color', description: 'Descriptions and subtitles' },
-  { key: 'border', label: 'Border Color', description: 'Input borders and dividers' },
-  { key: 'background_secondary', label: 'Secondary Background', description: 'Highlighted sections' },
+  {
+    key: 'primary',
+    label: 'Primary Color',
+    description: 'Main brand color for buttons and accents',
+    category: 'Brand Colors'
+  },
+  {
+    key: 'primary_hover',
+    label: 'Primary Hover',
+    description: 'Color when hovering over primary elements',
+    category: 'Brand Colors'
+  },
+  {
+    key: 'secondary',
+    label: 'Secondary Color',
+    description: 'Secondary brand color for alternative actions',
+    category: 'Brand Colors'
+  },
+  {
+    key: 'secondary_hover',
+    label: 'Secondary Hover',
+    description: 'Color when hovering over secondary elements',
+    category: 'Brand Colors'
+  },
+  {
+    key: 'accent',
+    label: 'Accent Color',
+    description: 'Highlight color for special elements',
+    category: 'Brand Colors'
+  },
+  {
+    key: 'text_primary',
+    label: 'Primary Text',
+    description: 'Main text color for headings and important content',
+    category: 'Text Colors'
+  },
+  {
+    key: 'text_secondary',
+    label: 'Secondary Text',
+    description: 'Lighter text for descriptions and subtitles',
+    category: 'Text Colors'
+  },
+  {
+    key: 'background',
+    label: 'Background',
+    description: 'Main background color',
+    category: 'Backgrounds & Borders'
+  },
+  {
+    key: 'background_secondary',
+    label: 'Secondary Background',
+    description: 'Background for cards and highlighted sections',
+    category: 'Backgrounds & Borders'
+  },
+  {
+    key: 'border',
+    label: 'Border Color',
+    description: 'Color for borders, dividers, and input outlines',
+    category: 'Backgrounds & Borders'
+  },
 ];
 
 export default function BookingFormCustomization() {
+  const { updateTheme, refreshTheme } = useTheme();
   const [images, setImages] = useState<FormImage[]>([]);
   const [texts, setTexts] = useState<FormText[]>([]);
   const [colors, setColors] = useState<FormColor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'images' | 'texts' | 'colors'>('images');
+  const [activeTab, setActiveTab] = useState<'images' | 'texts' | 'colors'>('colors');
   const [selectedStep, setSelectedStep] = useState('default');
+  const [livePreview, setLivePreview] = useState(true);
 
   useEffect(() => {
     fetchCustomization();
@@ -232,6 +289,26 @@ export default function BookingFormCustomization() {
         color_value: value,
       }]);
     }
+
+    if (livePreview) {
+      const colorKeyMap: { [key: string]: string } = {
+        'primary': 'primary',
+        'primary_hover': 'primaryHover',
+        'secondary': 'secondary',
+        'secondary_hover': 'secondaryHover',
+        'text_primary': 'textPrimary',
+        'text_secondary': 'textSecondary',
+        'background': 'background',
+        'background_secondary': 'backgroundSecondary',
+        'border': 'border',
+        'accent': 'accent',
+      };
+
+      const mappedKey = colorKeyMap[colorKey];
+      if (mappedKey) {
+        updateTheme({ [mappedKey]: value });
+      }
+    }
   };
 
   const handleSaveColors = async () => {
@@ -264,9 +341,53 @@ export default function BookingFormCustomization() {
       setSavedMessage('Color customizations saved successfully!');
       setTimeout(() => setSavedMessage(''), 3000);
       await fetchCustomization();
+      await refreshTheme();
     } catch (error) {
       console.error('Error saving colors:', error);
       setSavedMessage('Error saving customizations');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetColors = async () => {
+    if (!confirm('Are you sure you want to reset all colors to defaults?')) return;
+
+    const defaultColors: { [key: string]: string } = {
+      primary: '#008374',
+      primary_hover: '#006b5e',
+      secondary: '#89BA16',
+      secondary_hover: '#72970f',
+      text_primary: '#171717',
+      text_secondary: '#737373',
+      background: '#ffffff',
+      background_secondary: '#f5f5f5',
+      border: '#e5e5e5',
+      accent: '#89BA16',
+    };
+
+    setSaving(true);
+    try {
+      for (const [key, value] of Object.entries(defaultColors)) {
+        await supabase
+          .from('booking_form_colors')
+          .upsert(
+            {
+              color_key: key,
+              color_value: value,
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'color_key',
+            }
+          );
+      }
+      await fetchCustomization();
+      await refreshTheme();
+      setSavedMessage('Colors reset to defaults successfully!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (error) {
+      console.error('Error resetting colors:', error);
     } finally {
       setSaving(false);
     }
@@ -473,71 +594,109 @@ export default function BookingFormCustomization() {
 
       {activeTab === 'colors' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800 flex-1 mr-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800 flex-1">
               <p className="font-medium mb-1">Color Customization</p>
               <p>
-                Customize the color scheme of your booking form. Changes will apply across all booking pages.
+                Customize your brand colors. {livePreview ? 'Changes preview in real-time!' : 'Save to apply changes.'}
               </p>
             </div>
-            <button
-              onClick={handleSaveColors}
-              disabled={saving}
-              className="flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:bg-stone-400"
-            >
-              <Save className="w-5 h-5" />
-              <span>{saving ? 'Saving...' : 'Save Colors'}</span>
-            </button>
-          </div>
-
-          <div className="bg-white border border-stone-200 p-6">
-            <h3 className="text-lg font-medium text-stone-800 mb-6">Color Scheme</h3>
-            <div className="space-y-6">
-              {COLOR_OPTIONS.map((option) => {
-                const defaultColors: { [key: string]: string } = {
-                  primary: '#1c1917',
-                  primary_hover: '#44403c',
-                  text_primary: '#1c1917',
-                  text_secondary: '#57534e',
-                  border: '#e7e5e4',
-                  background_secondary: '#fafaf9',
-                };
-
-                return (
-                  <div key={option.key} className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-stone-700 mb-1">
-                        {option.label}
-                      </label>
-                      <p className="text-xs text-stone-500">{option.description}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="color"
-                        value={getColorValue(option.key, defaultColors[option.key])}
-                        onChange={(e) => handleColorChange(option.key, e.target.value)}
-                        className="w-16 h-10 border border-stone-300 rounded cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={getColorValue(option.key, defaultColors[option.key])}
-                        onChange={(e) => handleColorChange(option.key, e.target.value)}
-                        className="w-28 px-3 py-2 border border-stone-200 focus:outline-none focus:border-stone-800 font-mono text-sm"
-                        placeholder="#000000"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLivePreview(!livePreview)}
+                className={`flex items-center space-x-2 px-4 py-2 border-2 transition-colors ${
+                  livePreview
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+                }`}
+              >
+                <Eye className="w-4 h-4" />
+                <span className="text-sm font-medium">Live Preview</span>
+              </button>
+              <button
+                onClick={handleResetColors}
+                disabled={saving}
+                className="flex items-center space-x-2 px-4 py-2 border-2 border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="text-sm font-medium">Reset</span>
+              </button>
+              <button
+                onClick={handleSaveColors}
+                disabled={saving}
+                className="flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:bg-stone-400"
+              >
+                <Save className="w-5 h-5" />
+                <span>{saving ? 'Saving...' : 'Save Colors'}</span>
+              </button>
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-            <p className="font-medium mb-1">Preview Your Colors</p>
-            <p>
-              Color changes will be applied immediately after saving. Visit your booking page to see the changes in action.
-            </p>
-          </div>
+          {['Brand Colors', 'Text Colors', 'Backgrounds & Borders'].map((category) => {
+            const categoryOptions = COLOR_OPTIONS.filter(opt => opt.category === category);
+            const defaultColors: { [key: string]: string } = {
+              primary: '#008374',
+              primary_hover: '#006b5e',
+              secondary: '#89BA16',
+              secondary_hover: '#72970f',
+              accent: '#89BA16',
+              text_primary: '#171717',
+              text_secondary: '#737373',
+              background: '#ffffff',
+              background_secondary: '#f5f5f5',
+              border: '#e5e5e5',
+            };
+
+            return (
+              <div key={category} className="bg-white border border-stone-200 rounded-lg">
+                <div className="p-6">
+                  <h3 className="text-lg font-medium text-stone-800 mb-6">{category}</h3>
+                  <div className="space-y-5">
+                    {categoryOptions.map((option) => (
+                      <div key={option.key} className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-stone-700 mb-0.5">
+                            {option.label}
+                          </label>
+                          <p className="text-xs text-stone-500">{option.description}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={getColorValue(option.key, defaultColors[option.key])}
+                              onChange={(e) => handleColorChange(option.key, e.target.value)}
+                              className="w-14 h-14 border-2 border-stone-300 rounded-lg cursor-pointer"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={getColorValue(option.key, defaultColors[option.key])}
+                            onChange={(e) => handleColorChange(option.key, e.target.value)}
+                            className="w-32 px-3 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 focus:ring-1 focus:ring-stone-800 font-mono text-sm uppercase"
+                            placeholder="#000000"
+                            pattern="^#[0-9A-Fa-f]{6}$"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {livePreview && (
+            <div className="bg-green-50 border border-green-200 p-4 text-sm text-green-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                <p className="font-medium">Live Preview Active</p>
+              </div>
+              <p className="mt-1">
+                Color changes are being applied in real-time. Don't forget to save your changes!
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
