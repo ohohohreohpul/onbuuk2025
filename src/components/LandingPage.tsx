@@ -1,4 +1,4 @@
-import { LogIn, UserPlus, Sparkles, Calendar, Users, TrendingUp } from 'lucide-react';
+import { LogIn, UserPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,44 +14,12 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
       <div
         className="hidden lg:block lg:w-[45%] relative overflow-hidden"
       >
-        <div className="absolute inset-0 bg-primary/95 z-10" />
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')"
+            backgroundImage: "url('https://images.pexels.com/photos/3826679/pexels-photo-3826679.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')"
           }}
         />
-        <div className="relative z-20 flex flex-col justify-center h-full p-12 text-white">
-          <div className="space-y-6">
-            <Badge className="bg-white/20 border-white/40 text-white backdrop-blur-sm w-fit">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Modern Booking Platform
-            </Badge>
-            <h1 className="text-5xl font-bold leading-tight">
-              Transform Your Booking Experience
-            </h1>
-            <p className="text-xl text-white/90">
-              The all-in-one booking system designed for modern businesses. Streamline appointments, delight customers, and grow faster.
-            </p>
-            <div className="grid grid-cols-3 gap-6 pt-8">
-              <div className="space-y-2">
-                <Calendar className="w-8 h-8" />
-                <div className="text-2xl font-bold">10K+</div>
-                <div className="text-sm text-white/80">Bookings Daily</div>
-              </div>
-              <div className="space-y-2">
-                <Users className="w-8 h-8" />
-                <div className="text-2xl font-bold">500+</div>
-                <div className="text-sm text-white/80">Happy Businesses</div>
-              </div>
-              <div className="space-y-2">
-                <TrendingUp className="w-8 h-8" />
-                <div className="text-2xl font-bold">99.9%</div>
-                <div className="text-sm text-white/80">Uptime</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="flex-1 lg:w-[55%] flex flex-col">
