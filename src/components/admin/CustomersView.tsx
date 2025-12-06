@@ -89,63 +89,63 @@ export default function CustomersView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-light text-stone-800 mb-2">Customers</h1>
-          <p className="text-stone-600">View customer profiles and booking history</p>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Customers</h1>
+          <p className="text-gray-600">View customer profiles and booking history</p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="text-center px-6 py-3 bg-stone-50 border border-stone-200 rounded">
-            <div className="text-2xl font-light text-stone-800">{customers.length}</div>
-            <div className="text-xs text-stone-600 uppercase">Total Customers</div>
+          <div className="text-center px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="text-2xl font-semibold text-gray-900">{customers.length}</div>
+            <div className="text-xs text-gray-600 uppercase tracking-wider font-medium">Total Customers</div>
           </div>
-          <div className="text-center px-6 py-3 bg-stone-50 border border-stone-200 rounded">
-            <div className="text-2xl font-light text-stone-800">
+          <div className="text-center px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="text-2xl font-semibold text-gray-900">
               {formatCurrency(customers.reduce((sum, c) => sum + c.total_spent_cents, 0))}
             </div>
-            <div className="text-xs text-stone-600 uppercase">Total Revenue</div>
+            <div className="text-xs text-gray-600 uppercase tracking-wider font-medium">Total Revenue</div>
           </div>
         </div>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-stone-400" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
           placeholder="Search by name, email, or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800"
+          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
         />
       </div>
 
-      <div className="bg-white border border-stone-200">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-stone-50 border-b border-stone-200">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Contact
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Total Visits
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Total Spent
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   First Visit
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Last Visit
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-200">
+            <tbody className="divide-y divide-gray-100">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-stone-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     {searchTerm ? 'No customers found' : 'No customers yet. Customers are automatically added when bookings are created.'}
                   </td>
                 </tr>
@@ -154,25 +154,25 @@ export default function CustomersView() {
                   <tr
                     key={customer.id}
                     onClick={() => setSelectedCustomer(customer)}
-                    className="hover:bg-stone-50 cursor-pointer transition-colors"
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-stone-200 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-stone-600" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#008374] to-[#006d5f] rounded-full flex items-center justify-center shadow-sm">
+                          <User className="w-5 h-5 text-white" />
                         </div>
-                        <div className="text-sm font-medium text-stone-800">{customer.name}</div>
+                        <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex items-center text-sm text-stone-600">
-                          <Mail className="w-3 h-3 mr-2" />
+                      <div className="flex flex-col space-y-1.5">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Mail className="w-3.5 h-3.5 mr-2 text-gray-400" />
                           {customer.email}
                         </div>
                         {customer.phone && (
-                          <div className="flex items-center text-sm text-stone-600">
-                            <Phone className="w-3 h-3 mr-2" />
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Phone className="w-3.5 h-3.5 mr-2 text-gray-400" />
                             {customer.phone}
                           </div>
                         )}
@@ -180,7 +180,7 @@ export default function CustomersView() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-stone-800">
+                        <span className="text-sm font-semibold text-gray-900">
                           {customer.total_bookings}
                         </span>
                         {customer.total_bookings > 5 && (
@@ -188,13 +188,13 @@ export default function CustomersView() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-stone-800">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
                       {formatCurrency(customer.total_spent_cents)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-stone-600">
+                    <td className="px-6 py-4 text-sm text-gray-600">
                       {formatDate(customer.first_visit_date)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-stone-600">
+                    <td className="px-6 py-4 text-sm text-gray-600">
                       {formatDate(customer.last_visit_date)}
                     </td>
                   </tr>

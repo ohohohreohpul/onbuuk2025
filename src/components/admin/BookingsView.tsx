@@ -180,27 +180,27 @@ export default function BookingsView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-light text-stone-800 mb-2">Bookings</h1>
-        <p className="text-stone-600">Manage all customer bookings</p>
+        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Bookings</h1>
+        <p className="text-gray-600">Manage all customer bookings</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-stone-400" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Search by customer name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
           />
         </div>
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-stone-400" />
+          <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-10 pr-8 py-3 border border-stone-200 focus:outline-none focus:border-stone-800 appearance-none bg-white"
+            className="pl-12 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent appearance-none bg-white transition-all"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -210,78 +210,82 @@ export default function BookingsView() {
         </div>
       </div>
 
-      <div className="bg-white border border-stone-200">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-stone-50 border-b border-stone-200">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Service
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Specialist
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-200">
+            <tbody className="divide-y divide-gray-100">
               {filteredBookings.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-stone-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     No bookings found
                   </td>
                 </tr>
               ) : (
                 filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-stone-50">
+                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="text-sm text-stone-800 font-medium">{booking.customer_name}</div>
-                      <div className="text-xs text-stone-500">{booking.customer_email}</div>
-                      <div className="text-xs text-stone-500">{booking.customer_phone}</div>
+                      <div className="text-sm text-gray-900 font-semibold">{booking.customer_name}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">{booking.customer_email}</div>
+                      <div className="text-xs text-gray-500">{booking.customer_phone}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-stone-800">{booking.service.name}</div>
-                      <div className="text-xs text-stone-500">
+                      <div className="text-sm text-gray-900 font-medium">{booking.service.name}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">
                         {booking.duration.duration_minutes} min
-                        {booking.is_pair_booking && ' • Couples'}
+                        {booking.is_pair_booking && (
+                          <span className="ml-2 px-2 py-0.5 bg-[#008374] bg-opacity-10 text-[#008374] rounded-full text-xs font-medium">
+                            Couples
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-stone-800">{formatDate(booking.booking_date)}</div>
-                      <div className="text-xs text-stone-500">{booking.start_time}</div>
+                      <div className="text-sm text-gray-900 font-medium">{formatDate(booking.booking_date)}</div>
+                      <div className="text-xs text-gray-600 mt-0.5">{booking.start_time}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-stone-600">
+                    <td className="px-6 py-4 text-sm text-gray-700 font-medium">
                       {booking.specialist?.name || 'Anyone'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-stone-800">
+                    <td className="px-6 py-4 text-sm text-gray-900 font-semibold">
                       {formatPrice(booking.duration.price_cents)}
                     </td>
                     <td className="px-6 py-4">
                       <select
                         value={booking.status}
                         onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
-                        className={`px-3 py-1.5 text-xs rounded-full border-0 focus:ring-2 focus:ring-stone-400 cursor-pointer font-medium ${
+                        className={`px-3 py-1.5 text-xs rounded-full border-0 focus:ring-2 focus:ring-[#008374] cursor-pointer font-semibold ${
                           booking.status === 'confirmed'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : booking.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                             : booking.status === 'completed'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
                         }`}
                       >
                         <option value="pending">Pending</option>

@@ -223,60 +223,60 @@ export default function SpecialistsView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-light text-stone-800 mb-2">Specialists</h1>
-          <p className="text-stone-600">Manage massage therapists</p>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Specialists</h1>
+          <p className="text-gray-600">Manage massage therapists</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
+          className="flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all shadow-sm hover:shadow-md"
         >
           <Plus className="w-5 h-5" />
-          <span>Add Specialist</span>
+          <span className="font-medium">Add Specialist</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {specialists.map((specialist) => (
-          <div key={specialist.id} className="bg-white border border-stone-200 p-6">
+          <div key={specialist.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-stone-800 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   {specialist.name}
                   {!specialist.is_active && (
-                    <span className="ml-2 text-xs px-2 py-1 bg-stone-200 text-stone-700 rounded-full">
+                    <span className="ml-2 text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded-full font-medium">
                       Inactive
                     </span>
                   )}
                 </h3>
                 {specialist.bio && (
-                  <p className="text-sm text-stone-600 mt-2">{specialist.bio}</p>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{specialist.bio}</p>
                 )}
               </div>
-              <div className="flex space-x-2 ml-4">
+              <div className="flex flex-wrap gap-1.5 ml-4">
                 <button
                   onClick={() => setWorkingHoursModal({ id: specialist.id, name: specialist.name })}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                   title="Working Hours"
                 >
                   <Clock className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setTimeBlocksModal({ id: specialist.id, name: specialist.name })}
-                  className="text-purple-600 hover:text-purple-800"
+                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-[#008374] hover:bg-opacity-10 rounded-lg transition-all"
                   title="Time Blocks"
                 >
                   <Calendar className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => openEditModal(specialist)}
-                  className="text-stone-600 hover:text-stone-800"
+                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded-lg transition-all"
                   title="Edit"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => deleteSpecialist(specialist.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -284,19 +284,19 @@ export default function SpecialistsView() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-stone-700 uppercase tracking-wider">Services</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="space-y-2 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Services</p>
+              <div className="flex flex-wrap gap-2">
                 {specialistServices[specialist.id]?.map(serviceId => {
                   const service = services.find(s => s.id === serviceId);
                   return service ? (
-                    <span key={serviceId} className="text-xs px-2 py-1 bg-stone-100 text-stone-700 rounded">
+                    <span key={serviceId} className="text-xs px-3 py-1.5 bg-[#008374] bg-opacity-10 text-[#008374] rounded-full font-medium">
                       {service.name}
                     </span>
                   ) : null;
                 })}
                 {(!specialistServices[specialist.id] || specialistServices[specialist.id].length === 0) && (
-                  <span className="text-xs text-stone-500">No services assigned</span>
+                  <span className="text-xs text-gray-500 italic">No services assigned</span>
                 )}
               </div>
             </div>
@@ -322,30 +322,30 @@ export default function SpecialistsView() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-stone-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-2xl font-light text-stone-800">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white rounded-t-xl">
+              <h2 className="text-2xl font-semibold text-gray-900">
                 {editingSpecialist ? 'Edit Specialist' : 'New Specialist'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-stone-400 hover:text-stone-600">
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Full Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Bio</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}

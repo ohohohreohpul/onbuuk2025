@@ -410,14 +410,14 @@ export default function ServicesView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-light text-stone-800 mb-2">Services</h1>
-          <p className="text-stone-600">Manage massage services and pricing</p>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Services</h1>
+          <p className="text-gray-600">Manage massage services and pricing</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-stone-200 focus:outline-none focus:border-stone-800"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
           >
             <option value="all">All Categories</option>
             {existingCategories.map((cat) => (
@@ -426,17 +426,17 @@ export default function ServicesView() {
               </option>
             ))}
           </select>
-          <div className="flex items-center bg-stone-100 rounded">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-stone-500'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
               title="List view"
             >
               <LayoutList className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-stone-500'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
               title="Grid view"
             >
               <LayoutGrid className="w-5 h-5" />
@@ -444,10 +444,10 @@ export default function ServicesView() {
           </div>
           <button
             onClick={openCreateModal}
-            className="flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
-            <span>Add Service</span>
+            <span className="font-medium">Add Service</span>
           </button>
         </div>
       </div>
@@ -458,13 +458,15 @@ export default function ServicesView() {
             <div key={category} className="space-y-4">
               <button
                 onClick={() => toggleCategory(category)}
-                className="flex items-center justify-between w-full p-4 bg-stone-50 hover:bg-stone-100 transition-colors border-l-4 border-stone-800"
+                className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all border-l-4 border-[#008374] rounded-r-lg shadow-sm"
               >
                 <div className="flex items-center space-x-3">
-                  <h2 className="text-xl font-medium text-stone-800">{category}</h2>
-                  <span className="text-sm text-stone-500">({categoryServices.length} services)</span>
+                  <h2 className="text-xl font-semibold text-gray-900">{category}</h2>
+                  <span className="text-sm px-3 py-1 bg-white rounded-full text-gray-600 font-medium shadow-sm">
+                    {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
+                  </span>
                 </div>
-                <span className="text-stone-600">
+                <span className="text-gray-500 text-lg">
                   {collapsedCategories.has(category) ? '▼' : '▲'}
                 </span>
               </button>
@@ -480,54 +482,54 @@ export default function ServicesView() {
                         onDragOver={(e) => handleDragOver(e, service)}
                         onDragEnd={handleDragEnd}
                         onDrop={(e) => handleDrop(e, service)}
-                        className={`bg-white border p-6 cursor-move transition-all ${
+                        className={`bg-white border rounded-xl p-6 cursor-move transition-all ${
                           draggedService?.id === service.id
                             ? 'opacity-50 scale-95'
                             : dragOverService?.id === service.id
-                            ? 'border-stone-800 border-2 shadow-lg scale-105'
-                            : 'border-stone-200 hover:border-stone-400'
+                            ? 'border-[#008374] border-2 shadow-xl scale-105'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-lg'
                         }`}
                       >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start space-x-3 flex-1">
-                <GripVertical className="w-5 h-5 text-stone-400 flex-shrink-0 mt-1" />
+                <GripVertical className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1 hover:text-gray-600 transition-colors" />
                 <div className="flex-1">
                   {service.category && (
-                    <p className="text-xs text-stone-500 mb-1">{service.category}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">{service.category}</p>
                   )}
-                  <h3 className="text-lg font-medium text-stone-800 mb-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {service.name}
                     {service.is_pair_massage && (
-                      <span className="ml-2 text-xs px-2 py-1 bg-stone-200 text-stone-700 rounded-full">
+                      <span className="ml-2 text-xs px-3 py-1 bg-[#008374] bg-opacity-10 text-[#008374] rounded-full font-medium">
                         Couples Available
                       </span>
                     )}
                   </h3>
-                  <p className="text-sm text-stone-600">{service.description}</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{service.description}</p>
                 </div>
               </div>
               <div className="flex space-x-2 ml-4">
                 <button
                   onClick={() => openEditModal(service)}
-                  className="text-stone-600 hover:text-stone-800"
+                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded-lg transition-all"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => deleteService(service.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-stone-700 uppercase tracking-wider">Durations & Pricing</p>
+            <div className="space-y-2 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Durations & Pricing</p>
               {durations[service.id]?.map((duration) => (
-                <div key={duration.id} className="flex justify-between text-sm py-2 border-t border-stone-100">
-                  <span className="text-stone-600">{duration.duration_minutes} minutes</span>
-                  <span className="text-stone-800 font-medium">{formatPrice(duration.price_cents)}</span>
+                <div key={duration.id} className="flex justify-between items-center text-sm py-2.5 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <span className="text-gray-700 font-medium">{duration.duration_minutes} min</span>
+                  <span className="text-gray-900 font-semibold">{formatPrice(duration.price_cents)}</span>
                 </div>
               ))}
             </div>
