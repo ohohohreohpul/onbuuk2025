@@ -136,212 +136,159 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-black mb-2">Dashboard</h1>
-          <p className="text-gray-600 text-lg">Welcome back! Here's what's happening today</p>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Here's what's happening today</p>
         </div>
         <div className="relative" ref={dropdownRef}>
           <Button
             onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-            className="bg-[#008374] hover:bg-[#006b5e] text-white shadow-lg"
-            size="lg"
           >
-            <Plus className="w-5 h-5" />
-            <span>Quick Actions</span>
-            <ChevronDown className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
+            New
+            <ChevronDown className="h-4 w-4 ml-1" />
           </Button>
           {showCreateDropdown && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-              <div className="py-2">
-                <button
-                  onClick={() => handleCreateAction('create-booking')}
-                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#008374] hover:bg-opacity-5 transition-colors flex items-center space-x-3 group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[#008374] bg-opacity-10 flex items-center justify-center group-hover:bg-opacity-20 transition-all">
-                    <Calendar className="w-5 h-5 text-[#008374]" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-black">Create Booking</div>
-                    <div className="text-xs text-gray-500">Schedule new appointment</div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleCreateAction('customers')}
-                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#008374] hover:bg-opacity-5 transition-colors flex items-center space-x-3 group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[#89BA16] bg-opacity-10 flex items-center justify-center group-hover:bg-opacity-20 transition-all">
-                    <Users className="w-5 h-5 text-[#89BA16]" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-black">Add Customer</div>
-                    <div className="text-xs text-gray-500">Create new client profile</div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleCreateAction('gift-cards')}
-                  className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#008374] hover:bg-opacity-5 transition-colors flex items-center space-x-3 group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-amber-500 bg-opacity-10 flex items-center justify-center group-hover:bg-opacity-20 transition-all">
-                    <DollarSign className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-black">Issue Gift Card</div>
-                    <div className="text-xs text-gray-500">Generate new gift card</div>
-                  </div>
-                </button>
-              </div>
+            <div className="absolute right-0 mt-2 w-56 rounded-md border bg-popover p-1 shadow-md z-50">
+              <button
+                onClick={() => handleCreateAction('create-booking')}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                <span>Create Booking</span>
+              </button>
+              <button
+                onClick={() => handleCreateAction('customers')}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                <span>Add Customer</span>
+              </button>
+              <button
+                onClick={() => handleCreateAction('gift-cards')}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                <span>Issue Gift Card</span>
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer bg-gradient-to-br from-[#008374] to-[#006b5e]">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                <Calendar className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex items-center space-x-1 text-white text-opacity-80">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-medium">+12%</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-4xl font-bold text-white">{stats.totalBookings}</p>
-              <p className="text-sm text-white text-opacity-80 font-medium">Total Bookings</p>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Bookings
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalBookings}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <span className="text-[#008374]">+12%</span> from last month
+            </p>
           </CardContent>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16"></div>
         </Card>
 
-        <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer bg-gradient-to-br from-[#89BA16] to-[#729610]">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                <Calendar className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-4xl font-bold text-white">{stats.todayBookings}</p>
-              <p className="text-sm text-white text-opacity-80 font-medium">Today's Bookings</p>
-            </div>
+        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Today's Bookings
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.todayBookings}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Active appointments today
+            </p>
           </CardContent>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16"></div>
         </Card>
 
         {hasPermission('view_revenue') && (
-          <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer bg-gradient-to-br from-amber-500 to-amber-600">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <DollarSign className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex items-center space-x-1 text-white text-opacity-80">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-xs font-medium">+8%</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-4xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
-                <p className="text-sm text-white text-opacity-80 font-medium">Total Revenue</p>
-              </div>
+          <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Revenue
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                <span className="text-[#008374]">+8%</span> from last month
+              </p>
             </CardContent>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16"></div>
           </Card>
         )}
 
-        <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 group cursor-pointer bg-gradient-to-br from-blue-500 to-blue-600">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                <Users className="w-7 h-7 text-white" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-4xl font-bold text-white">{stats.totalCustomers}</p>
-              <p className="text-sm text-white text-opacity-80 font-medium">Unique Customers</p>
-            </div>
+        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Customers
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Unique client profiles
+            </p>
           </CardContent>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-16 -mt-16"></div>
         </Card>
       </div>
 
-      <Card className="border-none shadow-lg">
-        <CardHeader className="border-b border-gray-100">
+      <Card className="rounded-lg border border-border">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold text-black">Recent Bookings</CardTitle>
-              <p className="text-sm text-gray-500 mt-1">Latest appointments and reservations</p>
+              <CardTitle>Recent Bookings</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">View and manage your latest appointments</p>
             </div>
             <Button
               variant="outline"
-              className="border-[#008374] text-[#008374] hover:bg-[#008374] hover:text-white"
+              size="sm"
               onClick={() => onNavigate('bookings')}
             >
               View All
-              <ArrowUpRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Service
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recentBookings.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-400">
-                        <Calendar className="w-12 h-12 mb-3 opacity-50" />
-                        <p className="text-sm font-medium">No bookings yet</p>
-                        <p className="text-xs mt-1">Create your first booking to get started</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  recentBookings.map((booking) => (
-                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                      <td className="px-6 py-4 text-sm font-medium text-black">{booking.customer_name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{booking.service_name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatDate(booking.booking_date)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 font-medium">{booking.start_time}</td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}
-                          className={`${
-                            booking.status === 'confirmed'
-                              ? 'bg-green-100 text-green-700 hover:bg-green-100'
-                              : booking.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100'
-                              : 'bg-red-100 text-red-700 hover:bg-red-100'
-                          } rounded-full`}
-                        >
-                          {booking.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        <CardContent>
+          <div className="space-y-8">
+            {recentBookings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
+                <h3 className="font-medium text-sm">No bookings yet</h3>
+                <p className="text-sm text-muted-foreground mt-1">Create your first booking to get started</p>
+              </div>
+            ) : (
+              recentBookings.map((booking) => (
+                <div key={booking.id} className="flex items-center">
+                  <div className="space-y-1 flex-1">
+                    <p className="text-sm font-medium leading-none">
+                      {booking.customer_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {booking.service_name}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{formatDate(booking.booking_date)}</p>
+                      <p className="text-sm text-muted-foreground">{booking.start_time}</p>
+                    </div>
+                    <Badge
+                      variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}
+                      className="capitalize"
+                    >
+                      {booking.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
