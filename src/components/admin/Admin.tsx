@@ -124,6 +124,11 @@ export default function Admin() {
 
           window.history.replaceState({}, document.title, '/admin');
 
+          if (authCheckTimeoutRef.current) {
+            clearTimeout(authCheckTimeoutRef.current);
+            authCheckTimeoutRef.current = null;
+          }
+
           if (mounted) {
             setIsAuthenticated(true);
             setLoading(false);
@@ -242,6 +247,11 @@ export default function Admin() {
           localStorage.setItem('business_permalink', business.permalink);
 
           window.history.replaceState({}, document.title, '/admin');
+
+          if (authCheckTimeoutRef.current) {
+            clearTimeout(authCheckTimeoutRef.current);
+            authCheckTimeoutRef.current = null;
+          }
 
           if (mounted) {
             setIsAuthenticated(true);

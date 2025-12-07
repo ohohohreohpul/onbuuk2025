@@ -83,6 +83,13 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const fetchDashboardData = async () => {
     if (!mountedRef.current) return;
 
+    const businessId = adminUser?.business_id;
+    if (!businessId) {
+      setError('Unable to determine your business. Please try logging in again.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -101,7 +108,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
             *,
             services (name),
             service_durations (price_cents)
-          `),
+          `)
+          .eq('business_id', businessId),
         { timeout: 8000, retries: 2 }
       );
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
+import { adminAuth } from '../../lib/adminAuth';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, TrendingUp, Clock, Euro, Plus } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
 
@@ -27,6 +28,8 @@ interface BookingStats {
 }
 
 export default function CalendarView() {
+  const adminUser = adminAuth.getCurrentUser();
+  const businessId = adminUser?.business_id;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<BookingStats>({
@@ -53,7 +56,7 @@ export default function CalendarView() {
   }, [currentDate]);
 
   const fetchBookings = async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !businessId) return;
 
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -63,6 +66,7 @@ export default function CalendarView() {
         supabase
           .from('bookings')
           .select('*')
+          .eq('business_id', businessId)
           .gte('booking_date', startOfMonth.toISOString().split('T')[0])
           .lte('booking_date', endOfMonth.toISOString().split('T')[0])
           .order('booking_date', { ascending: true }),
@@ -82,7 +86,7 @@ export default function CalendarView() {
   };
 
   const fetchStats = async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !businessId) return;
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -92,15 +96,15 @@ export default function CalendarView() {
 
       const [todayResult, weekResult, monthResult] = await Promise.all([
         executeWithTimeout(
-          supabase.from('bookings').select('*').eq('booking_date', today),
+          supabase.from('bookings').select('*').eq('business_id', businessId).eq('booking_date', today),
           { timeout: 5000, retries: 1 }
         ),
         executeWithTimeout(
-          supabase.from('bookings').select('*').gte('booking_date', startOfWeek.toISOString().split('T')[0]),
+          supabase.from('bookings').select('*').eq('business_id', businessId).gte('booking_date', startOfWeek.toISOString().split('T')[0]),
           { timeout: 5000, retries: 1 }
         ),
         executeWithTimeout(
-          supabase.from('bookings').select('*').gte('booking_date', startOfMonth.toISOString().split('T')[0]),
+          supabase.from('bookings').select('*').eq('business_id', businessId).gte('booking_date', startOfMonth.toISOString().split('T')[0]),
           { timeout: 5000, retries: 1 }
         )
       ]);
