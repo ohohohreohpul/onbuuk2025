@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
 import { supabase } from '../../lib/supabase';
+import { executeWithTimeout, getUserFriendlyErrorMessage } from '../../lib/queryUtils';
 import { usePermissions } from '../../hooks/usePermissions';
 import { adminAuth } from '../../lib/adminAuth';
 import PermissionGuard from './PermissionGuard';
@@ -40,12 +41,23 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   });
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchDashboardData();
+
+    return () => {
+      mountedRef.current = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -69,16 +81,40 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   };
 
   const fetchDashboardData = async () => {
-    try {
-      const { data: bookings } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          services (name),
-          service_durations (price_cents)
-        `);
+    if (!mountedRef.current) return;
 
-      if (bookings) {
+    setLoading(true);
+    setError(null);
+
+    fetchTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        setError('Dashboard is taking too long to load. Please refresh the page.');
+        setLoading(false);
+      }
+    }, 10000);
+
+    try {
+      const result = await executeWithTimeout(
+        supabase
+          .from('bookings')
+          .select(`
+            *,
+            services (name),
+            service_durations (price_cents)
+          `),
+        { timeout: 8000, retries: 2 }
+      );
+
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      if (result.data && mountedRef.current) {
+        const bookings = result.data;
         const today = new Date().toISOString().split('T')[0];
         const todayCount = bookings.filter(b => b.booking_date === today).length;
 
@@ -108,10 +144,18 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
 
         setRecentBookings(recent);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
+      if (mountedRef.current) {
+        setError(getUserFriendlyErrorMessage(error));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     }
   };
 
@@ -128,6 +172,43 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-8 h-8 border-2 border-gray-300 border-t-[#008374] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back! Here's what's happening today</p>
+          </div>
+        </div>
+
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 mb-1">Unable to load dashboard</h3>
+                <p className="text-sm text-red-700 mb-4">{error}</p>
+                <Button
+                  onClick={() => {
+                    setError(null);
+                    fetchDashboardData();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 hover:bg-red-100"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

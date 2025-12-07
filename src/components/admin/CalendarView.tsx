@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { executeWithTimeout } from '../../lib/queryUtils';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, TrendingUp, Clock, Euro, Plus } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
 
@@ -39,52 +40,87 @@ export default function CalendarView() {
   const [dayBookings, setDayBookings] = useState<Booking[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalDate, setCreateModalDate] = useState<string | undefined>();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchBookings();
     fetchStats();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [currentDate]);
 
   const fetchBookings = async () => {
+    if (!mountedRef.current) return;
+
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .gte('booking_date', startOfMonth.toISOString().split('T')[0])
-      .lte('booking_date', endOfMonth.toISOString().split('T')[0])
-      .order('booking_date', { ascending: true });
+    try {
+      const result = await executeWithTimeout(
+        supabase
+          .from('bookings')
+          .select('*')
+          .gte('booking_date', startOfMonth.toISOString().split('T')[0])
+          .lte('booking_date', endOfMonth.toISOString().split('T')[0])
+          .order('booking_date', { ascending: true }),
+        { timeout: 8000, retries: 2 }
+      );
 
-    if (!error && data) {
-      setBookings(data);
+      if (!result.error && result.data && mountedRef.current) {
+        setBookings(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   };
 
   const fetchStats = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    if (!mountedRef.current) return;
 
-    const [todayData, weekData, monthData] = await Promise.all([
-      supabase.from('bookings').select('*').eq('booking_date', today),
-      supabase.from('bookings').select('*').gte('booking_date', startOfWeek.toISOString().split('T')[0]),
-      supabase.from('bookings').select('*').gte('booking_date', startOfMonth.toISOString().split('T')[0])
-    ]);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const startOfWeek = new Date();
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
-    const upcomingToday = todayData.data?.filter(b => {
-      const bookingTime = new Date(`${b.booking_date}T${b.start_time}`);
-      return bookingTime > new Date();
-    }) || [];
+      const [todayResult, weekResult, monthResult] = await Promise.all([
+        executeWithTimeout(
+          supabase.from('bookings').select('*').eq('booking_date', today),
+          { timeout: 5000, retries: 1 }
+        ),
+        executeWithTimeout(
+          supabase.from('bookings').select('*').gte('booking_date', startOfWeek.toISOString().split('T')[0]),
+          { timeout: 5000, retries: 1 }
+        ),
+        executeWithTimeout(
+          supabase.from('bookings').select('*').gte('booking_date', startOfMonth.toISOString().split('T')[0]),
+          { timeout: 5000, retries: 1 }
+        )
+      ]);
 
-    setStats({
-      todayBookings: todayData.data?.length || 0,
-      weekRevenue: weekData.data?.reduce((sum, b) => sum + b.total_price_cents, 0) || 0,
-      monthBookings: monthData.data?.length || 0,
-      upcomingToday: upcomingToday.slice(0, 5)
-    });
+      if (mountedRef.current) {
+        const upcomingToday = todayResult.data?.filter(b => {
+          const bookingTime = new Date(`${b.booking_date}T${b.start_time}`);
+          return bookingTime > new Date();
+        }) || [];
+
+        setStats({
+          todayBookings: todayResult.data?.length || 0,
+          weekRevenue: weekResult.data?.reduce((sum, b) => sum + b.total_price_cents, 0) || 0,
+          monthBookings: monthResult.data?.length || 0,
+          upcomingToday: upcomingToday.slice(0, 5)
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
   };
 
   const getDaysInMonth = () => {

@@ -14,6 +14,10 @@ import NoShowFeesView from './NoShowFeesView';
 import ProductsView from './ProductsView';
 import { adminAuth } from '../../lib/adminAuth';
 import { supabase } from '../../lib/supabase';
+import { executeWithTimeout } from '../../lib/queryUtils';
+
+const AUTH_CHECK_TIMEOUT = 10000;
+const OAUTH_PROCESSING_TIMEOUT = 15000;
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,9 +25,19 @@ export default function Admin() {
   const [loadingMessage, setLoadingMessage] = useState('Loading...');
   const [currentView, setCurrentView] = useState('dashboard');
   const processingOAuthRef = useRef(false);
+  const authCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
+    mountedRef.current = true;
+
+    authCheckTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        console.error('Auth check timeout - redirecting to login');
+        window.location.href = '/login?error=timeout';
+      }
+    }, AUTH_CHECK_TIMEOUT);
 
     const generateUniquePermalink = async (): Promise<string> => {
       let attempts = 0;
@@ -32,13 +46,16 @@ export default function Admin() {
       while (attempts < maxAttempts) {
         const randomPermalink = `biz-${Math.random().toString(36).substring(2, 10)}`;
 
-        const { data: existing } = await supabase
-          .from('businesses')
-          .select('id')
-          .eq('permalink', randomPermalink)
-          .maybeSingle();
+        const result = await executeWithTimeout(
+          supabase
+            .from('businesses')
+            .select('id')
+            .eq('permalink', randomPermalink)
+            .maybeSingle(),
+          { timeout: 3000, retries: 1 }
+        );
 
-        if (!existing) {
+        if (!result.data) {
           return randomPermalink;
         }
 
@@ -52,13 +69,32 @@ export default function Admin() {
       if (!mounted || processingOAuthRef.current) return;
       processingOAuthRef.current = true;
 
+      const oauthTimeout = setTimeout(() => {
+        if (processingOAuthRef.current && mounted) {
+          console.error('OAuth processing timeout');
+          processingOAuthRef.current = false;
+          window.location.href = '/login?error=oauth_timeout';
+        }
+      }, OAUTH_PROCESSING_TIMEOUT);
+
       try {
-        const { data: adminUser } = await supabase
-          .from('admin_users')
-          .select('id, business_id, role, full_name, businesses(permalink)')
-          .eq('email', session.user.email)
-          .eq('is_active', true)
-          .maybeSingle();
+        const adminUserResult = await executeWithTimeout(
+          supabase
+            .from('admin_users')
+            .select('id, business_id, role, full_name, businesses(permalink)')
+            .eq('email', session.user.email)
+            .eq('is_active', true)
+            .maybeSingle(),
+          { timeout: 5000, retries: 2 }
+        );
+
+        if (adminUserResult.error) {
+          throw new Error(adminUserResult.error.message);
+        }
+
+        const adminUser = adminUserResult.data;
+
+        clearTimeout(oauthTimeout);
 
         if (adminUser) {
           const adminUserData = {
@@ -78,10 +114,13 @@ export default function Admin() {
             localStorage.setItem('business_permalink', permalink);
           }
 
-          await supabase
-            .from('admin_users')
-            .update({ last_login: new Date().toISOString() })
-            .eq('id', adminUser.id);
+          await executeWithTimeout(
+            supabase
+              .from('admin_users')
+              .update({ last_login: new Date().toISOString() })
+              .eq('id', adminUser.id),
+            { timeout: 3000, retries: 0 }
+          );
 
           window.history.replaceState({}, document.title, '/admin');
 
@@ -94,90 +133,107 @@ export default function Admin() {
             setLoadingMessage('Setting up your account...');
           }
 
-          const { data: existingAuthUser } = await supabase
-            .from('admin_users')
-            .select('id, email')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
+          const existingUserResult = await executeWithTimeout(
+            supabase
+              .from('admin_users')
+              .select('id, email')
+              .eq('user_id', session.user.id)
+              .maybeSingle(),
+            { timeout: 3000, retries: 1 }
+          );
 
-          if (existingAuthUser) {
+          if (existingUserResult.data) {
             throw new Error('An account already exists with this Google account.');
           }
 
           const uniquePermalink = await generateUniquePermalink();
           const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
 
-          const { data: business, error: businessError } = await supabase
-            .from('businesses')
-            .insert({
-              name: null,
-              permalink: uniquePermalink,
-              business_type: null,
-              phone: null,
-              address: null,
-              plan_type: 'free',
-              is_active: true,
-              owner_id: session.user.id,
-              custom_logo_url: '/defbuuklogo.png',
-              profile_completed: false,
-            })
-            .select()
-            .single();
+          const businessResult = await executeWithTimeout(
+            supabase
+              .from('businesses')
+              .insert({
+                name: null,
+                permalink: uniquePermalink,
+                business_type: null,
+                phone: null,
+                address: null,
+                plan_type: 'free',
+                is_active: true,
+                owner_id: session.user.id,
+                custom_logo_url: '/defbuuklogo.png',
+                profile_completed: false,
+              })
+              .select()
+              .single(),
+            { timeout: 5000, retries: 1 }
+          );
 
-          if (businessError) {
-            if (businessError.code === '23505') {
+          if (businessResult.error) {
+            if (businessResult.error.message?.includes('23505')) {
               throw new Error('Unable to create unique business permalink. Please try again.');
             }
-            throw new Error(`Failed to create business: ${businessError.message}`);
+            throw businessResult.error;
           }
 
-          const { error: adminError } = await supabase
-            .from('admin_users')
-            .insert({
-              business_id: business.id,
-              email: session.user.email,
-              password_hash: null,
-              full_name: fullName,
-              role: 'owner',
-              is_owner: true,
-              is_active: true,
-              user_id: session.user.id,
-            });
+          const business = businessResult.data;
 
-          if (adminError) {
-            if (adminError.code === '23505') {
+          const adminInsertResult = await executeWithTimeout(
+            supabase
+              .from('admin_users')
+              .insert({
+                business_id: business.id,
+                email: session.user.email,
+                password_hash: null,
+                full_name: fullName,
+                role: 'owner',
+                is_owner: true,
+                is_active: true,
+                user_id: session.user.id,
+              }),
+            { timeout: 5000, retries: 1 }
+          );
+
+          if (adminInsertResult.error) {
+            if (adminInsertResult.error.message?.includes('23505')) {
               throw new Error('An account with this email already exists.');
             }
-            throw new Error(`Failed to create admin user: ${adminError.message}`);
+            throw adminInsertResult.error;
           }
 
-          await supabase.from('booking_form_colors').insert([
-            { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
-            { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
-            { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
-            { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
-            { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
-            { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
-            { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
-            { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
-            { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
-          ]);
+          await executeWithTimeout(
+            supabase.from('booking_form_colors').insert([
+              { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
+              { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
+              { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
+              { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
+              { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
+              { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
+              { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
+              { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
+              { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
+            ]),
+            { timeout: 5000, retries: 0 }
+          );
 
-          const { data: newAdminUser } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('email', session.user.email)
-            .eq('business_id', business.id)
-            .single();
+          const newAdminResult = await executeWithTimeout(
+            supabase
+              .from('admin_users')
+              .select('*')
+              .eq('email', session.user.email)
+              .eq('business_id', business.id)
+              .single(),
+            { timeout: 3000, retries: 1 }
+          );
 
-          if (newAdminUser) {
+          if (newAdminResult.data) {
             const adminUserData = {
-              id: newAdminUser.id,
-              email: newAdminUser.email,
-              full_name: newAdminUser.full_name,
-              role: newAdminUser.role,
-              is_active: newAdminUser.is_active,
-              business_id: newAdminUser.business_id,
+              id: newAdminResult.data.id,
+              email: newAdminResult.data.email,
+              full_name: newAdminResult.data.full_name,
+              role: newAdminResult.data.role,
+              is_active: newAdminResult.data.is_active,
+              business_id: newAdminResult.data.business_id,
             };
             localStorage.setItem('admin_user', JSON.stringify(adminUserData));
           }
@@ -194,35 +250,50 @@ export default function Admin() {
         }
       } catch (err: any) {
         console.error('OAuth callback error:', err);
+        clearTimeout(oauthTimeout);
         await supabase.auth.signOut();
         if (mounted) {
           window.location.href = '/login?error=' + encodeURIComponent(err.message || 'Failed to complete sign in');
         }
       } finally {
         processingOAuthRef.current = false;
+        clearTimeout(oauthTimeout);
       }
     };
 
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Session check timeout')), 5000)
+          )
+        ]);
 
         if (!session) {
-          window.location.href = '/login';
+          if (mounted) {
+            window.location.href = '/login';
+          }
           return;
         }
 
         await handleOAuthCallback(session);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Auth check error:', err);
-        window.location.href = '/login';
+        if (mounted) {
+          if (err.message === 'Session check timeout') {
+            window.location.href = '/login?error=timeout';
+          } else {
+            window.location.href = '/login';
+          }
+        }
       }
     };
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session && !processingOAuthRef.current) {
+      if (event === 'SIGNED_IN' && session && !processingOAuthRef.current && mounted) {
         await handleOAuthCallback(session);
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' && mounted) {
         window.location.href = '/login';
       }
     });
@@ -231,6 +302,10 @@ export default function Admin() {
 
     return () => {
       mounted = false;
+      mountedRef.current = false;
+      if (authCheckTimeoutRef.current) {
+        clearTimeout(authCheckTimeoutRef.current);
+      }
       authListener.subscription.unsubscribe();
     };
   }, []);

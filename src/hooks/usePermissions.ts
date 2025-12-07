@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { executeWithTimeout } from '../lib/queryUtils';
 
 export interface Permission {
   code: string;
@@ -15,13 +16,19 @@ export interface Role {
   is_system_role: boolean;
 }
 
+const PERMISSIONS_TIMEOUT = 5000;
+
 export function usePermissions(adminUserId: string | null) {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [legacyRole, setLegacyRole] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!adminUserId) {
       setPermissions([]);
       setRoles([]);
@@ -31,65 +38,103 @@ export function usePermissions(adminUserId: string | null) {
     }
 
     loadPermissions();
+
+    return () => {
+      mountedRef.current = false;
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
   }, [adminUserId]);
 
   const loadPermissions = async () => {
-    try {
-      const { data: adminUser } = await supabase
-        .from('admin_users')
-        .select('role')
-        .eq('id', adminUserId)
-        .single();
+    if (!adminUserId || !mountedRef.current) return;
 
-      if (adminUser) {
+    loadTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        console.warn('Permissions loading timeout - using default permissions');
+        setLoading(false);
+      }
+    }, PERMISSIONS_TIMEOUT);
+
+    try {
+      const adminUserResult = await executeWithTimeout(
+        supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', adminUserId)
+          .single(),
+        { timeout: 3000, retries: 2 }
+      );
+
+      if (adminUserResult.error) {
+        throw adminUserResult.error;
+      }
+
+      const adminUser = adminUserResult.data;
+
+      if (mountedRef.current) {
         setLegacyRole(adminUser.role);
 
         if (adminUser.role === 'owner') {
-          const { data: allPerms } = await supabase
-            .from('permissions')
-            .select('code, name, category');
+          const allPermsResult = await executeWithTimeout(
+            supabase
+              .from('permissions')
+              .select('code, name, category'),
+            { timeout: 3000, retries: 1 }
+          );
 
-          if (allPerms) {
-            setPermissions(allPerms);
+          if (allPermsResult.data && mountedRef.current) {
+            setPermissions(allPermsResult.data);
             setLoading(false);
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
             return;
           }
         }
       }
 
-      const { data: userRoles } = await supabase
-        .from('admin_user_roles')
-        .select(`
-          role_id,
-          roles!inner (
-            id,
-            name,
-            display_name,
-            description,
-            is_system_role
-          )
-        `)
-        .eq('admin_user_id', adminUserId);
+      const userRolesResult = await executeWithTimeout(
+        supabase
+          .from('admin_user_roles')
+          .select(`
+            role_id,
+            roles!inner (
+              id,
+              name,
+              display_name,
+              description,
+              is_system_role
+            )
+          `)
+          .eq('admin_user_id', adminUserId),
+        { timeout: 3000, retries: 1 }
+      );
 
-      if (userRoles && userRoles.length > 0) {
+      if (userRolesResult.data && userRolesResult.data.length > 0 && mountedRef.current) {
+        const userRoles = userRolesResult.data;
         const roleIds = userRoles.map(ur => ur.role_id);
         setRoles(userRoles.map(ur => ur.roles as unknown as Role));
 
-        const { data: rolePermissions } = await supabase
-          .from('role_permissions')
-          .select(`
-            permissions!inner (
-              code,
-              name,
-              category
-            )
-          `)
-          .in('role_id', roleIds);
+        const rolePermsResult = await executeWithTimeout(
+          supabase
+            .from('role_permissions')
+            .select(`
+              permissions!inner (
+                code,
+                name,
+                category
+              )
+            `)
+            .in('role_id', roleIds),
+          { timeout: 3000, retries: 1 }
+        );
 
-        if (rolePermissions) {
+        if (rolePermsResult.data && mountedRef.current) {
           const uniquePermissions = Array.from(
             new Map(
-              rolePermissions.map(rp => [
+              rolePermsResult.data.map(rp => [
                 (rp.permissions as any).code,
                 rp.permissions as unknown as Permission
               ])
@@ -97,19 +142,27 @@ export function usePermissions(adminUserId: string | null) {
           );
           setPermissions(uniquePermissions);
         }
-      } else if (adminUser?.role === 'admin') {
-        const { data: allPerms } = await supabase
-          .from('permissions')
-          .select('code, name, category');
+      } else if (adminUser?.role === 'admin' && mountedRef.current) {
+        const allPermsResult = await executeWithTimeout(
+          supabase
+            .from('permissions')
+            .select('code, name, category'),
+          { timeout: 3000, retries: 1 }
+        );
 
-        if (allPerms) {
-          setPermissions(allPerms);
+        if (allPermsResult.data && mountedRef.current) {
+          setPermissions(allPermsResult.data);
         }
       }
     } catch (error) {
       console.error('Error loading permissions:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
     }
   };
 
