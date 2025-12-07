@@ -35,9 +35,9 @@ const BOOKING_STEPS = [
 
 const TEXT_FIELDS = {
   welcome: [
-    { key: 'title', label: 'Title', default: 'Welcome to Hamburg Massage Studio' },
-    { key: 'subtitle', label: 'Subtitle', default: 'Book Your Holistic Massage Experience' },
-    { key: 'description', label: 'Description', default: 'Experience tranquility and rejuvenation...' },
+    { key: 'title', label: 'Title', default: 'Welcome! Book Your Appointment' },
+    { key: 'subtitle', label: 'Subtitle', default: 'Schedule Your Visit Today' },
+    { key: 'description', label: 'Description', default: 'Experience exceptional service tailored to your needs...' },
     { key: 'button', label: 'Button Text', default: 'Book Your Appointment' },
   ],
   service: [
