@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, Service } from '../lib/supabase';
 import { ChevronRight } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface ServiceStepProps {
   onNext: (service: Service, isPairBooking: boolean) => void;
@@ -10,6 +11,7 @@ interface ServiceStepProps {
 
 export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   const tenant = useTenant();
+  const { customization } = useBookingCustomization();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -79,6 +81,12 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
 
   const categories = Object.keys(groupedServices);
 
+  const serviceContent = customization?.service_step || {
+    title: "Choose Your Service",
+    subtitle: "Select the service you would like to book",
+    buttonText: "Continue"
+  };
+
   return (
     <div className="h-full flex flex-col max-h-full">
       <div className="flex-shrink-0 mb-3 sm:mb-4">
@@ -89,8 +97,8 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-2xl sm:text-3xl font-light text-theme-primary mb-2">Choose Your Service</h2>
-        <p className="text-theme-secondary text-sm sm:text-base">Select the treatment that best suits your needs</p>
+        <h2 className="text-2xl sm:text-3xl font-light text-theme-primary mb-2">{serviceContent.title}</h2>
+        <p className="text-theme-secondary text-sm sm:text-base">{serviceContent.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 sm:space-y-8 mb-3 sm:mb-4">
@@ -175,7 +183,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
           disabled={!selectedService}
           className="w-full px-8 py-4 bg-theme-primary text-white text-sm tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 disabled:bg-muted disabled:cursor-not-allowed rounded-lg"
         >
-          Continue
+          {serviceContent.buttonText}
         </button>
       </div>
     </div>

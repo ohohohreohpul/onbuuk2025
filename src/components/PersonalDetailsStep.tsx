@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, User, Mail, Phone } from 'lucide-react';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface PersonalDetailsStepProps {
   onNext: (details: { name: string; email: string; phone: string; notes: string }) => void;
@@ -7,11 +8,24 @@ interface PersonalDetailsStepProps {
 }
 
 export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsStepProps) {
+  const { customization } = useBookingCustomization();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const content = {
+    title: customization?.details_step?.title || 'Your Details',
+    subtitle: customization?.details_step?.subtitle || 'Please provide your contact information',
+    buttonText: customization?.details_step?.buttonText || 'Continue',
+    labels: {
+      name: customization?.details_step?.labels?.name || 'Full Name',
+      email: customization?.details_step?.labels?.email || 'Email Address',
+      phone: customization?.details_step?.labels?.phone || 'Phone Number',
+      notes: customization?.details_step?.labels?.notes || 'Additional Notes (Optional)'
+    }
+  };
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -50,8 +64,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">Your Details</h2>
-        <p className="text-custom-secondary">Please provide your contact information</p>
+        <h2 className="text-3xl font-light text-custom-primary mb-2">{content.title}</h2>
+        <p className="text-custom-secondary">{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-5 mb-4">
@@ -59,7 +73,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
               <User className="w-4 h-4 text-[#008374]" />
-              <span>Full Name</span>
+              <span>{content.labels.name}</span>
             </div>
           </label>
           <input
@@ -80,7 +94,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
               <Mail className="w-4 h-4 text-[#008374]" />
-              <span>Email Address</span>
+              <span>{content.labels.email}</span>
             </div>
           </label>
           <input
@@ -101,7 +115,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 text-[#008374]" />
-              <span>Phone Number</span>
+              <span>{content.labels.phone}</span>
             </div>
           </label>
           <input
@@ -120,7 +134,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
 
         <div>
           <label className="block text-sm font-semibold text-black mb-2">
-            Additional Notes (Optional)
+            {content.labels.notes}
           </label>
           <textarea
             value={notes}
@@ -137,7 +151,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           onClick={handleContinue}
           className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200"
         >
-          Continue to Payment
+          {content.buttonText}
         </button>
       </div>
     </div>

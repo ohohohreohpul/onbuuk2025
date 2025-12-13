@@ -4,6 +4,7 @@ import { supabase, Service, ServiceDuration } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { emailService } from '../lib/emailService';
 import AccountCreationPrompt from './AccountCreationPrompt';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface SelectedProduct {
   product: {
@@ -42,6 +43,7 @@ interface PaymentStepProps {
 
 export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const tenant = useTenant();
+  const { customization } = useBookingCustomization();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -50,6 +52,12 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'in_person'>('stripe');
   const [loading, setLoading] = useState(true);
   const [specialistName, setSpecialistName] = useState<string>('');
+
+  const content = {
+    title: customization?.payment_step?.title || 'Review & Pay',
+    subtitle: customization?.payment_step?.subtitle || 'Please review your booking details',
+    buttonText: customization?.payment_step?.buttonText || 'Confirm Booking'
+  };
 
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
   const [giftCardCode, setGiftCardCode] = useState('');
@@ -473,7 +481,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-light text-custom-primary mb-3">Review & Pay</h2>
+          <h2 className="text-3xl font-light text-custom-primary mb-3">{content.title}</h2>
           <p className="text-custom-secondary leading-relaxed">
             Your appointment has been successfully scheduled. We've sent a confirmation email to{' '}
             <span className="font-medium">{bookingData.customerDetails.email}</span>
@@ -574,8 +582,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-stone-800 mb-2">Review & Pay</h2>
-        <p className="text-stone-600">Please review your booking details</p>
+        <h2 className="text-3xl font-light text-stone-800 mb-2">{content.title}</h2>
+        <p className="text-stone-600">{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">

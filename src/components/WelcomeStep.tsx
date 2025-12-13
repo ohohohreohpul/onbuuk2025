@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Calendar, Gift, AlertCircle, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useCustomerAuth } from '../hooks/useCustomerAuth';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { CustomerAuth } from './customer/CustomerAuth';
 import { useTenant } from '../lib/tenantContext';
 import { supabase } from '../lib/supabase';
@@ -30,6 +31,7 @@ interface WelcomeCard {
 export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: WelcomeStepProps) {
   const { customer } = useCustomerAuth();
   const { businessId } = useTenant();
+  const { customization, loading: customizationLoading } = useBookingCustomization();
   const [showAuth, setShowAuth] = useState(false);
   const [enableBookings, setEnableBookings] = useState(true);
   const [enableGiftCards, setEnableGiftCards] = useState(true);
@@ -107,7 +109,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     return <LucideIcons.HelpCircle className="w-5 h-5 text-primary" />;
   };
 
-  if (loading) {
+  if (loading || customizationLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-muted-foreground">Loading...</div>
@@ -115,17 +117,23 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     );
   }
 
+  const welcomeContent = customization?.welcome_step || {
+    title: "Welcome! Let's get you booked",
+    subtitle: "Choose your preferred service and time",
+    buttonText: "Get Started"
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="space-y-3 sm:space-y-4 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground tracking-tight">
-              Book Your Appointment
+              {welcomeContent.title}
             </h1>
           </div>
           <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-            Select from our available services and choose a time that works best for you. We look forward to serving you!
+            {welcomeContent.subtitle}
           </p>
         </div>
         <Button

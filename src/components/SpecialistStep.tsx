@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, Specialist } from '../lib/supabase';
 import { ChevronRight, User } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface SpecialistStepProps {
   serviceId: string;
@@ -11,9 +12,17 @@ interface SpecialistStepProps {
 
 export default function SpecialistStep({ serviceId, onNext, onBack }: SpecialistStepProps) {
   const tenant = useTenant();
+  const { customization } = useBookingCustomization();
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpecialistId, setSelectedSpecialistId] = useState<string | null>(null);
+
+  const content = {
+    title: customization?.specialist_step?.title || 'Choose Your Specialist',
+    subtitle: customization?.specialist_step?.subtitle || 'Select a therapist or let us assign one for you',
+    buttonText: customization?.specialist_step?.buttonText || 'Continue',
+    anySpecialistText: customization?.specialist_step?.anySpecialistText || 'Anyone Available'
+  };
 
   useEffect(() => {
     if (tenant.businessId) {
@@ -72,8 +81,8 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-theme-primary mb-2">Choose Your Specialist</h2>
-        <p className="text-theme-secondary">Select a therapist or let us assign one for you</p>
+        <h2 className="text-3xl font-light text-theme-primary mb-2">{content.title}</h2>
+        <p className="text-theme-secondary">{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-4">
@@ -91,7 +100,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
                 <User className="w-5 h-5 text-theme-brand-primary" />
               </div>
               <div>
-                <h3 className="text-foreground font-medium">Anyone Available</h3>
+                <h3 className="text-foreground font-medium">{content.anySpecialistText}</h3>
                 <p className="text-muted-foreground text-sm mt-0.5">
                   We'll assign the first available specialist
                 </p>
@@ -181,7 +190,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           onClick={handleContinue}
           className="w-full px-8 py-4 bg-theme-primary text-white text-sm tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 rounded-lg"
         >
-          Continue
+          {content.buttonText}
         </button>
       </div>
     </div>

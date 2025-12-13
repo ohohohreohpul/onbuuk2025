@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase, ServiceDuration } from '../lib/supabase';
 import { ChevronRight, Clock } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface DurationStepProps {
   serviceId: string;
@@ -12,9 +13,16 @@ interface DurationStepProps {
 
 export default function DurationStep({ serviceId, isPairBooking, onNext, onBack }: DurationStepProps) {
   const tenant = useTenant();
+  const { customization } = useBookingCustomization();
   const [durations, setDurations] = useState<ServiceDuration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDuration, setSelectedDuration] = useState<ServiceDuration | null>(null);
+
+  const content = {
+    title: customization?.duration_step?.title || 'Select Duration',
+    subtitle: customization?.duration_step?.subtitle || "Choose how long you'd like your session to be",
+    buttonText: customization?.duration_step?.buttonText || 'Continue'
+  };
 
   useEffect(() => {
     if (tenant.businessId) {
@@ -68,8 +76,8 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-theme-primary mb-2">Select Duration</h2>
-        <p className="text-theme-secondary">Choose how long you'd like your session to be</p>
+        <h2 className="text-3xl font-light text-theme-primary mb-2">{content.title}</h2>
+        <p className="text-theme-secondary">{content.subtitle}</p>
         {isPairBooking && (
           <div className="mt-3 text-sm text-foreground bg-theme-secondary-bg p-3 border border-border rounded-lg">
             Booking for 2 people
@@ -130,7 +138,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           disabled={!selectedDuration}
           className="w-full px-8 py-4 bg-theme-primary text-white text-sm tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 disabled:bg-muted disabled:cursor-not-allowed rounded-lg"
         >
-          Continue
+          {content.buttonText}
         </button>
       </div>
     </div>

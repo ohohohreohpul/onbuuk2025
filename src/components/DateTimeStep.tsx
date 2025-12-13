@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, Calendar, Clock } from 'lucide-react';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface DateTimeStepProps {
   onNext: (date: string, time: string) => void;
@@ -7,8 +8,15 @@ interface DateTimeStepProps {
 }
 
 export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
+  const { customization } = useBookingCustomization();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+
+  const content = {
+    title: customization?.datetime_step?.title || 'Choose Date & Time',
+    subtitle: customization?.datetime_step?.subtitle || 'Select your preferred appointment slot',
+    buttonText: customization?.datetime_step?.buttonText || 'Continue'
+  };
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -64,8 +72,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">Choose Date & Time</h2>
-        <p className="text-custom-secondary">Select your preferred appointment slot</p>
+        <h2 className="text-3xl font-light text-custom-primary mb-2">{content.title}</h2>
+        <p className="text-custom-secondary">{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">
@@ -127,7 +135,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
           disabled={!selectedDate || !selectedTime}
           className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          Continue
+          {content.buttonText}
         </button>
       </div>
     </div>

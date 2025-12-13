@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ChevronRight, Plus, Minus, Package } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface Product {
   id: string;
@@ -25,9 +26,17 @@ interface AddOnsStepProps {
 
 export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProps) {
   const { businessId } = useTenant();
+  const { customization } = useBookingCustomization();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+
+  const content = {
+    title: customization?.addons_step?.title || 'Add-On Products',
+    subtitle: customization?.addons_step?.subtitle || 'Enhance your experience with optional add-ons',
+    buttonText: customization?.addons_step?.buttonText || 'Continue',
+    skipButtonText: customization?.addons_step?.skipButtonText || 'Continue Without Add-Ons'
+  };
 
   useEffect(() => {
     if (businessId && serviceId) {
@@ -136,8 +145,8 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">Add-On Products</h2>
-        <p className="text-custom-secondary">Enhance your experience with optional add-ons</p>
+        <h2 className="text-3xl font-light text-custom-primary mb-2">{content.title}</h2>
+        <p className="text-custom-secondary">{content.subtitle}</p>
       </div>
 
       {products.length === 0 ? (
@@ -149,7 +158,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
               onClick={() => onNext([])}
               className="mt-6 px-8 py-3 bg-custom-primary text-white hover:bg-custom transition-colors"
             >
-              Continue Without Add-Ons
+              {content.skipButtonText}
             </button>
           </div>
         </div>
@@ -230,7 +239,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
               onClick={handleContinue}
               className="w-full px-8 py-4 bg-custom-primary text-white hover:bg-custom transition-colors text-lg"
             >
-              Continue
+              {content.buttonText}
             </button>
           </div>
         </>
