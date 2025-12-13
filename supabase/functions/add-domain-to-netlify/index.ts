@@ -124,13 +124,13 @@ Deno.serve(async (req: Request) => {
       .from("custom_domains")
       .select("*")
       .eq("id", domain_id)
-      .single();
+      .maybeSingle();
 
     if (domainError) {
       console.error(`[Add Domain] Database error for domain_id ${domain_id}:`, domainError);
       return new Response(
         JSON.stringify({
-          error: "Database error: Unable to fetch domain details",
+          error: "Database error",
           details: domainError.message
         }),
         {
@@ -143,7 +143,10 @@ Deno.serve(async (req: Request) => {
     if (!domain) {
       console.log(`[Add Domain] Domain not found in database for domain_id: ${domain_id}`);
       return new Response(
-        JSON.stringify({ error: "Domain not found in database" }),
+        JSON.stringify({
+          error: "Domain not found. Please refresh the page and try again.",
+          success: false
+        }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
