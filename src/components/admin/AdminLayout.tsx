@@ -11,6 +11,7 @@ import {
   HelpCircle,
   Book,
   ExternalLink,
+  Gift,
   DollarSign,
   Package,
   ChevronDown,
@@ -86,6 +87,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'financial',
       label: 'Financial',
       items: [
+        { id: 'loyalty', label: 'Loyalty & Rewards', icon: Gift, permissions: ['process_payments', 'view_gift_cards'] },
         { id: 'fees', label: 'No-Show Fees', icon: DollarSign, permissions: ['process_payments', 'view_all_bookings'] },
       ]
     },
