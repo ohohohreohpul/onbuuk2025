@@ -42,7 +42,6 @@ export default function VerticalLayout({ children, imageUrl, imageAlt = 'Busines
             alt={imageAlt}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/10"></div>
         </div>
       ) : (
         <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">

@@ -41,7 +41,7 @@ export default function DefaultLayout({ children, imageUrl, imageAlt = 'Business
             <img
               src={imageUrl}
               alt={imageAlt}
-              className="w-full h-full object-cover opacity-80"
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
