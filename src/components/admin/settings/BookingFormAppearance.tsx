@@ -267,7 +267,10 @@ export default function BookingFormAppearance() {
   };
 
   const uploadImage = async (step: string, file: File) => {
-    if (!businessId) return;
+    if (!businessId) {
+      setError('Business ID not found. Please refresh the page and try again.');
+      return;
+    }
 
     setUploadingImage(step);
     setError('');
@@ -280,7 +283,10 @@ export default function BookingFormAppearance() {
         .from('business-assets')
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload to storage');
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('business-assets')
@@ -291,36 +297,64 @@ export default function BookingFormAppearance() {
           ...customization,
           [`${step}_image_url`]: publicUrl
         });
+        setSavedMessage('Image uploaded! Click "Save All Changes" to apply.');
+        setTimeout(() => setSavedMessage(''), 5000);
       }
     } catch (err) {
       console.error('Error uploading image:', err);
-      setError('Failed to upload image');
+      setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
       setUploadingImage(null);
     }
   };
 
   const handleSave = async () => {
-    if (!businessId || !customization) return;
+    if (!businessId) {
+      setError('Business ID not found. Please refresh and try again.');
+      return;
+    }
+
+    if (!customization) {
+      setError('Customization data not loaded. Please refresh and try again.');
+      return;
+    }
 
     setSaving(true);
     setError('');
     setSavedMessage('');
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+
+      console.log('Saving customization for business:', businessId);
       const { id, ...dataToSave } = customization;
 
       if (id) {
-        await supabase
+        console.log('Updating existing customization:', id);
+        const { error: updateError } = await supabase
           .from('booking_form_customization')
           .update(dataToSave)
           .eq('id', id);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          throw new Error(updateError.message || 'Failed to update customization');
+        }
       } else {
-        const { data } = await supabase
+        console.log('Creating new customization for business:', businessId);
+        const { data, error: insertError } = await supabase
           .from('booking_form_customization')
           .insert([{ ...dataToSave, business_id: businessId }])
           .select()
           .single();
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw new Error(insertError.message || 'Failed to create customization. You may not have permission to modify this business.');
+        }
 
         if (data) {
           setCustomization(data);
