@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw, Gift, CheckCircle } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout, getUserFriendlyErrorMessage } from '../../lib/queryUtils';
@@ -46,6 +46,11 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [giftCardBalance, setGiftCardBalance] = useState<number | null>(null);
+  const [giftCardStatus, setGiftCardStatus] = useState<string | null>(null);
+  const [giftCardError, setGiftCardError] = useState<string | null>(null);
+  const [checkingGiftCard, setCheckingGiftCard] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,6 +84,56 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       setShowCreateBookingModal(true);
     } else {
       onNavigate(action);
+    }
+  };
+
+  const checkGiftCardBalance = async () => {
+    if (!giftCardCode.trim()) {
+      setGiftCardError('Please enter a gift card code');
+      return;
+    }
+
+    setCheckingGiftCard(true);
+    setGiftCardError(null);
+    setGiftCardBalance(null);
+    setGiftCardStatus(null);
+
+    const businessId = adminUser?.business_id;
+    if (!businessId) {
+      setGiftCardError('Unable to determine your business');
+      setCheckingGiftCard(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('gift_cards')
+        .select('current_balance_cents, status, expires_at')
+        .eq('business_id', businessId)
+        .eq('code', giftCardCode.trim().toUpperCase())
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        setGiftCardError('Gift card not found');
+      } else {
+        if (data.status === 'redeemed') {
+          setGiftCardError('This gift card has already been fully redeemed');
+        } else if (data.status === 'expired') {
+          setGiftCardError('This gift card has expired');
+        } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
+          setGiftCardError('This gift card has expired');
+        } else {
+          setGiftCardBalance(data.current_balance_cents / 100);
+          setGiftCardStatus(data.status);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking gift card:', err);
+      setGiftCardError('Failed to check gift card balance');
+    } finally {
+      setCheckingGiftCard(false);
     }
   };
 
@@ -326,6 +381,68 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="rounded-lg border border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-[#008374]" />
+                Check Gift Card Balance
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Enter a gift card code to check its balance</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={giftCardCode}
+                onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && checkGiftCardBalance()}
+                placeholder="Enter gift card code"
+                className="flex-1 px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-[#008374] focus:border-transparent uppercase"
+              />
+              <Button
+                onClick={checkGiftCardBalance}
+                disabled={checkingGiftCard || !giftCardCode.trim()}
+                className="bg-[#008374] hover:bg-[#006b5f]"
+              >
+                {checkingGiftCard ? 'Checking...' : 'Check Balance'}
+              </Button>
+            </div>
+
+            {giftCardError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">{giftCardError}</p>
+              </div>
+            )}
+
+            {giftCardBalance !== null && giftCardStatus && (
+              <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900">Gift Card Active</p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Current Balance: <span className="font-bold">{formatPrice(giftCardBalance * 100)}</span>
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('gift-cards')}
+                  className="border-green-300 hover:bg-green-100"
+                >
+                  View Details
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="rounded-lg border border-border">
         <CardHeader>
