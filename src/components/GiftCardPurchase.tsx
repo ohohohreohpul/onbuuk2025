@@ -380,7 +380,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       <button
         onClick={handlePurchase}
         disabled={processing}
-        className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-3"
+        className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-3 mb-8"
       >
         {processing ? (
           'Processing...'
