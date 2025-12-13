@@ -16,8 +16,8 @@ import { adminAuth } from '../../lib/adminAuth';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
 
-const AUTH_CHECK_TIMEOUT = 10000;
-const OAUTH_PROCESSING_TIMEOUT = 30000;
+const AUTH_CHECK_TIMEOUT = 15000;
+const OAUTH_PROCESSING_TIMEOUT = 60000;
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -63,7 +63,7 @@ export default function Admin() {
             .eq('email', session.user.email)
             .eq('is_active', true)
             .maybeSingle(),
-          { timeout: 5000, retries: 2 }
+          { timeout: 12000, retries: 3 }
         );
 
         if (adminUserResult.error) {
@@ -97,7 +97,7 @@ export default function Admin() {
               .from('admin_users')
               .update({ last_login: new Date().toISOString() })
               .eq('id', adminUser.id),
-            { timeout: 3000, retries: 0 }
+            { timeout: 8000, retries: 1 }
           ).catch(err => console.error('Failed to update last login:', err));
 
           window.history.replaceState({}, document.title, '/admin');
@@ -114,6 +114,7 @@ export default function Admin() {
         } else {
           if (mounted) {
             setLoadingMessage('Setting up your account...');
+            setLoading(true);
           }
 
           const existingUserResult = await executeWithTimeout(
@@ -149,7 +150,7 @@ export default function Admin() {
               })
               .select()
               .single(),
-            { timeout: 5000, retries: 1 }
+            { timeout: 15000, retries: 3 }
           );
 
           if (businessResult.error) {
@@ -174,7 +175,7 @@ export default function Admin() {
                 is_active: true,
                 user_id: session.user.id,
               }),
-            { timeout: 5000, retries: 1 }
+            { timeout: 12000, retries: 3 }
           );
 
           if (adminInsertResult.error) {
@@ -184,7 +185,7 @@ export default function Admin() {
             throw adminInsertResult.error;
           }
 
-          executeWithTimeout(
+          const colorResult = await executeWithTimeout(
             supabase.from('booking_form_colors').insert([
               { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
               { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
@@ -196,8 +197,13 @@ export default function Admin() {
               { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
               { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
             ]),
-            { timeout: 5000, retries: 0 }
-          ).catch(err => console.error('Failed to insert default colors:', err));
+            { timeout: 10000, retries: 2 }
+          );
+
+          if (colorResult.error) {
+            console.error('Failed to insert default colors:', colorResult.error);
+            throw new Error('Failed to initialize booking colors. Please try again.');
+          }
 
           const newAdminResult = await executeWithTimeout(
             supabase
@@ -206,7 +212,7 @@ export default function Admin() {
               .eq('email', session.user.email)
               .eq('business_id', business.id)
               .single(),
-            { timeout: 3000, retries: 1 }
+            { timeout: 10000, retries: 3 }
           );
 
           if (newAdminResult.data) {
@@ -239,9 +245,19 @@ export default function Admin() {
       } catch (err: any) {
         console.error('OAuth callback error:', err);
         clearTimeout(oauthTimeout);
-        await supabase.auth.signOut();
+        processingOAuthRef.current = false;
+
         if (mounted) {
-          window.location.href = '/login?error=' + encodeURIComponent(err.message || 'Failed to complete sign in');
+          setLoading(false);
+          setIsAuthenticated(false);
+        }
+
+        await supabase.auth.signOut().catch(e => console.error('Failed to sign out:', e));
+
+        if (mounted) {
+          setTimeout(() => {
+            window.location.href = '/login?error=' + encodeURIComponent(err.message || 'Failed to complete sign in');
+          }, 100);
         }
       } finally {
         processingOAuthRef.current = false;
@@ -254,12 +270,13 @@ export default function Admin() {
         const { data: { session } } = await Promise.race([
           supabase.auth.getSession(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Session check timeout')), 5000)
+            setTimeout(() => reject(new Error('Session check timeout')), 8000)
           )
         ]);
 
         if (!session) {
           if (mounted) {
+            setLoading(false);
             window.location.href = '/login';
           }
           return;
@@ -269,6 +286,7 @@ export default function Admin() {
       } catch (err: any) {
         console.error('Auth check error:', err);
         if (mounted) {
+          setLoading(false);
           if (err.message === 'Session check timeout') {
             window.location.href = '/login?error=timeout';
           } else {
@@ -305,9 +323,9 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+      <div className="min-h-screen flex items-center justify-center bg-stone-50" key="loading-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4" style={{ willChange: 'transform' }}></div>
           <div className="text-stone-600">{loadingMessage}</div>
         </div>
       </div>
