@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Settings, Mail, MessageSquare, Bell, Building, CreditCard, Crown, Store, Layout, Globe } from 'lucide-react';
+import { Settings, Mail, MessageSquare, Bell, Building, CreditCard, Crown, Store, Layout, Globe, Sparkles } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
+import WelcomeFeaturesSettings from './settings/WelcomeFeaturesSettings';
 import CustomerEmails from './settings/CustomerEmails';
 import NotificationTemplates from './settings/NotificationTemplates';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
 import CustomDomainSettings from './settings/CustomDomainSettings';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'payment' | 'email' | 'sms' | 'templates' | 'subscription' | 'domains';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome' | 'payment' | 'email' | 'sms' | 'templates' | 'subscription' | 'domains';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -19,6 +20,7 @@ export default function SettingsView() {
     { id: 'general' as SettingsTab, name: 'General', icon: Building },
     { id: 'domains' as SettingsTab, name: 'Custom Domains', icon: Globe },
     { id: 'appearance' as SettingsTab, name: 'Booking Form', icon: Layout },
+    { id: 'welcome' as SettingsTab, name: 'Welcome Features', icon: Sparkles },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
     { id: 'email' as SettingsTab, name: 'Email', icon: Mail },
@@ -59,6 +61,7 @@ export default function SettingsView() {
         {activeTab === 'general' && <GeneralSettings />}
         {activeTab === 'domains' && <CustomDomainSettings />}
         {activeTab === 'appearance' && <BookingFormAppearance />}
+        {activeTab === 'welcome' && <WelcomeFeaturesSettings />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}
         {activeTab === 'email' && <CustomerEmails />}

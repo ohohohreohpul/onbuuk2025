@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, Gift, AlertCircle, Check, Clock, CheckCircle2, X } from 'lucide-react';
+import { User, Calendar, Gift, AlertCircle, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCustomerAuth } from '../hooks/useCustomerAuth';
 import { CustomerAuth } from './customer/CustomerAuth';
@@ -9,10 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface WelcomeStepProps {
   onBookAppointment: () => void;
   onPurchaseGiftCard: () => void;
+}
+
+interface WelcomeCard {
+  id: string;
+  card_order: number;
+  icon_type: 'lucide' | 'custom';
+  icon_name: string | null;
+  icon_url: string | null;
+  title: string;
+  description: string;
+  is_enabled: boolean;
 }
 
 export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: WelcomeStepProps) {
@@ -24,6 +37,10 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
   const [enableGiftCards, setEnableGiftCards] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showCancelledMessage, setShowCancelledMessage] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(true);
+  const [useCustomHTML, setUseCustomHTML] = useState(false);
+  const [customHTML, setCustomHTML] = useState('');
+  const [featureCards, setFeatureCards] = useState<WelcomeCard[]>([]);
 
   useEffect(() => {
     const fetchFeatureFlags = async () => {
@@ -32,15 +49,30 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         return;
       }
 
-      const { data } = await supabase
-        .from('businesses')
-        .select('enable_bookings, enable_gift_cards')
-        .eq('id', businessId)
-        .maybeSingle();
+      const [businessData, cardsData] = await Promise.all([
+        supabase
+          .from('businesses')
+          .select('enable_bookings, enable_gift_cards, show_welcome_features, use_custom_welcome_html, welcome_custom_html')
+          .eq('id', businessId)
+          .maybeSingle(),
+        supabase
+          .from('welcome_feature_cards')
+          .select('*')
+          .eq('business_id', businessId)
+          .eq('is_enabled', true)
+          .order('card_order')
+      ]);
 
-      if (data) {
-        setEnableBookings(data.enable_bookings ?? true);
-        setEnableGiftCards(data.enable_gift_cards ?? true);
+      if (businessData.data) {
+        setEnableBookings(businessData.data.enable_bookings ?? true);
+        setEnableGiftCards(businessData.data.enable_gift_cards ?? true);
+        setShowFeatures(businessData.data.show_welcome_features ?? true);
+        setUseCustomHTML(businessData.data.use_custom_welcome_html ?? false);
+        setCustomHTML(businessData.data.welcome_custom_html ?? '');
+      }
+
+      if (cardsData.data) {
+        setFeatureCards(cardsData.data);
       }
 
       setLoading(false);
@@ -62,6 +94,19 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     } else {
       setShowAuth(true);
     }
+  };
+
+  const renderIcon = (card: WelcomeCard) => {
+    if (card.icon_type === 'custom' && card.icon_url) {
+      return <img src={card.icon_url} alt="icon" className="w-5 h-5" />;
+    }
+    if (card.icon_type === 'lucide' && card.icon_name) {
+      const IconComponent = (LucideIcons as any)[card.icon_name];
+      if (IconComponent) {
+        return <IconComponent className="w-5 h-5 text-primary" />;
+      }
+    }
+    return <LucideIcons.HelpCircle className="w-5 h-5 text-primary" />;
   };
 
   if (loading) {
@@ -115,55 +160,36 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:gap-6">
-        <Card className="border-muted">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Check className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1 text-sm sm:text-base">Professional Service</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                  Our experienced team is dedicated to providing you with exceptional service.
-                </p>
-              </div>
+      {showFeatures && (
+        <>
+          {useCustomHTML && customHTML ? (
+            <div
+              className="welcome-custom-html"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(customHTML) }}
+            />
+          ) : (
+            <div className="grid gap-4 sm:gap-6">
+              {featureCards.map((card) => (
+                <Card key={card.id} className="border-muted">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {renderIcon(card)}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1 text-sm sm:text-base">{card.title}</h3>
+                        <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                          {card.description}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-muted">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1 text-sm sm:text-base">Flexible Scheduling</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                  Choose the time that works best for you with our easy online booking system.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-muted">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-1 text-sm sm:text-base">Easy Process</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                  Simple and straightforward booking in just a few steps. Confirmation sent instantly.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </>
+      )}
 
       <div className="pt-4 sm:pt-6 space-y-3 sm:space-y-4">
         {!enableBookings && !enableGiftCards && (
