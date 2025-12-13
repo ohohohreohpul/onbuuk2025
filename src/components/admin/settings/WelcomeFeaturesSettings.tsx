@@ -27,7 +27,8 @@ const POPULAR_ICONS = [
 ];
 
 export default function WelcomeFeaturesSettings() {
-  const { businessId } = useAdminAuth();
+  const adminUser = useAdminAuth();
+  const businessId = adminUser?.business_id;
   const [cards, setCards] = useState<WelcomeCard[]>([]);
   const [showFeatures, setShowFeatures] = useState(true);
   const [useCustomHTML, setUseCustomHTML] = useState(false);
