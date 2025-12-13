@@ -286,9 +286,11 @@ export default function Admin() {
       }
     };
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session && !processingOAuthRef.current && mounted) {
-        await handleOAuthCallback(session);
+        (async () => {
+          await handleOAuthCallback(session);
+        })();
       } else if (event === 'SIGNED_OUT' && mounted) {
         window.location.href = '/login';
       }
@@ -311,19 +313,15 @@ export default function Admin() {
     window.location.href = '/login';
   };
 
-  if (loading) {
+  if (loading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50" key="loading-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto mb-4" style={{ willChange: 'transform' }}></div>
-          <div className="text-stone-600">{loadingMessage}</div>
+          <div className="text-stone-600">{loadingMessage || 'Loading...'}</div>
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   const renderView = () => {
