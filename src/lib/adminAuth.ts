@@ -68,7 +68,10 @@ export const adminAuth = {
 
       await supabase
         .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
+        .update({
+          last_login: new Date().toISOString(),
+          auth_user_id: authData.user.id
+        })
         .eq('id', data.id);
 
       return adminUser;
