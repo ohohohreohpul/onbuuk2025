@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Save, Mail, MessageSquare, AlertCircle, Eye } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
+import { useCurrency } from '../../../lib/currencyContext';
 
 interface NotificationTemplate {
   id?: string;
@@ -42,6 +43,7 @@ const TEMPLATE_TYPES = [
 
 export default function NotificationTemplates() {
   const { businessId } = useTenant();
+  const { formatAmount } = useCurrency();
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [selectedType, setSelectedType] = useState('booking_confirmation');
   const [selectedChannel, setSelectedChannel] = useState<'email' | 'sms'>('email');
@@ -158,7 +160,7 @@ export default function NotificationTemplates() {
       bookingDate: 'Monday, January 15, 2024',
       startTime: '2:00 PM',
       duration: '60 minutes',
-      price: '$89.00',
+      price: formatAmount(89),
       bookingId: 'BK-12345',
       status: 'confirmed',
     };

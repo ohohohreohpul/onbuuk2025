@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Crown, Calendar, CreditCard, Check, Loader, AlertCircle, Tag } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
+import { useCurrency } from '../../../lib/currencyContext';
 
 interface Business {
   id: string;
@@ -15,14 +16,14 @@ interface Business {
 
 interface PlanDetails {
   name: string;
-  price: string;
+  priceCents: number;
   features: string[];
 }
 
 const PLAN_DETAILS: Record<string, PlanDetails> = {
   free: {
     name: 'Free',
-    price: '$0',
+    priceCents: 0,
     features: [
       '1 admin user (owner only)',
       'Up to 50 bookings per month',
@@ -33,7 +34,7 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
   },
   standard: {
     name: 'Standard',
-    price: '$29',
+    priceCents: 2900,
     features: [
       'Up to 3 admin users',
       'Unlimited bookings',
@@ -47,7 +48,7 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
   },
   pro: {
     name: 'Pro',
-    price: '$45',
+    priceCents: 4500,
     features: [
       'Unlimited admin users',
       'Unlimited bookings',
@@ -65,6 +66,7 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
 
 export default function SubscriptionManagement() {
   const { businessId } = useTenant();
+  const { formatAmount } = useCurrency();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -290,7 +292,7 @@ export default function SubscriptionManagement() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-stone-900">
-                {PLAN_DETAILS[currentPlan]?.price || '$0'}
+                {formatAmount((PLAN_DETAILS[currentPlan]?.priceCents || 0) / 100)}
               </p>
               <p className="text-sm text-stone-600">{isFree ? 'Free forever' : 'starting at / month'}</p>
             </div>
@@ -336,6 +338,7 @@ export default function SubscriptionManagement() {
                 selected={selectedPlan === 'standard'}
                 onSelect={() => setSelectedPlan('standard')}
                 processing={processing}
+                formatAmount={formatAmount}
               />
               <PlanCard
                 planType="pro"
@@ -343,6 +346,7 @@ export default function SubscriptionManagement() {
                 onSelect={() => setSelectedPlan('pro')}
                 processing={processing}
                 popular
+                formatAmount={formatAmount}
               />
             </div>
           )}
@@ -355,6 +359,7 @@ export default function SubscriptionManagement() {
                 onSelect={() => setSelectedPlan('pro')}
                 processing={processing}
                 popular
+                formatAmount={formatAmount}
               />
             </div>
           )}
@@ -432,9 +437,10 @@ interface PlanCardProps {
   onSelect: () => void;
   processing: boolean;
   popular?: boolean;
+  formatAmount: (amount: number) => string;
 }
 
-function PlanCard({ planType, selected, onSelect, processing, popular }: PlanCardProps) {
+function PlanCard({ planType, selected, onSelect, processing, popular, formatAmount }: PlanCardProps) {
   const plan = PLAN_DETAILS[planType];
 
   return (
@@ -457,7 +463,7 @@ function PlanCard({ planType, selected, onSelect, processing, popular }: PlanCar
       <div className="mb-4">
         <h5 className="text-xl font-bold text-stone-900 mb-1">{plan.name}</h5>
         <div className="flex items-baseline">
-          <span className="text-3xl font-bold text-stone-900">{plan.price}</span>
+          <span className="text-3xl font-bold text-stone-900">{formatAmount(plan.priceCents / 100)}</span>
           <span className="text-stone-600 ml-1 text-sm">starting at / month</span>
         </div>
       </div>

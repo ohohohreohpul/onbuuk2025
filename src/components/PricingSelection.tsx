@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, ArrowLeft, Loader2 } from 'lucide-react';
+import { useCurrency } from '../lib/currencyContext';
 
 interface PricingSelectionProps {
   onSelectPlan: (planType: 'standard' | 'pro') => Promise<void>;
@@ -7,6 +8,7 @@ interface PricingSelectionProps {
 }
 
 export function PricingSelection({ onSelectPlan, onBack }: PricingSelectionProps) {
+  const { formatAmount } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'standard' | 'pro' | null>(null);
 
@@ -26,7 +28,7 @@ export function PricingSelection({ onSelectPlan, onBack }: PricingSelectionProps
     {
       id: 'standard',
       name: 'Standard',
-      price: '$29',
+      priceCents: 2900,
       period: '/month',
       description: 'Perfect for small businesses getting started',
       features: [
@@ -42,7 +44,7 @@ export function PricingSelection({ onSelectPlan, onBack }: PricingSelectionProps
     {
       id: 'pro',
       name: 'Pro',
-      price: '$79',
+      priceCents: 7900,
       period: '/month',
       description: 'Advanced features for growing businesses',
       features: [
@@ -104,7 +106,7 @@ export function PricingSelection({ onSelectPlan, onBack }: PricingSelectionProps
                 <p className="text-slate-600 text-sm mb-4">{plan.description}</p>
                 <div className="flex items-baseline">
                   <span className="text-5xl font-bold text-slate-900">
-                    {plan.price}
+                    {formatAmount(plan.priceCents / 100)}
                   </span>
                   <span className="text-slate-600 ml-2">{plan.period}</span>
                 </div>

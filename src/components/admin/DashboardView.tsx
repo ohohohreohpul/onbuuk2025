@@ -9,6 +9,7 @@ import PermissionGuard from './PermissionGuard';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { useCurrency } from '../../lib/currencyContext';
 
 interface DashboardStats {
   totalBookings: number;
@@ -33,6 +34,7 @@ interface DashboardViewProps {
 export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const adminUser = adminAuth.getCurrentUser();
   const { hasPermission } = usePermissions(adminUser?.id || null);
+  const { formatPrice } = useCurrency();
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
     todayBookings: 0,
@@ -167,9 +169,6 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     }
   };
 
-  const formatCurrency = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -304,7 +303,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+              <div className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 <span className="text-[#008374]">+8%</span> from last month
               </p>
