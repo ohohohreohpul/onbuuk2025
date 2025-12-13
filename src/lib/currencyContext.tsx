@@ -22,17 +22,26 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
     loadCurrency();
 
-    const subscription = supabase
-      .from('site_settings')
-      .on('*', (payload) => {
-        if (payload.new?.business_id === businessId && payload.new?.currency) {
-          setCurrencyState(payload.new.currency);
+    const channel = supabase
+      .channel(`site_settings:${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'site_settings',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          if (payload.new?.currency) {
+            setCurrencyState(payload.new.currency);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [businessId]);
 
