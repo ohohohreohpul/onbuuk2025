@@ -12,9 +12,9 @@ export interface QueryResult<T> {
   timedOut: boolean;
 }
 
-const DEFAULT_TIMEOUT = 10000;
-const DEFAULT_RETRIES = 2;
-const DEFAULT_RETRY_DELAY = 1000;
+const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_RETRIES = 1;
+const DEFAULT_RETRY_DELAY = 500;
 
 export async function executeWithTimeout<T>(
   queryBuilder: PostgrestBuilder<T>,

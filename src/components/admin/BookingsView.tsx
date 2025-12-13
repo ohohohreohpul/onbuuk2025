@@ -31,13 +31,18 @@ export default function BookingsView() {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [businessId]);
 
   useEffect(() => {
     filterBookings();
   }, [searchTerm, statusFilter, bookings]);
 
   const fetchBookings = async () => {
+    if (!businessId) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -46,6 +51,7 @@ export default function BookingsView() {
         duration:service_durations(duration_minutes, price_cents),
         specialist:specialists(name)
       `)
+      .eq('business_id', businessId)
       .order('booking_date', { ascending: false });
 
     if (error) {
@@ -135,6 +141,7 @@ export default function BookingsView() {
         .from('customers')
         .select('id')
         .eq('email', booking.customer_email)
+        .eq('business_id', businessId!)
         .maybeSingle();
 
       const { error: feeError } = await supabase

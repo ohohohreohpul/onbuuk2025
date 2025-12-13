@@ -17,7 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
 
 const AUTH_CHECK_TIMEOUT = 10000;
-const OAUTH_PROCESSING_TIMEOUT = 15000;
+const OAUTH_PROCESSING_TIMEOUT = 30000;
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -39,30 +39,8 @@ export default function Admin() {
       }
     }, AUTH_CHECK_TIMEOUT);
 
-    const generateUniquePermalink = async (): Promise<string> => {
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (attempts < maxAttempts) {
-        const randomPermalink = `biz-${Math.random().toString(36).substring(2, 10)}`;
-
-        const result = await executeWithTimeout(
-          supabase
-            .from('businesses')
-            .select('id')
-            .eq('permalink', randomPermalink)
-            .maybeSingle(),
-          { timeout: 3000, retries: 1 }
-        );
-
-        if (!result.data) {
-          return randomPermalink;
-        }
-
-        attempts++;
-      }
-
-      return `biz-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const generateUniquePermalink = (): string => {
+      return `biz-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     };
 
     const handleOAuthCallback = async (session: any) => {
@@ -114,13 +92,13 @@ export default function Admin() {
             localStorage.setItem('business_permalink', permalink);
           }
 
-          await executeWithTimeout(
+          executeWithTimeout(
             supabase
               .from('admin_users')
               .update({ last_login: new Date().toISOString() })
               .eq('id', adminUser.id),
             { timeout: 3000, retries: 0 }
-          );
+          ).catch(err => console.error('Failed to update last login:', err));
 
           window.history.replaceState({}, document.title, '/admin');
 
@@ -151,7 +129,7 @@ export default function Admin() {
             throw new Error('An account already exists with this Google account.');
           }
 
-          const uniquePermalink = await generateUniquePermalink();
+          const uniquePermalink = generateUniquePermalink();
           const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
 
           const businessResult = await executeWithTimeout(
@@ -206,7 +184,7 @@ export default function Admin() {
             throw adminInsertResult.error;
           }
 
-          await executeWithTimeout(
+          executeWithTimeout(
             supabase.from('booking_form_colors').insert([
               { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
               { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
@@ -219,7 +197,7 @@ export default function Admin() {
               { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
             ]),
             { timeout: 5000, retries: 0 }
-          );
+          ).catch(err => console.error('Failed to insert default colors:', err));
 
           const newAdminResult = await executeWithTimeout(
             supabase
