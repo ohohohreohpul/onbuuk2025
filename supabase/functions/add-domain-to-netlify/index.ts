@@ -26,6 +26,8 @@ async function addDomainToNetlify(
   netlifySiteId: string
 ): Promise<{ success: boolean; domainId?: string; sslStatus?: string; error?: string }> {
   try {
+    console.log(`[Add Domain to Netlify] Adding domain: ${domain} to site: ${netlifySiteId}`);
+
     const response = await fetch(
       `https://api.netlify.com/api/v1/sites/${netlifySiteId}/domains`,
       {
@@ -38,10 +40,12 @@ async function addDomainToNetlify(
       }
     );
 
+    console.log(`[Add Domain to Netlify] Netlify API response status: ${response.status}`);
+
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `Netlify API error: ${response.status}`;
-      
+
       try {
         const errorData = JSON.parse(errorText);
         errorMessage = errorData.message || errorMessage;
@@ -49,18 +53,20 @@ async function addDomainToNetlify(
         errorMessage = errorText || errorMessage;
       }
 
+      console.error(`[Add Domain to Netlify] Failed: ${errorMessage}`);
       return { success: false, error: errorMessage };
     }
 
     const data: NetlifyDomainResponse = await response.json();
-    
+    console.log(`[Add Domain to Netlify] Successfully added domain ${domain} with ID: ${data.id}`);
+
     return {
       success: true,
       domainId: data.id,
       sslStatus: data.ssl?.state || "pending",
     };
   } catch (error) {
-    console.error("Error adding domain to Netlify:", error);
+    console.error("[Add Domain to Netlify] Error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to add domain to Netlify",
@@ -82,7 +88,10 @@ Deno.serve(async (req: Request) => {
     const netlifyAccessToken = Deno.env.get("NETLIFY_ACCESS_TOKEN");
     const netlifySiteId = Deno.env.get("NETLIFY_SITE_ID");
 
+    console.log("[Add Domain] Starting domain addition");
+
     if (!netlifyAccessToken || !netlifySiteId) {
+      console.error("[Add Domain] Missing Netlify credentials");
       return new Response(
         JSON.stringify({
           error: "Netlify credentials not configured. Please set NETLIFY_ACCESS_TOKEN and NETLIFY_SITE_ID environment variables.",
@@ -97,7 +106,10 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { domain_id } = await req.json() as AddDomainRequest;
 
+    console.log(`[Add Domain] Processing domain_id: ${domain_id}`);
+
     if (!domain_id) {
+      console.log("[Add Domain] Error: domain_id is required");
       return new Response(
         JSON.stringify({ error: "domain_id is required" }),
         {
@@ -107,15 +119,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log(`[Add Domain] Querying database for domain_id: ${domain_id}`);
     const { data: domain, error: domainError } = await supabase
       .from("custom_domains")
       .select("*")
       .eq("id", domain_id)
       .single();
 
-    if (domainError || !domain) {
+    if (domainError) {
+      console.error(`[Add Domain] Database error for domain_id ${domain_id}:`, domainError);
       return new Response(
-        JSON.stringify({ error: "Domain not found" }),
+        JSON.stringify({
+          error: "Database error: Unable to fetch domain details",
+          details: domainError.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!domain) {
+      console.log(`[Add Domain] Domain not found in database for domain_id: ${domain_id}`);
+      return new Response(
+        JSON.stringify({ error: "Domain not found in database" }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -123,7 +151,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log(`[Add Domain] Found domain: ${domain.domain}, dns_configured: ${domain.dns_configured}`);
+
     if (!domain.dns_configured) {
+      console.log(`[Add Domain] DNS not configured for ${domain.domain}, cannot add to Netlify`);
       return new Response(
         JSON.stringify({
           error: "DNS must be configured and verified before adding to Netlify",

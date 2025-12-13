@@ -13,29 +13,36 @@ interface VerifyRequest {
 
 async function checkDNSRecords(domain: string, expectedTarget: string): Promise<{ configured: boolean; error?: string }> {
   try {
+    console.log(`[DNS Check] Checking domain: ${domain}, expected target: ${expectedTarget}`);
+
     // Use Google DNS-over-HTTPS to check CNAME records
     const response = await fetch(`https://dns.google/resolve?name=${domain}&type=CNAME`);
     const data = await response.json();
 
     if (data.Status !== 0) {
+      console.log(`[DNS Check] DNS lookup failed for ${domain}, status: ${data.Status}`);
       return { configured: false, error: "DNS lookup failed - domain not found or DNS not configured" };
     }
 
     if (!data.Answer || data.Answer.length === 0) {
+      console.log(`[DNS Check] No CNAME found for ${domain}, checking for A records`);
       // No CNAME found, check for A records (might be apex domain)
       const aResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
       const aData = await aResponse.json();
 
       if (aData.Status !== 0 || !aData.Answer || aData.Answer.length === 0) {
+        console.log(`[DNS Check] No A records found for ${domain}`);
         return { configured: false, error: "No DNS records found. Please add a CNAME record pointing to your Netlify site." };
       }
 
+      console.log(`[DNS Check] A record found but CNAME required for ${domain}`);
       return { configured: false, error: "Found A record but CNAME is required. Please use a subdomain or configure Netlify DNS." };
     }
 
     // Check if CNAME points to the expected target
     const cnameRecord = data.Answer.find((record: any) => record.type === 5); // Type 5 is CNAME
     if (!cnameRecord) {
+      console.log(`[DNS Check] DNS records found but no CNAME for ${domain}`);
       return { configured: false, error: "DNS records found but no CNAME record detected" };
     }
 
@@ -43,16 +50,20 @@ async function checkDNSRecords(domain: string, expectedTarget: string): Promise<
     let cnameValue = cnameRecord.data.toLowerCase().replace(/\.$/, '');
     const normalizedTarget = expectedTarget.toLowerCase().replace(/\.$/, '');
 
+    console.log(`[DNS Check] CNAME value: ${cnameValue}, normalized target: ${normalizedTarget}`);
+
     if (!cnameValue.includes(normalizedTarget)) {
+      console.log(`[DNS Check] CNAME mismatch for ${domain}`);
       return {
         configured: false,
         error: `CNAME points to ${cnameValue} but should point to ${normalizedTarget}`
       };
     }
 
+    console.log(`[DNS Check] DNS verification successful for ${domain}`);
     return { configured: true };
   } catch (error) {
-    console.error("DNS check error:", error);
+    console.error("[DNS Check] Error:", error);
     return {
       configured: false,
       error: `DNS verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -75,7 +86,10 @@ Deno.serve(async (req: Request) => {
 
     const { domain_id } = await req.json() as VerifyRequest;
 
+    console.log(`[Verify Domain] Starting verification for domain_id: ${domain_id}`);
+
     if (!domain_id) {
+      console.log("[Verify Domain] Error: domain_id is required");
       return new Response(
         JSON.stringify({ error: "domain_id is required" }),
         {
@@ -86,15 +100,31 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get domain details
+    console.log(`[Verify Domain] Querying database for domain_id: ${domain_id}`);
     const { data: domain, error: domainError } = await supabase
       .from("custom_domains")
       .select("*")
       .eq("id", domain_id)
       .single();
 
-    if (domainError || !domain) {
+    if (domainError) {
+      console.error(`[Verify Domain] Database error for domain_id ${domain_id}:`, domainError);
       return new Response(
-        JSON.stringify({ error: "Domain not found" }),
+        JSON.stringify({
+          error: "Database error: Unable to fetch domain details",
+          details: domainError.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!domain) {
+      console.log(`[Verify Domain] Domain not found in database for domain_id: ${domain_id}`);
+      return new Response(
+        JSON.stringify({ error: "Domain not found in database" }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -102,12 +132,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log(`[Verify Domain] Found domain: ${domain.domain}`);
+
     // Get the Netlify site URL for this business (you should store this in settings)
     // For now, we'll use a placeholder - you'll need to configure this
     const netlifyUrl = Deno.env.get("NETLIFY_SITE_URL") || "your-app.netlify.app";
+    console.log(`[Verify Domain] Using Netlify URL: ${netlifyUrl}`);
 
     // Check DNS records
     const dnsCheck = await checkDNSRecords(domain.domain, netlifyUrl);
+    console.log(`[Verify Domain] DNS check result for ${domain.domain}:`, dnsCheck);
 
     // Update domain status
     const updateData: any = {
@@ -138,6 +172,7 @@ Deno.serve(async (req: Request) => {
     // If DNS is configured and domain hasn't been added to Netlify yet, add it now
     let netlifyResult = null;
     if (dnsCheck.configured && !domain.netlify_domain_id) {
+      console.log(`[Verify Domain] DNS configured, adding ${domain.domain} to Netlify`);
       try {
         const addDomainResponse = await fetch(
           `${supabaseUrl}/functions/v1/add-domain-to-netlify`,
@@ -151,20 +186,26 @@ Deno.serve(async (req: Request) => {
           }
         );
 
+        const responseData = await addDomainResponse.json();
+
         if (addDomainResponse.ok) {
-          netlifyResult = await addDomainResponse.json();
+          console.log(`[Verify Domain] Successfully added ${domain.domain} to Netlify:`, responseData);
+          netlifyResult = { success: true, ...responseData };
         } else {
-          const errorData = await addDomainResponse.json();
-          console.error("Failed to add domain to Netlify:", errorData);
-          netlifyResult = { success: false, error: errorData.error };
+          console.error(`[Verify Domain] Failed to add domain to Netlify (HTTP ${addDomainResponse.status}):`, responseData);
+          netlifyResult = { success: false, error: responseData.error || "Unknown Netlify API error" };
         }
       } catch (netlifyError) {
-        console.error("Error calling add-domain-to-netlify:", netlifyError);
+        console.error("[Verify Domain] Error calling add-domain-to-netlify:", netlifyError);
         netlifyResult = {
           success: false,
           error: netlifyError instanceof Error ? netlifyError.message : "Failed to add domain to platform",
         };
       }
+    } else if (dnsCheck.configured && domain.netlify_domain_id) {
+      console.log(`[Verify Domain] Domain already added to Netlify (ID: ${domain.netlify_domain_id})`);
+    } else {
+      console.log(`[Verify Domain] DNS not configured yet, skipping Netlify integration`);
     }
 
     return new Response(

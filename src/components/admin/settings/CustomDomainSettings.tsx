@@ -162,6 +162,8 @@ export default function CustomDomainSettings() {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-custom-domain`;
 
+      console.log(`[CustomDomainSettings] Verifying domain: ${domainId}`);
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -173,18 +175,23 @@ export default function CustomDomainSettings() {
 
       const result = await response.json();
 
+      console.log('[CustomDomainSettings] Verification result:', result);
+
       if (result.error) {
-        alert(`Verification failed: ${result.error}`);
+        const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
+        console.error('[CustomDomainSettings] Verification error:', errorMessage);
+        alert(`Verification failed: ${errorMessage}`);
       } else if (result.configured) {
-        alert('Domain verified successfully! SSL certificate will be provisioned automatically by Netlify.');
+        alert('Domain verified successfully! Your domain is being added to our platform and SSL certificate will be provisioned within 5-15 minutes.');
       } else {
-        alert(`DNS not configured yet: ${result.error || 'Please check your DNS settings.'}`);
+        alert(`DNS not configured yet: ${result.error || 'Please check your DNS settings and ensure the CNAME record is correct.'}`);
       }
 
       await fetchDomains();
     } catch (error) {
       console.error('Error verifying domain:', error);
-      alert('Failed to verify domain. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to verify domain: ${errorMessage}`);
     } finally {
       setVerifying(null);
     }
@@ -440,14 +447,24 @@ export default function CustomDomainSettings() {
                     {domain.error_message && (
                       <div className="flex items-start space-x-2 text-sm text-red-600 mb-2">
                         <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <span>{domain.error_message}</span>
+                        <div className="flex-1">
+                          <p className="font-medium">DNS Verification Error</p>
+                          <p className="text-xs mt-1">{domain.error_message}</p>
+                        </div>
                       </div>
                     )}
 
                     {domain.netlify_api_error && (
                       <div className="flex items-start space-x-2 text-sm text-red-600 mb-2">
                         <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <span>Platform error: {domain.netlify_api_error}</span>
+                        <div className="flex-1">
+                          <p className="font-medium">Platform Integration Error</p>
+                          <p className="text-xs mt-1">
+                            {domain.netlify_api_error.includes('not configured')
+                              ? 'Netlify credentials are not configured. Contact support for assistance.'
+                              : domain.netlify_api_error}
+                          </p>
+                        </div>
                       </div>
                     )}
 
@@ -487,14 +504,25 @@ export default function CustomDomainSettings() {
                         Set as Primary
                       </button>
                     )}
-                    <button
-                      onClick={() => handleVerifyDomain(domain.id)}
-                      disabled={verifying === domain.id}
-                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-stone-800 text-white rounded hover:bg-stone-700 disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${verifying === domain.id ? 'animate-spin' : ''}`} />
-                      <span>{verifying === domain.id ? 'Checking...' : 'Verify'}</span>
-                    </button>
+                    {domain.status === 'failed' ? (
+                      <button
+                        onClick={() => handleVerifyDomain(domain.id)}
+                        disabled={verifying === domain.id}
+                        className="flex items-center space-x-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${verifying === domain.id ? 'animate-spin' : ''}`} />
+                        <span>{verifying === domain.id ? 'Retrying...' : 'Retry'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleVerifyDomain(domain.id)}
+                        disabled={verifying === domain.id}
+                        className="flex items-center space-x-1 px-3 py-1 text-sm bg-stone-800 text-white rounded hover:bg-stone-700 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${verifying === domain.id ? 'animate-spin' : ''}`} />
+                        <span>{verifying === domain.id ? 'Checking...' : 'Verify'}</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleRemoveDomain(domain.id, domain.domain)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
@@ -504,7 +532,26 @@ export default function CustomDomainSettings() {
                   </div>
                 </div>
 
-                {domain.status !== 'verified' && (
+                {domain.status === 'failed' && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded">
+                    <h5 className="font-medium text-red-800 mb-3 flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>Troubleshooting Failed Domain</span>
+                    </h5>
+                    <div className="text-sm text-red-700 space-y-2">
+                      <p className="font-medium">Please try the following:</p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li>Verify that the CNAME record has been added to your DNS provider</li>
+                        <li>Wait a few minutes and click "Retry" - DNS changes can take 5-60 minutes to propagate</li>
+                        <li>Check that the CNAME points to exactly: <code className="bg-red-100 px-1 rounded">{netlifyUrl}</code></li>
+                        <li>Ensure there are no typos in the domain name or CNAME target</li>
+                        <li>If the error mentions "not configured", Netlify credentials need to be set up - contact support</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {domain.status !== 'verified' && domain.status !== 'failed' && (
                   <div className="mt-4 p-4 bg-stone-50 border border-stone-200 rounded">
                     <h5 className="font-medium text-stone-800 mb-3 flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4" />
