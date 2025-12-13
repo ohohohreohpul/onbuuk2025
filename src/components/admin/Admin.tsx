@@ -9,7 +9,6 @@ import TeamManagementView from './TeamManagementView';
 import SettingsView from './SettingsView';
 import CalendarView from './CalendarView';
 import BookingFormCustomization from './BookingFormCustomization';
-import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
 import ProductsView from './ProductsView';
 import { adminAuth } from '../../lib/adminAuth';
@@ -340,8 +339,6 @@ export default function Admin() {
         return <SpecialistsView />;
       case 'staff':
         return <TeamManagementView />;
-      case 'loyalty':
-        return <LoyaltyRewardsView />;
       case 'fees':
         return <NoShowFeesView />;
       case 'products':
@@ -350,8 +347,6 @@ export default function Admin() {
         return <BookingFormCustomization />;
       case 'settings':
         return <SettingsView />;
-      case 'gift-cards':
-        return <LoyaltyRewardsView />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }
