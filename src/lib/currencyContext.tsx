@@ -69,6 +69,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         .from('site_settings')
         .select('id')
         .eq('business_id', businessId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (selectError) {
