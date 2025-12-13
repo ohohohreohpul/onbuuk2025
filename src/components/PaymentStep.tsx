@@ -819,7 +819,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         </div>
       </div>
 
-      <div className="flex-shrink-0 space-y-4">
+      <div className="flex-shrink-0 space-y-4 pb-8">
         <button
           onClick={handlePayment}
           disabled={isProcessing}
