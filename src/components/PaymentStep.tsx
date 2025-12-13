@@ -586,7 +586,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         <p className="text-stone-600">{content.subtitle}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4 pb-8">
         <div className="border border-stone-200 p-6 space-y-4">
         <h3 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-4">
           Booking Summary
@@ -819,7 +819,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         </div>
       </div>
 
-      <div className="flex-shrink-0 space-y-4 pb-8">
+      <div className="flex-shrink-0 space-y-4">
         <button
           onClick={handlePayment}
           disabled={isProcessing}
