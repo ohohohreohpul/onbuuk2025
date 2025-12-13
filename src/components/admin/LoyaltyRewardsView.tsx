@@ -728,8 +728,8 @@ export function LoyaltyRewardsView() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Code</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Original Value</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Balance</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Original Value ({currencySymbol})</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Balance ({currencySymbol})</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Purchased</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Recipient</th>

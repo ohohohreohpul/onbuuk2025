@@ -31,7 +31,7 @@ interface PendingBooking {
 
 export function POSView() {
   const { businessId } = useTenant();
-  const { formatAmount } = useCurrency();
+  const { formatAmount, currencySymbol } = useCurrency();
   const [activeTab, setActiveTab] = useState<'gift_cards' | 'bookings'>('gift_cards');
 
   // Gift card state
@@ -275,7 +275,7 @@ export function POSView() {
 
                 <div className="pt-4 border-t border-green-200">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount to Redeem ($)
+                    Amount to Redeem ({currencySymbol})
                   </label>
                   <div className="flex gap-2">
                     <input
