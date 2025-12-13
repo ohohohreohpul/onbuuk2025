@@ -59,11 +59,11 @@ export default function Admin() {
         const adminUserResult = await executeWithTimeout(
           supabase
             .from('admin_users')
-            .select('id, business_id, role, full_name, businesses(permalink)')
+            .select('id, business_id, role, full_name')
             .eq('email', session.user.email)
             .eq('is_active', true)
             .maybeSingle(),
-          { timeout: 12000, retries: 3 }
+          { timeout: 10000, retries: 3 }
         );
 
         if (adminUserResult.error) {
@@ -71,6 +71,19 @@ export default function Admin() {
         }
 
         const adminUser = adminUserResult.data;
+        let permalink = null;
+
+        if (adminUser) {
+          const businessResult = await executeWithTimeout(
+            supabase
+              .from('businesses')
+              .select('permalink')
+              .eq('id', adminUser.business_id)
+              .maybeSingle(),
+            { timeout: 5000, retries: 2 }
+          );
+          permalink = businessResult.data?.permalink;
+        }
 
         clearTimeout(oauthTimeout);
 
@@ -87,7 +100,6 @@ export default function Admin() {
           localStorage.setItem('admin_user', JSON.stringify(adminUserData));
           localStorage.setItem('current_business_id', adminUser.business_id);
 
-          const permalink = (adminUser.businesses as any)?.permalink;
           if (permalink) {
             localStorage.setItem('business_permalink', permalink);
           }
@@ -115,19 +127,6 @@ export default function Admin() {
           if (mounted) {
             setLoadingMessage('Setting up your account...');
             setLoading(true);
-          }
-
-          const existingUserResult = await executeWithTimeout(
-            supabase
-              .from('admin_users')
-              .select('id, email')
-              .eq('user_id', session.user.id)
-              .maybeSingle(),
-            { timeout: 3000, retries: 1 }
-          );
-
-          if (existingUserResult.data) {
-            throw new Error('An account already exists with this Google account.');
           }
 
           const uniquePermalink = generateUniquePermalink();
@@ -162,21 +161,39 @@ export default function Admin() {
 
           const business = businessResult.data;
 
-          const adminInsertResult = await executeWithTimeout(
-            supabase
-              .from('admin_users')
-              .insert({
-                business_id: business.id,
-                email: session.user.email,
-                password_hash: null,
-                full_name: fullName,
-                role: 'owner',
-                is_owner: true,
-                is_active: true,
-                user_id: session.user.id,
-              }),
-            { timeout: 12000, retries: 3 }
-          );
+          const [adminInsertResult, colorResult] = await Promise.all([
+            executeWithTimeout(
+              supabase
+                .from('admin_users')
+                .insert({
+                  business_id: business.id,
+                  email: session.user.email,
+                  password_hash: null,
+                  full_name: fullName,
+                  role: 'owner',
+                  is_owner: true,
+                  is_active: true,
+                  user_id: session.user.id,
+                })
+                .select()
+                .single(),
+              { timeout: 12000, retries: 3 }
+            ),
+            executeWithTimeout(
+              supabase.from('booking_form_colors').insert([
+                { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
+                { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
+                { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
+                { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
+                { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
+                { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
+                { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
+                { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
+                { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
+              ]),
+              { timeout: 10000, retries: 2 }
+            ),
+          ]);
 
           if (adminInsertResult.error) {
             if (adminInsertResult.error.message?.includes('23505')) {
@@ -185,47 +202,20 @@ export default function Admin() {
             throw adminInsertResult.error;
           }
 
-          const colorResult = await executeWithTimeout(
-            supabase.from('booking_form_colors').insert([
-              { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
-              { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
-              { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
-              { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
-              { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
-              { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
-              { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
-              { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
-              { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
-            ]),
-            { timeout: 10000, retries: 2 }
-          );
-
           if (colorResult.error) {
             console.error('Failed to insert default colors:', colorResult.error);
             throw new Error('Failed to initialize booking colors. Please try again.');
           }
 
-          const newAdminResult = await executeWithTimeout(
-            supabase
-              .from('admin_users')
-              .select('*')
-              .eq('email', session.user.email)
-              .eq('business_id', business.id)
-              .single(),
-            { timeout: 10000, retries: 3 }
-          );
-
-          if (newAdminResult.data) {
-            const adminUserData = {
-              id: newAdminResult.data.id,
-              email: newAdminResult.data.email,
-              full_name: newAdminResult.data.full_name,
-              role: newAdminResult.data.role,
-              is_active: newAdminResult.data.is_active,
-              business_id: newAdminResult.data.business_id,
-            };
-            localStorage.setItem('admin_user', JSON.stringify(adminUserData));
-          }
+          const adminUserData = {
+            id: adminInsertResult.data.id,
+            email: adminInsertResult.data.email,
+            full_name: adminInsertResult.data.full_name,
+            role: adminInsertResult.data.role,
+            is_active: adminInsertResult.data.is_active,
+            business_id: adminInsertResult.data.business_id,
+          };
+          localStorage.setItem('admin_user', JSON.stringify(adminUserData));
 
           localStorage.setItem('current_business_id', business.id);
           localStorage.setItem('business_permalink', business.permalink);
