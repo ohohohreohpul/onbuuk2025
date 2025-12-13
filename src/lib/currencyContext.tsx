@@ -65,27 +65,42 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newCurrency);
 
     if (businessId) {
-      const { data: existing } = await supabase
+      const { data: existing, error: selectError } = await supabase
         .from('site_settings')
         .select('id')
         .eq('business_id', businessId)
         .maybeSingle();
 
+      if (selectError) {
+        console.error('Error checking existing settings:', selectError);
+        throw selectError;
+      }
+
       if (existing) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('site_settings')
-          .update({ currency: newCurrency })
-          .eq('business_id', businessId);
+          .update({ currency: newCurrency, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.error('Error updating currency:', updateError);
+          throw updateError;
+        }
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('site_settings')
           .insert({
-            key: `currency_${businessId}`,
+            key: `settings_${businessId}`,
             value: newCurrency,
             category: 'general',
             business_id: businessId,
             currency: newCurrency,
           });
+
+        if (insertError) {
+          console.error('Error inserting currency:', insertError);
+          throw insertError;
+        }
       }
     }
   };

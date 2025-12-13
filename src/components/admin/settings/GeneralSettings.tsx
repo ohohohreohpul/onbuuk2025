@@ -4,6 +4,7 @@ import { Save, AlertCircle, Globe, DollarSign, Crown, Image, ToggleLeft } from '
 import { useTenant } from '../../../lib/tenantContext';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 import { CURRENCY_NAMES, CURRENCY_SYMBOLS } from '../../../lib/currency';
+import { useCurrency } from '../../../lib/currencyContext';
 
 interface Business {
   id: string;
@@ -23,18 +24,23 @@ interface Business {
 export default function GeneralSettings() {
   const { businessId } = useTenant();
   const premiumFeatures = usePremiumFeatures();
+  const { currency, setCurrency: updateCurrency } = useCurrency();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLoginLogo, setUploadingLoginLogo] = useState(false);
-  const [currency, setCurrency] = useState<string>('USD');
+  const [localCurrency, setLocalCurrency] = useState<string>(currency);
   const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     fetchBusiness();
   }, [businessId]);
+
+  useEffect(() => {
+    setLocalCurrency(currency);
+  }, [currency]);
 
   const handleUpgrade = async () => {
     if (upgrading || !businessId) return;
@@ -87,18 +93,6 @@ export default function GeneralSettings() {
 
     if (data) {
       setBusiness(data);
-    }
-
-    const { data: siteSettings } = await supabase
-      .from('site_settings')
-      .select('currency')
-      .eq('business_id', businessId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (siteSettings?.currency) {
-      setCurrency(siteSettings.currency);
     }
 
     setLoading(false);
@@ -266,38 +260,15 @@ export default function GeneralSettings() {
 
       if (error) throw error;
 
-      const { data: existingSettings } = await supabase
-        .from('site_settings')
-        .select('id')
-        .eq('business_id', businessId)
-        .maybeSingle();
-
-      if (existingSettings) {
-        await supabase
-          .from('site_settings')
-          .update({
-            currency: currency,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('business_id', businessId);
-      } else {
-        await supabase
-          .from('site_settings')
-          .insert({
-            key: `currency_${businessId}`,
-            value: currency,
-            category: 'general',
-            business_id: businessId,
-            currency: currency,
-            updated_at: new Date().toISOString(),
-          });
+      if (localCurrency !== currency) {
+        await updateCurrency(localCurrency);
       }
 
       setSavedMessage('Settings saved successfully!');
       setTimeout(() => setSavedMessage(''), 3000);
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Failed to save settings');
+      alert('Failed to save settings. Please check the console for details.');
     } finally {
       setSaving(false);
     }
@@ -550,8 +521,8 @@ export default function GeneralSettings() {
               Currency
             </label>
             <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              value={localCurrency}
+              onChange={(e) => setLocalCurrency(e.target.value)}
               className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
             >
               {Object.entries(CURRENCY_NAMES).map(([code, name]) => (
