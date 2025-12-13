@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTenant } from '../lib/tenantContext';
 import { emailService } from '../lib/emailService';
 import AccountCreationPrompt from './AccountCreationPrompt';
@@ -45,7 +44,6 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const tenant = useTenant();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
-  const { getText } = useBookingCustomization();
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [stripeEnabled, setStripeEnabled] = useState<boolean>(false);
   const [allowPayInPerson, setAllowPayInPerson] = useState<boolean>(false);
@@ -475,7 +473,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-light text-custom-primary mb-3">{getText('payment', 'title', 'Review & Pay')}</h2>
+          <h2 className="text-3xl font-light text-custom-primary mb-3">Review & Pay</h2>
           <p className="text-custom-secondary leading-relaxed">
             Your appointment has been successfully scheduled. We've sent a confirmation email to{' '}
             <span className="font-medium">{bookingData.customerDetails.email}</span>

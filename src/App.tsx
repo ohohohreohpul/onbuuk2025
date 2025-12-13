@@ -30,7 +30,6 @@ import { useTenant } from './lib/tenantContext';
 import { CurrencyProvider } from './lib/currencyContext';
 import { ThemeProvider } from './lib/themeContext';
 import { supabase, Service, ServiceDuration } from './lib/supabase';
-import { useBookingCustomization } from './hooks/useBookingCustomization';
 
 type Step = 'welcome' | 'service' | 'duration' | 'addons' | 'specialist' | 'datetime' | 'details' | 'payment' | 'giftcard';
 type AppMode = 'landing' | 'login' | 'booking' | 'admin' | 'staff' | 'superadmin' | 'register' | 'signup' | 'signup-success' | 'cancel' | 'customer' | 'accept-invite' | 'forgot-password' | 'reset-password' | 'booking-success' | 'gift-card-success' | 'payment-cancelled';
@@ -172,7 +171,6 @@ function AppContent() {
     },
   });
 
-  const { getImageForStep } = useBookingCustomization();
 
   if (appMode === 'superadmin') {
     return <SuperAdmin />;
@@ -376,7 +374,7 @@ function AppContent() {
   };
 
   return (
-    <BookingLayout imageUrl={getImageForStep(getStepKey(currentStep))}>
+    <BookingLayout imageUrl={undefined}>
       {currentStep === 'welcome' && (
         <WelcomeStep
           onBookAppointment={() => setCurrentStep('service')}

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Calendar, Gift, AlertCircle, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCustomerAuth } from '../hooks/useCustomerAuth';
 import { CustomerAuth } from './customer/CustomerAuth';
 import { useTenant } from '../lib/tenantContext';
@@ -29,7 +28,6 @@ interface WelcomeCard {
 }
 
 export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: WelcomeStepProps) {
-  const { getText } = useBookingCustomization();
   const { customer } = useCustomerAuth();
   const { businessId } = useTenant();
   const [showAuth, setShowAuth] = useState(false);
@@ -123,11 +121,11 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         <div className="space-y-3 sm:space-y-4 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground tracking-tight">
-              {getText('welcome', 'title', 'Book Your Appointment')}
+              Book Your Appointment
             </h1>
           </div>
           <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-            {getText('welcome', 'description', 'Select from our available services and choose a time that works best for you. We look forward to serving you!')}
+            Select from our available services and choose a time that works best for you. We look forward to serving you!
           </p>
         </div>
         <Button
@@ -209,7 +207,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             className="w-full h-12"
           >
             <Calendar className="w-5 h-5 mr-2" />
-            {getText('welcome', 'button', 'Book an Appointment')}
+            Book an Appointment
           </Button>
         )}
 

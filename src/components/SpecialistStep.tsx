@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, Specialist } from '../lib/supabase';
 import { ChevronRight, User } from 'lucide-react';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTenant } from '../lib/tenantContext';
 
 interface SpecialistStepProps {
@@ -15,7 +14,6 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpecialistId, setSelectedSpecialistId] = useState<string | null>(null);
-  const { getText } = useBookingCustomization();
 
   useEffect(() => {
     if (tenant.businessId) {
@@ -74,8 +72,8 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-theme-primary mb-2">{getText('specialist', 'title', 'Choose Your Specialist')}</h2>
-        <p className="text-theme-secondary">{getText('specialist', 'subtitle', 'Select a therapist or let us assign one for you')}</p>
+        <h2 className="text-3xl font-light text-theme-primary mb-2">Choose Your Specialist</h2>
+        <p className="text-theme-secondary">Select a therapist or let us assign one for you</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-4">

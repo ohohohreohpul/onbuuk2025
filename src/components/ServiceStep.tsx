@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, Service } from '../lib/supabase';
 import { ChevronRight } from 'lucide-react';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTenant } from '../lib/tenantContext';
 
 interface ServiceStepProps {
@@ -15,7 +14,6 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isPairBooking, setIsPairBooking] = useState(false);
-  const { getText } = useBookingCustomization();
 
   useEffect(() => {
     if (tenant.businessId) {
@@ -91,8 +89,8 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-2xl sm:text-3xl font-light text-theme-primary mb-2">{getText('service', 'title', 'Choose Your Service')}</h2>
-        <p className="text-theme-secondary text-sm sm:text-base">{getText('service', 'subtitle', 'Select the treatment that best suits your needs')}</p>
+        <h2 className="text-2xl sm:text-3xl font-light text-theme-primary mb-2">Choose Your Service</h2>
+        <p className="text-theme-secondary text-sm sm:text-base">Select the treatment that best suits your needs</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 sm:space-y-8 mb-3 sm:mb-4">

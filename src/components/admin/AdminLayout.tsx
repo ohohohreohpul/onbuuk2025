@@ -95,7 +95,6 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'configuration',
       label: 'Configuration',
       items: [
-        { id: 'customize', label: 'Form Customization', icon: Palette, permissions: ['manage_settings'] },
         { id: 'settings', label: 'Settings', icon: Settings, permissions: ['view_settings'] },
       ]
     }

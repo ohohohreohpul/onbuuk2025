@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronRight, Calendar, Clock } from 'lucide-react';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface DateTimeStepProps {
   onNext: (date: string, time: string) => void;
@@ -10,7 +9,6 @@ interface DateTimeStepProps {
 export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const { getText } = useBookingCustomization();
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -66,8 +64,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">{getText('datetime', 'title', 'Choose Date & Time')}</h2>
-        <p className="text-custom-secondary">{getText('datetime', 'subtitle', 'Select your preferred appointment slot')}</p>
+        <h2 className="text-3xl font-light text-custom-primary mb-2">Choose Date & Time</h2>
+        <p className="text-custom-secondary">Select your preferred appointment slot</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">

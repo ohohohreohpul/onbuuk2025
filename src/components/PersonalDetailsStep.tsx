@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ChevronRight, User, Mail, Phone } from 'lucide-react';
-import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface PersonalDetailsStepProps {
   onNext: (details: { name: string; email: string; phone: string; notes: string }) => void;
@@ -13,7 +12,6 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const { getText } = useBookingCustomization();
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -52,8 +50,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">{getText('personal_details', 'title', 'Your Details')}</h2>
-        <p className="text-custom-secondary">{getText('personal_details', 'subtitle', 'Please provide your contact information')}</p>
+        <h2 className="text-3xl font-light text-custom-primary mb-2">Your Details</h2>
+        <p className="text-custom-secondary">Please provide your contact information</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-5 mb-4">

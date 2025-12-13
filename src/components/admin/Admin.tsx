@@ -8,7 +8,6 @@ import SpecialistsView from './SpecialistsView';
 import TeamManagementView from './TeamManagementView';
 import SettingsView from './SettingsView';
 import CalendarView from './CalendarView';
-import BookingFormCustomization from './BookingFormCustomization';
 import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
 import ProductsView from './ProductsView';
@@ -346,8 +345,6 @@ export default function Admin() {
         return <NoShowFeesView />;
       case 'products':
         return <ProductsView />;
-      case 'customize':
-        return <BookingFormCustomization />;
       case 'settings':
         return <SettingsView />;
       case 'gift-cards':
