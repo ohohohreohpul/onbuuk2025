@@ -27,6 +27,7 @@ import BookingSuccess from './components/BookingSuccess';
 import GiftCardSuccess from './components/GiftCardSuccess';
 import PaymentCancelled from './components/PaymentCancelled';
 import { useTenant } from './lib/tenantContext';
+import { useBookingCustomization } from './hooks/useBookingCustomization';
 import { CurrencyProvider } from './lib/currencyContext';
 import { ThemeProvider } from './lib/themeContext';
 import { supabase, Service, ServiceDuration } from './lib/supabase';
@@ -68,6 +69,7 @@ interface BookingState {
 
 function AppContent() {
   const tenant = useTenant();
+  const { customization } = useBookingCustomization();
   const [appMode, setAppMode] = useState<AppMode>(() => {
     const hash = window.location.hash;
     const path = window.location.pathname;
@@ -373,8 +375,26 @@ function AppContent() {
     return step;
   };
 
+  const getCurrentStepImage = (): string | undefined => {
+    if (!customization) return undefined;
+
+    const stepImageMap: Record<Step, string | null> = {
+      'welcome': customization.welcome_image_url,
+      'service': customization.service_image_url,
+      'duration': customization.duration_image_url,
+      'specialist': customization.specialist_image_url,
+      'datetime': customization.datetime_image_url,
+      'details': customization.details_image_url,
+      'addons': customization.addons_image_url,
+      'payment': customization.payment_image_url,
+      'giftcard': customization.welcome_image_url
+    };
+
+    return stepImageMap[currentStep] || undefined;
+  };
+
   return (
-    <BookingLayout imageUrl={undefined}>
+    <BookingLayout imageUrl={getCurrentStepImage()}>
       {currentStep === 'welcome' && (
         <WelcomeStep
           onBookAppointment={() => setCurrentStep('service')}

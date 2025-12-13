@@ -1,5 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { PoweredByBuuk } from '../PoweredByBuuk';
+import { useTenant } from '../../lib/tenantContext';
+import { supabase } from '../../lib/supabase';
 
 interface VerticalLayoutProps {
   children: ReactNode;
@@ -8,6 +10,29 @@ interface VerticalLayoutProps {
 }
 
 export default function VerticalLayout({ children, imageUrl, imageAlt = 'Business' }: VerticalLayoutProps) {
+  const { businessId } = useTenant();
+  const [businessName, setBusinessName] = useState('');
+  const [businessTagline, setBusinessTagline] = useState('');
+
+  useEffect(() => {
+    async function fetchBusinessInfo() {
+      if (!businessId) return;
+
+      const { data } = await supabase
+        .from('businesses')
+        .select('name, tagline')
+        .eq('id', businessId)
+        .maybeSingle();
+
+      if (data) {
+        setBusinessName(data.name || '');
+        setBusinessTagline(data.tagline || '');
+      }
+    }
+
+    fetchBusinessInfo();
+  }, [businessId]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col relative">
       {imageUrl ? (
@@ -27,8 +52,12 @@ export default function VerticalLayout({ children, imageUrl, imageAlt = 'Busines
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
-            <h2 className="text-xl sm:text-2xl font-light text-stone-700 mb-1">Your Business</h2>
-            <p className="text-stone-600 text-xs sm:text-sm">Professional Services</p>
+            {businessName && (
+              <>
+                <h2 className="text-xl sm:text-2xl font-light text-stone-700 mb-1">{businessName}</h2>
+                {businessTagline && <p className="text-stone-600 text-xs sm:text-sm">{businessTagline}</p>}
+              </>
+            )}
           </div>
         </div>
       )}

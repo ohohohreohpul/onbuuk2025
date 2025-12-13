@@ -1,5 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { PoweredByBuuk } from '../PoweredByBuuk';
+import { useTenant } from '../../lib/tenantContext';
+import { supabase } from '../../lib/supabase';
 
 interface DefaultLayoutProps {
   children: ReactNode;
@@ -8,6 +10,29 @@ interface DefaultLayoutProps {
 }
 
 export default function DefaultLayout({ children, imageUrl, imageAlt = 'Business' }: DefaultLayoutProps) {
+  const { businessId } = useTenant();
+  const [businessName, setBusinessName] = useState('');
+  const [businessTagline, setBusinessTagline] = useState('');
+
+  useEffect(() => {
+    async function fetchBusinessInfo() {
+      if (!businessId) return;
+
+      const { data } = await supabase
+        .from('businesses')
+        .select('name, tagline')
+        .eq('id', businessId)
+        .maybeSingle();
+
+      if (data) {
+        setBusinessName(data.name || '');
+        setBusinessTagline(data.tagline || '');
+      }
+    }
+
+    fetchBusinessInfo();
+  }, [businessId]);
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row lg:h-screen overflow-hidden relative">
       <div className="w-full lg:w-2/5 h-48 sm:h-64 lg:h-full relative overflow-hidden order-1">
@@ -26,8 +51,12 @@ export default function DefaultLayout({ children, imageUrl, imageAlt = 'Business
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-light text-stone-700 mb-2">Your Business</h2>
-                <p className="text-stone-600 text-sm">Professional Services</p>
+                {businessName && (
+                  <>
+                    <h2 className="text-2xl sm:text-3xl font-light text-stone-700 mb-2">{businessName}</h2>
+                    {businessTagline && <p className="text-stone-600 text-sm">{businessTagline}</p>}
+                  </>
+                )}
               </div>
             </div>
           )}
