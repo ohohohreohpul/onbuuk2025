@@ -18,7 +18,22 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<string>('USD');
 
   useEffect(() => {
+    if (!businessId) return;
+
     loadCurrency();
+
+    const subscription = supabase
+      .from('site_settings')
+      .on('*', (payload) => {
+        if (payload.new?.business_id === businessId && payload.new?.currency) {
+          setCurrencyState(payload.new.currency);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [businessId]);
 
   const loadCurrency = async () => {
