@@ -40,7 +40,7 @@ interface GiftCard {
 export function LoyaltyRewardsView() {
   const { businessId } = useTenant();
   const { currencySymbol, formatAmount } = useCurrency();
-  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'pos'>('loyalty');
+  const [activeTab, setActiveTab] = useState<'giftcards' | 'manage' | 'pos'>('giftcards');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -273,9 +273,9 @@ export function LoyaltyRewardsView() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Loyalty & Rewards</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Gift Cards & Rewards</h2>
         <p className="text-gray-600 mt-1">
-          Manage your loyalty points program and gift card system
+          Manage your gift card system and POS transactions
         </p>
       </div>
 
@@ -289,19 +289,6 @@ export function LoyaltyRewardsView() {
       <div className="border-b">
         <div className="flex gap-6">
           <button
-            onClick={() => setActiveTab('loyalty')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'loyalty'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5" />
-              Loyalty Points
-            </div>
-          </button>
-          <button
             onClick={() => setActiveTab('giftcards')}
             className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
               activeTab === 'giftcards'
@@ -311,7 +298,7 @@ export function LoyaltyRewardsView() {
           >
             <div className="flex items-center gap-2">
               <Gift className="w-5 h-5" />
-              Gift Cards
+              Gift Card Settings
             </div>
           </button>
           <button
@@ -342,119 +329,6 @@ export function LoyaltyRewardsView() {
           </button>
         </div>
       </div>
-
-      {/* Loyalty Points Settings */}
-      {activeTab === 'loyalty' && (
-        <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Enable Loyalty Program</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Reward customers with points for every purchase
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={loyaltySettings.enabled}
-                  onChange={(e) => setLoyaltySettings({ ...loyaltySettings, enabled: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points Per Dollar Spent
-                </label>
-                <input
-                  type="number"
-                  value={loyaltySettings.points_per_dollar_spent}
-                  onChange={(e) => setLoyaltySettings({ ...loyaltySettings, points_per_dollar_spent: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="0"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Example: 10 points per $1 spent
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points Redemption Value
-                </label>
-                <input
-                  type="number"
-                  value={loyaltySettings.points_redemption_value}
-                  onChange={(e) => setLoyaltySettings({ ...loyaltySettings, points_redemption_value: parseInt(e.target.value) || 1 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Example: 100 points = $1 off
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Welcome Bonus Points
-                </label>
-                <input
-                  type="number"
-                  value={loyaltySettings.welcome_bonus_points}
-                  onChange={(e) => setLoyaltySettings({ ...loyaltySettings, welcome_bonus_points: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="0"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Points awarded when customer creates account
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points Expiry (days)
-                </label>
-                <input
-                  type="number"
-                  value={loyaltySettings.points_expiry_days || ''}
-                  onChange={(e) => setLoyaltySettings({ ...loyaltySettings, points_expiry_days: e.target.value ? parseInt(e.target.value) : null })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Never expires"
-                  min="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Leave empty for no expiry
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={saveLoyaltySettings}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Loyalty Settings'}
-            </button>
-          </div>
-
-          {/* Preview */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h4 className="font-semibold text-blue-900 mb-3">Example:</h4>
-            <div className="space-y-2 text-sm text-blue-800">
-              <p>• Customer spends $50 → Earns {loyaltySettings.points_per_dollar_spent * 50} points</p>
-              <p>• Customer has {loyaltySettings.points_redemption_value * 10} points → Can redeem for $10 off</p>
-              {loyaltySettings.welcome_bonus_points > 0 && (
-                <p>• New customer creates account → Gets {loyaltySettings.welcome_bonus_points} welcome bonus points</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Gift Card Settings */}
       {activeTab === 'giftcards' && (
