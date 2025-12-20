@@ -319,10 +319,10 @@ export default function GiftCardSuccess() {
                 </button>
               )}
               <button
-                onClick={() => (window.location.href = '/')}
+                onClick={() => window.close()}
                 className="w-full px-6 py-3 border border-stone-300 text-stone-800 hover:bg-stone-50 transition-colors"
               >
-                Return to Home
+                Close This Page
               </button>
 
               <div className="pt-4 border-t border-stone-200">
@@ -450,10 +450,10 @@ export default function GiftCardSuccess() {
 
         <div className="text-center space-y-4">
           <button
-            onClick={() => (window.location.href = '/')}
+            onClick={() => window.close()}
             className="w-full md:w-auto px-8 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
           >
-            Return to Home
+            Close This Page
           </button>
           <p className="text-sm text-stone-500">
             Need help?{' '}
