@@ -225,7 +225,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12 md:pb-16">
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-custom-primary hover:text-custom-primary-hover"
