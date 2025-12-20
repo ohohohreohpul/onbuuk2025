@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, CreditCard, Settings, Shield, LogOut, Mail } from 'lucide-react';
+import { Building2, Users, CreditCard, Settings, Shield, LogOut } from 'lucide-react';
 import { superAdminAuth } from '../../lib/superAdminAuth';
 import SuperAdminLogin from './SuperAdminLogin';
 import { supabase } from '../../lib/supabase';
-import PlatformEmailEvents from './PlatformEmailEvents';
-import PlatformEmailSettings from './PlatformEmailSettings';
-import PlatformEmailLogs from './PlatformEmailLogs';
 
 interface Business {
   id: string;
@@ -23,8 +20,7 @@ export default function SuperAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedView, setSelectedView] = useState<'businesses' | 'stats' | 'emails'>('businesses');
-  const [emailSubView, setEmailSubView] = useState<'events' | 'settings' | 'logs'>('events');
+  const [selectedView, setSelectedView] = useState<'businesses' | 'stats'>('businesses');
 
   useEffect(() => {
     setIsAuthenticated(superAdminAuth.isAuthenticated());
@@ -135,59 +131,7 @@ export default function SuperAdmin() {
             <Settings className="w-5 h-5" />
             Statistics
           </button>
-          <button
-            onClick={() => setSelectedView('emails')}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold transition-colors ${
-              selectedView === 'emails'
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Mail className="w-5 h-5" />
-            Platform Emails
-          </button>
         </div>
-
-        {selectedView === 'emails' && (
-          <div>
-            <div className="flex gap-4 mb-6">
-              <button
-                onClick={() => setEmailSubView('events')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  emailSubView === 'events'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Email Events
-              </button>
-              <button
-                onClick={() => setEmailSubView('settings')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  emailSubView === 'settings'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Settings
-              </button>
-              <button
-                onClick={() => setEmailSubView('logs')}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  emailSubView === 'logs'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Email Logs
-              </button>
-            </div>
-
-            {emailSubView === 'events' && <PlatformEmailEvents />}
-            {emailSubView === 'settings' && <PlatformEmailSettings />}
-            {emailSubView === 'logs' && <PlatformEmailLogs />}
-          </div>
-        )}
 
         {selectedView === 'stats' && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
