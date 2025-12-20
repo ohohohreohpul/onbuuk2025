@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Search, Filter, Edit2, Trash2, AlertCircle, DollarSign } from 'lucide-react';
-import { emailService } from '../../lib/emailService';
 import { useTenant } from '../../lib/tenantContext';
 
 interface Booking {
@@ -92,16 +91,8 @@ export default function BookingsView() {
       .eq('id', bookingId);
 
     if (!error) {
-      await emailService.sendStatusChangeNotification({
-        businessId,
-        customerEmail: booking.customer_email,
-        customerName: booking.customer_name,
-        status: newStatus,
-        serviceName: booking.service.name,
-        bookingDate: formatDate(booking.booking_date),
-        startTime: booking.start_time,
-      });
-
+      // Status change email notifications can be added in the future
+      // by creating a template in the email_templates table
       fetchBookings();
     }
   };

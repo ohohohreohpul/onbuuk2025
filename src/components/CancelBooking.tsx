@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { emailService } from '../lib/emailService';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface Booking {
@@ -74,13 +73,32 @@ export default function CancelBooking() {
 
       if (error) throw error;
 
-      await emailService.sendBookingCancellation({
-        businessId: booking.business_id,
-        customerName: booking.customer_name,
-        customerEmail: booking.customer_email,
-        serviceName: booking.service.name,
-        bookingDate: formatDate(booking.booking_date),
-        startTime: booking.start_time,
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('name, phone')
+        .eq('id', booking.business_id)
+        .maybeSingle();
+
+      const rebookLink = `${window.location.origin}`;
+
+      await supabase.functions.invoke('send-business-email', {
+        body: {
+          business_id: booking.business_id,
+          event_key: 'booking_cancelled',
+          recipient_email: booking.customer_email,
+          recipient_name: booking.customer_name,
+          variables: {
+            customer_name: booking.customer_name,
+            service_name: booking.service.name,
+            booking_date: formatDate(booking.booking_date),
+            booking_time: booking.start_time,
+            cancellation_reason: '',
+            cancelled_by: 'customer',
+            business_name: business?.name || 'Our Business',
+            business_phone: business?.phone || '',
+            rebook_link: rebookLink,
+          },
+        },
       });
 
       setCancelled(true);

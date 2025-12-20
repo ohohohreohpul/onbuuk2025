@@ -309,6 +309,12 @@ async function handleEvent(event: Stripe.Event) {
               if (metadata.gc_recipient_email) {
                 console.log(`📧 Sending gift card email to ${metadata.gc_recipient_email}`);
 
+                const { data: giftCardBusiness } = await supabase
+                  .from('businesses')
+                  .select('name')
+                  .eq('id', metadata.business_id)
+                  .maybeSingle();
+
                 const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-business-email', {
                   body: {
                     business_id: metadata.business_id,
@@ -321,7 +327,7 @@ async function handleEvent(event: Stripe.Event) {
                       amount: `$${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
                       message: metadata.gc_message || '',
                       sender_name: metadata.customer_name,
-                      business_name: 'Our Business',
+                      business_name: giftCardBusiness?.name || 'Our Business',
                     },
                   },
                 });

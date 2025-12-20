@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
-import { emailService } from '../lib/emailService';
 import AccountCreationPrompt from './AccountCreationPrompt';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
@@ -445,19 +444,55 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         console.log('Sending confirmation email...');
         try {
-          await emailService.sendBookingConfirmation({
-            businessId: tenant.businessId!,
-            customerName: bookingData.customerDetails.name,
-            customerEmail: bookingData.customerDetails.email,
-            serviceName: bookingData.service.name,
-            specialistName: specialistName,
-            bookingDate: formatDate(bookingData.date),
-            startTime: bookingData.time,
-            durationMinutes: bookingData.duration.duration_minutes,
-            price: `$${(bookingData.duration.price_cents / 100).toFixed(2)}`,
-            bookingId: data.id,
+          const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes + durationMinutes;
+            const endHours = Math.floor(totalMinutes / 60) % 24;
+            const endMinutes = totalMinutes % 60;
+            return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+          };
+
+          const { data: business } = await supabase
+            .from('businesses')
+            .select('name, address, phone')
+            .eq('id', tenant.businessId)
+            .maybeSingle();
+
+          const endTime = calculateEndTime(bookingData.time, bookingData.duration.duration_minutes);
+          const cancelUrl = `${window.location.origin}/cancel?id=${data.id}`;
+
+          const { error: emailError } = await supabase.functions.invoke('send-business-email', {
+            body: {
+              business_id: tenant.businessId,
+              event_key: 'booking_confirmation',
+              recipient_email: bookingData.customerDetails.email,
+              recipient_name: bookingData.customerDetails.name,
+              variables: {
+                customer_name: bookingData.customerDetails.name,
+                customer_email: bookingData.customerDetails.email,
+                service_name: bookingData.service.name,
+                service_duration: `${bookingData.duration.duration_minutes} minutes`,
+                service_price: `€${(bookingData.duration.price_cents / 100).toFixed(2)}`,
+                booking_date: formatDate(bookingData.date),
+                booking_time: bookingData.time,
+                booking_end_time: endTime,
+                specialist_name: specialistName || 'Any Available Specialist',
+                business_name: business?.name || 'Our Business',
+                business_address: business?.address || '',
+                business_phone: business?.phone || '',
+                business_email: '',
+                cancellation_link: cancelUrl,
+                reschedule_link: cancelUrl,
+              },
+              booking_id: data.id,
+            },
           });
-          console.log('Confirmation email sent successfully');
+
+          if (emailError) {
+            console.error('Error sending confirmation email:', emailError);
+          } else {
+            console.log('Confirmation email sent successfully');
+          }
         } catch (emailError) {
           console.error('Error sending confirmation email:', emailError);
         }

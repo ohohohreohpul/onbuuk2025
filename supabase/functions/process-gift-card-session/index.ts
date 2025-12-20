@@ -204,17 +204,25 @@ Deno.serve(async (req: Request) => {
     }
 
     if (metadata.gc_recipient_email) {
+      const { data: giftCardBusiness } = await supabase
+        .from('businesses')
+        .select('name')
+        .eq('id', metadata.business_id)
+        .maybeSingle();
+
       await supabase.functions.invoke("send-business-email", {
         body: {
-          businessId: metadata.business_id,
-          to: metadata.gc_recipient_email,
-          templateType: "gift_card_received",
-          data: {
-            recipientEmail: metadata.gc_recipient_email,
-            giftCardCode: metadata.gc_code,
-            amount: (parseInt(metadata.gc_amount) / 100).toFixed(2),
+          business_id: metadata.business_id,
+          event_key: "gift_card_received",
+          recipient_email: metadata.gc_recipient_email,
+          recipient_name: metadata.gc_recipient_email.split('@')[0],
+          variables: {
+            recipient_email: metadata.gc_recipient_email,
+            gift_card_code: metadata.gc_code,
+            amount: `$${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
             message: metadata.gc_message || "",
-            senderName: metadata.customer_name,
+            sender_name: metadata.customer_name,
+            business_name: giftCardBusiness?.name || 'Our Business',
           },
         },
       });
