@@ -204,10 +204,20 @@ export default function GiftCardSuccess() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!giftCard || !business) return;
+    if (!giftCard) {
+      alert('Gift card data is not available. Please try refreshing the page.');
+      return;
+    }
+
+    if (!business) {
+      alert('Business information is not available. Please try refreshing the page.');
+      return;
+    }
 
     try {
       setDownloadingPdf(true);
+      console.log('Starting PDF download...');
+
       await downloadGiftCardPDF({
         code: giftCard.code,
         amount: giftCard.original_value_cents / 100,
@@ -217,9 +227,11 @@ export default function GiftCardSuccess() {
         expiresAt: giftCard.expires_at,
         currencySymbol: business.currency_symbol || '€',
       });
+
+      console.log('PDF download initiated successfully');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Failed to download PDF. Please try again.');
+      alert('Failed to download PDF. Please try again or contact support if the issue persists.');
     } finally {
       setDownloadingPdf(false);
     }
@@ -285,7 +297,9 @@ export default function GiftCardSuccess() {
                   Your payment was successful. If you continue to see this error, please check your email for gift card details or contact support.
                 </p>
                 <a
-                  href="/contact"
+                  href="https://support.onbuuk.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-sm text-stone-700 hover:underline inline-flex items-center gap-1"
                 >
                   Contact Support
@@ -410,7 +424,12 @@ export default function GiftCardSuccess() {
           </button>
           <p className="text-sm text-stone-500">
             Need help?{' '}
-            <a href="/contact" className="text-stone-700 hover:underline">
+            <a
+              href="https://support.onbuuk.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-700 hover:underline"
+            >
               Contact us
             </a>
           </p>
