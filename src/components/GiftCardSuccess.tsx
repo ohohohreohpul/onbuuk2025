@@ -318,18 +318,6 @@ export default function GiftCardSuccess() {
                   {retrying ? 'Retrying...' : 'Try Again'}
                 </button>
               )}
-              <button
-                onClick={() => {
-                  window.close();
-                  // Fallback: if window doesn't close (security restriction), redirect to home
-                  setTimeout(() => {
-                    window.location.href = '/';
-                  }, 500);
-                }}
-                className="w-full px-6 py-3 border border-stone-300 text-stone-800 hover:bg-stone-50 transition-colors"
-              >
-                Close This Page
-              </button>
 
               <div className="pt-4 border-t border-stone-200">
                 <p className="text-sm text-stone-600 mb-2">
@@ -454,19 +442,7 @@ export default function GiftCardSuccess() {
           </p>
         </div>
 
-        <div className="text-center space-y-4">
-          <button
-            onClick={() => {
-              window.close();
-              // Fallback: if window doesn't close (security restriction), redirect to home
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 500);
-            }}
-            className="w-full md:w-auto px-8 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
-          >
-            Close This Page
-          </button>
+        <div className="text-center">
           <p className="text-sm text-stone-500">
             Need help?{' '}
             <a
