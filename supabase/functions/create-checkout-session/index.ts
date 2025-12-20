@@ -137,7 +137,7 @@ Deno.serve(async (req: Request) => {
         metadata["type"] = "gift_card";
       } else if (giftCardData) {
         // New flow: gift card data passed, will be created after payment
-        successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}`;
+        successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}&business_id=${businessId}`;
         cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;
         productName = serviceName;
         productDescription = dateTime;

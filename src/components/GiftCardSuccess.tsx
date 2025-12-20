@@ -71,8 +71,11 @@ export default function GiftCardSuccess() {
             console.log('Webhook delayed, attempting manual gift card creation...');
 
             try {
+              // Try to get business_id from URL params
+              const businessIdParam = params.get('business_id');
+
               const response = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-gift-card-session`,
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-gift-card-session${businessIdParam ? `?business_id=${businessIdParam}` : ''}`,
                 {
                   method: 'POST',
                   headers: {

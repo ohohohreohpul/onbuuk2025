@@ -158,6 +158,20 @@ This webhook setup works for multi-tenant systems:
 
 This is the standard approach for multi-tenant SaaS platforms using Stripe.
 
+### Business-Specific Stripe Keys
+
+Each business can configure their own Stripe API keys in the admin panel:
+
+1. **Admin Panel** → **Settings** → **Payment Settings**
+2. Enter your Stripe Secret Key (starts with `sk_test_` or `sk_live_`)
+3. Enter your Stripe Publishable Key (starts with `pk_test_` or `pk_live_`)
+
+**Important Notes:**
+- If a business has their own keys configured, those keys are used for creating checkout sessions
+- The webhook still uses platform-level keys for signature verification
+- After verification, the webhook retrieves the business-specific keys to process the payment
+- This allows each business to receive payments directly to their own Stripe account
+
 ---
 
 ## Need Help?

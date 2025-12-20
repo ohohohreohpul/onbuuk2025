@@ -53,13 +53,64 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecret) {
-      console.error("Stripe secret key not configured");
-      throw new Error("Stripe secret key not configured on server");
+    // First, try to get the business_id from the session metadata if available
+    // We need to use platform-level keys initially to retrieve basic session info
+    let stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
+    let businessId: string | null = null;
+
+    if (stripeSecret) {
+      try {
+        console.log("Attempting to retrieve session with platform keys to get business_id...");
+        const platformStripe = new Stripe(stripeSecret);
+        const platformSession = await platformStripe.checkout.sessions.retrieve(sessionId);
+        businessId = platformSession.metadata?.business_id || null;
+        console.log(`Got business_id from session metadata: ${businessId}`);
+      } catch (error: any) {
+        console.log("Platform-level session retrieval failed (expected if using business-specific keys):", error.message);
+        // This is expected if the session was created with business-specific keys
+        // We'll need to try a different approach
+      }
     }
 
-    console.log("Retrieving Stripe session...");
+    // If we couldn't get business_id from platform keys, we need to infer it
+    // In production, you might want to add the business_id to the URL params
+    if (!businessId) {
+      // Try to get from URL params if passed
+      const url = new URL(req.url);
+      businessId = url.searchParams.get("business_id");
+
+      if (!businessId) {
+        throw new Error("Could not determine business_id. Please include business_id in the request.");
+      }
+      console.log(`Using business_id from URL params: ${businessId}`);
+    }
+
+    // Now get the business-specific Stripe keys
+    const { data: stripeSettings } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("business_id", businessId)
+      .eq("key", "stripe_secret_key")
+      .maybeSingle();
+
+    if (!stripeSettings?.value) {
+      console.log("No business-specific Stripe key found, trying platform key...");
+      if (!stripeSecret) {
+        throw new Error("Stripe secret key not configured");
+      }
+    } else {
+      // Use business-specific key
+      try {
+        const parsed = JSON.parse(stripeSettings.value);
+        stripeSecret = parsed;
+        console.log("Using business-specific Stripe key");
+      } catch {
+        stripeSecret = stripeSettings.value;
+        console.log("Using business-specific Stripe key (direct value)");
+      }
+    }
+
+    console.log("Retrieving Stripe session with appropriate keys...");
     const stripe = new Stripe(stripeSecret);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
