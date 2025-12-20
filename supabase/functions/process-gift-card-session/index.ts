@@ -154,21 +154,54 @@ Deno.serve(async (req: Request) => {
       .select()
       .single();
 
+    let finalGiftCard = newGiftCard;
+
     if (giftCardCreateError) {
-      console.error("Error creating gift card - Full error:", JSON.stringify(giftCardCreateError, null, 2));
-      throw new Error(`Database error: ${giftCardCreateError.message} (Code: ${giftCardCreateError.code || 'unknown'})`);
+      if (giftCardCreateError.code === '23505') {
+        console.log('Duplicate key error detected. Gift card likely created by webhook or another process.');
+        console.log('Attempting to retrieve existing gift card...');
+
+        const { data: existingCard, error: fetchError } = await supabase
+          .from("gift_cards")
+          .select("*")
+          .or(`code.eq.${metadata.gc_code},stripe_session_id.eq.${sessionId}`)
+          .maybeSingle();
+
+        if (fetchError || !existingCard) {
+          console.error("Failed to retrieve existing gift card after duplicate error");
+          throw new Error(`Database error: ${giftCardCreateError.message} (Code: ${giftCardCreateError.code || 'unknown'})`);
+        }
+
+        console.log(`Found existing gift card with ID: ${existingCard.id}`);
+        finalGiftCard = existingCard;
+      } else {
+        console.error("Error creating gift card - Full error:", JSON.stringify(giftCardCreateError, null, 2));
+        throw new Error(`Database error: ${giftCardCreateError.message} (Code: ${giftCardCreateError.code || 'unknown'})`);
+      }
+    } else {
+      console.log(`Gift card created successfully with ID: ${newGiftCard.id}`);
     }
 
-    console.log(`Gift card created successfully with ID: ${newGiftCard.id}`);
-
-    await supabase
+    const { data: existingTransaction } = await supabase
       .from("gift_card_transactions")
-      .insert({
-        gift_card_id: newGiftCard.id,
-        amount_cents: parseInt(metadata.gc_amount),
-        transaction_type: "purchase",
-        description: `Purchased by ${metadata.customer_name}`,
-      });
+      .select("id")
+      .eq("gift_card_id", finalGiftCard.id)
+      .eq("transaction_type", "purchase")
+      .maybeSingle();
+
+    if (!existingTransaction) {
+      await supabase
+        .from("gift_card_transactions")
+        .insert({
+          gift_card_id: finalGiftCard.id,
+          amount_cents: parseInt(metadata.gc_amount),
+          transaction_type: "purchase",
+          description: `Purchased by ${metadata.customer_name}`,
+        });
+      console.log("Created purchase transaction for gift card");
+    } else {
+      console.log("Purchase transaction already exists, skipping");
+    }
 
     if (metadata.gc_recipient_email) {
       await supabase.functions.invoke("send-business-email", {
@@ -190,8 +223,8 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Gift card created successfully",
-        giftCardId: newGiftCard.id
+        message: "Gift card processed successfully",
+        giftCardId: finalGiftCard.id
       }),
       {
         headers: {

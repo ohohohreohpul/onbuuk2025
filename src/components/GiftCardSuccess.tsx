@@ -47,7 +47,7 @@ export default function GiftCardSuccess() {
         console.log(`Attempting to fetch gift card for session: ${currentSessionId}`);
 
         // Wait a moment for webhook to process
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         const { data, error } = await supabase
           .from('gift_cards')
@@ -58,7 +58,7 @@ export default function GiftCardSuccess() {
         if (error || !data) {
           console.log('First attempt failed, trying again after delay...');
           // Try one more time after a longer wait
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 4000));
 
           const { data: retryData, error: retryError } = await supabase
             .from('gift_cards')
@@ -90,25 +90,44 @@ export default function GiftCardSuccess() {
                 const errorData = await response.json();
                 const errorMessage = errorData.error || 'Failed to process gift card';
                 console.error('Manual processing failed:', errorMessage);
-                throw new Error(errorMessage);
+
+                // If it's a duplicate key error, the gift card exists - try to fetch it
+                if (errorMessage.includes('duplicate key') || errorMessage.includes('23505')) {
+                  console.log('Duplicate key error detected, gift card likely exists. Attempting final fetch...');
+
+                  const { data: duplicateCheckData, error: duplicateCheckError } = await supabase
+                    .from('gift_cards')
+                    .select('*')
+                    .eq('stripe_session_id', currentSessionId)
+                    .maybeSingle();
+
+                  if (!duplicateCheckError && duplicateCheckData) {
+                    console.log('Successfully found existing gift card after duplicate error');
+                    giftCardData = duplicateCheckData;
+                  } else {
+                    throw new Error(errorMessage);
+                  }
+                } else {
+                  throw new Error(errorMessage);
+                }
+              } else {
+                const result = await response.json();
+                console.log('Manual processing result:', result);
+
+                // Try fetching the gift card one more time
+                const { data: finalData, error: finalError } = await supabase
+                  .from('gift_cards')
+                  .select('*')
+                  .eq('stripe_session_id', currentSessionId)
+                  .maybeSingle();
+
+                if (finalError || !finalData) {
+                  console.error('Failed to fetch gift card after manual creation');
+                  throw new Error('Gift card created but could not be retrieved. Please check your email or contact support.');
+                }
+
+                giftCardData = finalData;
               }
-
-              const result = await response.json();
-              console.log('Manual processing result:', result);
-
-              // Try fetching the gift card one more time
-              const { data: finalData, error: finalError } = await supabase
-                .from('gift_cards')
-                .select('*')
-                .eq('stripe_session_id', currentSessionId)
-                .maybeSingle();
-
-              if (finalError || !finalData) {
-                console.error('Failed to fetch gift card after manual creation');
-                throw new Error('Gift card created but could not be retrieved. Please check your email or contact support.');
-              }
-
-              giftCardData = finalData;
             } catch (err: any) {
               console.error('Error processing gift card:', err);
               setError('Unable to process your gift card at this time');

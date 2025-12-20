@@ -198,60 +198,86 @@ async function handleEvent(event: Stripe.Event) {
             console.info(`Successfully processed gift card: ${giftCardId}`);
           }
         } else if (metadata?.type === 'gift_card_new' && metadata?.gc_code && metadata?.gc_amount) {
-          console.log(`Creating new gift card with code: ${metadata.gc_code}`);
+          console.log(`Processing gift card creation for code: ${metadata.gc_code}, session: ${checkout_session_id}`);
           console.log('Gift card metadata:', JSON.stringify(metadata, null, 2));
 
-          const giftCardInsert: any = {
-            business_id: metadata.business_id,
-            code: metadata.gc_code,
-            original_value_cents: parseInt(metadata.gc_amount),
-            current_balance_cents: parseInt(metadata.gc_amount),
-            status: 'active',
-            stripe_session_id: checkout_session_id,
-            purchased_for_email: metadata.gc_recipient_email || null,
-            expires_at: metadata.gc_expires_at || null,
-          };
-
-          console.log('Attempting to insert gift card:', JSON.stringify(giftCardInsert, null, 2));
-
-          const { data: newGiftCard, error: giftCardCreateError } = await supabase
+          const { data: existingGiftCard } = await supabase
             .from('gift_cards')
-            .insert(giftCardInsert)
-            .select()
-            .single();
+            .select('id, code')
+            .eq('stripe_session_id', checkout_session_id)
+            .maybeSingle();
 
-          if (giftCardCreateError) {
-            console.error('Error creating gift card - Full error:', JSON.stringify(giftCardCreateError, null, 2));
-            console.error('Error code:', giftCardCreateError.code);
-            console.error('Error message:', giftCardCreateError.message);
-            console.error('Error details:', giftCardCreateError.details);
+          if (existingGiftCard) {
+            console.log(`Gift card already exists with session ${checkout_session_id}, skipping creation. ID: ${existingGiftCard.id}`);
           } else {
-            console.info(`Successfully created gift card: ${newGiftCard.id}`);
+            const giftCardInsert: any = {
+              business_id: metadata.business_id,
+              code: metadata.gc_code,
+              original_value_cents: parseInt(metadata.gc_amount),
+              current_balance_cents: parseInt(metadata.gc_amount),
+              status: 'active',
+              stripe_session_id: checkout_session_id,
+              purchased_for_email: metadata.gc_recipient_email || null,
+              expires_at: metadata.gc_expires_at || null,
+            };
 
-            await supabase
-              .from('gift_card_transactions')
-              .insert({
-                gift_card_id: newGiftCard.id,
-                amount_cents: parseInt(metadata.gc_amount),
-                transaction_type: 'purchase',
-                description: `Purchased by ${metadata.customer_name}`,
-              });
+            console.log('Attempting to insert gift card:', JSON.stringify(giftCardInsert, null, 2));
 
-            if (metadata.gc_recipient_email) {
-              await supabase.functions.invoke('send-business-email', {
-                body: {
-                  businessId: metadata.business_id,
-                  to: metadata.gc_recipient_email,
-                  templateType: 'gift_card_received',
-                  data: {
-                    recipientEmail: metadata.gc_recipient_email,
-                    giftCardCode: metadata.gc_code,
-                    amount: (parseInt(metadata.gc_amount) / 100).toFixed(2),
-                    message: metadata.gc_message || '',
-                    senderName: metadata.customer_name,
+            const { data: newGiftCard, error: giftCardCreateError } = await supabase
+              .from('gift_cards')
+              .insert(giftCardInsert)
+              .select()
+              .single();
+
+            if (giftCardCreateError) {
+              if (giftCardCreateError.code === '23505') {
+                console.log('Duplicate key error, gift card likely created by another process. Verifying...');
+
+                const { data: verifyGiftCard } = await supabase
+                  .from('gift_cards')
+                  .select('id, code')
+                  .or(`code.eq.${metadata.gc_code},stripe_session_id.eq.${checkout_session_id}`)
+                  .maybeSingle();
+
+                if (verifyGiftCard) {
+                  console.log(`Confirmed gift card exists: ${verifyGiftCard.id}`);
+                } else {
+                  console.error('Duplicate key error but could not find gift card. This is unexpected.');
+                }
+              } else {
+                console.error('Error creating gift card - Full error:', JSON.stringify(giftCardCreateError, null, 2));
+                console.error('Error code:', giftCardCreateError.code);
+                console.error('Error message:', giftCardCreateError.message);
+                console.error('Error details:', giftCardCreateError.details);
+              }
+            } else {
+              console.info(`Successfully created gift card: ${newGiftCard.id}`);
+
+              await supabase
+                .from('gift_card_transactions')
+                .insert({
+                  gift_card_id: newGiftCard.id,
+                  amount_cents: parseInt(metadata.gc_amount),
+                  transaction_type: 'purchase',
+                  description: `Purchased by ${metadata.customer_name}`,
+                });
+
+              if (metadata.gc_recipient_email) {
+                await supabase.functions.invoke('send-business-email', {
+                  body: {
+                    businessId: metadata.business_id,
+                    to: metadata.gc_recipient_email,
+                    templateType: 'gift_card_received',
+                    data: {
+                      recipientEmail: metadata.gc_recipient_email,
+                      giftCardCode: metadata.gc_code,
+                      amount: (parseInt(metadata.gc_amount) / 100).toFixed(2),
+                      message: metadata.gc_message || '',
+                      senderName: metadata.customer_name,
+                    },
                   },
-                },
-              });
+                });
+              }
             }
           }
         }
