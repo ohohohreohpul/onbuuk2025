@@ -151,15 +151,48 @@ export default function GiftCardSuccess() {
       setGiftCard(giftCardData);
 
       // Fetch business details for PDF generation
-      const { data: businessData } = await supabase
+      console.log('Fetching business details for business_id:', giftCardData.business_id);
+      const { data: businessData, error: businessError } = await supabase
         .from('businesses')
-        .select('name, currency_code, currency_symbol')
+        .select('name')
         .eq('id', giftCardData.business_id)
         .maybeSingle();
 
-      if (businessData) {
-        setBusiness(businessData);
+      if (businessError) {
+        console.error('Error fetching business data:', businessError);
       }
+
+      if (!businessData) {
+        console.warn('No business data returned');
+      }
+
+      // Fetch currency settings
+      const { data: currencySettings } = await supabase
+        .from('site_settings')
+        .select('currency')
+        .eq('business_id', giftCardData.business_id)
+        .eq('key', 'currency')
+        .maybeSingle();
+
+      // Parse currency to get symbol
+      let currencySymbol = '€';
+      let currencyCode = 'EUR';
+
+      if (currencySettings?.currency) {
+        const currency = currencySettings.currency.toUpperCase();
+        currencyCode = currency;
+        currencySymbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€';
+      }
+
+      // Combine business data with currency
+      const fullBusinessData = {
+        name: businessData?.name || 'Business',
+        currency_code: currencyCode,
+        currency_symbol: currencySymbol,
+      };
+
+      console.log('Business data loaded successfully:', fullBusinessData);
+      setBusiness(fullBusinessData);
 
       // Fetch gift card settings for PDF generation
       const { data: settings } = await supabase
