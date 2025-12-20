@@ -182,14 +182,12 @@ async function handleEvent(event: Stripe.Event) {
             }
           }
         } else if (metadata?.type === 'gift_card' && metadata?.gift_card_id) {
-          // Legacy flow: Update existing gift card
           const giftCardId = metadata.gift_card_id;
           console.log(`Processing gift card payment for gift card: ${giftCardId}`);
 
           const { error: giftCardUpdateError } = await supabase
             .from('gift_cards')
             .update({
-              payment_status: 'completed',
               stripe_session_id: checkout_session_id,
             })
             .eq('id', giftCardId);
@@ -200,7 +198,6 @@ async function handleEvent(event: Stripe.Event) {
             console.info(`Successfully processed gift card: ${giftCardId}`);
           }
         } else if (metadata?.type === 'gift_card_new' && metadata?.gc_code && metadata?.gc_amount) {
-          // New flow: Create gift card after successful payment
           console.log(`Creating new gift card with code: ${metadata.gc_code}`);
 
           const giftCardInsert: any = {
@@ -209,7 +206,6 @@ async function handleEvent(event: Stripe.Event) {
             original_value_cents: parseInt(metadata.gc_amount),
             current_balance_cents: parseInt(metadata.gc_amount),
             status: 'active',
-            payment_status: 'completed',
             stripe_session_id: checkout_session_id,
             purchased_for_email: metadata.gc_recipient_email || null,
             expires_at: metadata.gc_expires_at || null,
@@ -226,7 +222,6 @@ async function handleEvent(event: Stripe.Event) {
           } else {
             console.info(`Successfully created gift card: ${newGiftCard.id}`);
 
-            // Record the purchase transaction
             await supabase
               .from('gift_card_transactions')
               .insert({
@@ -236,7 +231,6 @@ async function handleEvent(event: Stripe.Event) {
                 description: `Purchased by ${metadata.customer_name}`,
               });
 
-            // Send email notification if recipient email is provided
             if (metadata.gc_recipient_email) {
               await supabase.functions.invoke('send-business-email', {
                 body: {

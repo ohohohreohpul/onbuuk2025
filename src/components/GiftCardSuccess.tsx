@@ -59,11 +59,48 @@ export default function GiftCardSuccess() {
             .maybeSingle();
 
           if (retryError || !retryData) {
-            setError('Gift card is being processed. Please check your email for the gift card details.');
-            setLoading(false);
-            return;
+            // Webhook didn't process in time, try manual processing
+            console.log('Webhook delayed, attempting manual gift card creation...');
+
+            try {
+              const response = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-gift-card-session`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ sessionId }),
+                }
+              );
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to process gift card');
+              }
+
+              // Try fetching the gift card one more time
+              const { data: finalData, error: finalError } = await supabase
+                .from('gift_cards')
+                .select('*')
+                .eq('stripe_session_id', sessionId)
+                .maybeSingle();
+
+              if (finalError || !finalData) {
+                throw new Error('Gift card created but could not be retrieved');
+              }
+
+              giftCardData = finalData;
+            } catch (err: any) {
+              console.error('Error processing gift card:', err);
+              setError('Gift card is being processed. Please check your email for the gift card details.');
+              setLoading(false);
+              return;
+            }
+          } else {
+            giftCardData = retryData;
           }
-          giftCardData = retryData;
         } else {
           giftCardData = data;
         }
