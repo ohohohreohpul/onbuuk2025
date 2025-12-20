@@ -751,6 +751,22 @@ Separate finances between your platform and clients:
 3. Clients receive direct payouts
 4. You control fee structure
 
+#### Webhook Configuration (REQUIRED for Gift Cards)
+To enable gift card purchases and automated payment confirmations, you must configure Stripe webhooks:
+
+**Important**: See the complete [Stripe Webhook Setup Guide](STRIPE_WEBHOOK_SETUP.md) for detailed instructions.
+
+**Quick summary:**
+1. Configure `STRIPE_SECRET_KEY` in Supabase Edge Function secrets
+2. Configure `STRIPE_WEBHOOK_SECRET` in Supabase Edge Function secrets
+3. Add webhook endpoint in Stripe Dashboard
+4. Enable required webhook events
+
+**Without proper webhook setup:**
+- Gift card purchases will fail (payment succeeds but gift card not created)
+- Booking confirmations may be delayed
+- Payment status updates won't work automatically
+
 ### Payment Options
 
 #### Payment Methods
@@ -907,13 +923,20 @@ Accept payments in different currencies:
 
 Sell and manage digital gift cards.
 
+### Prerequisites
+
+**IMPORTANT**: Before enabling gift cards, you must configure Stripe webhooks. Gift card purchases will fail without proper webhook setup.
+
+See the [Stripe Webhook Setup Guide](STRIPE_WEBHOOK_SETUP.md) for complete instructions.
+
 ### Gift Card Setup
 
 Enable gift card sales:
 
-1. Go to **Settings > Gift Cards**
-2. Toggle **"Enable Gift Cards"**
-3. Configure gift card options
+1. **Configure Stripe Webhooks** (see link above) - REQUIRED
+2. Go to **Settings > Gift Cards**
+3. Toggle **"Enable Gift Cards"**
+4. Configure gift card options
 
 ### Gift Card Configuration
 
@@ -1840,6 +1863,25 @@ Schedule regular reports:
 - Contact bank to authorize charge
 - Verify Stripe connection active
 - Check if test mode is enabled (should be off)
+
+#### "Gift card purchase fails" or "Payment succeeds but gift card not created"
+
+**Cause:**
+Stripe webhook not properly configured. When webhooks aren't set up, payments process successfully in Stripe, but the webhook that creates the gift card in your database never fires.
+
+**Solution:**
+Follow the complete [Stripe Webhook Setup Guide](STRIPE_WEBHOOK_SETUP.md):
+1. Add `STRIPE_SECRET_KEY` to Supabase Edge Function secrets
+2. Add `STRIPE_WEBHOOK_SECRET` to Supabase Edge Function secrets
+3. Configure webhook endpoint in Stripe Dashboard
+4. Enable `checkout.session.completed` event
+5. Test with a small purchase
+
+**To check if webhooks are working:**
+- Go to Stripe Dashboard → Developers → Webhooks
+- Click on your webhook endpoint
+- Check the "Logs" tab for successful deliveries
+- Look for 200 OK responses
 
 #### "Emails not delivering"
 
