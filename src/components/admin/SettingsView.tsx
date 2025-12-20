@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Globe, Sparkles } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Globe, Sparkles, Mail } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -7,8 +7,9 @@ import WelcomeFeaturesSettings from './settings/WelcomeFeaturesSettings';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
 import CustomDomainSettings from './settings/CustomDomainSettings';
+import CustomerEmails from './settings/CustomerEmails';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'payment' | 'subscription' | 'domains';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'payment' | 'subscription' | 'domains' | 'emails';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -21,6 +22,7 @@ export default function SettingsView() {
     { id: 'welcome-features' as SettingsTab, name: 'Welcome Features', icon: Sparkles },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
+    { id: 'emails' as SettingsTab, name: 'Emails', icon: Mail },
   ];
 
   return (
@@ -60,6 +62,7 @@ export default function SettingsView() {
         {activeTab === 'welcome-features' && <WelcomeFeaturesSettings />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}
+        {activeTab === 'emails' && <CustomerEmails />}
       </div>
     </div>
   );
