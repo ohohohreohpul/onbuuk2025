@@ -136,7 +136,7 @@ async function handleEvent(event: Stripe.Event) {
 
             const { data: booking } = await supabase
               .from('bookings')
-              .select('customer_email, customer_name, service_id, specialist_id, booking_date, start_time, business_id')
+              .select('customer_email, customer_name, service_id, duration_id, specialist_id, booking_date, start_time, business_id')
               .eq('id', bookingId)
               .maybeSingle();
 
@@ -145,6 +145,18 @@ async function handleEvent(event: Stripe.Event) {
                 .from('services')
                 .select('name')
                 .eq('id', booking.service_id)
+                .maybeSingle();
+
+              const { data: duration } = await supabase
+                .from('service_durations')
+                .select('duration_minutes, price_cents')
+                .eq('id', booking.duration_id)
+                .maybeSingle();
+
+              const { data: business } = await supabase
+                .from('businesses')
+                .select('name, address, phone')
+                .eq('id', booking.business_id)
                 .maybeSingle();
 
               let specialistName = 'Any Available Specialist';
@@ -159,26 +171,58 @@ async function handleEvent(event: Stripe.Event) {
                 }
               }
 
-              await supabase.functions.invoke('send-business-email', {
+              const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+                const [hours, minutes] = startTime.split(':').map(Number);
+                const totalMinutes = hours * 60 + minutes + durationMinutes;
+                const endHours = Math.floor(totalMinutes / 60) % 24;
+                const endMinutes = totalMinutes % 60;
+                return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+              };
+
+              const formattedDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              });
+
+              const endTime = duration ? calculateEndTime(booking.start_time, duration.duration_minutes) : booking.start_time;
+              const cancelUrl = `${Deno.env.get('SUPABASE_URL')?.replace('/functions/v1', '')}/cancel?id=${bookingId}`;
+
+              console.log(`📧 Sending booking confirmation email to ${booking.customer_email}`);
+
+              const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-business-email', {
                 body: {
-                  businessId: booking.business_id,
-                  to: booking.customer_email,
-                  templateType: 'booking_confirmation',
-                  data: {
-                    customerName: booking.customer_name,
-                    serviceName: service?.name || 'Service',
-                    specialistName,
-                    bookingDate: new Date(booking.booking_date).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    }),
-                    startTime: booking.start_time,
-                    bookingId: bookingId.substring(0, 8).toUpperCase(),
+                  business_id: booking.business_id,
+                  event_key: 'booking_confirmation',
+                  recipient_email: booking.customer_email,
+                  recipient_name: booking.customer_name,
+                  variables: {
+                    customer_name: booking.customer_name,
+                    customer_email: booking.customer_email,
+                    service_name: service?.name || 'Service',
+                    service_duration: duration ? `${duration.duration_minutes} minutes` : 'N/A',
+                    service_price: duration ? `$${(duration.price_cents / 100).toFixed(2)}` : 'N/A',
+                    booking_date: formattedDate,
+                    booking_time: booking.start_time,
+                    booking_end_time: endTime,
+                    specialist_name: specialistName,
+                    business_name: business?.name || 'Our Business',
+                    business_address: business?.address || '',
+                    business_phone: business?.phone || '',
+                    business_email: '',
+                    cancellation_link: cancelUrl,
+                    reschedule_link: cancelUrl,
                   },
+                  booking_id: bookingId,
                 },
               });
+
+              if (emailError) {
+                console.error('❌ Error sending booking confirmation email:', emailError);
+              } else {
+                console.log('✅ Booking confirmation email sent successfully');
+              }
             }
           }
         } else if (metadata?.type === 'gift_card' && metadata?.gift_card_id) {
@@ -263,20 +307,30 @@ async function handleEvent(event: Stripe.Event) {
                 });
 
               if (metadata.gc_recipient_email) {
-                await supabase.functions.invoke('send-business-email', {
+                console.log(`📧 Sending gift card email to ${metadata.gc_recipient_email}`);
+
+                const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-business-email', {
                   body: {
-                    businessId: metadata.business_id,
-                    to: metadata.gc_recipient_email,
-                    templateType: 'gift_card_received',
-                    data: {
-                      recipientEmail: metadata.gc_recipient_email,
-                      giftCardCode: metadata.gc_code,
-                      amount: (parseInt(metadata.gc_amount) / 100).toFixed(2),
+                    business_id: metadata.business_id,
+                    event_key: 'gift_card_received',
+                    recipient_email: metadata.gc_recipient_email,
+                    recipient_name: metadata.gc_recipient_email.split('@')[0],
+                    variables: {
+                      recipient_email: metadata.gc_recipient_email,
+                      gift_card_code: metadata.gc_code,
+                      amount: `$${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
                       message: metadata.gc_message || '',
-                      senderName: metadata.customer_name,
+                      sender_name: metadata.customer_name,
+                      business_name: 'Our Business',
                     },
                   },
                 });
+
+                if (emailError) {
+                  console.error('❌ Error sending gift card email:', emailError);
+                } else {
+                  console.log('✅ Gift card email sent successfully');
+                }
               }
             }
           }

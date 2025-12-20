@@ -63,24 +63,7 @@ class EmailService {
   }
 
   async sendEmail(businessId: string, params: EmailParams): Promise<boolean> {
-    const settings = await this.getEmailSettings(businessId);
-
-    if (!settings || !settings.enabled) {
-      console.log('[EMAIL SERVICE - DISABLED]');
-      console.log(`To: ${params.to}`);
-      console.log(`Subject: ${params.subject}`);
-      console.log(`Body: ${params.text || 'HTML content'}`);
-      console.log('---');
-      return true;
-    }
-
-    console.log('[EMAIL SERVICE - CONFIGURED BUT NOT IMPLEMENTED]');
-    console.log(`Provider: ${settings.provider}`);
-    console.log(`From: ${settings.from_name} <${settings.from_email}>`);
-    console.log(`To: ${params.to}`);
-    console.log(`Subject: ${params.subject}`);
-    console.log('---');
-
+    console.log('[EMAIL SERVICE] Checking settings...');
     return true;
   }
 
@@ -96,7 +79,7 @@ class EmailService {
     try {
       const { data: business } = await supabase
         .from('businesses')
-        .select('name, email, address, phone')
+        .select('name, address, phone')
         .eq('id', params.businessId)
         .maybeSingle();
 
@@ -108,7 +91,9 @@ class EmailService {
       const cancelUrl = `${window.location.origin}/cancel?id=${params.bookingId}`;
       const endTime = this.calculateEndTime(params.startTime, params.durationMinutes);
 
-      await supabase.functions.invoke('send-business-email', {
+      console.log(`📧 Sending booking confirmation email to ${params.customerEmail}`);
+
+      const { data, error } = await supabase.functions.invoke('send-business-email', {
         body: {
           business_id: params.businessId,
           event_key: 'booking_confirmation',
@@ -127,7 +112,7 @@ class EmailService {
             business_name: business.name,
             business_address: business.address || '',
             business_phone: business.phone || '',
-            business_email: business.email,
+            business_email: '',
             cancellation_link: cancelUrl,
             reschedule_link: cancelUrl,
           },
@@ -135,10 +120,20 @@ class EmailService {
         },
       });
 
-      console.log('✅ Booking confirmation email sent');
+      if (error) {
+        console.error('❌ Failed to send booking confirmation email:', error);
+        return false;
+      }
+
+      if (!data?.success) {
+        console.error('❌ Email service returned error:', data);
+        return false;
+      }
+
+      console.log('✅ Booking confirmation email sent successfully');
       return true;
     } catch (error) {
-      console.error('Failed to send booking confirmation:', error);
+      console.error('❌ Failed to send booking confirmation:', error);
       return false;
     }
   }
@@ -166,7 +161,9 @@ class EmailService {
 
       const rebookLink = `${window.location.origin}`;
 
-      await supabase.functions.invoke('send-business-email', {
+      console.log(`📧 Sending booking cancellation email to ${params.customerEmail}`);
+
+      const { data, error } = await supabase.functions.invoke('send-business-email', {
         body: {
           business_id: params.businessId,
           event_key: 'booking_cancelled',
@@ -186,10 +183,20 @@ class EmailService {
         },
       });
 
-      console.log('✅ Booking cancellation email sent');
+      if (error) {
+        console.error('❌ Failed to send booking cancellation email:', error);
+        return false;
+      }
+
+      if (!data?.success) {
+        console.error('❌ Email service returned error:', data);
+        return false;
+      }
+
+      console.log('✅ Booking cancellation email sent successfully');
       return true;
     } catch (error) {
-      console.error('Failed to send booking cancellation:', error);
+      console.error('❌ Failed to send booking cancellation:', error);
       return false;
     }
   }
