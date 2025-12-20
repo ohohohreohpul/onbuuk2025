@@ -199,6 +199,7 @@ async function handleEvent(event: Stripe.Event) {
           }
         } else if (metadata?.type === 'gift_card_new' && metadata?.gc_code && metadata?.gc_amount) {
           console.log(`Creating new gift card with code: ${metadata.gc_code}`);
+          console.log('Gift card metadata:', JSON.stringify(metadata, null, 2));
 
           const giftCardInsert: any = {
             business_id: metadata.business_id,
@@ -211,6 +212,8 @@ async function handleEvent(event: Stripe.Event) {
             expires_at: metadata.gc_expires_at || null,
           };
 
+          console.log('Attempting to insert gift card:', JSON.stringify(giftCardInsert, null, 2));
+
           const { data: newGiftCard, error: giftCardCreateError } = await supabase
             .from('gift_cards')
             .insert(giftCardInsert)
@@ -218,7 +221,10 @@ async function handleEvent(event: Stripe.Event) {
             .single();
 
           if (giftCardCreateError) {
-            console.error('Error creating gift card:', giftCardCreateError);
+            console.error('Error creating gift card - Full error:', JSON.stringify(giftCardCreateError, null, 2));
+            console.error('Error code:', giftCardCreateError.code);
+            console.error('Error message:', giftCardCreateError.message);
+            console.error('Error details:', giftCardCreateError.details);
           } else {
             console.info(`Successfully created gift card: ${newGiftCard.id}`);
 

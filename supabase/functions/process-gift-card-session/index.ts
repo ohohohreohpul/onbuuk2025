@@ -24,6 +24,8 @@ Deno.serve(async (req: Request) => {
 
     const { sessionId } = await req.json();
 
+    console.log(`Processing gift card for session: ${sessionId}`);
+
     if (!sessionId) {
       throw new Error("Session ID is required");
     }
@@ -35,6 +37,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (existingGiftCard) {
+      console.log(`Gift card already exists for session: ${sessionId}, ID: ${existingGiftCard.id}`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -52,23 +55,33 @@ Deno.serve(async (req: Request) => {
 
     const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecret) {
-      throw new Error("Stripe secret key not configured");
+      console.error("Stripe secret key not configured");
+      throw new Error("Stripe secret key not configured on server");
     }
 
+    console.log("Retrieving Stripe session...");
     const stripe = new Stripe(stripeSecret);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+    console.log(`Stripe session retrieved. Payment status: ${session.payment_status}`);
+
     if (session.payment_status !== "paid") {
-      throw new Error("Payment has not been completed");
+      throw new Error(`Payment has not been completed. Status: ${session.payment_status}`);
     }
 
     const metadata = session.metadata;
+    console.log("Session metadata:", JSON.stringify(metadata, null, 2));
+
     if (!metadata || metadata.type !== "gift_card_new") {
-      throw new Error("Invalid session type");
+      throw new Error(`Invalid session type. Expected: gift_card_new, Got: ${metadata?.type || 'none'}`);
     }
 
     if (!metadata.gc_code || !metadata.gc_amount || !metadata.business_id) {
-      throw new Error("Missing required gift card data in session");
+      const missing = [];
+      if (!metadata.gc_code) missing.push("gc_code");
+      if (!metadata.gc_amount) missing.push("gc_amount");
+      if (!metadata.business_id) missing.push("business_id");
+      throw new Error(`Missing required gift card data: ${missing.join(", ")}`);
     }
 
     const giftCardInsert: any = {
@@ -82,6 +95,8 @@ Deno.serve(async (req: Request) => {
       expires_at: metadata.gc_expires_at || null,
     };
 
+    console.log("Attempting to insert gift card:", JSON.stringify(giftCardInsert, null, 2));
+
     const { data: newGiftCard, error: giftCardCreateError } = await supabase
       .from("gift_cards")
       .insert(giftCardInsert)
@@ -89,9 +104,11 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (giftCardCreateError) {
-      console.error("Error creating gift card:", giftCardCreateError);
-      throw new Error(`Failed to create gift card: ${giftCardCreateError.message}`);
+      console.error("Error creating gift card - Full error:", JSON.stringify(giftCardCreateError, null, 2));
+      throw new Error(`Database error: ${giftCardCreateError.message} (Code: ${giftCardCreateError.code || 'unknown'})`);
     }
+
+    console.log(`Gift card created successfully with ID: ${newGiftCard.id}`);
 
     await supabase
       .from("gift_card_transactions")

@@ -9,7 +9,10 @@ export default function GiftCardSuccess() {
   const [business, setBusiness] = useState<any>(null);
   const [giftCardSettings, setGiftCardSettings] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     fetchGiftCardDetails();
@@ -18,8 +21,10 @@ export default function GiftCardSuccess() {
   const fetchGiftCardDetails = async () => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('session_id');
+      const currentSessionId = params.get('session_id');
       const giftCardId = params.get('gift_card_id');
+
+      setSessionId(currentSessionId);
 
       let giftCardData = null;
 
@@ -37,25 +42,28 @@ export default function GiftCardSuccess() {
           return;
         }
         giftCardData = data;
-      } else if (sessionId) {
+      } else if (currentSessionId) {
         // New flow: fetch by session ID
+        console.log(`Attempting to fetch gift card for session: ${currentSessionId}`);
+
         // Wait a moment for webhook to process
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         const { data, error } = await supabase
           .from('gift_cards')
           .select('*')
-          .eq('stripe_session_id', sessionId)
+          .eq('stripe_session_id', currentSessionId)
           .maybeSingle();
 
         if (error || !data) {
+          console.log('First attempt failed, trying again after delay...');
           // Try one more time after a longer wait
           await new Promise(resolve => setTimeout(resolve, 3000));
 
           const { data: retryData, error: retryError } = await supabase
             .from('gift_cards')
             .select('*')
-            .eq('stripe_session_id', sessionId)
+            .eq('stripe_session_id', currentSessionId)
             .maybeSingle();
 
           if (retryError || !retryData) {
@@ -71,30 +79,37 @@ export default function GiftCardSuccess() {
                     'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ sessionId }),
+                  body: JSON.stringify({ sessionId: currentSessionId }),
                 }
               );
 
               if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to process gift card');
+                const errorMessage = errorData.error || 'Failed to process gift card';
+                console.error('Manual processing failed:', errorMessage);
+                throw new Error(errorMessage);
               }
+
+              const result = await response.json();
+              console.log('Manual processing result:', result);
 
               // Try fetching the gift card one more time
               const { data: finalData, error: finalError } = await supabase
                 .from('gift_cards')
                 .select('*')
-                .eq('stripe_session_id', sessionId)
+                .eq('stripe_session_id', currentSessionId)
                 .maybeSingle();
 
               if (finalError || !finalData) {
-                throw new Error('Gift card created but could not be retrieved');
+                console.error('Failed to fetch gift card after manual creation');
+                throw new Error('Gift card created but could not be retrieved. Please check your email or contact support.');
               }
 
               giftCardData = finalData;
             } catch (err: any) {
               console.error('Error processing gift card:', err);
-              setError('Gift card is being processed. Please check your email for the gift card details.');
+              setError('Unable to process your gift card at this time');
+              setDetailedError(err.message || 'An unexpected error occurred while processing your gift card.');
               setLoading(false);
               return;
             }
@@ -106,6 +121,7 @@ export default function GiftCardSuccess() {
         }
       } else {
         setError('Missing gift card information');
+        setDetailedError('No session ID or gift card ID was provided in the URL.');
         setLoading(false);
         return;
       }
@@ -156,6 +172,15 @@ export default function GiftCardSuccess() {
     });
   };
 
+  const handleRetry = async () => {
+    setRetrying(true);
+    setError(null);
+    setDetailedError(null);
+    setLoading(true);
+    await fetchGiftCardDetails();
+    setRetrying(false);
+  };
+
   const handleDownloadPDF = async () => {
     if (!giftCard || !business) return;
 
@@ -189,20 +214,63 @@ export default function GiftCardSuccess() {
   if (error || !giftCard) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-            <span className="text-2xl">❌</span>
+        <div className="max-w-lg w-full bg-white p-8">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+              <span className="text-2xl">❌</span>
+            </div>
+            <h1 className="text-2xl font-light text-stone-800 mb-2">
+              Unable to Load Gift Card
+            </h1>
+            <p className="text-stone-600 mb-4">{error || 'Something went wrong'}</p>
+
+            {detailedError && (
+              <div className="bg-stone-50 border border-stone-200 p-4 rounded mb-4 text-left">
+                <p className="text-sm text-stone-700 mb-2 font-medium">Error Details:</p>
+                <p className="text-sm text-stone-600 break-words">{detailedError}</p>
+              </div>
+            )}
+
+            {sessionId && (
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4 text-left">
+                <p className="text-sm text-blue-900 mb-2 font-medium">Session ID:</p>
+                <p className="text-xs text-blue-800 font-mono break-all">{sessionId}</p>
+                <p className="text-xs text-blue-700 mt-2">
+                  Save this ID when contacting support
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {sessionId && (
+                <button
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="w-full px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {retrying ? 'Retrying...' : 'Try Again'}
+                </button>
+              )}
+              <button
+                onClick={() => (window.location.href = '/')}
+                className="w-full px-6 py-3 border border-stone-300 text-stone-800 hover:bg-stone-50 transition-colors"
+              >
+                Return to Home
+              </button>
+
+              <div className="pt-4 border-t border-stone-200">
+                <p className="text-sm text-stone-600 mb-2">
+                  Your payment was successful. If you continue to see this error, please check your email for gift card details or contact support.
+                </p>
+                <a
+                  href="/contact"
+                  className="text-sm text-stone-700 hover:underline inline-flex items-center gap-1"
+                >
+                  Contact Support
+                </a>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-light text-stone-800 mb-2">
-            Unable to Load Gift Card
-          </h1>
-          <p className="text-stone-600 mb-6">{error || 'Something went wrong'}</p>
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
-          >
-            Return to Home
-          </button>
         </div>
       </div>
     );
