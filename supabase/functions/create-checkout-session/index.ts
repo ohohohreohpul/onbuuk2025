@@ -18,6 +18,13 @@ interface CheckoutRequest {
   dateTime: string;
   isGiftCard?: boolean;
   businessId?: string;
+  giftCardData?: {
+    code: string;
+    originalValueCents: number;
+    purchasedForEmail: string | null;
+    expiresAt: string | null;
+    message: string | null;
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -35,7 +42,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const requestData: CheckoutRequest = await req.json();
-    const { bookingId, giftCardId, customerEmail, customerName, amount, serviceName, specialistName, dateTime, isGiftCard } = requestData;
+    const { bookingId, giftCardId, customerEmail, customerName, amount, serviceName, specialistName, dateTime, isGiftCard, giftCardData } = requestData;
     let businessId = requestData.businessId;
 
     if (!businessId && bookingId) {
@@ -44,7 +51,7 @@ Deno.serve(async (req: Request) => {
         .select("business_id")
         .eq("id", bookingId)
         .maybeSingle();
-      
+
       if (booking) {
         businessId = booking.business_id;
       }
@@ -56,7 +63,7 @@ Deno.serve(async (req: Request) => {
         .select("business_id")
         .eq("id", giftCardId)
         .maybeSingle();
-      
+
       if (giftCard) {
         businessId = giftCard.business_id;
       }
@@ -119,13 +126,36 @@ Deno.serve(async (req: Request) => {
     const businessSubdomain = businessData?.subdomain || '';
     const cancelUrlParams = businessSubdomain ? `?from=${businessSubdomain}` : '';
 
-    if (isGiftCard && giftCardId) {
-      successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}&gift_card_id=${giftCardId}`;
-      cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;
-      productName = serviceName;
-      productDescription = dateTime;
-      metadata["gift_card_id"] = giftCardId;
-      metadata["type"] = "gift_card";
+    if (isGiftCard) {
+      if (giftCardId) {
+        // Legacy: existing gift card (already created)
+        successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}&gift_card_id=${giftCardId}`;
+        cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;
+        productName = serviceName;
+        productDescription = dateTime;
+        metadata["gift_card_id"] = giftCardId;
+        metadata["type"] = "gift_card";
+      } else if (giftCardData) {
+        // New flow: gift card data passed, will be created after payment
+        successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}`;
+        cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;
+        productName = serviceName;
+        productDescription = dateTime;
+        metadata["type"] = "gift_card_new";
+        metadata["gc_code"] = giftCardData.code;
+        metadata["gc_amount"] = giftCardData.originalValueCents.toString();
+        if (giftCardData.purchasedForEmail) {
+          metadata["gc_recipient_email"] = giftCardData.purchasedForEmail;
+        }
+        if (giftCardData.expiresAt) {
+          metadata["gc_expires_at"] = giftCardData.expiresAt;
+        }
+        if (giftCardData.message) {
+          metadata["gc_message"] = giftCardData.message;
+        }
+      } else {
+        throw new Error("Gift card requires either giftCardId or giftCardData");
+      }
     } else if (bookingId) {
       successUrl = `${origin}/booking-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`;
       cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;

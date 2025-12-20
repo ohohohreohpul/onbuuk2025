@@ -121,24 +121,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       }
 
       if (stripeEnabled) {
-        // Create gift card first
-        const { data: giftCard, error: giftCardError } = await supabase
-          .from('gift_cards')
-          .insert({
-            business_id: businessId,
-            code,
-            original_value_cents: finalAmount,
-            current_balance_cents: finalAmount,
-            purchased_for_email: recipientEmail || null,
-            expires_at: expiresAt,
-            status: 'active',
-          })
-          .select()
-          .single();
-
-        if (giftCardError) throw giftCardError;
-
-        // Create Stripe checkout for gift card
+        // Don't create gift card yet - only create after successful payment
+        // Pass all necessary data to Stripe checkout
         const checkoutResponse = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
           {
@@ -147,7 +131,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              giftCardId: giftCard.id,
+              businessId,
               customerEmail: buyerEmail,
               customerName: buyerName,
               amount: finalAmount / 100,
@@ -155,6 +139,13 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               specialistName: '',
               dateTime: recipientEmail ? `For ${recipientEmail}` : 'For yourself',
               isGiftCard: true,
+              giftCardData: {
+                code,
+                originalValueCents: finalAmount,
+                purchasedForEmail: recipientEmail || null,
+                expiresAt,
+                message: message || null,
+              },
             }),
           }
         );

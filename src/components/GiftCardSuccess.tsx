@@ -17,36 +17,59 @@ export default function GiftCardSuccess() {
       const sessionId = params.get('session_id');
       const giftCardId = params.get('gift_card_id');
 
-      if (!giftCardId) {
-        setError('Gift card ID not found');
-        setLoading(false);
-        return;
-      }
+      let giftCardData = null;
 
-      const { data: giftCardData, error: giftCardError } = await supabase
-        .from('gift_cards')
-        .select('*')
-        .eq('id', giftCardId)
-        .maybeSingle();
+      if (giftCardId) {
+        // Legacy flow: fetch by gift card ID
+        const { data, error } = await supabase
+          .from('gift_cards')
+          .select('*')
+          .eq('id', giftCardId)
+          .maybeSingle();
 
-      if (giftCardError || !giftCardData) {
-        setError('Gift card not found');
+        if (error || !data) {
+          setError('Gift card not found');
+          setLoading(false);
+          return;
+        }
+        giftCardData = data;
+      } else if (sessionId) {
+        // New flow: fetch by session ID
+        // Wait a moment for webhook to process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const { data, error } = await supabase
+          .from('gift_cards')
+          .select('*')
+          .eq('stripe_session_id', sessionId)
+          .maybeSingle();
+
+        if (error || !data) {
+          // Try one more time after a longer wait
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          const { data: retryData, error: retryError } = await supabase
+            .from('gift_cards')
+            .select('*')
+            .eq('stripe_session_id', sessionId)
+            .maybeSingle();
+
+          if (retryError || !retryData) {
+            setError('Gift card is being processed. Please check your email for the gift card details.');
+            setLoading(false);
+            return;
+          }
+          giftCardData = retryData;
+        } else {
+          giftCardData = data;
+        }
+      } else {
+        setError('Missing gift card information');
         setLoading(false);
         return;
       }
 
       setGiftCard(giftCardData);
-
-      if (sessionId && giftCardData.payment_status !== 'completed') {
-        await supabase
-          .from('gift_cards')
-          .update({
-            payment_status: 'completed',
-            stripe_session_id: sessionId
-          })
-          .eq('id', giftCardId);
-      }
-
       setLoading(false);
     } catch (err) {
       console.error('Error fetching gift card details:', err);

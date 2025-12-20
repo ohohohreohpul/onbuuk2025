@@ -182,6 +182,7 @@ async function handleEvent(event: Stripe.Event) {
             }
           }
         } else if (metadata?.type === 'gift_card' && metadata?.gift_card_id) {
+          // Legacy flow: Update existing gift card
           const giftCardId = metadata.gift_card_id;
           console.log(`Processing gift card payment for gift card: ${giftCardId}`);
 
@@ -197,6 +198,61 @@ async function handleEvent(event: Stripe.Event) {
             console.error('Error updating gift card:', giftCardUpdateError);
           } else {
             console.info(`Successfully processed gift card: ${giftCardId}`);
+          }
+        } else if (metadata?.type === 'gift_card_new' && metadata?.gc_code && metadata?.gc_amount) {
+          // New flow: Create gift card after successful payment
+          console.log(`Creating new gift card with code: ${metadata.gc_code}`);
+
+          const giftCardInsert: any = {
+            business_id: metadata.business_id,
+            code: metadata.gc_code,
+            original_value_cents: parseInt(metadata.gc_amount),
+            current_balance_cents: parseInt(metadata.gc_amount),
+            status: 'active',
+            payment_status: 'completed',
+            stripe_session_id: checkout_session_id,
+            purchased_for_email: metadata.gc_recipient_email || null,
+            expires_at: metadata.gc_expires_at || null,
+          };
+
+          const { data: newGiftCard, error: giftCardCreateError } = await supabase
+            .from('gift_cards')
+            .insert(giftCardInsert)
+            .select()
+            .single();
+
+          if (giftCardCreateError) {
+            console.error('Error creating gift card:', giftCardCreateError);
+          } else {
+            console.info(`Successfully created gift card: ${newGiftCard.id}`);
+
+            // Record the purchase transaction
+            await supabase
+              .from('gift_card_transactions')
+              .insert({
+                gift_card_id: newGiftCard.id,
+                amount_cents: parseInt(metadata.gc_amount),
+                transaction_type: 'purchase',
+                description: `Purchased by ${metadata.customer_name}`,
+              });
+
+            // Send email notification if recipient email is provided
+            if (metadata.gc_recipient_email) {
+              await supabase.functions.invoke('send-business-email', {
+                body: {
+                  businessId: metadata.business_id,
+                  to: metadata.gc_recipient_email,
+                  templateType: 'gift_card_received',
+                  data: {
+                    recipientEmail: metadata.gc_recipient_email,
+                    giftCardCode: metadata.gc_code,
+                    amount: (parseInt(metadata.gc_amount) / 100).toFixed(2),
+                    message: metadata.gc_message || '',
+                    senderName: metadata.customer_name,
+                  },
+                },
+              });
+            }
           }
         }
 
