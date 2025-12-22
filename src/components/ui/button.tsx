@@ -22,7 +22,7 @@ const buttonVariants = cva(
         outline:
           "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg",
         "outline-theme":
-          "border-2 border-theme-primary bg-transparent text-theme-brand-primary hover:bg-theme-primary hover:text-white rounded-lg",
+          "border-2 border-theme-primary bg-transparent text-theme-primary hover:bg-theme-primary hover:text-white rounded-lg",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary-hover rounded-lg",
         ghost: "hover:bg-accent hover:text-accent-foreground rounded-lg",

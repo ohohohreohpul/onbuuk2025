@@ -205,7 +205,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                         <button
                           onClick={() => updateQuantity(product.id, -1)}
                           disabled={quantity === 0}
-                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-[#008374] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Minus className="w-4 h-4 text-gray-600" />
                         </button>
@@ -213,7 +213,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                         <button
                           onClick={() => updateQuantity(product.id, 1)}
                           disabled={isAtMax}
-                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-[#008374] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="w-8 h-8 flex items-center justify-center border border-gray-300 hover:border-custom-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Plus className="w-4 h-4 text-gray-600" />
                         </button>

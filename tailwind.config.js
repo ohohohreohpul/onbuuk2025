@@ -34,6 +34,13 @@ export default {
           border: "var(--color-border)",
           accent: "var(--color-accent)",
         },
+        'theme': {
+          primary: "var(--color-primary)",
+          'primary-hover': "var(--color-primary-hover)",
+          secondary: "var(--color-secondary)",
+          'secondary-hover': "var(--color-secondary-hover)",
+          'secondary-bg': "var(--color-background-secondary)",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",

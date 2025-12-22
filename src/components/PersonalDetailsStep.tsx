@@ -72,7 +72,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         <div>
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4 text-[#008374]" />
+              <User className="w-4 h-4 text-custom-primary" />
               <span>{content.labels.name}</span>
             </div>
           </label>
@@ -82,7 +82,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             onChange={(e) => setName(e.target.value)}
             className={`w-full px-4 py-3 border ${
               errors.name ? 'border-red-300' : 'border-gray-200'
-            } focus:outline-none focus:border-[#008374] transition-colors`}
+            } focus:outline-none focus:border-custom-primary transition-colors`}
             placeholder="Enter your full name"
           />
           {errors.name && (
@@ -93,7 +93,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         <div>
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <Mail className="w-4 h-4 text-[#008374]" />
+              <Mail className="w-4 h-4 text-custom-primary" />
               <span>{content.labels.email}</span>
             </div>
           </label>
@@ -103,7 +103,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             onChange={(e) => setEmail(e.target.value)}
             className={`w-full px-4 py-3 border ${
               errors.email ? 'border-red-300' : 'border-gray-200'
-            } focus:outline-none focus:border-[#008374] transition-colors`}
+            } focus:outline-none focus:border-custom-primary transition-colors`}
             placeholder="your.email@example.com"
           />
           {errors.email && (
@@ -114,7 +114,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
         <div>
           <label className="block text-sm font-semibold text-black mb-2">
             <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-[#008374]" />
+              <Phone className="w-4 h-4 text-custom-primary" />
               <span>{content.labels.phone}</span>
             </div>
           </label>
@@ -124,7 +124,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             onChange={(e) => setPhone(e.target.value)}
             className={`w-full px-4 py-3 border ${
               errors.phone ? 'border-red-300' : 'border-gray-200'
-            } focus:outline-none focus:border-[#008374] transition-colors`}
+            } focus:outline-none focus:border-custom-primary transition-colors`}
             placeholder="+49 123 456789"
           />
           {errors.phone && (
@@ -140,7 +140,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] transition-colors resize-none"
+            className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-custom-primary transition-colors resize-none"
             placeholder="Any special requests or health considerations we should know about..."
           />
         </div>
