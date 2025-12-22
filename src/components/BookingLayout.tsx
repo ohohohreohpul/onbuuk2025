@@ -33,18 +33,43 @@ export default function BookingLayout({ children, imageUrl, imageAlt, bookingSum
       }
 
       const { data } = await supabase
-        .from('businesses')
-        .select('booking_form_layout')
-        .eq('id', businessId)
-        .single();
+        .from('booking_form_customization')
+        .select('styling')
+        .eq('business_id', businessId)
+        .maybeSingle();
 
-      if (data?.booking_form_layout) {
-        setLayoutType(data.booking_form_layout);
+      if (data?.styling?.layout) {
+        setLayoutType(data.styling.layout);
       }
       setLoading(false);
     }
 
     fetchLayout();
+
+    const subscription = supabase
+      .channel(`booking_layout_${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_form_customization',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object') {
+            const newData = payload.new as { styling?: { layout?: string } };
+            if (newData.styling?.layout) {
+              setLayoutType(newData.styling.layout);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [businessId]);
 
   if (loading) {
