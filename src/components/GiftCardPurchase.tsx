@@ -321,20 +321,18 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       </div>
 
       {/* Message (Optional) */}
-      {recipientEmail && (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            {customization.message_label}
-          </label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Add a personal message..."
-            rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          {customization.message_label}
+        </label>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Add a personal message..."
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
 
       {/* Buyer Details */}
       <div className="space-y-4 pt-4 border-t">
