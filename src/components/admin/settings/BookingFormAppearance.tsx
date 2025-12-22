@@ -568,28 +568,322 @@ export default function BookingFormAppearance() {
             Color Scheme
           </h3>
           <div className="border border-stone-200 rounded-lg p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {Object.entries(customization.colors).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-stone-700 mb-2 capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={value}
-                      onChange={(e) => updateColors(key, e.target.value)}
-                      className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={value}
-                      onChange={(e) => updateColors(key, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
-                    />
+            <p className="text-sm text-stone-600 mb-6">
+              Customize the colors used throughout your booking form. Each color controls specific elements.
+            </p>
+            <div className="grid gap-6">
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Primary Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Main buttons, active states, and primary actions
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.primary}
+                    onChange={(e) => updateColors('primary', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.primary}
+                    onChange={(e) => updateColors('primary', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded-lg text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.primary }}
+                  >
+                    Button Preview
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Secondary Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Secondary buttons, back buttons, and less important actions
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.secondary}
+                    onChange={(e) => updateColors('secondary', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.secondary}
+                    onChange={(e) => updateColors('secondary', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded-lg text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.secondary }}
+                  >
+                    Button Preview
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Accent Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Highlights, links, and button hover states
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.accent}
+                    onChange={(e) => updateColors('accent', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.accent}
+                    onChange={(e) => updateColors('accent', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded-lg text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.accent }}
+                  >
+                    Hover Preview
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Background Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Main page background
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.background}
+                    onChange={(e) => updateColors('background', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.background}
+                    onChange={(e) => updateColors('background', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="w-24 h-10 rounded border border-stone-300"
+                    style={{ backgroundColor: customization.colors.background }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Surface Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Cards, panels, and elevated surfaces
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.surface}
+                    onChange={(e) => updateColors('surface', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.surface}
+                    onChange={(e) => updateColors('surface', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="w-24 h-10 rounded border border-stone-300"
+                    style={{ backgroundColor: customization.colors.surface }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Text Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Main headings and important text
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.text}
+                    onChange={(e) => updateColors('text', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.text}
+                    onChange={(e) => updateColors('text', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded font-bold"
+                    style={{ color: customization.colors.text, backgroundColor: customization.colors.surface }}
+                  >
+                    Heading Text
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Secondary Text Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Descriptions, subtitles, and less important text
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.textSecondary}
+                    onChange={(e) => updateColors('textSecondary', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.textSecondary}
+                    onChange={(e) => updateColors('textSecondary', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded text-sm"
+                    style={{ color: customization.colors.textSecondary, backgroundColor: customization.colors.surface }}
+                  >
+                    Subtitle Text
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Border Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Input borders, dividers, and outlines
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.border}
+                    onChange={(e) => updateColors('border', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.border}
+                    onChange={(e) => updateColors('border', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="w-24 h-10 rounded"
+                    style={{ border: `2px solid ${customization.colors.border}`, backgroundColor: customization.colors.surface }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Success Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Success messages and confirmations
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.success}
+                    onChange={(e) => updateColors('success', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.success}
+                    onChange={(e) => updateColors('success', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.success }}
+                  >
+                    Success
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Error Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Error messages and validation alerts
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.error}
+                    onChange={(e) => updateColors('error', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.error}
+                    onChange={(e) => updateColors('error', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.error }}
+                  >
+                    Error
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-900 mb-1">
+                  Warning Color
+                </label>
+                <p className="text-xs text-stone-600 mb-2">
+                  Warning messages and important notices
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={customization.colors.warning}
+                    onChange={(e) => updateColors('warning', e.target.value)}
+                    className="w-12 h-10 rounded border border-stone-300 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={customization.colors.warning}
+                    onChange={(e) => updateColors('warning', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent font-mono"
+                  />
+                  <div
+                    className="px-4 py-2 rounded text-white font-medium text-sm"
+                    style={{ backgroundColor: customization.colors.warning }}
+                  >
+                    Warning
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
