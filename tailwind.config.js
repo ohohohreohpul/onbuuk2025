@@ -22,6 +22,18 @@ export default {
           foreground: "hsl(var(--primary-foreground))",
           hover: "hsl(var(--primary-hover))",
         },
+        'custom': {
+          primary: "var(--color-primary)",
+          'primary-hover': "var(--color-primary-hover)",
+          secondary: "var(--color-secondary)",
+          'secondary-hover': "var(--color-secondary-hover)",
+          'text-primary': "var(--color-text-primary)",
+          'text-secondary': "var(--color-text-secondary)",
+          background: "var(--color-background)",
+          'background-secondary': "var(--color-background-secondary)",
+          border: "var(--color-border)",
+          accent: "var(--color-accent)",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",

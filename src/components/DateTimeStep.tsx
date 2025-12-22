@@ -79,7 +79,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4">
         <div>
           <div className="flex items-center space-x-2 mb-3">
-            <Calendar className="w-4 h-4 text-[#008374]" />
+            <Calendar className="w-4 h-4 text-custom-primary" />
             <label className="text-sm font-semibold text-black">Date</label>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -91,8 +91,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                   onClick={() => setSelectedDate(dateValue)}
                   className={`p-3 border text-left transition-all duration-200 ${
                     selectedDate === dateValue
-                      ? 'border-[#008374] bg-[#f9f9f9]'
-                      : 'border-gray-200 hover:border-[#008374] bg-white'
+                      ? 'border-custom-primary bg-[#f9f9f9]'
+                      : 'border-gray-200 hover:border-custom-primary bg-white'
                   }`}
                 >
                   <div className="text-sm font-medium text-black">
@@ -107,7 +107,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
         {selectedDate && (
           <div>
             <div className="flex items-center space-x-2 mb-3">
-              <Clock className="w-4 h-4 text-[#008374]" />
+              <Clock className="w-4 h-4 text-custom-primary" />
               <label className="text-sm font-semibold text-black">Time</label>
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -117,8 +117,8 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                   onClick={() => setSelectedTime(time)}
                   className={`p-3 border text-center transition-all duration-200 ${
                     selectedTime === time
-                      ? 'border-[#008374] bg-[#f9f9f9]'
-                      : 'border-gray-200 hover:border-[#008374] bg-white'
+                      ? 'border-custom-primary bg-[#f9f9f9]'
+                      : 'border-gray-200 hover:border-custom-primary bg-white'
                   }`}
                 >
                   <div className="text-sm text-black">{time}</div>
