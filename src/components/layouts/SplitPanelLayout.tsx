@@ -6,6 +6,7 @@ interface SplitPanelLayoutProps {
   children: ReactNode;
   bookingSummary?: {
     service?: string;
+    serviceType?: string;
     duration?: string;
     specialist?: string;
     date?: string;
@@ -36,7 +37,12 @@ export default function SplitPanelLayout({ children, bookingSummary }: SplitPane
                 <Check className="w-5 h-5 text-green-600 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm text-stone-600">Service</p>
-                  <p className="font-medium text-stone-900">{bookingSummary.service}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="font-medium text-stone-900">{bookingSummary.service}</p>
+                    {bookingSummary.serviceType && (
+                      <span className="text-xs text-stone-500">({bookingSummary.serviceType})</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (

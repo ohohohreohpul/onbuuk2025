@@ -12,6 +12,7 @@ interface BookingLayoutProps {
   imageAlt?: string;
   bookingSummary?: {
     service?: string;
+    serviceType?: string;
     duration?: string;
     specialist?: string;
     date?: string;

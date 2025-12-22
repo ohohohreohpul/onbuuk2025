@@ -424,6 +424,7 @@ function AppContent() {
   const buildBookingSummary = () => {
     return {
       service: bookingState.service?.name,
+      serviceType: bookingState.isPairBooking ? 'Couple' : 'Individual',
       duration: bookingState.duration ? `${bookingState.duration.duration_minutes} minutes` : undefined,
       specialist: specialistName || undefined,
       date: bookingState.date,
