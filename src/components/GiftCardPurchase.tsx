@@ -3,6 +3,7 @@ import { Gift, ArrowLeft, Check, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
+import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
 
 interface GiftCardSettings {
   enabled: boolean;
@@ -19,6 +20,7 @@ interface GiftCardPurchaseProps {
 export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const { businessId } = useTenant();
   const { currencySymbol, formatAmount } = useCurrency();
+  const { customization } = useGiftCardCustomization();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GiftCardSettings | null>(null);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -236,10 +238,10 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
       <div>
         <h1 className="text-3xl font-light text-custom-primary tracking-tight mb-2">
-          Purchase a Gift Card
+          {customization.title}
         </h1>
         <p className="text-custom-secondary">
-          Give the gift of choice with a gift card
+          {customization.subtitle}
         </p>
       </div>
 
@@ -252,7 +254,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Select Amount */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          Select Amount
+          {customization.select_amount_label}
         </label>
         <div className="grid grid-cols-2 gap-3">
           {settings.preset_amounts_cents.map((amount) => (
@@ -281,7 +283,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               onClick={() => setUseCustom(!useCustom)}
               className="text-custom-primary hover:text-custom-primary-hover text-sm font-medium"
             >
-              {useCustom ? 'Use preset amount' : 'Enter custom amount'}
+              {useCustom ? customization.use_preset_label : customization.enter_custom_label}
             </button>
             {useCustom && (
               <div className="mt-3">
@@ -304,7 +306,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Recipient Email */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          Recipient Email (Optional)
+          {customization.recipient_email_label}
         </label>
         <input
           type="email"
@@ -314,7 +316,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <p className="text-xs text-gray-500">
-          Leave blank to purchase for yourself, or enter an email to send as a gift
+          {customization.recipient_email_helper}
         </p>
       </div>
 
@@ -322,7 +324,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {recipientEmail && (
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
-            Personal Message (Optional)
+            {customization.message_label}
           </label>
           <textarea
             value={message}
@@ -336,11 +338,11 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
       {/* Buyer Details */}
       <div className="space-y-4 pt-4 border-t">
-        <h3 className="font-medium text-gray-900">Your Details</h3>
+        <h3 className="font-medium text-gray-900">{customization.your_details_label}</h3>
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your Name
+              {customization.your_name_label}
             </label>
             <input
               type="text"
@@ -353,7 +355,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your Email
+              {customization.your_email_label}
             </label>
             <input
               type="email"
@@ -378,7 +380,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         ) : (
           <>
             <CreditCard className="w-5 h-5" />
-            {stripeEnabled ? 'Continue to Payment' : 'Complete Purchase'}
+            {stripeEnabled ? customization.continue_payment_button : customization.complete_purchase_button}
           </>
         )}
       </button>

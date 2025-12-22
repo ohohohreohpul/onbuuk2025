@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -8,8 +8,9 @@ import ColorCustomization from './settings/ColorCustomization';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
 import CustomerEmails from './settings/CustomerEmails';
+import { GiftCardCustomization } from './settings/GiftCardCustomization';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -20,6 +21,7 @@ export default function SettingsView() {
     { id: 'appearance' as SettingsTab, name: 'Booking Form', icon: Layout },
     { id: 'colors' as SettingsTab, name: 'Colors', icon: Palette },
     { id: 'welcome-features' as SettingsTab, name: 'Welcome Features', icon: Sparkles },
+    { id: 'gift-cards' as SettingsTab, name: 'Gift Cards', icon: Gift },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
     { id: 'emails' as SettingsTab, name: 'Emails', icon: Mail },
@@ -60,6 +62,7 @@ export default function SettingsView() {
         {activeTab === 'appearance' && <BookingFormAppearance />}
         {activeTab === 'colors' && <ColorCustomization />}
         {activeTab === 'welcome-features' && <WelcomeFeaturesSettings />}
+        {activeTab === 'gift-cards' && <GiftCardCustomization />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}
         {activeTab === 'emails' && <CustomerEmails />}
