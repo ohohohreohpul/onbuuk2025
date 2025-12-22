@@ -128,7 +128,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
         <div className="space-y-3 sm:space-y-4 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">
               {welcomeContent.title}
             </h1>
           </div>
