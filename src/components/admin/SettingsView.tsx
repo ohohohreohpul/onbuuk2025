@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Globe, Sparkles, Mail, Palette } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -7,10 +7,9 @@ import WelcomeFeaturesSettings from './settings/WelcomeFeaturesSettings';
 import ColorCustomization from './settings/ColorCustomization';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
-import CustomDomainSettings from './settings/CustomDomainSettings';
 import CustomerEmails from './settings/CustomerEmails';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'domains' | 'emails';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -18,7 +17,6 @@ export default function SettingsView() {
   const tabs = [
     { id: 'profile' as SettingsTab, name: 'Store Profile', icon: Store },
     { id: 'general' as SettingsTab, name: 'General', icon: Building },
-    { id: 'domains' as SettingsTab, name: 'Custom Domains', icon: Globe },
     { id: 'appearance' as SettingsTab, name: 'Booking Form', icon: Layout },
     { id: 'colors' as SettingsTab, name: 'Colors', icon: Palette },
     { id: 'welcome-features' as SettingsTab, name: 'Welcome Features', icon: Sparkles },
@@ -59,7 +57,6 @@ export default function SettingsView() {
       <div className="bg-white border border-stone-200 p-6">
         {activeTab === 'profile' && <StoreProfile />}
         {activeTab === 'general' && <GeneralSettings />}
-        {activeTab === 'domains' && <CustomDomainSettings />}
         {activeTab === 'appearance' && <BookingFormAppearance />}
         {activeTab === 'colors' && <ColorCustomization />}
         {activeTab === 'welcome-features' && <WelcomeFeaturesSettings />}
