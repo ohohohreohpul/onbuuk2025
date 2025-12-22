@@ -334,12 +334,12 @@ function AppContent() {
     if (specialistId && tenant.businessId) {
       const { data: specialist } = await supabase
         .from('specialists')
-        .select('full_name')
+        .select('name')
         .eq('id', specialistId)
         .eq('business_id', tenant.businessId)
         .maybeSingle();
 
-      setSpecialistName(specialist?.full_name || null);
+      setSpecialistName(specialist?.name || null);
     } else {
       setSpecialistName(null);
     }
