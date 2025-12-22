@@ -332,6 +332,19 @@ function AppContent() {
     setCurrentStep('datetime');
   };
 
+  const handleSpecialistBack = async () => {
+    if (tenant.businessId && bookingState.service) {
+      const hasProducts = await checkForProducts(bookingState.service.id);
+      if (hasProducts) {
+        setCurrentStep('addons');
+      } else {
+        setCurrentStep('duration');
+      }
+    } else {
+      setCurrentStep('duration');
+    }
+  };
+
   const handleDateTimeSelect = (date: string, time: string) => {
     setBookingState({
       ...bookingState,
@@ -434,7 +447,7 @@ function AppContent() {
         <SpecialistStep
           serviceId={bookingState.service.id}
           onNext={handleSpecialistSelect}
-          onBack={() => setCurrentStep('addons')}
+          onBack={handleSpecialistBack}
         />
       )}
 
