@@ -95,24 +95,26 @@ export function GiftCardCustomization() {
     setSuccess('');
 
     try {
+      const saveData = {
+        title: customization.title,
+        subtitle: customization.subtitle,
+        select_amount_label: customization.select_amount_label,
+        enter_custom_label: customization.enter_custom_label,
+        use_preset_label: customization.use_preset_label,
+        recipient_email_label: customization.recipient_email_label,
+        recipient_email_helper: customization.recipient_email_helper,
+        message_label: customization.message_label,
+        your_details_label: customization.your_details_label,
+        your_name_label: customization.your_name_label,
+        your_email_label: customization.your_email_label,
+        continue_payment_button: customization.continue_payment_button,
+        complete_purchase_button: customization.complete_purchase_button,
+      };
+
       if (customization.id) {
         const { error: updateError } = await supabase
           .from('gift_card_customization')
-          .update({
-            title: customization.title,
-            subtitle: customization.subtitle,
-            select_amount_label: customization.select_amount_label,
-            enter_custom_label: customization.enter_custom_label,
-            use_preset_label: customization.use_preset_label,
-            recipient_email_label: customization.recipient_email_label,
-            recipient_email_helper: customization.recipient_email_helper,
-            message_label: customization.message_label,
-            your_details_label: customization.your_details_label,
-            your_name_label: customization.your_name_label,
-            your_email_label: customization.your_email_label,
-            continue_payment_button: customization.continue_payment_button,
-            complete_purchase_button: customization.complete_purchase_button,
-          })
+          .update(saveData)
           .eq('id', customization.id);
 
         if (updateError) throw updateError;
@@ -121,8 +123,7 @@ export function GiftCardCustomization() {
           .from('gift_card_customization')
           .insert({
             business_id: businessId,
-            ...DEFAULT_CUSTOMIZATION,
-            ...customization,
+            ...saveData,
           });
 
         if (insertError) throw insertError;
