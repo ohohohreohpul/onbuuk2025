@@ -61,24 +61,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         const hostname = window.location.hostname;
         const isAdminRoute = currentPath === '/admin' || currentPath.includes('/admin');
 
-        if (!isAdminRoute) {
-          const customDomainResult = await executeWithTimeout(
-            supabase
-              .from('custom_domains')
-              .select('business_id, businesses(*)')
-              .eq('domain', hostname)
-              .eq('status', 'verified')
-              .eq('dns_configured', true)
-              .maybeSingle(),
-            { timeout: 3000, retries: 1 }
-          );
-
-          if (customDomainResult.data?.businesses) {
-            business = customDomainResult.data.businesses;
-          }
-        }
-
-        if (!business && isAdminRoute) {
+        if (isAdminRoute) {
           try {
             const { data: { user } } = await Promise.race([
               supabase.auth.getUser(),

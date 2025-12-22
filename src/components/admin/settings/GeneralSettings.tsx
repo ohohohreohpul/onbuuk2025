@@ -492,20 +492,6 @@ export default function GeneralSettings() {
               Your booking page will be accessible at this subdomain
             </p>
           </div>
-
-          {premiumFeatures.isPro && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-              <div className="flex items-start space-x-2">
-                <Globe className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-blue-900 font-medium">Want to use your own domain?</p>
-                  <p className="text-sm text-blue-800 mt-1">
-                    Go to the <strong>Custom Domains</strong> tab to connect your own domain like bookings.yourbusiness.com
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
