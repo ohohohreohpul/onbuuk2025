@@ -172,6 +172,7 @@ function AppContent() {
       notes: '',
     },
   });
+  const [specialistName, setSpecialistName] = useState<string | null>(null);
 
 
   if (appMode === 'superadmin') {
@@ -324,11 +325,25 @@ function AppContent() {
     setCurrentStep('specialist');
   };
 
-  const handleSpecialistSelect = (specialistId: string | null) => {
+  const handleSpecialistSelect = async (specialistId: string | null) => {
     setBookingState({
       ...bookingState,
       specialistId,
     });
+
+    if (specialistId && tenant.businessId) {
+      const { data: specialist } = await supabase
+        .from('specialists')
+        .select('full_name')
+        .eq('id', specialistId)
+        .eq('business_id', tenant.businessId)
+        .maybeSingle();
+
+      setSpecialistName(specialist?.full_name || null);
+    } else {
+      setSpecialistName(null);
+    }
+
     setCurrentStep('datetime');
   };
 
@@ -406,8 +421,18 @@ function AppContent() {
     return stepImageMap[currentStep] || undefined;
   };
 
+  const buildBookingSummary = () => {
+    return {
+      service: bookingState.service?.name,
+      duration: bookingState.duration ? `${bookingState.duration.duration_minutes} minutes` : undefined,
+      specialist: specialistName || undefined,
+      date: bookingState.date,
+      time: bookingState.time,
+    };
+  };
+
   const bookingContent = (
-    <BookingLayout imageUrl={getCurrentStepImage()}>
+    <BookingLayout imageUrl={getCurrentStepImage()} bookingSummary={buildBookingSummary()}>
       {currentStep === 'welcome' && (
         <WelcomeStep
           onBookAppointment={() => setCurrentStep('service')}
