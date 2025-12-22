@@ -63,7 +63,9 @@ const DEFAULT_CUSTOMIZATION: Partial<BookingFormCustomization> = {
   welcome_step: {
     title: "Welcome! Let's get you booked",
     subtitle: "Choose your preferred service and time",
-    buttonText: "Get Started"
+    buttonText: "Get Started",
+    bookingButtonText: "Book an Appointment",
+    giftCardButtonText: "Purchase a Gift Card"
   },
   service_step: {
     title: "Choose Your Service",
