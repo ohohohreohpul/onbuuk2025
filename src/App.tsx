@@ -406,7 +406,7 @@ function AppContent() {
     return stepImageMap[currentStep] || undefined;
   };
 
-  return (
+  const bookingContent = (
     <BookingLayout imageUrl={getCurrentStepImage()}>
       {currentStep === 'welcome' && (
         <WelcomeStep
@@ -484,16 +484,16 @@ function AppContent() {
         )}
     </BookingLayout>
   );
+
+  return <ThemeProvider>{bookingContent}</ThemeProvider>;
 }
 
 function App() {
   return (
     <TenantProvider>
-      <ThemeProvider>
-        <CurrencyProvider>
-          <AppContent />
-        </CurrencyProvider>
-      </ThemeProvider>
+      <CurrencyProvider>
+        <AppContent />
+      </CurrencyProvider>
     </TenantProvider>
   );
 }
