@@ -419,6 +419,18 @@ export default function BookingFormAppearance() {
 
             {stepKey === 'welcome' && (
               <>
+                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                  <label className="text-sm font-medium text-stone-700">
+                    Show Booking Button
+                  </label>
+                  <input
+                    type="checkbox"
+                    checked={stepData.showBookingButton !== false}
+                    onChange={(e) => updateStepContent(stepKey, 'showBookingButton', e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-2">
                     Booking Button Text
@@ -428,6 +440,19 @@ export default function BookingFormAppearance() {
                     value={stepData.bookingButtonText || ''}
                     onChange={(e) => updateStepContent(stepKey, 'bookingButtonText', e.target.value)}
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
+                    disabled={stepData.showBookingButton === false}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                  <label className="text-sm font-medium text-stone-700">
+                    Show Gift Card Button
+                  </label>
+                  <input
+                    type="checkbox"
+                    checked={stepData.showGiftCardButton !== false}
+                    onChange={(e) => updateStepContent(stepKey, 'showGiftCardButton', e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
                   />
                 </div>
 
@@ -440,6 +465,7 @@ export default function BookingFormAppearance() {
                     value={stepData.giftCardButtonText || ''}
                     onChange={(e) => updateStepContent(stepKey, 'giftCardButtonText', e.target.value)}
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
+                    disabled={stepData.showGiftCardButton === false}
                   />
                 </div>
               </>

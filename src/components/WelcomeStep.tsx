@@ -208,7 +208,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
           </Alert>
         )}
 
-        {enableBookings && (
+        {enableBookings && customization?.welcome_step?.showBookingButton !== false && (
           <Button
             onClick={onBookAppointment}
             variant="theme"
@@ -220,7 +220,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
           </Button>
         )}
 
-        {enableGiftCards && (
+        {enableGiftCards && customization?.welcome_step?.showGiftCardButton !== false && (
           <Button
             onClick={onPurchaseGiftCard}
             variant="outline-theme"
