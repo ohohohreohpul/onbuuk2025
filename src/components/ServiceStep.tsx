@@ -123,7 +123,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                       <h3 className="text-foreground font-medium mb-1 flex items-center gap-2 text-sm sm:text-base flex-wrap">
                         <span>{service.name}</span>
                         {service.is_pair_massage && (
-                          <span className="text-xs px-2 py-0.5 bg-theme-primary bg-opacity-10 text-theme-brand-primary border border-theme-primary whitespace-nowrap rounded-md">
+                          <span className="text-xs px-2 py-0.5 bg-theme-primary text-white whitespace-nowrap rounded-md">
                             Couples Available
                           </span>
                         )}

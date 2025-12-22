@@ -96,8 +96,8 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-theme-primary bg-opacity-10 flex items-center justify-center flex-shrink-0 rounded-lg">
-                <User className="w-5 h-5 text-theme-brand-primary" />
+              <div className="w-12 h-12 bg-theme-primary flex items-center justify-center flex-shrink-0 rounded-lg">
+                <User className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-foreground font-medium">{content.anySpecialistText}</h3>

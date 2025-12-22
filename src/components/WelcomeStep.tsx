@@ -211,6 +211,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         {enableBookings && (
           <Button
             onClick={onBookAppointment}
+            variant="theme"
             size="lg"
             className="w-full h-12"
           >
@@ -222,7 +223,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         {enableGiftCards && (
           <Button
             onClick={onPurchaseGiftCard}
-            variant="outline"
+            variant="outline-theme"
             size="lg"
             className="w-full h-12"
           >
