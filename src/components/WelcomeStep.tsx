@@ -7,7 +7,6 @@ import { CustomerAuth } from './customer/CustomerAuth';
 import { useTenant } from '../lib/tenantContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import DOMPurify from 'isomorphic-dompurify';
