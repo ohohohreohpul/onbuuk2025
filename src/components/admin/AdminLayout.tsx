@@ -115,7 +115,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200"
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -123,14 +123,14 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       {/* Sidebar Backdrop */}
       {sidebarOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[55]"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen w-72 z-40
+        fixed lg:sticky top-0 left-0 h-screen w-72 z-[56]
         transform transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
