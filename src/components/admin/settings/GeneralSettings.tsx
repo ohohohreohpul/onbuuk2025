@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Save, AlertCircle, Globe, DollarSign, Crown, Image, ToggleLeft } from 'lucide-react';
+import { Save, AlertCircle, DollarSign, Crown, Image, ToggleLeft } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 import { CURRENCY_NAMES, CURRENCY_SYMBOLS } from '../../../lib/currency';
@@ -246,7 +246,6 @@ export default function GeneralSettings() {
         .from('businesses')
         .update({
           name: business.name,
-          subdomain: business.subdomain,
           custom_domain: business.custom_domain,
           logo_url: business.logo_url,
           custom_logo_url: business.custom_logo_url,
@@ -462,34 +461,6 @@ export default function GeneralSettings() {
               {premiumFeatures.isPro
                 ? 'Upload a logo specifically for your admin login page (PNG, JPG, max 2MB)'
                 : 'Using default buuk logo on login page'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">
-          <Globe className="w-5 h-5" />
-          <span>Subdomain Settings</span>
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Subdomain
-            </label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={business.subdomain || ''}
-                onChange={(e) => setBusiness({ ...business, subdomain: e.target.value })}
-                className="flex-1 px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
-                placeholder="yourbusiness"
-              />
-              <span className="text-stone-600">.buuk.io</span>
-            </div>
-            <p className="text-xs text-stone-500 mt-1">
-              Your booking page will be accessible at this subdomain
             </p>
           </div>
         </div>
