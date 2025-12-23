@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, X, ArrowRight } from 'lucide-react';
+import { AlertCircle, X, ArrowRight, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 
@@ -48,14 +48,19 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="bg-gradient-to-r from-[#008374] via-[#00a894] to-[#008374] text-white shadow-lg shadow-[#008374]/20 relative overflow-hidden">
+      {/* Animated background effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 animate-shimmer" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1">
-            <AlertCircle className="w-6 h-6 flex-shrink-0" />
+            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg">Complete Your Store Profile</h3>
-              <p className="text-blue-100 text-sm">
+              <p className="text-white/80 text-sm">
                 Add your business details to activate your booking page and start accepting appointments
               </p>
             </div>
@@ -65,17 +70,16 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
             <button
               onClick={(e) => {
                 e.preventDefault();
-                console.log('Complete Setup clicked');
                 onSetupClick();
               }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#008374] rounded-xl font-semibold hover:bg-white/90 hover:shadow-lg transition-all duration-200 group"
             >
               Complete Setup
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
             <button
               onClick={handleDismiss}
-              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors backdrop-blur-sm"
               aria-label="Dismiss"
             >
               <X className="w-5 h-5" />
