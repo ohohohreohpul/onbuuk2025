@@ -51,10 +51,8 @@ export function PoweredByBuuk() {
       style={{ maxWidth: '140px' }}
     >
       <div className="relative">
-        {/* Glow effect */}
-        <div className="absolute inset-0 bg-[#008374]/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-110" />
-        {/* Badge container */}
-        <div className="relative bg-white/80 backdrop-blur-md rounded-xl px-3 py-2 shadow-lg border border-white/50 transition-all duration-300 group-hover:shadow-xl group-hover:bg-white group-hover:scale-105">
+        {/* Badge container - fully white background */}
+        <div className="relative bg-white rounded-xl px-3 py-2 shadow-lg border border-gray-100 transition-all duration-300 group-hover:shadow-xl group-hover:scale-105">
           <img
             src="/Powered by buuk.png"
             alt="Powered by buuk"
