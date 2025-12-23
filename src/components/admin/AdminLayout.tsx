@@ -148,8 +148,6 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                   alt="Business Logo"
                   className="h-10 w-auto object-contain"
                 />
-                  />
-                </div>
               </div>
             ) : (
               <h1 className="text-xl font-semibold tracking-wide text-center mb-4">Admin Panel</h1>
