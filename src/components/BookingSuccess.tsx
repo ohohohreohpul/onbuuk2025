@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Check, Calendar, Clock, Mail, Phone, User } from 'lucide-react';
+import { Check, Calendar, Clock, Mail, Phone, User, CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function BookingSuccess() {
   const tenant = useTenant();
   const [loading, setLoading] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
   const [specialist, setSpecialist] = useState<any>(null);
@@ -72,6 +75,7 @@ export default function BookingSuccess() {
       }
 
       setLoading(false);
+      setTimeout(() => setIsLoaded(true), 100);
     } catch (err) {
       console.error('Error fetching booking details:', err);
       setError('Failed to load booking details');
@@ -95,187 +99,187 @@ export default function BookingSuccess() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center relative">
+        <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
+        <div className="text-center relative z-10">
+          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading booking details...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-            <span className="text-2xl">❌</span>
-          </div>
-          <h1 className="text-2xl font-light text-stone-800 mb-2">
-            Unable to Load Booking
-          </h1>
-          <p className="text-stone-600 mb-6">{error || 'Something went wrong'}</p>
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
-          >
-            Return to Home
-          </button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative">
+        <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
+        <Card glass className="max-w-md w-full relative z-10">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+              <span className="text-2xl">❌</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2 tracking-tight">
+              Unable to Load Booking
+            </h1>
+            <p className="text-muted-foreground mb-6">{error || 'Something went wrong'}</p>
+            <Button
+              onClick={() => (window.location.href = '/')}
+              className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25"
+            >
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white p-8 md:p-12">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-            <Check className="w-10 h-10 text-green-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative">
+      {/* Background decorations */}
+      <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
+      <div className="absolute top-20 right-20 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+
+      <Card glass className={`max-w-2xl w-full relative z-10 shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <CardContent className="p-8 md:p-12">
+          {/* Success Header */}
+          <div className="text-center mb-10">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-green-500/30 rounded-full blur-xl scale-150 animate-pulse-slow" />
+              <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center relative shadow-lg shadow-green-500/30">
+                <Check className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 tracking-tight">
+              Booking Confirmed!
+            </h1>
+            <p className="text-muted-foreground leading-relaxed">
+              Your payment has been processed successfully. We've sent a confirmation email to{' '}
+              <span className="font-semibold text-foreground">{booking.customer_email}</span>
+            </p>
           </div>
-          <h1 className="text-3xl md:text-4xl font-light text-stone-800 mb-3">
-            Booking Confirmed!
-          </h1>
-          <p className="text-stone-600 leading-relaxed">
-            Your payment has been processed successfully. We've sent a confirmation email to{' '}
-            <span className="font-medium">{booking.customer_email}</span>
-          </p>
-        </div>
 
-        <div className="border border-stone-200 p-6 md:p-8 mb-8 bg-stone-50">
-          <h2 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-6">
-            Booking Details
-          </h2>
+          {/* Booking Details Card */}
+          <div className="bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 md:p-8 mb-8">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#008374]" />
+              Booking Details
+            </h2>
 
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">🎯</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                  Booking ID
-                </p>
-                <p className="text-stone-800 font-medium">
-                  {booking.id.slice(0, 8).toUpperCase()}
-                </p>
-              </div>
+            <div className="space-y-4">
+              <DetailRow
+                icon={<span className="text-lg">🎯</span>}
+                label="Booking ID"
+                value={booking.id.slice(0, 8).toUpperCase()}
+              />
+
+              {service && (
+                <DetailRow
+                  icon={<span className="text-lg">✨</span>}
+                  label="Service"
+                  value={service.name}
+                />
+              )}
+
+              {specialist && (
+                <DetailRow
+                  icon={<User className="w-5 h-5 text-[#008374]" />}
+                  label="Specialist"
+                  value={specialist.name}
+                />
+              )}
+
+              <DetailRow
+                icon={<Calendar className="w-5 h-5 text-[#008374]" />}
+                label="Date"
+                value={formatDate(booking.booking_date)}
+              />
+
+              <DetailRow
+                icon={<Clock className="w-5 h-5 text-[#008374]" />}
+                label="Time"
+                value={booking.start_time}
+              />
+
+              <DetailRow
+                icon={<User className="w-5 h-5 text-[#008374]" />}
+                label="Customer Name"
+                value={booking.customer_name}
+              />
+
+              <DetailRow
+                icon={<Mail className="w-5 h-5 text-[#008374]" />}
+                label="Email"
+                value={booking.customer_email}
+              />
+
+              {booking.customer_phone && (
+                <DetailRow
+                  icon={<Phone className="w-5 h-5 text-[#008374]" />}
+                  label="Phone"
+                  value={booking.customer_phone}
+                />
+              )}
             </div>
-
-            {service && (
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg">✨</span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                    Service
-                  </p>
-                  <p className="text-stone-800 font-medium">{service.name}</p>
-                </div>
-              </div>
-            )}
-
-            {specialist && (
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-stone-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                    Specialist
-                  </p>
-                  <p className="text-stone-800 font-medium">{specialist.name}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5 text-stone-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                  Date
-                </p>
-                <p className="text-stone-800 font-medium">
-                  {formatDate(booking.booking_date)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 text-stone-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                  Time
-                </p>
-                <p className="text-stone-800 font-medium">{booking.start_time}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-stone-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                  Customer Name
-                </p>
-                <p className="text-stone-800 font-medium">{booking.customer_name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                <Mail className="w-5 h-5 text-stone-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                  Email
-                </p>
-                <p className="text-stone-800 font-medium">{booking.customer_email}</p>
-              </div>
-            </div>
-
-            {booking.customer_phone && (
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-5 h-5 text-stone-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-stone-500 uppercase tracking-wide mb-1">
-                    Phone
-                  </p>
-                  <p className="text-stone-800 font-medium">{booking.customer_phone}</p>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
 
-        <AccountCreationPrompt
-          customerEmail={booking.customer_email}
-          customerName={booking.customer_name}
-          businessId={tenant.businessId!}
-        />
+          <AccountCreationPrompt
+            customerEmail={booking.customer_email}
+            customerName={booking.customer_name}
+            businessId={tenant.businessId!}
+          />
 
-        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-medium text-stone-800 mb-2">What's Next?</h3>
-          <ul className="text-sm text-stone-600 space-y-2 leading-relaxed">
-            <li>• Please arrive 10 minutes before your appointment</li>
-            <li>• You'll receive a reminder email 24 hours before your booking</li>
-            <li>• To reschedule or cancel, please contact us at least 24 hours in advance</li>
-          </ul>
-        </div>
+          {/* What's Next Card */}
+          <div className="mt-8 p-6 bg-[#008374]/5 backdrop-blur-sm border border-[#008374]/20 rounded-2xl">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-[#008374]" />
+              What's Next?
+            </h3>
+            <ul className="text-sm text-muted-foreground space-y-2 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-[#008374]">•</span>
+                Please arrive 10 minutes before your appointment
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#008374]">•</span>
+                You'll receive a reminder email 24 hours before your booking
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#008374]">•</span>
+                To reschedule or cancel, please contact us at least 24 hours in advance
+              </li>
+            </ul>
+          </div>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="px-8 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
-          >
-            Return to Home
-          </button>
-        </div>
+          {/* Return Button */}
+          <div className="mt-8 text-center">
+            <Button
+              onClick={() => (window.location.href = '/')}
+              className="h-12 px-8 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300 group"
+              size="lg"
+            >
+              Return to Home
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+          {label}
+        </p>
+        <p className="text-foreground font-medium">{value}</p>
       </div>
     </div>
   );
