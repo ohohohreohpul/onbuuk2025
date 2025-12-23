@@ -7,7 +7,6 @@ import {
   UserCircle,
   Settings,
   LogOut,
-  Palette,
   HelpCircle,
   Book,
   ExternalLink,
@@ -15,7 +14,9 @@ import {
   DollarSign,
   Package,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  X
 } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
@@ -35,6 +36,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   const { businessId } = useTenant();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const { hasPermission, hasAnyPermission, loading } = usePermissions(adminUser?.id || null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     async function fetchLogo() {
@@ -109,150 +111,203 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-[#008374] text-white flex flex-col">
-        <div className="p-6 border-b border-white border-opacity-10">
-          {logoUrl ? (
-            <div className="flex items-center justify-center mb-3">
-              <img
-                src={logoUrl}
-                alt="Business Logo"
-                className="h-12 w-auto object-contain"
-              />
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200"
+      >
+        {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Sidebar Backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed lg:sticky top-0 left-0 h-screen w-72 z-40
+        transform transition-transform duration-300 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="h-full bg-gradient-to-b from-[#008374] via-[#007367] to-[#006259] text-white flex flex-col relative overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#89BA16]/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+          
+          {/* Header */}
+          <div className="p-6 border-b border-white/10 relative">
+            {logoUrl ? (
+              <div className="flex items-center justify-center mb-4">
+                <div className="p-2 bg-white/10 rounded-xl backdrop-blur-sm">
+                  <img
+                    src={logoUrl}
+                    alt="Business Logo"
+                    className="h-10 w-auto object-contain"
+                  />
+                </div>
+              </div>
+            ) : (
+              <h1 className="text-xl font-semibold tracking-wide text-center mb-4">Admin Panel</h1>
+            )}
+            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-xl backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold">
+                {adminUser?.full_name?.charAt(0) || 'A'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate text-sm">{adminUser?.full_name}</p>
+                <p className="text-xs text-white/60 truncate">{adminUser?.role}</p>
+              </div>
             </div>
-          ) : (
-            <h1 className="text-xl font-semibold tracking-wide text-center mb-3">Admin Panel</h1>
-          )}
-          <p className="text-white text-opacity-70 text-sm text-center">{adminUser?.full_name}</p>
-        </div>
+          </div>
 
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-3">
-            {allMenuGroups.map((group) => {
-              const visibleItems = group.items.filter(item => {
-                if (loading) return true;
-                return hasAnyPermission(item.permissions);
-              });
+          {/* Navigation */}
+          <nav className="flex-1 p-4 overflow-y-auto relative">
+            <ul className="space-y-2">
+              {allMenuGroups.map((group) => {
+                const visibleItems = group.items.filter(item => {
+                  if (loading) return true;
+                  return hasAnyPermission(item.permissions);
+                });
 
-              if (visibleItems.length === 0) return null;
+                if (visibleItems.length === 0) return null;
 
-              const isExpanded = expandedGroups.includes(group.id);
+                const isExpanded = expandedGroups.includes(group.id);
 
-              return (
-                <li key={group.id}>
-                  {group.label ? (
-                    <>
-                      <button
-                        onClick={() => toggleGroup(group.id)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-white text-opacity-70 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider"
-                      >
-                        <span>{group.label}</span>
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
-                        )}
-                      </button>
-                      {isExpanded && (
-                        <ul className="mt-1 space-y-1">
-                          {visibleItems.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <li key={item.id}>
-                                <button
-                                  onClick={() => onViewChange(item.id)}
-                                  className={`w-full flex items-center space-x-3 px-4 py-2.5 transition-colors ${
-                                    currentView === item.id
-                                      ? 'bg-[#89BA16] text-white'
-                                      : 'text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 hover:text-white'
-                                  }`}
-                                >
-                                  <Icon className="w-4 h-4" />
-                                  <span className="text-sm">{item.label}</span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </>
-                  ) : (
-                    <ul className="space-y-1">
-                      {visibleItems.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <li key={item.id}>
-                            <button
-                              onClick={() => onViewChange(item.id)}
-                              className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${
-                                currentView === item.id
-                                  ? 'bg-[#89BA16] text-white'
-                                  : 'text-white text-opacity-80 hover:bg-white hover:bg-opacity-10 hover:text-white'
-                              }`}
-                            >
-                              <Icon className="w-5 h-5" />
-                              <span className="text-sm">{item.label}</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+                return (
+                  <li key={group.id}>
+                    {group.label ? (
+                      <>
+                        <button
+                          onClick={() => toggleGroup(group.id)}
+                          className="w-full flex items-center justify-between px-3 py-2.5 text-white/60 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider"
+                        >
+                          <span>{group.label}</span>
+                          <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                            <ChevronDown className="w-4 h-4" />
+                          </div>
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                          <ul className="mt-1 space-y-1">
+                            {visibleItems.map((item) => {
+                              const Icon = item.icon;
+                              const isActive = currentView === item.id;
+                              return (
+                                <li key={item.id}>
+                                  <button
+                                    onClick={() => {
+                                      onViewChange(item.id);
+                                      setSidebarOpen(false);
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                                      isActive
+                                        ? 'bg-white text-[#008374] shadow-lg shadow-black/10'
+                                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#008374]' : ''}`} />
+                                    <span className="text-sm font-medium">{item.label}</span>
+                                    {isActive && (
+                                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#89BA16]" />
+                                    )}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </>
+                    ) : (
+                      <ul className="space-y-1">
+                        {visibleItems.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = currentView === item.id;
+                          return (
+                            <li key={item.id}>
+                              <button
+                                onClick={() => {
+                                  onViewChange(item.id);
+                                  setSidebarOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-white text-[#008374] shadow-lg shadow-black/10'
+                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                }`}
+                              >
+                                <Icon className={`w-5 h-5 ${isActive ? 'text-[#008374]' : ''}`} />
+                                <span className="text-sm font-medium">{item.label}</span>
+                                {isActive && (
+                                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#89BA16]" />
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-        <div className="p-4 border-t border-white border-opacity-10 space-y-2">
-          <a
-            href="https://onbuuk.com/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
-          >
-            <Book className="w-4 h-4" />
-            <span>Documentation</span>
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </a>
-
-          <a
-            href="https://onbuuk.com/support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
-          >
-            <HelpCircle className="w-4 h-4" />
-            <span>Get Help</span>
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </a>
-
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 text-white text-opacity-70 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
-
-          <div className="pt-4 mt-4 border-t border-white border-opacity-10">
+          {/* Footer */}
+          <div className="p-4 border-t border-white/10 space-y-1 relative">
             <a
-              href="https://onbuuk.com"
+              href="https://onbuuk.com/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center space-x-2 text-white text-opacity-50 hover:text-white hover:text-opacity-70 transition-colors text-xs"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
             >
-              <span>Powered by</span>
-              <span className="font-semibold">Buuk</span>
-              <span>v1.0.0</span>
+              <Book className="w-4 h-4" />
+              <span>Documentation</span>
+              <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
             </a>
+
+            <a
+              href="https://onbuuk.com/support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span>Get Help</span>
+              <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+            </a>
+
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-red-500/20 hover:text-red-200 transition-all duration-200 text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+
+            <div className="pt-4 mt-4 border-t border-white/10">
+              <a
+                href="https://onbuuk.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 text-white/40 hover:text-white/60 transition-colors text-xs"
+              >
+                <span>Powered by</span>
+                <span className="font-semibold">Buuk</span>
+                <span className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">v1.0</span>
+              </a>
+            </div>
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-white">
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto min-h-screen">
         <ProfileCompletionBanner onSetupClick={() => onViewChange('settings')} />
-        <div className="max-w-7xl mx-auto p-8">
+        <div className="max-w-7xl mx-auto p-6 lg:p-8">
           {children}
         </div>
       </main>
