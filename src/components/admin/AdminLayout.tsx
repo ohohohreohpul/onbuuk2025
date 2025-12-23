@@ -143,11 +143,11 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           <div className="p-6 border-b border-white/10 relative">
             {logoUrl ? (
               <div className="flex items-center justify-center mb-4">
-                <div className="p-2 bg-white/10 rounded-xl backdrop-blur-sm">
-                  <img
-                    src={logoUrl}
-                    alt="Business Logo"
-                    className="h-10 w-auto object-contain"
+                <img
+                  src={logoUrl}
+                  alt="Business Logo"
+                  className="h-10 w-auto object-contain"
+                />
                   />
                 </div>
               </div>
