@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import DOMPurify from 'isomorphic-dompurify';
+import { useTheme } from '../lib/themeContext';
 
 interface WelcomeStepProps {
   onBookAppointment: () => void;
@@ -31,6 +32,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
   const { customer } = useCustomerAuth();
   const { businessId } = useTenant();
   const { customization, loading: customizationLoading } = useBookingCustomization();
+  const { colors } = useTheme();
   const [showAuth, setShowAuth] = useState(false);
   const [enableBookings, setEnableBookings] = useState(true);
   const [enableGiftCards, setEnableGiftCards] = useState(true);
@@ -41,6 +43,11 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
   const [customHTML, setCustomHTML] = useState('');
   const [featureCards, setFeatureCards] = useState<WelcomeCard[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Use theme colors with fallbacks
+  const primaryColor = colors.primary || '#008374';
+  const primaryHoverColor = colors.primaryHover || '#006b5e';
+  const secondaryColor = colors.secondary || '#89BA16';
 
   useEffect(() => {
     const fetchFeatureFlags = async () => {
@@ -104,17 +111,23 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     if (card.icon_type === 'lucide' && card.icon_name) {
       const IconComponent = (LucideIcons as any)[card.icon_name];
       if (IconComponent) {
-        return <IconComponent className="w-5 h-5 text-[#008374]" />;
+        return <IconComponent className="w-5 h-5" style={{ color: primaryColor }} />;
       }
     }
-    return <LucideIcons.HelpCircle className="w-5 h-5 text-[#008374]" />;
+    return <LucideIcons.HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />;
   };
 
   if (loading || customizationLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-spin mx-auto mb-4"></div>
+          <div 
+            className="w-10 h-10 border-3 rounded-full animate-spin mx-auto mb-4"
+            style={{ 
+              borderColor: `${primaryColor}20`,
+              borderTopColor: primaryColor 
+            }}
+          />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -133,18 +146,33 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
       <div className={`flex flex-col sm:flex-row items-start justify-between gap-4 transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <div className="space-y-3 flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: colors.textPrimary }}>
               {welcomeContent.title}
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
+          <p className="text-lg leading-relaxed max-w-lg" style={{ color: colors.textSecondary }}>
             {welcomeContent.subtitle}
           </p>
         </div>
         <Button
           variant="outline"
           onClick={handleAccountClick}
-          className="self-start sm:self-auto hover:bg-[#008374]/10 hover:border-[#008374] hover:text-[#008374] transition-all duration-200"
+          className="self-start sm:self-auto transition-all duration-200"
+          style={{
+            '--hover-bg': `${primaryColor}10`,
+            '--hover-border': primaryColor,
+            '--hover-text': primaryColor,
+          } as React.CSSProperties}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${primaryColor}10`;
+            e.currentTarget.style.borderColor = primaryColor;
+            e.currentTarget.style.color = primaryColor;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '';
+            e.currentTarget.style.borderColor = '';
+            e.currentTarget.style.color = '';
+          }}
         >
           <User className="w-4 h-4 mr-2" />
           {customer ? 'My Account' : 'Sign In'}
@@ -184,17 +212,31 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
                 <Card 
                   key={card.id} 
                   glass
-                  className="group hover-lift border-transparent hover:border-[#008374]/20"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="group hover-lift border-transparent"
+                  style={{ 
+                    animationDelay: `${index * 100}ms`,
+                    '--hover-border': `${primaryColor}20`,
+                  } as React.CSSProperties}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${primaryColor}30`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'transparent';
+                  }}
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#008374]/10 to-[#89BA16]/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}15)` 
+                        }}
+                      >
                         {renderIcon(card)}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1 text-foreground">{card.title}</h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed">
+                        <h3 className="font-semibold mb-1" style={{ color: colors.textPrimary }}>{card.title}</h3>
+                        <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                           {card.description}
                         </p>
                       </div>
@@ -222,8 +264,18 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         {enableBookings && customization?.welcome_step?.showBookingButton !== false && (
           <Button
             onClick={onBookAppointment}
-            className="w-full h-14 text-base bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-xl hover:shadow-[#008374]/25 transition-all duration-300 group"
+            className="w-full h-14 text-base transition-all duration-300 group text-white"
             size="lg"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})`,
+              boxShadow: `0 10px 25px -5px ${primaryColor}40`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = `0 20px 35px -5px ${primaryColor}50`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = `0 10px 25px -5px ${primaryColor}40`;
+            }}
           >
             <Calendar className="w-5 h-5 mr-2" />
             {customization?.welcome_step?.bookingButtonText || 'Book an Appointment'}
@@ -235,8 +287,22 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
           <Button
             onClick={onPurchaseGiftCard}
             variant="outline"
-            className="w-full h-14 text-base border-2 border-[#008374] text-[#008374] hover:bg-[#008374] hover:text-white hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300 group"
+            className="w-full h-14 text-base border-2 transition-all duration-300 group"
             size="lg"
+            style={{
+              borderColor: primaryColor,
+              color: primaryColor,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = primaryColor;
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.boxShadow = `0 10px 25px -5px ${primaryColor}40`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = primaryColor;
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             <Gift className="w-5 h-5 mr-2" />
             {customization?.welcome_step?.giftCardButtonText || 'Purchase a Gift Card'}
