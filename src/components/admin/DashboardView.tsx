@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw, Gift, CheckCircle } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw, Gift, CheckCircle, Sparkles } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout, getUserFriendlyErrorMessage } from '../../lib/queryUtils';
@@ -51,6 +51,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const [giftCardStatus, setGiftCardStatus] = useState<string | null>(null);
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
   const [checkingGiftCard, setCheckingGiftCard] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -58,6 +59,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   useEffect(() => {
     mountedRef.current = true;
     fetchDashboardData();
+    setTimeout(() => setIsLoaded(true), 100);
 
     return () => {
       mountedRef.current = false;
@@ -232,8 +234,11 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-gray-300 border-t-[#008374] rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -248,10 +253,12 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </div>
         </div>
 
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50/50 backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="p-2 bg-red-100 rounded-xl">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-red-900 mb-1">Unable to load dashboard</h3>
                 <p className="text-sm text-red-700 mb-4">{error}</p>
@@ -275,42 +282,85 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     );
   }
 
+  const statCards = [
+    {
+      title: 'Total Bookings',
+      value: stats.totalBookings,
+      subtitle: '+12% from last month',
+      icon: Calendar,
+      color: 'from-[#008374] to-[#00a894]',
+      delay: 0
+    },
+    {
+      title: "Today's Bookings",
+      value: stats.todayBookings,
+      subtitle: 'Active appointments today',
+      icon: Calendar,
+      color: 'from-[#89BA16] to-[#a5d621]',
+      delay: 100
+    },
+    ...(hasPermission('view_revenue') ? [{
+      title: 'Total Revenue',
+      value: formatPrice(stats.totalRevenue),
+      subtitle: '+8% from last month',
+      icon: DollarSign,
+      color: 'from-purple-500 to-purple-600',
+      delay: 200
+    }] : []),
+    {
+      title: 'Total Customers',
+      value: stats.totalCustomers,
+      subtitle: 'Unique client profiles',
+      icon: Users,
+      color: 'from-orange-400 to-orange-500',
+      delay: 300
+    }
+  ];
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className={`flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <Badge className="bg-[#008374]/10 text-[#008374] hover:bg-[#008374]/20 border-0">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Live
+            </Badge>
+          </div>
           <p className="text-muted-foreground">Welcome back! Here's what's happening today</p>
         </div>
         <div className="relative" ref={dropdownRef}>
           <Button
             onClick={() => setShowCreateDropdown(!showCreateDropdown)}
+            className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25"
           >
             <Plus className="h-4 w-4" />
             New
-            <ChevronDown className="h-4 w-4 ml-1" />
+            <ChevronDown className={`h-4 w-4 ml-1 transition-transform duration-200 ${showCreateDropdown ? 'rotate-180' : ''}`} />
           </Button>
           {showCreateDropdown && (
-            <div className="absolute right-0 mt-2 w-56 rounded-md border bg-popover p-1 shadow-md z-50">
+            <div className="absolute right-0 mt-2 w-56 rounded-xl border bg-white/90 backdrop-blur-xl p-2 shadow-xl z-50 animate-fade-in-down">
               <button
                 onClick={() => handleCreateAction('create-booking')}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm hover:bg-[#008374]/10 transition-colors"
               >
-                <Calendar className="mr-2 h-4 w-4" />
+                <Calendar className="mr-3 h-4 w-4 text-[#008374]" />
                 <span>Create Booking</span>
               </button>
               <button
                 onClick={() => handleCreateAction('customers')}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm hover:bg-[#008374]/10 transition-colors"
               >
-                <Users className="mr-2 h-4 w-4" />
+                <Users className="mr-3 h-4 w-4 text-[#008374]" />
                 <span>Add Customer</span>
               </button>
               <button
                 onClick={() => handleCreateAction('gift-cards')}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm hover:bg-[#008374]/10 transition-colors"
               >
-                <DollarSign className="mr-2 h-4 w-4" />
+                <DollarSign className="mr-3 h-4 w-4 text-[#008374]" />
                 <span>Issue Gift Card</span>
               </button>
             </div>
@@ -318,123 +368,92 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Bookings
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-[#008374]">+12%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Today's Bookings
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.todayBookings}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Active appointments today
-            </p>
-          </CardContent>
-        </Card>
-
-        {hasPermission('view_revenue') && (
-          <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Revenue
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className="text-[#008374]">+8%</span> from last month
-              </p>
+        {statCards.map((stat, index) => (
+          <Card 
+            key={stat.title}
+            glass
+            className={`group hover-lift overflow-hidden transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+            style={{ transitionDelay: `${stat.delay}ms` }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
+                  <stat.icon className="h-5 w-5 text-white" />
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-[#008374] transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stat.subtitle.includes('+') ? (
+                    <span className="text-[#008374] font-medium">{stat.subtitle}</span>
+                  ) : stat.subtitle}
+                </p>
+              </div>
             </CardContent>
           </Card>
-        )}
-
-        <Card className="rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Customers
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Unique client profiles
-            </p>
-          </CardContent>
-        </Card>
+        ))}
       </div>
 
-      <Card className="rounded-lg border border-border">
+      {/* Gift Card Check */}
+      <Card glass className={`transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#008374] to-[#00a894]">
+              <Gift className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5 text-[#008374]" />
-                Check Gift Card Balance
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Enter a gift card code to check its balance</p>
+              <CardTitle className="text-lg">Check Gift Card Balance</CardTitle>
+              <p className="text-sm text-muted-foreground">Enter a gift card code to check its balance</p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={giftCardCode}
                 onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && checkGiftCardBalance()}
                 placeholder="Enter gift card code"
-                className="flex-1 px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-[#008374] focus:border-transparent uppercase"
+                className="flex-1 px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008374]/20 focus:border-[#008374] transition-all uppercase placeholder:normal-case"
               />
               <Button
                 onClick={checkGiftCardBalance}
                 disabled={checkingGiftCard || !giftCardCode.trim()}
-                className="bg-[#008374] hover:bg-[#006b5f]"
+                className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 px-6"
               >
                 {checkingGiftCard ? 'Checking...' : 'Check Balance'}
               </Button>
             </div>
 
             {giftCardError && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl text-red-700 animate-fade-in">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
                 <p className="text-sm">{giftCardError}</p>
               </div>
             )}
 
             {giftCardBalance !== null && giftCardStatus && (
-              <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-4 bg-green-50/80 backdrop-blur-sm border border-green-200 rounded-xl animate-fade-in">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-green-900">Gift Card Active</p>
-                  <p className="text-sm text-green-700 mt-1">
-                    Current Balance: <span className="font-bold">{formatPrice(giftCardBalance * 100)}</span>
+                  <p className="text-sm font-semibold text-green-900">Gift Card Active</p>
+                  <p className="text-sm text-green-700 mt-0.5">
+                    Current Balance: <span className="font-bold text-lg">{formatPrice(giftCardBalance * 100)}</span>
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onNavigate('gift-cards')}
-                  className="border-green-300 hover:bg-green-100"
+                  className="border-green-300 hover:bg-green-100 text-green-700"
                 >
                   View Details
                 </Button>
@@ -444,49 +463,76 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-lg border border-border">
+      {/* Recent Bookings */}
+      <Card glass className={`transform transition-all duration-500 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Recent Bookings</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">View and manage your latest appointments</p>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#89BA16] to-[#a5d621]">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Recent Bookings</CardTitle>
+                <p className="text-sm text-muted-foreground">View and manage your latest appointments</p>
+              </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onNavigate('bookings')}
+              className="hover:bg-[#008374]/10 hover:border-[#008374] hover:text-[#008374]"
             >
               View All
+              <ArrowUpRight className="w-3 h-3 ml-1" />
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-8">
+          <div className="space-y-4">
             {recentBookings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
-                <h3 className="font-medium text-sm">No bookings yet</h3>
-                <p className="text-sm text-muted-foreground mt-1">Create your first booking to get started</p>
+                <div className="p-4 bg-gray-100 rounded-2xl mb-4">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold text-foreground">No bookings yet</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">Create your first booking to get started</p>
+                <Button
+                  onClick={() => setShowCreateBookingModal(true)}
+                  variant="outline"
+                  className="hover:bg-[#008374]/10 hover:border-[#008374] hover:text-[#008374]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Booking
+                </Button>
               </div>
             ) : (
-              recentBookings.map((booking) => (
-                <div key={booking.id} className="flex items-center">
-                  <div className="space-y-1 flex-1">
-                    <p className="text-sm font-medium leading-none">
+              recentBookings.map((booking, index) => (
+                <div 
+                  key={booking.id} 
+                  className="flex items-center p-4 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
                       {booking.customer_name}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground truncate">
                       {booking.service_name}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatDate(booking.booking_date)}</p>
                       <p className="text-sm text-muted-foreground">{booking.start_time}</p>
                     </div>
                     <Badge
-                      variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}
-                      className="capitalize"
+                      className={`capitalize rounded-full px-3 ${
+                        booking.status === 'confirmed' 
+                          ? 'bg-[#008374]/10 text-[#008374] border-[#008374]/20' 
+                          : booking.status === 'pending' 
+                            ? 'bg-yellow-100 text-yellow-700 border-yellow-200' 
+                            : 'bg-red-100 text-red-700 border-red-200'
+                      }`}
+                      variant="outline"
                     >
                       {booking.status}
                     </Badge>
