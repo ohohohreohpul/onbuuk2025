@@ -140,10 +140,15 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                 >
                   <div className="text-sm font-medium" style={{ color: colors.textPrimary }}>
                     {formatDateDisplay(day)}
+                    {today && (
+                      <span 
+                        className="ml-1.5 text-[10px] font-normal opacity-60"
+                        style={{ color: colors.textSecondary }}
+                      >
+                        (Today)
+                      </span>
+                    )}
                   </div>
-                  {today && (
-                    <div className="text-xs mt-1 font-medium" style={{ color: primaryColor }}>Today</div>
-                  )}
                 </Card>
               );
             })}
