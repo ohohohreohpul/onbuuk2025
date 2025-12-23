@@ -13,6 +13,7 @@ export default function VerticalLayout({ children, imageUrl, imageAlt = 'Busines
   const { businessId } = useTenant();
   const [businessName, setBusinessName] = useState('');
   const [businessTagline, setBusinessTagline] = useState('');
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     async function fetchBusinessInfo() {
@@ -31,38 +32,50 @@ export default function VerticalLayout({ children, imageUrl, imageAlt = 'Busines
     }
 
     fetchBusinessInfo();
+    setTimeout(() => setIsLoaded(true), 100);
   }, [businessId]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative">
-      {imageUrl ? (
-        <div className="w-full h-48 sm:h-64 relative overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={imageAlt}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      ) : (
-        <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
-          <div className="text-center px-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-stone-300/50 flex items-center justify-center">
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </div>
-            {businessName && (
-              <>
-                <h2 className="text-xl sm:text-2xl font-light text-stone-700 mb-1">{businessName}</h2>
-                {businessTagline && <p className="text-stone-600 text-xs sm:text-sm">{businessTagline}</p>}
-              </>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col relative">
+      {/* Background decorations */}
+      <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
+      
+      {/* Hero Image */}
+      <div className={`relative transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+        {imageUrl ? (
+          <div className="w-full h-56 sm:h-72 relative overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={imageAlt}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-56 sm:h-72 bg-gradient-to-br from-[#008374]/10 to-[#89BA16]/10 flex items-center justify-center">
+            <div className="text-center px-4">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 bg-[#008374]/20 rounded-full blur-xl scale-150 animate-pulse-slow" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#008374]/20 to-[#89BA16]/20 backdrop-blur-sm border border-white/50 flex items-center justify-center relative">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-[#008374]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+              </div>
+              {businessName && (
+                <>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 tracking-tight">{businessName}</h2>
+                  {businessTagline && <p className="text-muted-foreground text-sm sm:text-base">{businessTagline}</p>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      {/* Content */}
+      <div className={`flex-1 overflow-y-auto relative z-10 transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
           {children}
         </div>
       </div>
