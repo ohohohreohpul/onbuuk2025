@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2, Mail, Lock, CheckCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Mail, Lock, CheckCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,12 +16,15 @@ interface BusinessLoginProps {
 export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    setIsLoaded(true);
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
     if (errorParam) {
@@ -154,20 +157,25 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
 
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
+        <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+        
+        <Card glass className="max-w-md w-full animate-scale-in relative z-10">
+          <CardContent className="pt-8 pb-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+                <CheckCircle className="w-10 h-10 text-white" />
               </div>
-              <CardTitle className="text-3xl mb-2">
+              <CardTitle className="text-3xl mb-3">
                 Check Your Email
               </CardTitle>
               <CardDescription className="text-base mb-6">
-                We've sent a magic link to <strong>{email}</strong>
+                We've sent a magic link to <strong className="text-foreground">{email}</strong>
               </CardDescription>
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-sm text-muted-foreground mb-8 px-4">
                 Click the link in the email to sign in instantly. The link will expire in 1 hour.
               </p>
               <Button
@@ -176,6 +184,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
                   setMagicLinkSent(false);
                   setShowMagicLink(false);
                 }}
+                className="hover:bg-[#008374]/10"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to sign in
@@ -188,28 +197,41 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
+      <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+
+      <div className="max-w-md w-full relative z-10">
         <Button
           variant="ghost"
           onClick={onBack}
-          className="mb-8"
+          className={`mb-6 hover:bg-white/80 transform transition-all duration-500 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'}`}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
 
-        <Card className="shadow-xl">
-          <CardHeader className="text-center space-y-2">
+        <Card glass className={`shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+          <CardHeader className="text-center space-y-3 pb-2">
+            <div className="relative inline-block mx-auto mb-2">
+              <div className="absolute inset-0 bg-[#008374]/20 blur-2xl rounded-full scale-150" />
+              <img
+                src="/buuklogo copy copy.png"
+                alt="Buuk"
+                className="h-12 object-contain mx-auto relative"
+              />
+            </div>
             <CardTitle className="text-3xl">Sign In</CardTitle>
             <CardDescription className="text-base">
               Welcome back! Sign in to your account
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-4">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="animate-fade-in border-red-200 bg-red-50/80 backdrop-blur-sm">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -219,24 +241,24 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               disabled={loading}
               type="button"
               variant="outline"
-              className="w-full h-11"
+              className="w-full h-12 bg-white/70 hover:bg-white hover:shadow-md transition-all duration-200"
               size="lg"
             >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
-                  fill="currentColor"
+                  fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 />
                 <path
-                  fill="currentColor"
+                  fill="#34A853"
                   d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                 />
                 <path
-                  fill="currentColor"
+                  fill="#FBBC05"
                   d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                 />
                 <path
-                  fill="currentColor"
+                  fill="#EA4335"
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
@@ -245,49 +267,58 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <Separator />
+                <Separator className="bg-gray-200" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
+                <span className="bg-white/80 backdrop-blur-sm px-3 text-muted-foreground rounded-full">or</span>
               </div>
             </div>
 
             <form onSubmit={showMagicLink ? handleMagicLink : handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-11 h-12 bg-white/70 hover:bg-white focus:bg-white"
                     placeholder="you@example.com"
                     required
+                    glass
                   />
                 </div>
               </div>
 
               {!showMagicLink && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 pr-11 h-12 bg-white/70 hover:bg-white focus:bg-white"
                       placeholder="Enter your password"
                       required
+                      glass
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                   <div className="text-right">
                     <a
                       href="/forgot-password"
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-[#008374] hover:text-[#006b5e] hover:underline transition-colors"
                     >
                       Forgot password?
                     </a>
@@ -298,7 +329,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full"
+                className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300"
                 size="lg"
               >
                 {loading ? (
@@ -315,17 +346,17 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               </Button>
             </form>
 
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3 pt-2">
               <Button
                 variant="link"
                 onClick={() => setShowMagicLink(!showMagicLink)}
-                className="text-sm"
+                className="text-sm text-[#008374] hover:text-[#006b5e]"
               >
                 {showMagicLink ? 'Sign in with password instead' : 'Sign in with magic link instead'}
               </Button>
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <a href="/signup" className="text-primary font-semibold hover:underline">
+                <a href="/signup" className="text-[#008374] font-semibold hover:text-[#006b5e] hover:underline transition-colors">
                   Sign up
                 </a>
               </p>
