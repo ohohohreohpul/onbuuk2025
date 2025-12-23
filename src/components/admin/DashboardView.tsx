@@ -331,7 +331,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </div>
           <p className="text-muted-foreground">Welcome back! Here's what's happening today</p>
         </div>
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative z-50" ref={dropdownRef}>
           <Button
             onClick={() => setShowCreateDropdown(!showCreateDropdown)}
             className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25"
@@ -341,7 +341,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
             <ChevronDown className={`h-4 w-4 ml-1 transition-transform duration-200 ${showCreateDropdown ? 'rotate-180' : ''}`} />
           </Button>
           {showCreateDropdown && (
-            <div className="absolute right-0 mt-2 w-56 rounded-xl border bg-white/90 backdrop-blur-xl p-2 shadow-xl z-50 animate-fade-in-down">
+            <div className="absolute right-0 mt-2 w-56 rounded-xl border bg-white backdrop-blur-xl p-2 shadow-2xl z-[100] animate-fade-in-down">
               <button
                 onClick={() => handleCreateAction('create-booking')}
                 className="relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm hover:bg-[#008374]/10 transition-colors"
