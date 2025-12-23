@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { PoweredByBuuk } from '../PoweredByBuuk';
-import { Check } from 'lucide-react';
+import { Check, Clock, User, Calendar } from 'lucide-react';
 
 interface SplitPanelLayoutProps {
   children: ReactNode;
@@ -16,104 +16,155 @@ interface SplitPanelLayoutProps {
 }
 
 export default function SplitPanelLayout({ children, bookingSummary }: SplitPanelLayoutProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => setIsLoaded(true), 100);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col lg:flex-row relative">
-      <div className="flex-1 overflow-y-auto order-2 lg:order-1">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col lg:flex-row relative">
+      {/* Background decorations */}
+      <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
+      
+      {/* Main Content */}
+      <div className={`flex-1 overflow-y-auto order-2 lg:order-1 relative z-10 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
           {children}
         </div>
       </div>
 
-      <aside className="w-full lg:w-96 bg-white border-b lg:border-b-0 lg:border-l border-stone-200 overflow-y-auto order-1 lg:order-2">
-        <div className="sticky top-0 p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold text-stone-900 mb-2">Booking Summary</h2>
-            <p className="text-sm text-stone-600">Review your selection</p>
-          </div>
+      {/* Sidebar - Booking Summary */}
+      <aside className={`w-full lg:w-[380px] overflow-y-auto order-1 lg:order-2 relative transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+        <div className="sticky top-0 h-full lg:min-h-screen bg-white/70 backdrop-blur-xl border-b lg:border-b-0 lg:border-l border-gray-200/50">
+          <div className="p-6 lg:p-8 space-y-6">
+            {/* Header */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">Booking Summary</h2>
+              <p className="text-sm text-muted-foreground">Review your selection</p>
+            </div>
 
-          <div className="space-y-4">
-            {bookingSummary?.service ? (
-              <div className="flex items-start gap-3 pb-4 border-b border-stone-200">
-                <Check className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-stone-600">Service</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="font-medium text-stone-900">{bookingSummary.service}</p>
-                    {bookingSummary.serviceType && (
-                      <span className="text-xs text-stone-500">({bookingSummary.serviceType})</span>
+            {/* Summary Items */}
+            <div className="space-y-4">
+              {/* Service */}
+              <div className={`p-4 rounded-xl transition-all duration-300 ${bookingSummary?.service ? 'bg-[#008374]/5 border border-[#008374]/20' : 'bg-gray-50 border border-gray-100'}`}>
+                <div className="flex items-start gap-3">
+                  {bookingSummary?.service ? (
+                    <div className="w-8 h-8 rounded-lg bg-[#008374] flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service</p>
+                    {bookingSummary?.service ? (
+                      <div className="mt-1">
+                        <p className="font-semibold text-foreground truncate">{bookingSummary.service}</p>
+                        {bookingSummary.serviceType && (
+                          <span className="text-xs text-[#008374] bg-[#008374]/10 px-2 py-0.5 rounded-full mt-1 inline-block">
+                            {bookingSummary.serviceType}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1 italic">Not selected</p>
                     )}
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="pb-4 border-b border-stone-200">
-                <p className="text-sm text-stone-600">Service</p>
-                <p className="text-stone-400 italic">Not selected</p>
-              </div>
-            )}
 
-            {bookingSummary?.duration ? (
-              <div className="flex items-start gap-3 pb-4 border-b border-stone-200">
-                <Check className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-stone-600">Duration</p>
-                  <p className="font-medium text-stone-900">{bookingSummary.duration}</p>
+              {/* Duration */}
+              <div className={`p-4 rounded-xl transition-all duration-300 ${bookingSummary?.duration ? 'bg-[#008374]/5 border border-[#008374]/20' : 'bg-gray-50 border border-gray-100'}`}>
+                <div className="flex items-start gap-3">
+                  {bookingSummary?.duration ? (
+                    <div className="w-8 h-8 rounded-lg bg-[#008374] flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Duration</p>
+                    {bookingSummary?.duration ? (
+                      <p className="font-semibold text-foreground mt-1">{bookingSummary.duration}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1 italic">Not selected</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="pb-4 border-b border-stone-200">
-                <p className="text-sm text-stone-600">Duration</p>
-                <p className="text-stone-400 italic">Not selected</p>
-              </div>
-            )}
 
-            {bookingSummary?.specialist ? (
-              <div className="flex items-start gap-3 pb-4 border-b border-stone-200">
-                <Check className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-stone-600">Specialist</p>
-                  <p className="font-medium text-stone-900">{bookingSummary.specialist}</p>
+              {/* Specialist */}
+              <div className={`p-4 rounded-xl transition-all duration-300 ${bookingSummary?.specialist ? 'bg-[#008374]/5 border border-[#008374]/20' : 'bg-gray-50 border border-gray-100'}`}>
+                <div className="flex items-start gap-3">
+                  {bookingSummary?.specialist ? (
+                    <div className="w-8 h-8 rounded-lg bg-[#008374] flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Specialist</p>
+                    {bookingSummary?.specialist ? (
+                      <p className="font-semibold text-foreground mt-1">{bookingSummary.specialist}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1 italic">Not selected</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="pb-4 border-b border-stone-200">
-                <p className="text-sm text-stone-600">Specialist</p>
-                <p className="text-stone-400 italic">Not selected</p>
-              </div>
-            )}
 
-            {bookingSummary?.date && bookingSummary?.time ? (
-              <div className="flex items-start gap-3 pb-4 border-b border-stone-200">
-                <Check className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-stone-600">Date & Time</p>
-                  <p className="font-medium text-stone-900">
-                    {bookingSummary.date} at {bookingSummary.time}
-                  </p>
+              {/* Date & Time */}
+              <div className={`p-4 rounded-xl transition-all duration-300 ${bookingSummary?.date && bookingSummary?.time ? 'bg-[#008374]/5 border border-[#008374]/20' : 'bg-gray-50 border border-gray-100'}`}>
+                <div className="flex items-start gap-3">
+                  {bookingSummary?.date && bookingSummary?.time ? (
+                    <div className="w-8 h-8 rounded-lg bg-[#008374] flex items-center justify-center flex-shrink-0">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Date & Time</p>
+                    {bookingSummary?.date && bookingSummary?.time ? (
+                      <p className="font-semibold text-foreground mt-1">
+                        {bookingSummary.date} at {bookingSummary.time}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1 italic">Not selected</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="pb-4 border-b border-stone-200">
-                <p className="text-sm text-stone-600">Date & Time</p>
-                <p className="text-stone-400 italic">Not selected</p>
-              </div>
-            )}
 
-            {bookingSummary?.total && (
-              <div className="pt-2">
-                <div className="flex justify-between items-center">
-                  <p className="text-lg font-semibold text-stone-900">Total</p>
-                  <p className="text-2xl font-bold text-stone-900">{bookingSummary.total}</p>
+              {/* Total */}
+              {bookingSummary?.total && (
+                <div className="pt-4 mt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-[#008374] to-[#00a894]">
+                    <p className="text-base font-semibold text-white">Total</p>
+                    <p className="text-2xl font-bold text-white">{bookingSummary.total}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className="pt-6 border-t border-stone-200">
-            <div className="bg-stone-50 rounded-lg p-4">
-              <p className="text-xs text-stone-600 text-center">
-                Complete all steps to confirm your booking
-              </p>
+            {/* Helper text */}
+            <div className="pt-4">
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-xs text-muted-foreground text-center">
+                  Complete all steps to confirm your booking
+                </p>
+              </div>
             </div>
           </div>
         </div>
