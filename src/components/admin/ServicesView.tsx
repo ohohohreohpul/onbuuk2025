@@ -59,6 +59,7 @@ export default function ServicesView() {
   const [dragOverService, setDragOverService] = useState<Service | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     fetchServices();
