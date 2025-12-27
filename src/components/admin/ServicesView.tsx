@@ -1050,6 +1050,16 @@ export default function ServicesView() {
           </div>
         </div>
       )}
+
+      {showImportModal && (
+        <ImportServicesModal
+          onClose={() => setShowImportModal(false)}
+          onImportComplete={() => {
+            fetchServices();
+            setShowImportModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
