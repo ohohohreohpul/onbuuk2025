@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Gift, Award, CreditCard, DollarSign, Save, Download, Mail, Eye } from 'lucide-react';
+import { Gift, Award, CreditCard, DollarSign, Save, Download, Mail, Eye, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 import { POSView } from './POSView';
 import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 import { GiftCardDetailModal } from './GiftCardDetailModal';
+import ImportGiftCardsModal from './ImportGiftCardsModal';
 
 interface LoyaltySettings {
   enabled: boolean;
