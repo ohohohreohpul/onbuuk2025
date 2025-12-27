@@ -558,7 +558,16 @@ export function LoyaltyRewardsView() {
         <div className="space-y-6">
           {/* Create Gift Card */}
           <div className="bg-white border rounded-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Create Gift Card</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Create Gift Card</h3>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Import CSV</span>
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
