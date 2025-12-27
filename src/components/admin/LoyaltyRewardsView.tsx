@@ -75,6 +75,7 @@ export function LoyaltyRewardsView() {
   const [newGiftCardAmount, setNewGiftCardAmount] = useState('50');
   const [newGiftCardEmail, setNewGiftCardEmail] = useState('');
   const [selectedGiftCard, setSelectedGiftCard] = useState<GiftCard | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadSettings();
