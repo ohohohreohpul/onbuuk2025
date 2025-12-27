@@ -704,6 +704,17 @@ export function LoyaltyRewardsView() {
           }}
         />
       )}
+
+      {showImportModal && (
+        <ImportGiftCardsModal
+          onClose={() => setShowImportModal(false)}
+          onImportComplete={() => {
+            loadGiftCards();
+            setShowImportModal(false);
+          }}
+          expiryDays={giftCardSettings.expiry_days}
+        />
+      )}
     </div>
   );
 }
