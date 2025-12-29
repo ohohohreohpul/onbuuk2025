@@ -19,7 +19,7 @@ interface ImportGiftCardsModalProps {
 
 export default function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: ImportGiftCardsModalProps) {
   const { businessId } = useTenant();
-  const { currencySymbol, formatAmount } = useCurrency();
+  const { formatAmount } = useCurrency();
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [parsedGiftCards, setParsedGiftCards] = useState<ParsedGiftCard[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
