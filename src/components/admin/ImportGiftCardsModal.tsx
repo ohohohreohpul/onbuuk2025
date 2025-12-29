@@ -173,13 +173,13 @@ export default function ImportGiftCardsModal({ onClose, onImportComplete, expiry
       const giftCard = parsedGiftCards[i];
       try {
         // Generate code if not provided
-        let code = giftCard.code;
+        let code: string = giftCard.code || '';
         if (!code) {
           const { data: generatedCode, error: codeError } = await supabase.rpc('generate_gift_card_code');
           if (codeError || !generatedCode) {
             throw new Error('Failed to generate gift card code');
           }
-          code = generatedCode;
+          code = generatedCode as string;
         }
 
         // Insert gift card
