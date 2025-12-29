@@ -634,10 +634,10 @@ export default function ServicesView() {
                   <div
                     key={service.id}
                     draggable
-                    onDragStart={() => handleDragStart(service)}
+                    onDragStart={(e) => handleDragStart(e, service)}
                     onDragOver={(e) => handleDragOver(e, service)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={() => handleDrop(service)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, service)}
                     className={`bg-white border p-6 cursor-move transition-all ${
                       draggedService?.id === service.id
                         ? 'opacity-50 scale-95'
