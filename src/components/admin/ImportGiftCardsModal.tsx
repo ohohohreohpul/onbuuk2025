@@ -17,7 +17,7 @@ interface ImportGiftCardsModalProps {
   expiryDays: number | null;
 }
 
-export default function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: ImportGiftCardsModalProps) {
+export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: ImportGiftCardsModalProps) {
   const { businessId } = useTenant();
   const { formatAmount } = useCurrency();
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
