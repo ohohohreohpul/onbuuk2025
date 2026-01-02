@@ -172,9 +172,9 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                       <h3 className="font-semibold mb-1 flex items-center gap-2 flex-wrap" style={{ color: colors.textPrimary }}>
                         <span>{service.name}</span>
                         {service.is_pair_massage && (
-                          <Badge 
+                          <Badge
                             className="text-white border-0 rounded-full px-2.5 py-0.5 text-xs"
-                            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})` }}
+                            style={{ backgroundColor: primaryColor }}
                           >
                             <Sparkles className="w-3 h-3 mr-1" />
                             Couples
