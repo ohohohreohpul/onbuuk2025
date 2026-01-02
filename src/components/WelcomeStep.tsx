@@ -267,13 +267,15 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             className="w-full h-14 text-base transition-all duration-300 group text-white"
             size="lg"
             style={{
-              background: `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})`,
+              backgroundColor: primaryColor,
               boxShadow: `0 10px 25px -5px ${primaryColor}40`,
             }}
             onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = primaryHoverColor;
               e.currentTarget.style.boxShadow = `0 20px 35px -5px ${primaryColor}50`;
             }}
             onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = primaryColor;
               e.currentTarget.style.boxShadow = `0 10px 25px -5px ${primaryColor}40`;
             }}
           >
