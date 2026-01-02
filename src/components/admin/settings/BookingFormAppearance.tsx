@@ -505,12 +505,15 @@ export default function BookingFormAppearance() {
             <div className="border border-stone-200 rounded-lg p-4 space-y-4">
               <label className="block text-sm font-medium text-stone-700">
                 Background/Header Images
-                <span className="block text-xs text-stone-500 mt-1">Upload different images for mobile, tablet, and desktop views for optimal display</span>
+                <span className="block text-xs text-stone-500 mt-1">Upload optimized images for different screen sizes. Each variant will display on its target screen size.</span>
               </label>
 
               {/* Fallback Image */}
               <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Fallback Image (All Devices)</label>
+                <label className="block text-xs font-medium text-stone-600 mb-2">
+                  Fallback Image (All Devices)
+                  <span className="block text-xs font-normal text-stone-500 mt-0.5">Recommended: 1920×1080px or larger</span>
+                </label>
                 {imageUrl && (
                   <div className="mb-2 relative">
                     <img
@@ -546,7 +549,10 @@ export default function BookingFormAppearance() {
 
               {/* Mobile Image */}
               <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Mobile Image (&lt; 640px)</label>
+                <label className="block text-xs font-medium text-stone-600 mb-2">
+                  Mobile Image (Screens &lt; 640px)
+                  <span className="block text-xs font-normal text-stone-500 mt-0.5">Recommended: 800×600px (portrait-friendly)</span>
+                </label>
                 {customization[`${stepKey}_image_mobile` as keyof typeof customization] && (
                   <div className="mb-2 relative">
                     <img
@@ -582,7 +588,10 @@ export default function BookingFormAppearance() {
 
               {/* Tablet Image */}
               <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Tablet Image (640px - 1024px)</label>
+                <label className="block text-xs font-medium text-stone-600 mb-2">
+                  Tablet Image (Screens 640px - 1024px)
+                  <span className="block text-xs font-normal text-stone-500 mt-0.5">Recommended: 1200×900px</span>
+                </label>
                 {customization[`${stepKey}_image_tablet` as keyof typeof customization] && (
                   <div className="mb-2 relative">
                     <img
@@ -618,7 +627,10 @@ export default function BookingFormAppearance() {
 
               {/* Desktop Image */}
               <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Desktop Image (&gt; 1024px)</label>
+                <label className="block text-xs font-medium text-stone-600 mb-2">
+                  Desktop Image (Screens &gt; 1024px)
+                  <span className="block text-xs font-normal text-stone-500 mt-0.5">Recommended: 1920×1080px (Full HD)</span>
+                </label>
                 {customization[`${stepKey}_image_desktop` as keyof typeof customization] && (
                   <div className="mb-2 relative">
                     <img
