@@ -6,7 +6,7 @@ import { useCurrency } from '../../lib/currencyContext';
 import { POSView } from './POSView';
 import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 import { GiftCardDetailModal } from './GiftCardDetailModal';
-import ImportGiftCardsModal from './ImportGiftCardsModal';
+import { ImportGiftCardsModal } from './ImportGiftCardsModal';
 
 interface LoyaltySettings {
   enabled: boolean;
