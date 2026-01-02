@@ -127,7 +127,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       </div>
 
       {/* Services List */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 mb-6">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 mb-6 pb-8">
         {categories.map((category, catIndex) => (
           <div 
             key={category}
