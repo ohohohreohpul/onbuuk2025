@@ -254,18 +254,20 @@ export default function BookingFormAppearance() {
     });
   };
 
-  const uploadImage = async (step: string, file: File) => {
+  const uploadImage = async (step: string, file: File, variant?: 'mobile' | 'tablet' | 'desktop') => {
     if (!businessId) {
       setError('Business ID not found. Please refresh the page and try again.');
       return;
     }
 
-    setUploadingImage(step);
+    const uploadKey = variant ? `${step}_${variant}` : step;
+    setUploadingImage(uploadKey);
     setError('');
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${businessId}/booking-form/${step}-${Date.now()}.${fileExt}`;
+      const variantSuffix = variant ? `-${variant}` : '';
+      const fileName = `${businessId}/booking-form/${step}${variantSuffix}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('business-assets')
@@ -281,11 +283,12 @@ export default function BookingFormAppearance() {
         .getPublicUrl(fileName);
 
       if (customization) {
+        const fieldName = variant ? `${step}_image_${variant}` : `${step}_image_url`;
         setCustomization({
           ...customization,
-          [`${step}_image_url`]: publicUrl
+          [fieldName]: publicUrl
         });
-        setSavedMessage('Image uploaded! Click "Save All Changes" to apply.');
+        setSavedMessage(`${variant ? variant.charAt(0).toUpperCase() + variant.slice(1) + ' ' : ''}Image uploaded! Click "Save All Changes" to apply.`);
         setTimeout(() => setSavedMessage(''), 5000);
       }
     } catch (err) {
@@ -499,43 +502,154 @@ export default function BookingFormAppearance() {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                Background/Header Image
+            <div className="border border-stone-200 rounded-lg p-4 space-y-4">
+              <label className="block text-sm font-medium text-stone-700">
+                Background/Header Images
+                <span className="block text-xs text-stone-500 mt-1">Upload different images for mobile, tablet, and desktop views for optimal display</span>
               </label>
-              {imageUrl && (
-                <div className="mb-3 relative">
-                  <img
-                    src={imageUrl}
-                    alt={`${stepName} background`}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => setCustomization({
-                      ...customization,
-                      [`${stepKey}_image_url`]: null
-                    })}
-                    className="absolute top-2 right-2 px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadImage(stepKey, file);
-                  }}
-                  disabled={uploadingImage === stepKey}
-                  className="flex-1 text-sm"
-                  id={`${stepKey}-image`}
-                />
-                {uploadingImage === stepKey && (
-                  <span className="text-sm text-stone-600">Uploading...</span>
+
+              {/* Fallback Image */}
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-2">Fallback Image (All Devices)</label>
+                {imageUrl && (
+                  <div className="mb-2 relative">
+                    <img
+                      src={imageUrl}
+                      alt={`${stepName} fallback`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => setCustomization({
+                        ...customization,
+                        [`${stepKey}_image_url`]: null
+                      })}
+                      className="absolute top-1 right-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadImage(stepKey, file);
+                    }}
+                    disabled={uploadingImage === stepKey}
+                    className="flex-1 text-xs"
+                  />
+                  {uploadingImage === stepKey && <span className="text-xs text-stone-600">Uploading...</span>}
+                </div>
+              </div>
+
+              {/* Mobile Image */}
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-2">Mobile Image (&lt; 640px)</label>
+                {customization[`${stepKey}_image_mobile` as keyof typeof customization] && (
+                  <div className="mb-2 relative">
+                    <img
+                      src={customization[`${stepKey}_image_mobile` as keyof typeof customization] as string}
+                      alt={`${stepName} mobile`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => setCustomization({
+                        ...customization,
+                        [`${stepKey}_image_mobile`]: null
+                      })}
+                      className="absolute top-1 right-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadImage(stepKey, file, 'mobile');
+                    }}
+                    disabled={uploadingImage === `${stepKey}_mobile`}
+                    className="flex-1 text-xs"
+                  />
+                  {uploadingImage === `${stepKey}_mobile` && <span className="text-xs text-stone-600">Uploading...</span>}
+                </div>
+              </div>
+
+              {/* Tablet Image */}
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-2">Tablet Image (640px - 1024px)</label>
+                {customization[`${stepKey}_image_tablet` as keyof typeof customization] && (
+                  <div className="mb-2 relative">
+                    <img
+                      src={customization[`${stepKey}_image_tablet` as keyof typeof customization] as string}
+                      alt={`${stepName} tablet`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => setCustomization({
+                        ...customization,
+                        [`${stepKey}_image_tablet`]: null
+                      })}
+                      className="absolute top-1 right-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadImage(stepKey, file, 'tablet');
+                    }}
+                    disabled={uploadingImage === `${stepKey}_tablet`}
+                    className="flex-1 text-xs"
+                  />
+                  {uploadingImage === `${stepKey}_tablet` && <span className="text-xs text-stone-600">Uploading...</span>}
+                </div>
+              </div>
+
+              {/* Desktop Image */}
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-2">Desktop Image (&gt; 1024px)</label>
+                {customization[`${stepKey}_image_desktop` as keyof typeof customization] && (
+                  <div className="mb-2 relative">
+                    <img
+                      src={customization[`${stepKey}_image_desktop` as keyof typeof customization] as string}
+                      alt={`${stepName} desktop`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => setCustomization({
+                        ...customization,
+                        [`${stepKey}_image_desktop`]: null
+                      })}
+                      className="absolute top-1 right-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadImage(stepKey, file, 'desktop');
+                    }}
+                    disabled={uploadingImage === `${stepKey}_desktop`}
+                    className="flex-1 text-xs"
+                  />
+                  {uploadingImage === `${stepKey}_desktop` && <span className="text-xs text-stone-600">Uploading...</span>}
+                </div>
               </div>
             </div>
           </div>

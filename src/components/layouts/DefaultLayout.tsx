@@ -7,10 +7,13 @@ import { useTheme } from '../../lib/themeContext';
 interface DefaultLayoutProps {
   children: ReactNode;
   imageUrl?: string;
+  imageMobile?: string;
+  imageTablet?: string;
+  imageDesktop?: string;
   imageAlt?: string;
 }
 
-export default function DefaultLayout({ children, imageUrl, imageAlt = 'Business' }: DefaultLayoutProps) {
+export default function DefaultLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt = 'Business' }: DefaultLayoutProps) {
   const { businessId } = useTenant();
   const { colors } = useTheme();
   const [businessName, setBusinessName] = useState('');
@@ -63,13 +66,28 @@ export default function DefaultLayout({ children, imageUrl, imageAlt = 'Business
       {/* Left Panel - Image */}
       <div className={`w-full lg:w-2/5 h-56 sm:h-72 lg:h-full relative overflow-hidden order-1 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
         <div style={{ backgroundColor: `${primaryColor}05` }} className="absolute inset-0">
-          {imageUrl ? (
+          {(imageUrl || imageMobile || imageTablet || imageDesktop) ? (
             <>
-              <img
-                src={imageUrl}
-                alt={imageAlt}
-                className="w-full h-full object-cover"
-              />
+              <picture>
+                {/* Mobile image (< 640px) */}
+                {imageMobile && (
+                  <source media="(max-width: 639px)" srcSet={imageMobile} />
+                )}
+                {/* Tablet image (640px - 1023px) */}
+                {imageTablet && (
+                  <source media="(min-width: 640px) and (max-width: 1023px)" srcSet={imageTablet} />
+                )}
+                {/* Desktop image (>= 1024px) */}
+                {imageDesktop && (
+                  <source media="(min-width: 1024px)" srcSet={imageDesktop} />
+                )}
+                {/* Fallback image */}
+                <img
+                  src={imageDesktop || imageTablet || imageMobile || imageUrl}
+                  alt={imageAlt}
+                  className="w-full h-full object-cover"
+                />
+              </picture>
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />

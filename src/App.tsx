@@ -421,6 +421,18 @@ function AppContent() {
     return stepImageMap[currentStep] || undefined;
   };
 
+  const getCurrentStepResponsiveImages = (): { mobile?: string; tablet?: string; desktop?: string } => {
+    if (!customization) return {};
+
+    const stepKey = currentStep === 'giftcard' ? 'welcome' : currentStep;
+
+    return {
+      mobile: customization[`${stepKey}_image_mobile` as keyof typeof customization] as string | undefined,
+      tablet: customization[`${stepKey}_image_tablet` as keyof typeof customization] as string | undefined,
+      desktop: customization[`${stepKey}_image_desktop` as keyof typeof customization] as string | undefined,
+    };
+  };
+
   const buildBookingSummary = () => {
     return {
       service: bookingState.service?.name,
@@ -432,8 +444,15 @@ function AppContent() {
     };
   };
 
+  const responsiveImages = getCurrentStepResponsiveImages();
   const bookingContent = (
-    <BookingLayout imageUrl={getCurrentStepImage()} bookingSummary={buildBookingSummary()}>
+    <BookingLayout
+      imageUrl={getCurrentStepImage()}
+      imageMobile={responsiveImages.mobile}
+      imageTablet={responsiveImages.tablet}
+      imageDesktop={responsiveImages.desktop}
+      bookingSummary={buildBookingSummary()}
+    >
       {currentStep === 'welcome' && (
         <WelcomeStep
           onBookAppointment={() => setCurrentStep('service')}

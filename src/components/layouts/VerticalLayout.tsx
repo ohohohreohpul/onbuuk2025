@@ -6,10 +6,13 @@ import { supabase } from '../../lib/supabase';
 interface VerticalLayoutProps {
   children: ReactNode;
   imageUrl?: string;
+  imageMobile?: string;
+  imageTablet?: string;
+  imageDesktop?: string;
   imageAlt?: string;
 }
 
-export default function VerticalLayout({ children, imageUrl, imageAlt = 'Business' }: VerticalLayoutProps) {
+export default function VerticalLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt = 'Business' }: VerticalLayoutProps) {
   const { businessId } = useTenant();
   const [businessName, setBusinessName] = useState('');
   const [businessTagline, setBusinessTagline] = useState('');
@@ -42,13 +45,28 @@ export default function VerticalLayout({ children, imageUrl, imageAlt = 'Busines
       
       {/* Hero Image */}
       <div className={`relative transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
-        {imageUrl ? (
+        {(imageUrl || imageMobile || imageTablet || imageDesktop) ? (
           <div className="w-full h-56 sm:h-72 relative overflow-hidden">
-            <img
-              src={imageUrl}
-              alt={imageAlt}
-              className="w-full h-full object-cover"
-            />
+            <picture>
+              {/* Mobile image (< 640px) */}
+              {imageMobile && (
+                <source media="(max-width: 639px)" srcSet={imageMobile} />
+              )}
+              {/* Tablet image (640px - 1023px) */}
+              {imageTablet && (
+                <source media="(min-width: 640px) and (max-width: 1023px)" srcSet={imageTablet} />
+              )}
+              {/* Desktop image (>= 1024px) */}
+              {imageDesktop && (
+                <source media="(min-width: 1024px)" srcSet={imageDesktop} />
+              )}
+              {/* Fallback image */}
+              <img
+                src={imageDesktop || imageTablet || imageMobile || imageUrl}
+                alt={imageAlt}
+                className="w-full h-full object-cover"
+              />
+            </picture>
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
         ) : (

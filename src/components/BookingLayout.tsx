@@ -9,6 +9,9 @@ import SplitPanelLayout from './layouts/SplitPanelLayout';
 interface BookingLayoutProps {
   children: ReactNode;
   imageUrl?: string;
+  imageMobile?: string;
+  imageTablet?: string;
+  imageDesktop?: string;
   imageAlt?: string;
   bookingSummary?: {
     service?: string;
@@ -21,7 +24,7 @@ interface BookingLayoutProps {
   };
 }
 
-export default function BookingLayout({ children, imageUrl, imageAlt, bookingSummary }: BookingLayoutProps) {
+export default function BookingLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt, bookingSummary }: BookingLayoutProps) {
   const { businessId } = useTenant();
   const [layoutType, setLayoutType] = useState<string>('default');
   const [loading, setLoading] = useState(true);
@@ -78,7 +81,7 @@ export default function BookingLayout({ children, imageUrl, imageAlt, bookingSum
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 relative">
         <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
         <div className="text-center relative z-10">
-          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -88,6 +91,9 @@ export default function BookingLayout({ children, imageUrl, imageAlt, bookingSum
   const layoutProps = {
     children,
     imageUrl,
+    imageMobile,
+    imageTablet,
+    imageDesktop,
     imageAlt,
   };
 
