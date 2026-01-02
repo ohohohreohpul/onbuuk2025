@@ -22,7 +22,7 @@ interface ImportServicesModalProps {
   onImportComplete: () => void;
 }
 
-export default function ImportServicesModal({ onClose, onImportComplete }: ImportServicesModalProps) {
+export function ImportServicesModal({ onClose, onImportComplete }: ImportServicesModalProps) {
   const { businessId } = useTenant();
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [parsedServices, setParsedServices] = useState<ParsedService[]>([]);
