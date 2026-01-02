@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { Plus, Edit2, Trash2, X, LayoutList, LayoutGrid, GripVertical, Upload } from 'lucide-react';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
-import ImportServicesModal from './ImportServicesModal';
+import { ImportServicesModal } from './ImportServicesModal';
 
 interface Service {
   id: string;
