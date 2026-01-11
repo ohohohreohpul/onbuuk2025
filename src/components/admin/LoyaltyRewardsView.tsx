@@ -673,11 +673,35 @@ export function LoyaltyRewardsView() {
 
           {/* Gift Cards List */}
           <div className="bg-white border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">All Gift Cards</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">All Gift Cards</h3>
+              {selectedCardIds.size > 0 && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Selected ({selectedCardIds.size})</span>
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700 w-10">
+                      <button
+                        onClick={toggleSelectAll}
+                        className="p-1 hover:bg-gray-100 rounded transition-colors"
+                        title={selectedCardIds.size === giftCards.length ? "Deselect all" : "Select all"}
+                      >
+                        {selectedCardIds.size === giftCards.length && giftCards.length > 0 ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+                    </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Code</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Original Value ({currencySymbol})</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Balance ({currencySymbol})</th>
@@ -690,13 +714,25 @@ export function LoyaltyRewardsView() {
                 <tbody>
                   {giftCards.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                      <td colSpan={8} className="text-center py-8 text-gray-500">
                         No gift cards yet
                       </td>
                     </tr>
                   ) : (
                     giftCards.map((card) => (
-                      <tr key={card.id} className="border-b hover:bg-gray-50">
+                      <tr key={card.id} className={`border-b hover:bg-gray-50 ${selectedCardIds.has(card.id) ? 'bg-blue-50' : ''}`}>
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={() => toggleSelectCard(card.id)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          >
+                            {selectedCardIds.has(card.id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        </td>
                         <td className="py-3 px-4 font-mono text-sm">{card.code}</td>
                         <td className="py-3 px-4">{formatAmount(card.original_value_cents / 100)}</td>
                         <td className="py-3 px-4">{formatAmount(card.current_balance_cents / 100)}</td>
