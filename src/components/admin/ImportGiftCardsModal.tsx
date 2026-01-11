@@ -13,7 +13,7 @@ interface ParsedGiftCard {
 
 interface ImportGiftCardsModalProps {
   onClose: () => void;
-  onImportComplete: () => void;
+  onImportComplete: () => void | Promise<void>;
   expiryDays: number | null;
 }
 
