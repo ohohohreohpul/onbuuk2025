@@ -76,6 +76,11 @@ export function LoyaltyRewardsView() {
   const [newGiftCardEmail, setNewGiftCardEmail] = useState('');
   const [selectedGiftCard, setSelectedGiftCard] = useState<GiftCard | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  
+  // Bulk selection state
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     loadSettings();
