@@ -1,0 +1,4 @@
+code,value_eur,recipient_email,expires_at
+,50.00,test@example.com,
+GC-TEST-1234,100.00,,2025-12-31
+,75.00,gift@example.com,
