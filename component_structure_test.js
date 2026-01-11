@@ -1,8 +1,8 @@
 // Component Structure Test for Account Settings
 // This test verifies the component structure without requiring authentication
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 console.log('🔍 Testing Account Settings Component Structure...\n');
 
