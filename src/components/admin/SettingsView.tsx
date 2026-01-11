@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -9,8 +9,9 @@ import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
 import CustomerEmails from './settings/CustomerEmails';
 import { GiftCardCustomization } from './settings/GiftCardCustomization';
+import AccountSettings from './settings/AccountSettings';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
