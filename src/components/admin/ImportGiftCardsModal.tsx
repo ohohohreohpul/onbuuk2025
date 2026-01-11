@@ -428,7 +428,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
               <button
                 onClick={async () => {
                   await onImportComplete();
-                  // Note: onImportComplete already handles closing the modal
+                  onClose();
                 }}
                 className="px-6 py-3 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-colors"
               >
