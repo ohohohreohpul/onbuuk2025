@@ -24,8 +24,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
   const [parsedGiftCards, setParsedGiftCards] = useState<ParsedGiftCard[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [importProgress, setImportProgress] = useState(0);
-  const [importResults, setImportResults] = useState<{ success: number; failed: number; codes: string[]; failedDetails: string[] }>({ success: 0, failed: 0, codes: [], failedDetails: [] });
-  const [updateExisting, setUpdateExisting] = useState(false);
+  const [importResults, setImportResults] = useState<{ success: number; failed: number; codes: string[] }>({ success: 0, failed: 0, codes: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplate = () => {
