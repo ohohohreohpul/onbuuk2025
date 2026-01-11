@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Gift, Award, CreditCard, DollarSign, Save, Download, Mail, Eye, Upload } from 'lucide-react';
+import { Gift, Award, CreditCard, DollarSign, Save, Download, Mail, Eye, Upload, Trash2, CheckSquare, Square, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
