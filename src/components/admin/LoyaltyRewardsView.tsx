@@ -122,13 +122,23 @@ export function LoyaltyRewardsView() {
   };
 
   const loadGiftCards = async () => {
+    if (!businessId) {
+      console.warn('loadGiftCards: No businessId available');
+      return;
+    }
+    
     const { data, error } = await supabase
       .from('gift_cards')
       .select('*')
       .eq('business_id', businessId)
       .order('purchased_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error('Error loading gift cards:', error);
+      return;
+    }
+    
+    if (data) {
       setGiftCards(data);
     }
   };
