@@ -818,6 +818,50 @@ export function LoyaltyRewardsView() {
           expiryDays={giftCardSettings.expiry_days}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white max-w-md w-full rounded-xl shadow-xl p-6">
+            <div className="flex items-center space-x-3 text-red-600 mb-4">
+              <AlertTriangle className="w-8 h-8" />
+              <h3 className="text-xl font-semibold">Confirm Delete</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to delete <strong>{selectedCardIds.size}</strong> gift card(s)?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              This action cannot be undone. All selected gift cards and their transaction history will be permanently removed.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete {selectedCardIds.size} Card(s)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
