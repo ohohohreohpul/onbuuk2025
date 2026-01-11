@@ -14,7 +14,7 @@ import AccountSettings from './settings/AccountSettings';
 type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account';
 
 export default function SettingsView() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
 
   const tabs = [
     { id: 'account' as SettingsTab, name: 'Account', icon: User },
