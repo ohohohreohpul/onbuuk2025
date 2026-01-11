@@ -718,8 +718,10 @@ export function LoyaltyRewardsView() {
       {showImportModal && (
         <ImportGiftCardsModal
           onClose={() => setShowImportModal(false)}
-          onImportComplete={() => {
-            loadGiftCards();
+          onImportComplete={async () => {
+            console.log('Import complete, refreshing gift cards list...');
+            await loadGiftCards();
+            console.log('Gift cards refreshed, closing modal');
             setShowImportModal(false);
           }}
           expiryDays={giftCardSettings.expiry_days}
