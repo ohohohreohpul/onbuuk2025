@@ -17,6 +17,7 @@ export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   const tabs = [
+    { id: 'account' as SettingsTab, name: 'Account', icon: User },
     { id: 'profile' as SettingsTab, name: 'Store Profile', icon: Store },
     { id: 'general' as SettingsTab, name: 'General', icon: Building },
     { id: 'appearance' as SettingsTab, name: 'Booking Form', icon: Layout },
