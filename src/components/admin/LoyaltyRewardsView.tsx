@@ -283,6 +283,57 @@ export function LoyaltyRewardsView() {
     }
   };
 
+  // Bulk selection handlers
+  const toggleSelectCard = (cardId: string) => {
+    const newSelected = new Set(selectedCardIds);
+    if (newSelected.has(cardId)) {
+      newSelected.delete(cardId);
+    } else {
+      newSelected.add(cardId);
+    }
+    setSelectedCardIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCardIds.size === giftCards.length) {
+      setSelectedCardIds(new Set());
+    } else {
+      setSelectedCardIds(new Set(giftCards.map(card => card.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCardIds.size === 0) return;
+    
+    setIsDeleting(true);
+    setMessage('');
+
+    try {
+      const idsToDelete = Array.from(selectedCardIds);
+      
+      const { error } = await supabase
+        .from('gift_cards')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) {
+        throw error;
+      }
+
+      setMessage(`Successfully deleted ${idsToDelete.length} gift card(s)`);
+      setSelectedCardIds(new Set());
+      setShowDeleteConfirm(false);
+      await loadGiftCards();
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error deleting gift cards:', error);
+      setMessage('Error deleting gift cards. Please try again.');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
