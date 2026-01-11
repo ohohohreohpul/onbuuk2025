@@ -59,6 +59,7 @@ export default function SettingsView() {
       </div>
 
       <div className="bg-white border border-stone-200 p-6">
+        {activeTab === 'account' && <AccountSettings />}
         {activeTab === 'profile' && <StoreProfile />}
         {activeTab === 'general' && <GeneralSettings />}
         {activeTab === 'appearance' && <BookingFormAppearance />}
