@@ -13,6 +13,7 @@ export default function BookingSuccess() {
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
   const [specialist, setSpecialist] = useState<any>(null);
+  const [bookingProducts, setBookingProducts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
