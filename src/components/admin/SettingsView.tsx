@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -10,8 +10,9 @@ import SubscriptionManagement from './settings/SubscriptionManagement';
 import CustomerEmails from './settings/CustomerEmails';
 import { GiftCardCustomization } from './settings/GiftCardCustomization';
 import AccountSettings from './settings/AccountSettings';
+import WidgetEmbed from './settings/WidgetEmbed';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
@@ -24,6 +25,7 @@ export default function SettingsView() {
     { id: 'colors' as SettingsTab, name: 'Colors', icon: Palette },
     { id: 'welcome-features' as SettingsTab, name: 'Welcome Features', icon: Sparkles },
     { id: 'gift-cards' as SettingsTab, name: 'Gift Cards', icon: Gift },
+    { id: 'widget' as SettingsTab, name: 'Widget & Embed', icon: Code },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
     { id: 'emails' as SettingsTab, name: 'Emails', icon: Mail },
