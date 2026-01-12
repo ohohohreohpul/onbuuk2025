@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Calendar, Clock, Mail, Phone, User, CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { Check, Calendar, Clock, Mail, Phone, User, CheckCircle, ArrowRight, Sparkles, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
