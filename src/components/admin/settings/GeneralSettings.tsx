@@ -592,6 +592,128 @@ export default function GeneralSettings() {
               <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
             </label>
           </div>
+
+          {/* Custom Branding Section */}
+          <div className="p-4 border border-stone-200 rounded space-y-4">
+            <div>
+              <h4 className="font-medium text-stone-800 mb-1">Custom Branding</h4>
+              <p className="text-sm text-stone-600 mb-4">Customize the page title, favicon, and social media preview for your booking pages when using a custom domain.</p>
+            </div>
+
+            {/* Custom Page Title */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                Page Title (Browser Tab)
+              </label>
+              <input
+                type="text"
+                value={business.custom_page_title || ''}
+                onChange={(e) => {
+                  if (!premiumFeatures.isPro) {
+                    alert('This is a Pro feature. Please upgrade to continue.');
+                    return;
+                  }
+                  setBusiness({ ...business, custom_page_title: e.target.value || null });
+                }}
+                disabled={!premiumFeatures.isPro}
+                placeholder={business.name || 'Your Business Name'}
+                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-stone-500 mt-1">This will appear in the browser tab when customers visit your booking page</p>
+            </div>
+
+            {/* Custom Meta Description */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                Meta Description (SEO & Social Preview)
+              </label>
+              <textarea
+                value={business.custom_meta_description || ''}
+                onChange={(e) => {
+                  if (!premiumFeatures.isPro) {
+                    alert('This is a Pro feature. Please upgrade to continue.');
+                    return;
+                  }
+                  setBusiness({ ...business, custom_meta_description: e.target.value || null });
+                }}
+                disabled={!premiumFeatures.isPro}
+                placeholder="Book your appointment easily and manage your schedule with our online booking system."
+                rows={3}
+                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed resize-none"
+              />
+              <p className="text-xs text-stone-500 mt-1">This description appears when your link is shared on social media (WhatsApp, Facebook, etc.)</p>
+            </div>
+
+            {/* Custom Favicon URL */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                Favicon URL
+              </label>
+              <input
+                type="url"
+                value={business.custom_favicon_url || ''}
+                onChange={(e) => {
+                  if (!premiumFeatures.isPro) {
+                    alert('This is a Pro feature. Please upgrade to continue.');
+                    return;
+                  }
+                  setBusiness({ ...business, custom_favicon_url: e.target.value || null });
+                }}
+                disabled={!premiumFeatures.isPro}
+                placeholder="https://yourdomain.com/favicon.png"
+                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-stone-500 mt-1">URL to your favicon image (recommended: 32x32px PNG). This is the small icon shown in the browser tab.</p>
+              {business.custom_favicon_url && (
+                <div className="mt-2 flex items-center space-x-2">
+                  <span className="text-xs text-stone-500">Preview:</span>
+                  <img 
+                    src={business.custom_favicon_url} 
+                    alt="Favicon preview" 
+                    className="w-6 h-6 object-contain border border-stone-200 rounded"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Custom OG Image URL */}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">
+                Social Preview Image URL
+              </label>
+              <input
+                type="url"
+                value={business.custom_og_image_url || ''}
+                onChange={(e) => {
+                  if (!premiumFeatures.isPro) {
+                    alert('This is a Pro feature. Please upgrade to continue.');
+                    return;
+                  }
+                  setBusiness({ ...business, custom_og_image_url: e.target.value || null });
+                }}
+                disabled={!premiumFeatures.isPro}
+                placeholder="https://yourdomain.com/social-preview.png"
+                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-stone-500 mt-1">URL to an image that appears when your link is shared (recommended: 1200x630px). Shows on WhatsApp, Facebook, Twitter, etc.</p>
+              {business.custom_og_image_url && (
+                <div className="mt-2">
+                  <span className="text-xs text-stone-500 block mb-1">Preview:</span>
+                  <img 
+                    src={business.custom_og_image_url} 
+                    alt="Social preview" 
+                    className="max-w-xs h-auto border border-stone-200 rounded"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
