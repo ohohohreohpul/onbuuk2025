@@ -46,9 +46,11 @@ export default function WidgetEmbed() {
     try {
       const { data, error } = await supabase
         .from('businesses')
-        .select('subdomain, custom_domain')
+        .select('subdomain, custom_domain, name')
         .eq('id', businessId)
         .single();
+
+      console.log('Business data for widget:', data);
 
       if (!error && data) {
         // Use custom domain if available, otherwise use subdomain
@@ -56,6 +58,12 @@ export default function WidgetEmbed() {
           setBookingUrl(`https://${data.custom_domain}`);
         } else if (data.subdomain) {
           setBookingUrl(`https://${data.subdomain}.onbuuk.com`);
+        } else {
+          // Fallback: generate URL from business name if no subdomain is set
+          const generatedSubdomain = data.name?.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          if (generatedSubdomain) {
+            setBookingUrl(`https://${generatedSubdomain}.onbuuk.com`);
+          }
         }
       }
     } catch (err) {
