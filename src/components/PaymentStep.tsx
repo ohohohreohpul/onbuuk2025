@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
+import { useTheme } from '../lib/themeContext';
+import { Button } from './ui/button';
 
 interface SelectedProduct {
   product: {
