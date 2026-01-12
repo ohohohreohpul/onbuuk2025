@@ -82,7 +82,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
   };
 
   return (
-    <div className="h-full flex flex-col max-h-full">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className={`flex-shrink-0 mb-6 transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <button
