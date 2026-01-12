@@ -142,6 +142,42 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
                 colors={colors}
               />
 
+              {/* Add-Ons */}
+              {bookingSummary?.addOns && bookingSummary.addOns.length > 0 && (
+                <div 
+                  className="p-4 rounded-xl transition-all duration-300"
+                  style={{
+                    backgroundColor: `${primaryColor}08`,
+                    borderColor: `${primaryColor}30`,
+                    borderWidth: 1,
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: primaryColor, color: 'white' }}
+                    >
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide" style={{ color: colors.textSecondary }}>Add-Ons</p>
+                      <div className="mt-1 space-y-1">
+                        {bookingSummary.addOns.map((item, index) => (
+                          <div key={index} className="flex justify-between items-center text-sm">
+                            <span style={{ color: colors.textPrimary }}>
+                              {item.product.name} {item.quantity > 1 && `×${item.quantity}`}
+                            </span>
+                            <span className="font-medium" style={{ color: colors.textPrimary }}>
+                              €{((item.product.price_cents * item.quantity) / 100).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Total */}
               {bookingSummary?.total && (
                 <div className="pt-4 mt-4" style={{ borderTopColor: colors.border || '#e5e5e5', borderTopWidth: 1 }}>
