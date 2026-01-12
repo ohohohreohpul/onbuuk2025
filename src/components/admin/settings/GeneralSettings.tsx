@@ -240,6 +240,156 @@ export default function GeneralSettings() {
     }
   };
 
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !businessId || !business) return;
+
+    if (!premiumFeatures.isPro) {
+      alert('Custom favicon is a Pro feature. Please upgrade to continue.');
+      return;
+    }
+
+    // Favicon should be small - max 500KB
+    if (file.size > 500 * 1024) {
+      alert('Favicon must be less than 500KB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, ICO, or SVG recommended)');
+      return;
+    }
+
+    setUploadingFavicon(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const dataUrl = reader.result as string;
+
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update({ custom_favicon_url: dataUrl })
+          .eq('id', businessId);
+
+        if (updateError) throw updateError;
+
+        setBusiness({ ...business, custom_favicon_url: dataUrl });
+        setSavedMessage('Favicon uploaded successfully!');
+        setTimeout(() => setSavedMessage(''), 3000);
+        setUploadingFavicon(false);
+      };
+
+      reader.onerror = () => {
+        console.error('Error reading file');
+        alert('Failed to upload favicon. Please try again.');
+        setUploadingFavicon(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading favicon:', error);
+      alert('Failed to upload favicon. Please try again.');
+      setUploadingFavicon(false);
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    if (!businessId || !business) return;
+
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ custom_favicon_url: null })
+        .eq('id', businessId);
+
+      if (error) throw error;
+
+      setBusiness({ ...business, custom_favicon_url: null });
+      setSavedMessage('Favicon removed - will use default Buuk icon');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (error) {
+      console.error('Error removing favicon:', error);
+      alert('Failed to remove favicon. Please try again.');
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !businessId || !business) return;
+
+    if (!premiumFeatures.isPro) {
+      alert('Custom social preview image is a Pro feature. Please upgrade to continue.');
+      return;
+    }
+
+    // OG images can be larger - max 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Social preview image must be less than 2MB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG or JPG recommended)');
+      return;
+    }
+
+    setUploadingOgImage(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const dataUrl = reader.result as string;
+
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update({ custom_og_image_url: dataUrl })
+          .eq('id', businessId);
+
+        if (updateError) throw updateError;
+
+        setBusiness({ ...business, custom_og_image_url: dataUrl });
+        setSavedMessage('Social preview image uploaded successfully!');
+        setTimeout(() => setSavedMessage(''), 3000);
+        setUploadingOgImage(false);
+      };
+
+      reader.onerror = () => {
+        console.error('Error reading file');
+        alert('Failed to upload image. Please try again.');
+        setUploadingOgImage(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading social preview image:', error);
+      alert('Failed to upload image. Please try again.');
+      setUploadingOgImage(false);
+    }
+  };
+
+  const handleRemoveOgImage = async () => {
+    if (!businessId || !business) return;
+
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ custom_og_image_url: null })
+        .eq('id', businessId);
+
+      if (error) throw error;
+
+      setBusiness({ ...business, custom_og_image_url: null });
+      setSavedMessage('Social preview image removed - will use default');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (error) {
+      console.error('Error removing social preview image:', error);
+      alert('Failed to remove image. Please try again.');
+    }
+  };
+
 
   const handleSave = async () => {
     if (!business) return;
