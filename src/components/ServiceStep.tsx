@@ -109,7 +109,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   };
 
   return (
-    <div className="h-full flex flex-col max-h-full">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className={`flex-shrink-0 mb-6 transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <button
@@ -126,8 +126,8 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
         <p className="text-lg" style={{ color: colors.textSecondary }}>{serviceContent.subtitle}</p>
       </div>
 
-      {/* Services List */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 pb-4">
+      {/* Services List - Scrollable */}
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 pb-6">
         {categories.map((category, catIndex) => (
           <div 
             key={category}
