@@ -5,6 +5,11 @@ import { useTheme } from '../../lib/themeContext';
 
 interface SplitPanelLayoutProps {
   children: ReactNode;
+  imageUrl?: string;
+  imageMobile?: string;
+  imageTablet?: string;
+  imageDesktop?: string;
+  imageAlt?: string;
   bookingSummary?: {
     service?: string;
     serviceType?: string;
@@ -16,13 +21,16 @@ interface SplitPanelLayoutProps {
   };
 }
 
-export default function SplitPanelLayout({ children, bookingSummary }: SplitPanelLayoutProps) {
+export default function SplitPanelLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt, bookingSummary }: SplitPanelLayoutProps) {
   const { colors } = useTheme();
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Theme colors with fallbacks
   const primaryColor = colors.primary || '#008374';
   const secondaryColor = colors.secondary || '#89BA16';
+
+  // Determine which image to show based on screen size
+  const displayImage = imageDesktop || imageTablet || imageMobile || imageUrl;
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
