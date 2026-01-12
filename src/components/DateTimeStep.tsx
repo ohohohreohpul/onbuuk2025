@@ -99,7 +99,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 mb-6">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 mb-6 pb-4">
         {/* Date Selection */}
         <div className={`transform transition-all duration-500 delay-100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
           <div className="flex items-center gap-3 mb-4">
@@ -157,7 +157,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
 
         {/* Time Selection */}
         {selectedDate && (
-          <div className={`transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <div className={`transform transition-all duration-500 pb-4 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
             <div className="flex items-center gap-3 mb-4">
               <div 
                 className="p-2 rounded-lg"
@@ -167,7 +167,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
               </div>
               <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Select Time</label>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2">
               {timeSlots.map((time) => {
                 const isSelected = selectedTime === time;
                 return (
