@@ -800,74 +800,106 @@ export default function GeneralSettings() {
               <p className="text-xs text-stone-500 mt-1">This description appears when your link is shared on social media (WhatsApp, Facebook, etc.)</p>
             </div>
 
-            {/* Custom Favicon URL */}
+            {/* Custom Favicon Upload */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-2">
-                Favicon URL
+                Favicon (Browser Tab Icon)
               </label>
-              <input
-                type="url"
-                value={business.custom_favicon_url || ''}
-                onChange={(e) => {
-                  if (!premiumFeatures.isPro) {
-                    alert('This is a Pro feature. Please upgrade to continue.');
-                    return;
-                  }
-                  setBusiness({ ...business, custom_favicon_url: e.target.value || null });
-                }}
-                disabled={!premiumFeatures.isPro}
-                placeholder="https://yourdomain.com/favicon.png"
-                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed"
-              />
-              <p className="text-xs text-stone-500 mt-1">URL to your favicon image (recommended: 32x32px PNG). This is the small icon shown in the browser tab.</p>
-              {business.custom_favicon_url && (
-                <div className="mt-2 flex items-center space-x-2">
-                  <span className="text-xs text-stone-500">Preview:</span>
-                  <img 
-                    src={business.custom_favicon_url} 
-                    alt="Favicon preview" 
-                    className="w-6 h-6 object-contain border border-stone-200 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  {business.custom_favicon_url ? (
+                    <div className="w-16 h-16 border border-stone-200 rounded flex items-center justify-center bg-stone-50">
+                      <img 
+                        src={business.custom_favicon_url} 
+                        alt="Favicon preview" 
+                        className="w-10 h-10 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/iconobrowser.png';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 border border-dashed border-stone-300 rounded flex items-center justify-center bg-stone-50">
+                      <Image className="w-6 h-6 text-stone-400" />
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <label className={`px-4 py-2 border border-stone-300 rounded cursor-pointer hover:bg-stone-50 transition-colors text-sm ${!premiumFeatures.isPro ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      <input
+                        type="file"
+                        accept="image/png,image/x-icon,image/svg+xml,image/jpeg"
+                        onChange={handleFaviconUpload}
+                        disabled={!premiumFeatures.isPro || uploadingFavicon}
+                        className="hidden"
+                      />
+                      {uploadingFavicon ? 'Uploading...' : 'Upload Favicon'}
+                    </label>
+                    {business.custom_favicon_url && (
+                      <button
+                        onClick={handleRemoveFavicon}
+                        disabled={!premiumFeatures.isPro}
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded text-sm transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-500 mt-2">Recommended: 32x32px or 64x64px PNG. Max 500KB.</p>
+                </div>
+              </div>
             </div>
 
-            {/* Custom OG Image URL */}
+            {/* Custom Social Preview Image Upload */}
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-2">
-                Social Preview Image URL
+                Social Preview Image
               </label>
-              <input
-                type="url"
-                value={business.custom_og_image_url || ''}
-                onChange={(e) => {
-                  if (!premiumFeatures.isPro) {
-                    alert('This is a Pro feature. Please upgrade to continue.');
-                    return;
-                  }
-                  setBusiness({ ...business, custom_og_image_url: e.target.value || null });
-                }}
-                disabled={!premiumFeatures.isPro}
-                placeholder="https://yourdomain.com/social-preview.png"
-                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-100 disabled:cursor-not-allowed"
-              />
-              <p className="text-xs text-stone-500 mt-1">URL to an image that appears when your link is shared (recommended: 1200x630px). Shows on WhatsApp, Facebook, Twitter, etc.</p>
-              {business.custom_og_image_url && (
-                <div className="mt-2">
-                  <span className="text-xs text-stone-500 block mb-1">Preview:</span>
-                  <img 
-                    src={business.custom_og_image_url} 
-                    alt="Social preview" 
-                    className="max-w-xs h-auto border border-stone-200 rounded"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+              <p className="text-xs text-stone-500 mb-3">This image appears when your link is shared on WhatsApp, Facebook, Twitter, etc.</p>
+              <div className="space-y-3">
+                {business.custom_og_image_url ? (
+                  <div className="border border-stone-200 rounded overflow-hidden">
+                    <img 
+                      src={business.custom_og_image_url} 
+                      alt="Social preview" 
+                      className="w-full max-w-md h-auto"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full max-w-md h-40 border border-dashed border-stone-300 rounded flex items-center justify-center bg-stone-50">
+                    <div className="text-center">
+                      <Image className="w-10 h-10 text-stone-400 mx-auto mb-2" />
+                      <p className="text-sm text-stone-500">No image uploaded</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <label className={`px-4 py-2 border border-stone-300 rounded cursor-pointer hover:bg-stone-50 transition-colors text-sm ${!premiumFeatures.isPro ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleOgImageUpload}
+                      disabled={!premiumFeatures.isPro || uploadingOgImage}
+                      className="hidden"
+                    />
+                    {uploadingOgImage ? 'Uploading...' : 'Upload Image'}
+                  </label>
+                  {business.custom_og_image_url && (
+                    <button
+                      onClick={handleRemoveOgImage}
+                      disabled={!premiumFeatures.isPro}
+                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded text-sm transition-colors disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
-              )}
+                <p className="text-xs text-stone-500">Recommended: 1200x630px PNG or JPG. Max 2MB.</p>
+              </div>
             </div>
           </div>
         </div>
