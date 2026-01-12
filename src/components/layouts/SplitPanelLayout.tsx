@@ -35,6 +35,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
   const { colors } = useTheme();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Theme colors with fallbacks
   const primaryColor = colors.primary || '#008374';
@@ -45,6 +46,14 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
+    
+    // Detect mobile on mount and window resize
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   return (
