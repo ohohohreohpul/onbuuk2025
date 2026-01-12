@@ -68,6 +68,25 @@ export default function BookingSuccess() {
         }
       }
 
+      // Fetch booking products (add-ons)
+      const { data: productsData } = await supabase
+        .from('booking_products')
+        .select(`
+          id,
+          quantity,
+          price_cents,
+          product_id,
+          products (
+            id,
+            name
+          )
+        `)
+        .eq('booking_id', bookingId);
+
+      if (productsData && productsData.length > 0) {
+        setBookingProducts(productsData);
+      }
+
       if (sessionId) {
         await supabase
           .from('bookings')
