@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Code, Copy, Check, ExternalLink, Monitor, MessageSquare, Layout, Palette, Eye } from 'lucide-react';
+import { Code, Copy, Check, ExternalLink, Monitor, MessageSquare, Layout, Palette, Crown, Lock } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { supabase } from '../../../lib/supabase';
+import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 
 type WidgetType = 'full-page' | 'floating-button' | 'inline';
 type ButtonPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
@@ -17,9 +18,11 @@ interface WidgetConfig {
 }
 
 export default function WidgetEmbed() {
-  const { businessId, subdomain } = useTenant();
+  const { businessId } = useTenant();
+  const premiumFeatures = usePremiumFeatures();
   const [copied, setCopied] = useState<string | null>(null);
-  const [businessDomain, setBusinessDomain] = useState<string>('');
+  const [bookingUrl, setBookingUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<WidgetConfig>({
     type: 'floating-button',
     buttonText: 'Book Now',
@@ -35,26 +38,35 @@ export default function WidgetEmbed() {
   }, [businessId]);
 
   const fetchBusinessDomain = async () => {
-    if (!businessId) return;
+    if (!businessId) {
+      setLoading(false);
+      return;
+    }
     
-    const { data, error } = await supabase
-      .from('businesses')
-      .select('subdomain, custom_domain')
-      .eq('id', businessId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('subdomain, custom_domain')
+        .eq('id', businessId)
+        .single();
 
-    if (!error && data) {
-      // Use custom domain if available, otherwise use subdomain
-      if (data.custom_domain) {
-        setBusinessDomain(`https://${data.custom_domain}`);
-      } else if (data.subdomain) {
-        setBusinessDomain(`https://${data.subdomain}.onbuuk.com`);
+      if (!error && data) {
+        // Use custom domain if available, otherwise use subdomain
+        if (data.custom_domain) {
+          setBookingUrl(`https://${data.custom_domain}`);
+        } else if (data.subdomain) {
+          setBookingUrl(`https://${data.subdomain}.onbuuk.com`);
+        }
       }
+    } catch (err) {
+      console.error('Error fetching business domain:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const getBookingUrl = () => {
-    return businessDomain || `https://${subdomain}.onbuuk.com`;
+    return bookingUrl || '';
   };
 
   const generateFullPageEmbed = () => {
