@@ -127,7 +127,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       </div>
 
       {/* Services List */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 mb-6 pb-8">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-8 pb-4">
         {categories.map((category, catIndex) => (
           <div 
             key={category}
@@ -203,8 +203,15 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
         ))}
       </div>
 
-      {/* Footer */}
-      <div className={`flex-shrink-0 space-y-4 transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+      {/* Footer - Sticky */}
+      <div className={`flex-shrink-0 space-y-4 pt-4 border-t transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+        style={{ 
+          borderColor: colors.border || '#e5e5e5',
+          backgroundColor: colors.backgroundSecondary || '#f8fafc',
+          margin: '-0.5rem -1.25rem -0.5rem -1.25rem',
+          padding: '1rem 1.25rem',
+        }}
+      >
         {selectedService?.is_pair_massage && (
           <Card glass className="p-5" style={{ borderColor: `${primaryColor}30` }}>
             <p className="text-sm font-semibold mb-3" style={{ color: colors.textPrimary }}>Booking Type</p>
