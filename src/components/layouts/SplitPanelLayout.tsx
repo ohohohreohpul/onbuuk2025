@@ -72,6 +72,17 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
           }}
         >
           <div className="p-6 lg:p-8 space-y-6">
+            {/* Custom Image */}
+            {displayImage && (
+              <div className="rounded-xl overflow-hidden shadow-lg">
+                <img 
+                  src={displayImage} 
+                  alt={imageAlt || 'Booking'} 
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
+
             {/* Header */}
             <div className="space-y-2">
               <h2 className="text-2xl font-bold tracking-tight" style={{ color: colors.textPrimary }}>Booking Summary</h2>
