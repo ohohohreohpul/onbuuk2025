@@ -184,17 +184,30 @@ export default function ProductsView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessId) return;
+    if (!businessId) {
+      alert('Business ID not found. Please refresh the page.');
+      return;
+    }
 
-    const categoryToSave = isCreatingNewCategory ? newCategoryName : formData.category;
+    const categoryToSave = isCreatingNewCategory ? newCategoryName.trim() : formData.category;
+
+    // Validation
+    if (!formData.name.trim()) {
+      alert('Please enter a product name.');
+      return;
+    }
+    if (!formData.description.trim()) {
+      alert('Please enter a product description.');
+      return;
+    }
 
     try {
       if (editingProduct) {
         const { error: updateError } = await supabase
           .from('products')
           .update({
-            name: formData.name,
-            description: formData.description,
+            name: formData.name.trim(),
+            description: formData.description.trim(),
             price_cents: formData.price_cents,
             image_url: formData.image_url || null,
             is_active: formData.is_active,
@@ -204,34 +217,44 @@ export default function ProductsView() {
           })
           .eq('id', editingProduct.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Update error:', updateError);
+          alert(`Failed to update product: ${updateError.message}`);
+          return;
+        }
 
-        await supabase
+        const { error: deleteError } = await supabase
           .from('product_service_assignments')
           .delete()
           .eq('product_id', editingProduct.id);
 
+        if (deleteError) {
+          console.error('Delete assignments error:', deleteError);
+        }
+
         if (isAvailableForAll) {
-          await supabase.from('product_service_assignments').insert({
+          const { error: assignError } = await supabase.from('product_service_assignments').insert({
             product_id: editingProduct.id,
             service_id: null,
             business_id: businessId,
           });
-        } else {
+          if (assignError) console.error('Assignment error:', assignError);
+        } else if (selectedServices.length > 0) {
           const assignments = selectedServices.map((serviceId) => ({
             product_id: editingProduct.id,
             service_id: serviceId,
             business_id: businessId,
           }));
-          await supabase.from('product_service_assignments').insert(assignments);
+          const { error: assignError } = await supabase.from('product_service_assignments').insert(assignments);
+          if (assignError) console.error('Assignment error:', assignError);
         }
       } else {
         const { data: newProduct, error: insertError } = await supabase
           .from('products')
           .insert({
             business_id: businessId,
-            name: formData.name,
-            description: formData.description,
+            name: formData.name.trim(),
+            description: formData.description.trim(),
             price_cents: formData.price_cents,
             image_url: formData.image_url || null,
             is_active: formData.is_active,
@@ -241,31 +264,37 @@ export default function ProductsView() {
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          alert(`Failed to create product: ${insertError.message}`);
+          return;
+        }
 
         if (newProduct) {
           if (isAvailableForAll) {
-            await supabase.from('product_service_assignments').insert({
+            const { error: assignError } = await supabase.from('product_service_assignments').insert({
               product_id: newProduct.id,
               service_id: null,
               business_id: businessId,
             });
-          } else {
+            if (assignError) console.error('Assignment error:', assignError);
+          } else if (selectedServices.length > 0) {
             const assignments = selectedServices.map((serviceId) => ({
               product_id: newProduct.id,
               service_id: serviceId,
               business_id: businessId,
             }));
-            await supabase.from('product_service_assignments').insert(assignments);
+            const { error: assignError } = await supabase.from('product_service_assignments').insert(assignments);
+            if (assignError) console.error('Assignment error:', assignError);
           }
         }
       }
 
       setShowModal(false);
       await fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      alert('An error occurred while saving the product.');
+      alert(`An error occurred while saving the product: ${error?.message || 'Unknown error'}`);
     }
   };
 
