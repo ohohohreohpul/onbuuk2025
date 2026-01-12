@@ -407,6 +407,12 @@ function AppContent() {
   const getCurrentStepImage = (): string | undefined => {
     if (!customization) return undefined;
 
+    // First check if there's a global image (applies to all steps)
+    if (customization.global_image_url) {
+      return customization.global_image_url;
+    }
+
+    // Otherwise use step-specific image
     const stepImageMap: Record<Step, string | null> = {
       'welcome': customization.welcome_image_url,
       'service': customization.service_image_url,
