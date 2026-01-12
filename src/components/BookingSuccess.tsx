@@ -241,6 +241,34 @@ export default function BookingSuccess() {
                   value={booking.customer_phone}
                 />
               )}
+
+              {/* Add-Ons Section */}
+              {bookingProducts.length > 0 && (
+                <div className="pt-4 mt-4 border-t border-gray-100">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Package className="w-5 h-5 text-[#008374]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                        Add-Ons
+                      </p>
+                      <div className="space-y-1">
+                        {bookingProducts.map((item: any) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span className="text-foreground">
+                              {(item.products as any)?.name || 'Product'} {item.quantity > 1 && `×${item.quantity}`}
+                            </span>
+                            <span className="text-foreground font-medium">
+                              {formatPrice(item.price_cents * item.quantity)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
