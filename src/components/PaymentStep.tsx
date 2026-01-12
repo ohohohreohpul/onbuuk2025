@@ -76,6 +76,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     if (bookingData.specialistId) {
       fetchSpecialistName();
     }
+    setTimeout(() => setIsLoaded(true), 100);
   }, []);
 
   const checkStripeStatus = async () => {
