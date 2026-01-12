@@ -881,9 +881,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           size="lg"
           style={{
             background: !isProcessing 
-              ? `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})`
-              : 'linear-gradient(135deg, #9ca3af, #6b7280)',
-            boxShadow: !isProcessing ? `0 10px 25px -5px ${primaryColor}40` : 'none',
+              ? primaryColor
+              : '#9ca3af',
+            boxShadow: !isProcessing ? `0 4px 14px -3px ${primaryColor}50` : 'none',
           }}
         >
           {isProcessing ? (
