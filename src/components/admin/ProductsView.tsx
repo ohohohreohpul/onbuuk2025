@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, X, Package, LayoutList, LayoutGrid, ChevronDown, ChevronRight, GripVertical, Image } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Package, LayoutList, LayoutGrid, Image } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 
@@ -14,6 +14,7 @@ interface Product {
   display_order: number;
   max_quantity_per_booking: number | null;
   category: string | null;
+  is_exclusive_in_category: boolean;
 }
 
 interface Service {
@@ -37,6 +38,7 @@ export default function ProductsView() {
     is_active: true,
     max_quantity_per_booking: 1,
     category: '',
+    is_exclusive_in_category: false,
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isAvailableForAll, setIsAvailableForAll] = useState(true);
@@ -104,6 +106,7 @@ export default function ProductsView() {
       is_active: true,
       max_quantity_per_booking: 1,
       category: '',
+      is_exclusive_in_category: false,
     });
     setSelectedServices([]);
     setIsAvailableForAll(true);
@@ -122,6 +125,7 @@ export default function ProductsView() {
       is_active: product.is_active,
       max_quantity_per_booking: product.max_quantity_per_booking ?? 1,
       category: product.category || '',
+      is_exclusive_in_category: product.is_exclusive_in_category || false,
     });
     setIsCreatingNewCategory(false);
     setNewCategoryName('');
@@ -213,6 +217,7 @@ export default function ProductsView() {
             is_active: formData.is_active,
             max_quantity_per_booking: formData.max_quantity_per_booking || null,
             category: categoryToSave || null,
+            is_exclusive_in_category: formData.is_exclusive_in_category,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingProduct.id);
@@ -260,6 +265,7 @@ export default function ProductsView() {
             is_active: formData.is_active,
             max_quantity_per_booking: formData.max_quantity_per_booking || null,
             category: categoryToSave || null,
+            is_exclusive_in_category: formData.is_exclusive_in_category,
           })
           .select()
           .single();
@@ -410,6 +416,11 @@ export default function ProductsView() {
                   <span className="text-sm px-3 py-1 bg-white rounded-full text-gray-600 font-medium shadow-sm">
                     {categoryProducts.length} {categoryProducts.length === 1 ? 'product' : 'products'}
                   </span>
+                  {categoryProducts.some(p => p.is_exclusive_in_category) && (
+                    <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+                      Select one only
+                    </span>
+                  )}
                 </div>
                 <span className="text-gray-500 text-lg">
                   {collapsedCategories.has(category) ? '▼' : '▲'}
@@ -604,6 +615,27 @@ export default function ProductsView() {
                 </div>
               </div>
 
+              {/* Exclusive Selection in Category */}
+              {(formData.category || isCreatingNewCategory) && (
+                <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200">
+                  <div>
+                    <p className="font-medium text-gray-700">Exclusive Selection</p>
+                    <p className="text-sm text-gray-500">
+                      Only one product from this category can be selected per booking
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_exclusive_in_category}
+                      onChange={(e) => setFormData({ ...formData, is_exclusive_in_category: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+              )}
+
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Image (Optional)</label>
@@ -615,7 +647,7 @@ export default function ProductsView() {
                       </div>
                     ) : (
                       <div className="w-24 h-24 border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                        <Package className="w-8 h-8 text-gray-300" />
+                        <span className="text-xs text-gray-400 text-center px-2">No image</span>
                       </div>
                     )}
                   </div>
@@ -777,15 +809,11 @@ function ProductCard({
     <div className="bg-white border border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-lg transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3 flex-1">
-          <div className="flex-shrink-0 w-14 h-14 bg-gray-100 rounded-lg overflow-hidden">
-            {product.image_url ? (
+          {product.image_url && (
+            <div className="flex-shrink-0 w-14 h-14 bg-gray-100 rounded-lg overflow-hidden">
               <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Package className="w-6 h-6 text-gray-300" />
-              </div>
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex-1">
             {product.category && (
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">{product.category}</p>
@@ -795,6 +823,11 @@ function ProductCard({
               {!product.is_active && (
                 <span className="ml-2 text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded-full font-medium">
                   Inactive
+                </span>
+              )}
+              {product.is_exclusive_in_category && (
+                <span className="ml-2 text-xs px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+                  Exclusive
                 </span>
               )}
             </h3>
@@ -846,39 +879,77 @@ function ProductGridCard({
 }) {
   return (
     <div className="bg-white border border-gray-200 overflow-hidden transition-all group hover:border-gray-300 hover:shadow-lg rounded-xl">
-      <div className="relative aspect-[4/3] bg-gray-100">
-        {product.image_url ? (
+      {product.image_url ? (
+        <div className="relative aspect-[4/3] bg-gray-100">
           <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <Package className="w-12 h-12 text-gray-300" />
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+            <button
+              onClick={onEdit}
+              className="p-2 bg-white rounded-lg shadow-lg text-gray-600 hover:text-[#008374]"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 bg-white rounded-lg shadow-lg text-red-600 hover:text-red-800"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        )}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-          <button
-            onClick={onEdit}
-            className="p-2 bg-white rounded-lg shadow-lg text-gray-600 hover:text-[#008374]"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 bg-white rounded-lg shadow-lg text-red-600 hover:text-red-800"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {!product.is_active && (
+            <div className="absolute top-2 left-2">
+              <span className="text-xs px-2 py-1 bg-gray-800/70 text-white rounded-full">Inactive</span>
+            </div>
+          )}
+          {product.is_exclusive_in_category && (
+            <div className="absolute bottom-2 left-2">
+              <span className="text-xs px-2 py-1 bg-amber-500/90 text-white rounded-full">Exclusive</span>
+            </div>
+          )}
         </div>
-        {!product.is_active && (
-          <div className="absolute top-2 left-2">
-            <span className="text-xs px-2 py-1 bg-gray-800/70 text-white rounded-full">Inactive</span>
+      ) : (
+        <div className="relative p-4 border-b border-gray-100">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              {product.category && (
+                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">{product.category}</p>
+              )}
+              <h3 className="text-base font-semibold text-gray-900">{product.name}</h3>
+            </div>
+            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={onEdit}
+                className="p-1.5 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+          <div className="flex gap-2 mt-2">
+            {!product.is_active && (
+              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Inactive</span>
+            )}
+            {product.is_exclusive_in_category && (
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">Exclusive</span>
+            )}
+          </div>
+        </div>
+      )}
       <div className="p-4">
-        {product.category && (
-          <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">{product.category}</p>
+        {product.image_url && (
+          <>
+            {product.category && (
+              <p className="text-xs text-gray-500 mb-1 uppercase tracking-wider">{product.category}</p>
+            )}
+            <h3 className="text-base font-semibold text-gray-900 mb-1">{product.name}</h3>
+          </>
         )}
-        <h3 className="text-base font-semibold text-gray-900 mb-1">{product.name}</h3>
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
           <span className="text-lg font-semibold text-gray-900">{formatAmount(product.price_cents / 100)}</span>
