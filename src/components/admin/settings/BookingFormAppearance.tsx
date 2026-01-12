@@ -118,6 +118,7 @@ const DEFAULT_CUSTOMIZATION: Omit<BookingFormCustomization, 'id' | 'business_id'
     subtitle: "Complete your booking",
     buttonText: "Confirm Booking"
   },
+  global_image_url: null,
   welcome_image_url: null,
   service_image_url: null,
   duration_image_url: null,
