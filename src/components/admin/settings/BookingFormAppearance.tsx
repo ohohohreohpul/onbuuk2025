@@ -754,6 +754,88 @@ export default function BookingFormAppearance() {
               </select>
             </div>
 
+            {/* Global Image for All Steps */}
+            {(customization.styling.layout === 'split-panel' || customization.styling.layout === 'default') && (
+              <div className="border border-stone-200 rounded-lg p-4 bg-stone-50">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-medium text-stone-900">Sidebar Image</h4>
+                    <p className="text-sm text-stone-600">This image appears on all booking steps in the sidebar</p>
+                  </div>
+                </div>
+                
+                {customization.global_image_url ? (
+                  <div className="space-y-3">
+                    <div className="relative rounded-lg overflow-hidden border border-stone-200">
+                      <img 
+                        src={customization.global_image_url} 
+                        alt="Global sidebar image" 
+                        className="w-full h-40 object-cover"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadImage('global', file);
+                          }}
+                          disabled={uploadingImage === 'global'}
+                        />
+                        <div className="px-4 py-2 bg-stone-100 text-stone-700 rounded-lg text-sm text-center hover:bg-stone-200 transition-colors">
+                          {uploadingImage === 'global' ? 'Uploading...' : 'Replace Image'}
+                        </div>
+                      </label>
+                      <button
+                        onClick={() => {
+                          setCustomization({
+                            ...customization,
+                            global_image_url: null
+                          });
+                          setSavedMessage('Image removed. Click "Save All Changes" to apply.');
+                          setTimeout(() => setSavedMessage(''), 3000);
+                        }}
+                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadImage('global', file);
+                      }}
+                      disabled={uploadingImage === 'global'}
+                    />
+                    <div className="border-2 border-dashed border-stone-300 rounded-lg p-6 text-center hover:border-stone-400 transition-colors">
+                      <div className="text-stone-500">
+                        {uploadingImage === 'global' ? (
+                          <span>Uploading...</span>
+                        ) : (
+                          <>
+                            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-sm">Click to upload sidebar image</p>
+                            <p className="text-xs text-stone-400 mt-1">Recommended: 400x300px or larger</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
