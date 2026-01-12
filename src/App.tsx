@@ -448,6 +448,7 @@ function AppContent() {
       specialist: specialistName || undefined,
       date: bookingState.date,
       time: bookingState.time,
+      addOns: bookingState.selectedProducts.length > 0 ? bookingState.selectedProducts : undefined,
     };
   };
 
