@@ -346,7 +346,8 @@ function SummaryItem({
   value, 
   extra,
   primaryColor,
-  colors
+  colors,
+  compact = false
 }: { 
   isCompleted: boolean; 
   icon: React.ReactNode; 
@@ -355,10 +356,11 @@ function SummaryItem({
   extra?: string;
   primaryColor: string;
   colors: any;
+  compact?: boolean;
 }) {
   return (
     <div 
-      className="p-4 rounded-xl transition-all duration-300"
+      className={`rounded-xl transition-all duration-300 ${compact ? 'p-3' : 'p-4'}`}
       style={{
         backgroundColor: isCompleted ? `${primaryColor}08` : colors.backgroundSecondary || '#f8fafc',
         borderColor: isCompleted ? `${primaryColor}30` : colors.border || '#e5e5e5',
@@ -367,19 +369,19 @@ function SummaryItem({
     >
       <div className="flex items-start gap-3">
         <div 
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className={`rounded-lg flex items-center justify-center flex-shrink-0 ${compact ? 'w-6 h-6' : 'w-8 h-8'}`}
           style={{
             backgroundColor: isCompleted ? primaryColor : colors.border || '#e5e5e5',
             color: isCompleted ? 'white' : colors.textSecondary || '#737373',
           }}
         >
-          {isCompleted ? <Check className="w-4 h-4" /> : icon}
+          {isCompleted ? <Check className={compact ? 'w-3 h-3' : 'w-4 h-4'} /> : icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide" style={{ color: colors.textSecondary }}>{label}</p>
+          <p className={`font-medium uppercase tracking-wide ${compact ? 'text-xs' : 'text-xs'}`} style={{ color: colors.textSecondary }}>{label}</p>
           {value ? (
             <div className="mt-1">
-              <p className="font-semibold truncate" style={{ color: colors.textPrimary }}>{value}</p>
+              <p className={`font-semibold truncate ${compact ? 'text-sm' : 'text-base'}`} style={{ color: colors.textPrimary }}>{value}</p>
               {extra && (
                 <span 
                   className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block"
@@ -390,7 +392,7 @@ function SummaryItem({
               )}
             </div>
           ) : (
-            <p className="text-sm mt-1 italic" style={{ color: colors.textSecondary }}>Not selected</p>
+            <p className={`mt-1 italic ${compact ? 'text-xs' : 'text-sm'}`} style={{ color: colors.textSecondary }}>Not selected</p>
           )}
         </div>
       </div>
