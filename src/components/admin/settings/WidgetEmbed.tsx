@@ -251,11 +251,76 @@ export default function WidgetEmbed() {
     },
   ];
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-stone-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // Premium feature gate
+  if (!premiumFeatures.isPro) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-stone-800 mb-2">Premium Feature</h3>
+          <p className="text-stone-600 mb-6 max-w-md mx-auto">
+            Embeddable widgets allow you to add booking functionality directly to your website. 
+            Upgrade to Pro to unlock this feature.
+          </p>
+          <div className="flex items-center justify-center gap-2 text-amber-700 font-medium">
+            <Crown className="w-5 h-5" />
+            <span>Available on Pro Plan</span>
+          </div>
+        </div>
+
+        {/* Preview of what they'll get */}
+        <div className="opacity-50 pointer-events-none">
+          <div className="border border-stone-200 rounded-xl p-6">
+            <h4 className="font-medium text-stone-800 mb-4">Widget Types Available with Pro:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {widgetTypes.map((type) => (
+                <div key={type.id} className="p-4 border border-stone-200 rounded-lg">
+                  <type.icon className="w-6 h-6 text-stone-400 mb-2" />
+                  <h5 className="font-medium text-stone-700">{type.name}</h5>
+                  <p className="text-xs text-stone-500 mt-1">{type.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if booking URL is set
+  if (!bookingUrl) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Setup Required</h3>
+        <p className="text-sm text-yellow-700">
+          Please set up your booking page URL first. Go to <strong>Store Profile</strong> to configure your subdomain or custom domain.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-stone-800 mb-2">Embed Booking Widget</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-lg font-semibold text-stone-800">Embed Booking Widget</h3>
+          <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full flex items-center gap-1">
+            <Crown className="w-3 h-3" />
+            Pro
+          </span>
+        </div>
         <p className="text-sm text-stone-600">
           Add a booking widget to your website. Choose from different styles and customize the appearance.
         </p>
