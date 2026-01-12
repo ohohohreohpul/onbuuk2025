@@ -231,9 +231,9 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           size="lg"
           style={{
             background: isFormValid 
-              ? `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})`
-              : 'linear-gradient(135deg, #9ca3af, #6b7280)',
-            boxShadow: isFormValid ? `0 10px 25px -5px ${primaryColor}40` : 'none',
+              ? primaryColor
+              : '#9ca3af',
+            boxShadow: isFormValid ? `0 4px 14px -3px ${primaryColor}50` : 'none',
           }}
         >
           {content.buttonText}
