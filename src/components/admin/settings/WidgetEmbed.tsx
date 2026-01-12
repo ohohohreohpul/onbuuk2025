@@ -51,11 +51,11 @@ export default function WidgetEmbed() {
         .single();
 
       if (!error && data) {
-        // Use custom domain if available, otherwise use permalink
+        // Use custom domain if available, otherwise use app.onbuuk.com/permalink
         if (data.custom_domain) {
           setBookingUrl(`https://${data.custom_domain}`);
         } else if (data.permalink) {
-          setBookingUrl(`https://${data.permalink}.onbuuk.com`);
+          setBookingUrl(`https://app.onbuuk.com/${data.permalink}`);
         }
       }
     } catch (err) {
