@@ -309,11 +309,33 @@ export default function WidgetEmbed() {
   // Check if booking URL is set
   if (!bookingUrl) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Setup Required</h3>
-        <p className="text-sm text-yellow-700">
-          Please set up your booking page URL first. Go to <strong>Store Profile</strong> to configure your subdomain or custom domain.
-        </p>
+      <div className="space-y-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">Booking URL Not Found</h3>
+          <p className="text-sm text-yellow-700 mb-4">
+            We couldn't find your booking page URL. Please ensure your subdomain is configured in <strong>Store Profile</strong>.
+          </p>
+          <p className="text-sm text-yellow-600">
+            If you've already set up your subdomain, try refreshing the page.
+          </p>
+        </div>
+        
+        {/* Manual URL input as fallback */}
+        <div className="border border-stone-200 rounded-xl p-6">
+          <h4 className="font-medium text-stone-800 mb-3">Enter Your Booking URL Manually</h4>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              placeholder="https://yourbusiness.onbuuk.com"
+              value={bookingUrl}
+              onChange={(e) => setBookingUrl(e.target.value)}
+              className="flex-1 px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-800"
+            />
+          </div>
+          <p className="text-xs text-stone-500 mt-2">
+            Enter your full booking page URL (e.g., https://mybusiness.onbuuk.com)
+          </p>
+        </div>
       </div>
     );
   }
