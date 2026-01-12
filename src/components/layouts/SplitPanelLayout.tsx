@@ -48,7 +48,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
 
   return (
     <div 
-      className="h-screen flex flex-col lg:flex-row relative overflow-hidden"
+      className="min-h-screen lg:h-screen flex flex-col lg:flex-row relative lg:overflow-hidden"
       style={{ backgroundColor: colors.backgroundSecondary || '#f8fafc' }}
     >
       {/* Background decorations */}
@@ -66,14 +66,14 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
       />
       
       {/* Main Content - Scrollable */}
-      <div className={`flex-1 overflow-y-auto order-2 lg:order-1 relative z-10 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
+      <div className={`flex-1 overflow-y-auto order-1 lg:order-1 relative z-10 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
         <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12 min-h-full">
           {children}
         </div>
       </div>
 
-      {/* Sidebar - FIXED, does not scroll */}
-      <aside className={`w-full lg:w-[380px] lg:h-screen lg:overflow-y-auto order-1 lg:order-2 relative transform transition-all duration-700 delay-200 flex-shrink-0 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+      {/* Sidebar - Scrollable on mobile, fixed on desktop */}
+      <aside className={`w-full lg:w-[380px] lg:h-screen lg:overflow-y-auto order-2 lg:order-2 relative transform transition-all duration-700 delay-200 flex-shrink-0 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
         <div 
           className="h-full backdrop-blur-xl border-b lg:border-b-0 lg:border-l"
           style={{ 
