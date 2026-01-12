@@ -26,6 +26,7 @@ import { ResetPassword } from './components/ResetPassword';
 import BookingSuccess from './components/BookingSuccess';
 import GiftCardSuccess from './components/GiftCardSuccess';
 import PaymentCancelled from './components/PaymentCancelled';
+import { DynamicBranding } from './components/DynamicBranding';
 import { useTenant } from './lib/tenantContext';
 import { useBookingCustomization } from './hooks/useBookingCustomization';
 import { CurrencyProvider } from './lib/currencyContext';
