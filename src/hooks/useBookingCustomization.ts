@@ -20,6 +20,7 @@ export interface BookingFormCustomization {
   details_step: StepContent;
   addons_step: StepContent;
   payment_step: StepContent;
+  global_image_url: string | null;
   welcome_image_url: string | null;
   service_image_url: string | null;
   duration_image_url: string | null;
