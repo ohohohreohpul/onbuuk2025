@@ -3,6 +3,15 @@ import { PoweredByBuuk } from '../PoweredByBuuk';
 import { Check, Clock, User, Calendar } from 'lucide-react';
 import { useTheme } from '../../lib/themeContext';
 
+interface SelectedProduct {
+  product: {
+    id: string;
+    name: string;
+    price_cents: number;
+  };
+  quantity: number;
+}
+
 interface SplitPanelLayoutProps {
   children: ReactNode;
   imageUrl?: string;
@@ -18,6 +27,7 @@ interface SplitPanelLayoutProps {
     date?: string;
     time?: string;
     total?: string;
+    addOns?: SelectedProduct[];
   };
 }
 
