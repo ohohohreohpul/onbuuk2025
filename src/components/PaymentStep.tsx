@@ -866,11 +866,25 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         </div>
       </div>
 
-      <div className="flex-shrink-0 space-y-4">
-        <button
+      {/* Footer - Sticky at bottom */}
+      <div 
+        className={`flex-shrink-0 space-y-4 pt-4 mt-auto transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+        style={{ 
+          borderTopWidth: 1,
+          borderTopColor: colors.border || '#e5e5e5',
+        }}
+      >
+        <Button
           onClick={handlePayment}
           disabled={isProcessing}
-          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide bg-custom-primary-hover transition-colors duration-200 disabled:bg-stone-400 disabled:cursor-not-allowed"
+          className="w-full h-14 text-base transition-all duration-300 group text-white disabled:opacity-50"
+          size="lg"
+          style={{
+            background: !isProcessing 
+              ? `linear-gradient(135deg, ${primaryColor}, ${primaryHoverColor})`
+              : 'linear-gradient(135deg, #9ca3af, #6b7280)',
+            boxShadow: !isProcessing ? `0 10px 25px -5px ${primaryColor}40` : 'none',
+          }}
         >
           {isProcessing ? (
             <span className="flex items-center justify-center">
@@ -878,15 +892,24 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
               Processing...
             </span>
           ) : finalPrice === 0 ? (
-            `Complete Booking - Paid with Gift Card`
+            <>
+              Complete Booking - Paid with Gift Card
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </>
           ) : selectedPaymentMethod === 'in_person' ? (
-            `Confirm Booking - Pay in Person`
+            <>
+              Confirm Booking - Pay in Person
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </>
           ) : (
-            `Confirm & Pay ${formatPrice(finalPrice)}`
+            <>
+              Confirm & Pay {formatPrice(finalPrice)}
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </>
           )}
-        </button>
+        </Button>
 
-        <p className="text-xs text-center text-stone-500 leading-relaxed">
+        <p className="text-xs text-center leading-relaxed" style={{ color: colors.textSecondary }}>
           By confirming this booking, you agree to our cancellation policy.
           Cancellations must be made at least 24 hours in advance.
         </p>
