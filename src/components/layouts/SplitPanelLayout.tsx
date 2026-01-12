@@ -357,6 +357,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
           </div>
         </div>
       </aside>
+      )}
 
       <PoweredByBuuk />
     </div>
