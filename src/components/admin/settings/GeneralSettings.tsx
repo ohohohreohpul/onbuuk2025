@@ -342,33 +342,36 @@ export default function GeneralSettings() {
     setUploadingOgImage(true);
 
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const dataUrl = reader.result as string;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${businessId}/branding/og-image-${Date.now()}.${fileExt}`;
 
-        const { error: updateError } = await supabase
-          .from('businesses')
-          .update({ custom_og_image_url: dataUrl })
-          .eq('id', businessId);
+      const { error: uploadError } = await supabase.storage
+        .from('business-assets')
+        .upload(fileName, file);
 
-        if (updateError) throw updateError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload to storage');
+      }
 
-        setBusiness({ ...business, custom_og_image_url: dataUrl });
-        setSavedMessage('Social preview image uploaded successfully!');
-        setTimeout(() => setSavedMessage(''), 3000);
-        setUploadingOgImage(false);
-      };
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-assets')
+        .getPublicUrl(fileName);
 
-      reader.onerror = () => {
-        console.error('Error reading file');
-        alert('Failed to upload image. Please try again.');
-        setUploadingOgImage(false);
-      };
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update({ custom_og_image_url: publicUrl })
+        .eq('id', businessId);
 
-      reader.readAsDataURL(file);
+      if (updateError) throw updateError;
+
+      setBusiness({ ...business, custom_og_image_url: publicUrl });
+      setSavedMessage('Social preview image uploaded successfully!');
+      setTimeout(() => setSavedMessage(''), 3000);
     } catch (error) {
       console.error('Error uploading social preview image:', error);
       alert('Failed to upload image. Please try again.');
+    } finally {
       setUploadingOgImage(false);
     }
   };
