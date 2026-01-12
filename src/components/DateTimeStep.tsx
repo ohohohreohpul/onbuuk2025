@@ -206,14 +206,12 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
         )}
       </div>
 
-      {/* Continue Button - Sticky */}
+      {/* Continue Button - Sticky at bottom */}
       <div 
-        className={`flex-shrink-0 pt-4 border-t transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+        className={`flex-shrink-0 pt-4 mt-auto transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
         style={{ 
-          borderColor: colors.border || '#e5e5e5',
-          backgroundColor: colors.backgroundSecondary || '#f8fafc',
-          margin: '0 -1.25rem -0.5rem -1.25rem',
-          padding: '1rem 1.25rem',
+          borderTopWidth: 1,
+          borderTopColor: colors.border || '#e5e5e5',
         }}
       >
         <Button
