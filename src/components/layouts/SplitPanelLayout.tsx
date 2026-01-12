@@ -38,7 +38,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
 
   return (
     <div 
-      className="min-h-screen flex flex-col lg:flex-row relative"
+      className="h-screen flex flex-col lg:flex-row relative overflow-hidden"
       style={{ backgroundColor: colors.backgroundSecondary || '#f8fafc' }}
     >
       {/* Background decorations */}
@@ -55,17 +55,17 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
         }}
       />
       
-      {/* Main Content */}
+      {/* Main Content - Scrollable */}
       <div className={`flex-1 overflow-y-auto order-2 lg:order-1 relative z-10 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
-        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12 min-h-full">
           {children}
         </div>
       </div>
 
-      {/* Sidebar - Booking Summary */}
-      <aside className={`w-full lg:w-[380px] overflow-y-auto order-1 lg:order-2 relative transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+      {/* Sidebar - FIXED, does not scroll */}
+      <aside className={`w-full lg:w-[380px] lg:h-screen lg:overflow-y-auto order-1 lg:order-2 relative transform transition-all duration-700 delay-200 flex-shrink-0 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
         <div 
-          className="sticky top-0 h-full lg:min-h-screen backdrop-blur-xl border-b lg:border-b-0 lg:border-l"
+          className="h-full backdrop-blur-xl border-b lg:border-b-0 lg:border-l"
           style={{ 
             backgroundColor: 'rgba(255, 255, 255, 0.7)',
             borderColor: `${colors.border}50` || 'rgba(229, 231, 235, 0.5)'
