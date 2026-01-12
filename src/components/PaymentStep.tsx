@@ -671,6 +671,25 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             <span className="text-stone-800 font-medium">{bookingData.customerDetails.email}</span>
           </div>
 
+          {/* Add-Ons Section */}
+          {bookingData.selectedProducts && bookingData.selectedProducts.length > 0 && (
+            <div className="pt-3 mt-3 border-t border-stone-200">
+              <p className="text-stone-600 mb-2 font-medium">Add-Ons:</p>
+              <div className="space-y-2 pl-2">
+                {bookingData.selectedProducts.map((item, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-stone-600">
+                      {item.product.name} {item.quantity > 1 && `×${item.quantity}`}
+                    </span>
+                    <span className="text-stone-800 font-medium">
+                      {formatPrice(item.product.price_cents * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="pt-3 mt-3 border-t border-stone-200">
             {appliedGiftCards.length > 0 ? (
               <div className="space-y-2">
