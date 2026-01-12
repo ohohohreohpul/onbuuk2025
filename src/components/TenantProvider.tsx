@@ -116,24 +116,43 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } else if (!business) {
-          const pathParts = currentPath.split('/').filter(p => p);
-          const firstSegment = pathParts[0];
-
-          const isReservedRoute = firstSegment && RESERVED_ROUTES.includes(firstSegment);
-          const permalinkFromUrl = firstSegment && !isReservedRoute ? firstSegment : null;
-
-          if (permalinkFromUrl) {
+          // First try to lookup by custom domain
+          const customDomain = extractCustomDomain(hostname);
+          if (customDomain && customDomain !== 'onbuuk.com') {
             const businessResult = await executeWithTimeout(
               supabase
                 .from('businesses')
                 .select('*')
-                .eq('permalink', permalinkFromUrl)
+                .eq('custom_domain', customDomain)
                 .eq('is_active', true)
                 .maybeSingle(),
               { timeout: 3000, retries: 1 }
             );
 
             business = businessResult.data;
+          }
+
+          // If not found by custom domain, try permalink from URL
+          if (!business) {
+            const pathParts = currentPath.split('/').filter(p => p);
+            const firstSegment = pathParts[0];
+
+            const isReservedRoute = firstSegment && RESERVED_ROUTES.includes(firstSegment);
+            const permalinkFromUrl = firstSegment && !isReservedRoute ? firstSegment : null;
+
+            if (permalinkFromUrl) {
+              const businessResult = await executeWithTimeout(
+                supabase
+                  .from('businesses')
+                  .select('*')
+                  .eq('permalink', permalinkFromUrl)
+                  .eq('is_active', true)
+                  .maybeSingle(),
+                { timeout: 3000, retries: 1 }
+              );
+
+              business = businessResult.data;
+            }
           }
         }
 
