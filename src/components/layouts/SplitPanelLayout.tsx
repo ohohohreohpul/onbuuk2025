@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { PoweredByBuuk } from '../PoweredByBuuk';
-import { Check, Clock, User, Calendar } from 'lucide-react';
+import { Check, Clock, User, Calendar, Package } from 'lucide-react';
 import { useTheme } from '../../lib/themeContext';
 
 interface SelectedProduct {
