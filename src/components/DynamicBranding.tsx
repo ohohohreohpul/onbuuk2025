@@ -80,11 +80,7 @@ export function DynamicBranding() {
 
     fetchBranding();
 
-    // Cleanup: restore defaults when component unmounts or business changes
-    return () => {
-      // Don't reset on every change, only when truly unmounting
-    };
-  }, [businessId]);
+  }, [businessId, isLoading]);
 
   return null; // This component doesn't render anything
 }
