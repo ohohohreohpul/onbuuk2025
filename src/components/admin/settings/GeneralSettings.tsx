@@ -19,6 +19,10 @@ interface Business {
   plan_type: string;
   enable_gift_cards: boolean;
   enable_bookings: boolean;
+  custom_page_title: string | null;
+  custom_favicon_url: string | null;
+  custom_og_image_url: string | null;
+  custom_meta_description: string | null;
 }
 
 export default function GeneralSettings() {
