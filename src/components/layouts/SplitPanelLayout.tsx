@@ -35,7 +35,13 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
   const { colors } = useTheme();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // Initialize isMobile correctly on first render
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
 
   // Theme colors with fallbacks
   const primaryColor = colors.primary || '#008374';
