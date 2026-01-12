@@ -538,6 +538,7 @@ function App() {
   return (
     <TenantProvider>
       <CurrencyProvider>
+        <DynamicBranding />
         <AppContent />
       </CurrencyProvider>
     </TenantProvider>
