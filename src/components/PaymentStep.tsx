@@ -615,21 +615,25 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const finalPrice = calculateFinalPrice();
 
   return (
-    <div className="h-full flex flex-col max-h-full">
-      <div className="flex-shrink-0 mb-4">
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className={`flex-shrink-0 mb-6 transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <button
           onClick={onBack}
-          className="text-stone-500 hover:text-stone-700 text-sm mb-4 inline-flex items-center"
+          className="text-sm mb-4 inline-flex items-center transition-colors group"
+          style={{ color: colors.textSecondary }}
+          onMouseEnter={(e) => e.currentTarget.style.color = colors.textPrimary || '#171717'}
+          onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary || '#737373'}
           disabled={isProcessing}
         >
-          <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+          <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-stone-800 mb-2">{content.title}</h2>
-        <p className="text-stone-600">{content.subtitle}</p>
+        <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
+        <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-6 mb-4 pb-8">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pb-6">
         <div className="border border-stone-200 p-6 space-y-4">
         <h3 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-4">
           Booking Summary
