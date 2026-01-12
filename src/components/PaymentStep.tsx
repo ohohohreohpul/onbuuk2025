@@ -45,6 +45,7 @@ interface PaymentStepProps {
 export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
+  const { colors } = useTheme();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -53,6 +54,10 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'in_person'>('stripe');
   const [loading, setLoading] = useState(true);
   const [specialistName, setSpecialistName] = useState<string>('');
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const primaryColor = colors.primary || '#008374';
+  const primaryHoverColor = colors.primaryHover || '#006d5f';
 
   const content = {
     title: customization?.payment_step?.title || 'Review & Pay',
