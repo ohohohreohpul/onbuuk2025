@@ -1,13 +1,17 @@
 /*
-  # Add category column to products table
+  # Add category and exclusive selection to products table
 
   ## Changes
   - Add category column to products table (nullable text)
+  - Add is_exclusive_in_category column (boolean) - if true, only one product from this category can be selected
   - Add index for category column for better query performance
 */
 
 -- Add category column to products table
 ALTER TABLE products ADD COLUMN IF NOT EXISTS category text;
+
+-- Add is_exclusive_in_category column - when true, only one product from this category can be selected
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_exclusive_in_category boolean DEFAULT false;
 
 -- Create index for category column
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
