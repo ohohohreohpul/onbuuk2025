@@ -68,6 +68,7 @@ export default function SettingsView() {
         {activeTab === 'colors' && <ColorCustomization />}
         {activeTab === 'welcome-features' && <WelcomeFeaturesSettings />}
         {activeTab === 'gift-cards' && <GiftCardCustomization />}
+        {activeTab === 'widget' && <WidgetEmbed />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}
         {activeTab === 'emails' && <CustomerEmails />}
