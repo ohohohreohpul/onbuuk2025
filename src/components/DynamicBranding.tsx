@@ -18,21 +18,24 @@ const DEFAULT_FAVICON = '/iconobrowser.png';
 const DEFAULT_OG_IMAGE = 'https://app.onbuuk.com/buukgc.png';
 
 export function DynamicBranding() {
-  const { businessId } = useTenant();
-  const [originalFavicon] = useState(() => {
-    const link = document.querySelector("link[rel='icon']") as HTMLLinkElement;
-    return link?.href || DEFAULT_FAVICON;
-  });
+  const { businessId, isLoading } = useTenant();
+  const [brandingApplied, setBrandingApplied] = useState(false);
 
   useEffect(() => {
+    // Don't do anything while tenant is still loading
+    if (isLoading) {
+      return;
+    }
+
     if (!businessId) {
-      // Reset to defaults when no business context
+      // No business context - apply Buuk defaults
       updateDocumentHead({
         title: DEFAULT_TITLE,
         description: DEFAULT_DESCRIPTION,
         favicon: DEFAULT_FAVICON,
         ogImage: DEFAULT_OG_IMAGE,
       });
+      setBrandingApplied(true);
       return;
     }
 
