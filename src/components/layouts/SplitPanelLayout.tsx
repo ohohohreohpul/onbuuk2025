@@ -200,7 +200,20 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
       </div>
 
       {/* Desktop: Sidebar - Fixed and scrollable - UPDATED v2 */}
-      <aside className={`hidden lg:block w-[380px] h-screen overflow-y-auto flex-shrink-0 relative transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+      <aside 
+        className={`w-[380px] h-screen overflow-y-auto flex-shrink-0 relative transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+        style={{ display: 'none' }}
+        // Use media query to show only on desktop
+        onLoad={(e) => {
+          const aside = e.currentTarget;
+          const mediaQuery = window.matchMedia('(min-width: 1024px)');
+          const updateDisplay = () => {
+            aside.style.display = mediaQuery.matches ? 'block' : 'none';
+          };
+          updateDisplay();
+          mediaQuery.addEventListener('change', updateDisplay);
+        }}
+      >
         <div 
           className="h-full backdrop-blur-xl border-b lg:border-b-0 lg:border-l"
           style={{ 
