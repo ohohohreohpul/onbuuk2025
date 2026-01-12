@@ -66,15 +66,15 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
         }}
       />
       
-      {/* Main Content - Always visible and scrollable */}
-      <div className={`flex-1 lg:overflow-y-auto order-1 relative z-10 pb-24 lg:pb-0 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
-        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12 min-h-full">
+      {/* Main Content - Always visible and scrollable - UPDATED v2 */}
+      <div className={`flex-1 w-full lg:w-auto overflow-y-auto lg:overflow-y-auto order-1 relative z-10 pb-20 lg:pb-0 transform transition-all duration-700 ${isLoaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
+        <div className="w-full max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12 min-h-full">
           {children}
         </div>
       </div>
 
-      {/* Mobile: Fixed bottom collapsible summary */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 order-2">
+      {/* Mobile: Fixed bottom collapsible summary - UPDATED v2 */}
+      <div className="block lg:hidden fixed bottom-0 left-0 right-0 z-50">
         {/* Collapse/Expand Button */}
         <button
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
@@ -199,8 +199,8 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
         </div>
       </div>
 
-      {/* Desktop: Sidebar - Fixed and scrollable */}
-      <aside className={`hidden lg:block w-[380px] h-screen overflow-y-auto order-2 relative transform transition-all duration-700 delay-200 flex-shrink-0 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+      {/* Desktop: Sidebar - Fixed and scrollable - UPDATED v2 */}
+      <aside className={`hidden lg:block w-[380px] h-screen overflow-y-auto flex-shrink-0 relative transform transition-all duration-700 delay-200 ${isLoaded ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
         <div 
           className="h-full backdrop-blur-xl border-b lg:border-b-0 lg:border-l"
           style={{ 
