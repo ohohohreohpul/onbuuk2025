@@ -257,6 +257,10 @@ export default function GeneralSettings() {
           hide_powered_by_badge: business.hide_powered_by_badge,
           enable_gift_cards: business.enable_gift_cards,
           enable_bookings: business.enable_bookings,
+          custom_page_title: business.custom_page_title,
+          custom_favicon_url: business.custom_favicon_url,
+          custom_og_image_url: business.custom_og_image_url,
+          custom_meta_description: business.custom_meta_description,
           updated_at: new Date().toISOString(),
         })
         .eq('id', business.id);
