@@ -50,13 +50,14 @@ export default function WidgetEmbed() {
         .eq('id', businessId)
         .single();
 
-      if (!error && data) {
-        // Use custom domain if available, otherwise use app.onbuuk.com/permalink
-        if (data.custom_domain) {
-          setBookingUrl(`https://${data.custom_domain}`);
-        } else if (data.permalink) {
-          setBookingUrl(`https://app.onbuuk.com/${data.permalink}`);
-        }
+      if (!error && data && data.permalink) {
+        // Always use permalink as path
+        // With custom domain: https://customdomain.com/permalink
+        // Without custom domain: https://app.onbuuk.com/permalink
+        const baseDomain = data.custom_domain 
+          ? `https://${data.custom_domain}` 
+          : 'https://app.onbuuk.com';
+        setBookingUrl(`${baseDomain}/${data.permalink}`);
       }
     } catch (err) {
       console.error('Error fetching business domain:', err);
