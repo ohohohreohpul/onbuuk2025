@@ -35,6 +35,8 @@ export default function GeneralSettings() {
   const [savedMessage, setSavedMessage] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLoginLogo, setUploadingLoginLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
   const [localCurrency, setLocalCurrency] = useState<string>(currency);
   const [upgrading, setUpgrading] = useState(false);
 
