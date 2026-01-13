@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
         purchase_units: [{
           reference_id: bookingId || `gc-${Date.now()}`,
           description: description.substring(0, 127), // PayPal limits to 127 chars
-          custom_id: JSON.stringify(metadata),
+          custom_id: customId, // Now using short format
           amount: {
             currency_code: "EUR",
             value: amount.toFixed(2)
