@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Save, AlertCircle, CreditCard, Banknote, Link as LinkIcon, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Save, AlertCircle, CreditCard, Banknote, Link as LinkIcon, CheckCircle, XCircle, RefreshCw, Wallet } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 
 interface BusinessConnectData {
