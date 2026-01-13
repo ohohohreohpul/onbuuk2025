@@ -341,6 +341,69 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
       const isFullyCoveredByGiftCards = finalPrice === 0;
       const shouldUseStripe = selectedPaymentMethod === 'stripe' && stripeEnabled && finalPrice > 0;
+      const shouldUsePayPal = selectedPaymentMethod === 'paypal' && paypalEnabled && finalPrice > 0;
+
+      // For PayPal, we need to create the booking first and then the PayPal buttons handle the rest
+      if (shouldUsePayPal) {
+        console.log('Creating booking for PayPal payment...');
+        const { data: createdBooking, error: bookingError } = await supabase
+          .from('bookings')
+          .insert({
+            business_id: tenant.businessId,
+            service_id: bookingData.service.id,
+            duration_id: bookingData.duration.id,
+            specialist_id: bookingData.specialistId,
+            booking_date: bookingData.date,
+            start_time: bookingData.time,
+            customer_name: bookingData.customerDetails.name,
+            customer_email: bookingData.customerDetails.email,
+            customer_phone: bookingData.customerDetails.phone,
+            is_pair_booking: bookingData.isPairBooking,
+            notes: bookingData.customerDetails.notes || null,
+            payment_status: 'pending',
+            status: 'pending',
+            gift_card_amount_cents: giftCardDiscount,
+            final_amount_cents: finalPrice,
+          })
+          .select()
+          .single();
+
+        if (bookingError) {
+          console.error('Booking creation error:', bookingError);
+          throw new Error(`Failed to create booking: ${bookingError.message}`);
+        }
+
+        // Apply gift cards
+        if (appliedGiftCards.length > 0) {
+          for (const giftCard of appliedGiftCards) {
+            try {
+              await supabase.rpc('apply_gift_card_to_booking', {
+                p_booking_id: createdBooking.id,
+                p_gift_card_id: giftCard.id,
+                p_amount_cents: giftCard.amountUsedCents,
+              });
+            } catch (err) {
+              console.error('Error applying gift card:', err);
+            }
+          }
+        }
+
+        // Add products
+        if (bookingData.selectedProducts.length > 0) {
+          const productInserts = bookingData.selectedProducts.map((sp) => ({
+            booking_id: createdBooking.id,
+            product_id: sp.product.id,
+            quantity: sp.quantity,
+            price_cents: sp.product.price_cents,
+          }));
+          await supabase.from('booking_products').insert(productInserts);
+        }
+
+        // Store booking ID for PayPal buttons
+        setCreatedBookingId(createdBooking.id);
+        setIsProcessing(false);
+        return; // PayPal buttons will handle the rest
+      }
 
       if (shouldUseStripe) {
         console.log('Creating booking for Stripe payment...');
