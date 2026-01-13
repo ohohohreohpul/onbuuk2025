@@ -186,6 +186,16 @@ export default function PaymentSettings() {
     setSavedMessage('');
 
     try {
+      // Clean the Stripe secret key - trim whitespace and remove any accidental quotes
+      let cleanStripeKey = stripeSecretKey.trim();
+      if (cleanStripeKey.startsWith('"') && cleanStripeKey.endsWith('"')) {
+        cleanStripeKey = cleanStripeKey.slice(1, -1);
+      }
+      
+      // Clean PayPal credentials similarly
+      let cleanPaypalClientId = paypalClientId.trim();
+      let cleanPaypalSecret = paypalSecret.trim();
+      
       // Update all settings
       const updates = [
         {
@@ -197,7 +207,7 @@ export default function PaymentSettings() {
         {
           business_id: businessId,
           key: 'stripe_secret_key',
-          value: stripeSecretKey,
+          value: cleanStripeKey, // Store as plain string, NOT JSON.stringify
           category: 'payment',
         },
         {
@@ -215,13 +225,13 @@ export default function PaymentSettings() {
         {
           business_id: businessId,
           key: 'paypal_client_id',
-          value: paypalClientId,
+          value: cleanPaypalClientId, // Store as plain string
           category: 'payment',
         },
         {
           business_id: businessId,
           key: 'paypal_secret',
-          value: paypalSecret,
+          value: cleanPaypalSecret, // Store as plain string
           category: 'payment',
         },
       ];
