@@ -179,14 +179,33 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       const code = codeData;
 
       // Calculate expiry
-      let expiresAt = null;
+      let calculatedExpiresAt: string | null = null;
       if (settings?.expiry_days) {
         const expiry = new Date();
         expiry.setDate(expiry.getDate() + settings.expiry_days);
-        expiresAt = expiry.toISOString();
+        calculatedExpiresAt = expiry.toISOString();
       }
 
-      if (stripeEnabled) {
+      // Generate gift card code for all payment methods
+      const { data: codeData, error: codeError } = await supabase
+        .rpc('generate_gift_card_code');
+
+      if (codeError || !codeData) {
+        throw new Error('Failed to generate gift card code');
+      }
+
+      const code = codeData;
+
+      // For PayPal, show PayPal buttons
+      if (selectedPaymentMethod === 'paypal' && paypalEnabled) {
+        setGiftCardCode(code);
+        setExpiresAt(calculatedExpiresAt);
+        setShowPayPalButtons(true);
+        setProcessing(false);
+        return;
+      }
+
+      if (selectedPaymentMethod === 'stripe' && stripeEnabled) {
         // Don't create gift card yet - only create after successful payment
         // Pass all necessary data to Stripe checkout
         const checkoutResponse = await fetch(
@@ -209,7 +228,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
                 code,
                 originalValueCents: finalAmount,
                 purchasedForEmail: recipientEmail || null,
-                expiresAt,
+                expiresAt: calculatedExpiresAt,
                 message: message || null,
               },
             }),
@@ -224,7 +243,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         const { url } = await checkoutResponse.json();
         window.location.href = url;
       } else {
-        // Create gift card directly
+        // Create gift card directly (no online payment)
         const { data: giftCard, error: giftCardError } = await supabase
           .from('gift_cards')
           .insert({
@@ -233,7 +252,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             original_value_cents: finalAmount,
             current_balance_cents: finalAmount,
             purchased_for_email: recipientEmail || null,
-            expires_at: expiresAt,
+            expires_at: calculatedExpiresAt,
             status: 'active',
           })
           .select()
@@ -261,6 +280,12 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const getFinalAmount = () => {
+    return useCustom
+      ? Math.round(parseFloat(customAmount) * 100)
+      : selectedAmount || 0;
   };
 
   if (loading) {
