@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Gift, ArrowLeft, Check, CreditCard } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Gift, ArrowLeft, Check, CreditCard, Wallet } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
+
+// PayPal Script loader
+declare global {
+  interface Window {
+    paypal?: any;
+  }
+}
 
 interface GiftCardSettings {
   enabled: boolean;
@@ -11,6 +18,7 @@ interface GiftCardSettings {
   allow_custom_amount: boolean;
   min_custom_amount_cents: number;
   max_custom_amount_cents: number;
+  expiry_days?: number;
 }
 
 interface GiftCardPurchaseProps {
@@ -33,10 +41,17 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [stripeEnabled, setStripeEnabled] = useState(false);
+  const [paypalEnabled, setPaypalEnabled] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState('');
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal'>('stripe');
+  const [showPayPalButtons, setShowPayPalButtons] = useState(false);
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
-    checkStripeEnabled();
+    checkPaymentSettings();
   }, [businessId]);
 
   const loadSettings = async () => {
@@ -55,22 +70,71 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     setLoading(false);
   };
 
-  const checkStripeEnabled = async () => {
+  const checkPaymentSettings = async () => {
     const { data } = await supabase
       .from('site_settings')
-      .select('value')
-      .eq('key', 'stripe_enabled')
+      .select('key, value')
       .eq('business_id', businessId)
-      .maybeSingle();
+      .in('key', ['stripe_enabled', 'paypal_enabled', 'paypal_client_id']);
 
     if (data) {
-      try {
-        const enabled = JSON.parse(data.value);
-        setStripeEnabled(enabled === 'true' || enabled === true);
-      } catch {
-        setStripeEnabled(false);
+      let stripeIsEnabled = false;
+      let paypalIsEnabled = false;
+      let paypalClientIdValue = '';
+
+      data.forEach((setting) => {
+        try {
+          const value = JSON.parse(setting.value);
+          if (setting.key === 'stripe_enabled') {
+            stripeIsEnabled = value === 'true' || value === true;
+          } else if (setting.key === 'paypal_enabled') {
+            paypalIsEnabled = value === 'true' || value === true;
+          } else if (setting.key === 'paypal_client_id') {
+            paypalClientIdValue = setting.value;
+          }
+        } catch {
+          if (setting.key === 'paypal_client_id') {
+            paypalClientIdValue = setting.value;
+          }
+        }
+      });
+
+      setStripeEnabled(stripeIsEnabled);
+      setPaypalEnabled(paypalIsEnabled);
+      setPaypalClientId(paypalClientIdValue);
+
+      // Set default payment method
+      if (stripeIsEnabled) {
+        setSelectedPaymentMethod('stripe');
+      } else if (paypalIsEnabled) {
+        setSelectedPaymentMethod('paypal');
       }
     }
+  };
+
+  // Load PayPal SDK when needed
+  useEffect(() => {
+    if (paypalEnabled && paypalClientId && selectedPaymentMethod === 'paypal' && !paypalLoaded) {
+      loadPayPalScript();
+    }
+  }, [paypalEnabled, paypalClientId, selectedPaymentMethod]);
+
+  const loadPayPalScript = () => {
+    if (window.paypal) {
+      setPaypalLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&intent=capture`;
+    script.async = true;
+    script.onload = () => {
+      setPaypalLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load PayPal SDK');
+    };
+    document.body.appendChild(script);
   };
 
   const handlePurchase = async () => {
