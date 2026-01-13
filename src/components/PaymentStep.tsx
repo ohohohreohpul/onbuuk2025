@@ -1106,6 +1106,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             </>
           )}
         </Button>
+        )}
 
         <p className="text-xs text-center leading-relaxed" style={{ color: colors.textSecondary }}>
           By confirming this booking, you agree to our cancellation policy.
