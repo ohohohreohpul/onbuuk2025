@@ -141,6 +141,31 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     setLoading(false);
   };
 
+  // Load PayPal SDK when PayPal is selected and enabled
+  useEffect(() => {
+    if (paypalEnabled && paypalClientId && selectedPaymentMethod === 'paypal' && !paypalLoaded) {
+      loadPayPalScript();
+    }
+  }, [paypalEnabled, paypalClientId, selectedPaymentMethod]);
+
+  const loadPayPalScript = () => {
+    if (window.paypal) {
+      setPaypalLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&intent=capture`;
+    script.async = true;
+    script.onload = () => {
+      setPaypalLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load PayPal SDK');
+    };
+    document.body.appendChild(script);
+  };
+
   const fetchSpecialistName = async () => {
     if (!bookingData.specialistId || !tenant.businessId) return;
 
