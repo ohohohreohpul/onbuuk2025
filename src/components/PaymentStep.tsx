@@ -90,28 +90,53 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     setTimeout(() => setIsLoaded(true), 100);
   }, []);
 
-  const checkStripeStatus = async () => {
+  const checkPaymentStatus = async () => {
     if (!tenant.businessId) return;
 
     const { data } = await supabase
       .from('site_settings')
       .select('key, value')
       .eq('business_id', tenant.businessId)
-      .in('key', ['stripe_enabled', 'allow_pay_in_person']);
+      .in('key', ['stripe_enabled', 'allow_pay_in_person', 'paypal_enabled', 'paypal_client_id']);
 
     if (data) {
+      let stripeIsEnabled = false;
+      let paypalIsEnabled = false;
+      let paypalClientIdValue = '';
+      let allowPayInPersonValue = false;
+
       data.forEach((setting) => {
         try {
           const enabled = JSON.parse(setting.value);
           if (setting.key === 'stripe_enabled') {
-            setStripeEnabled(enabled === 'true' || enabled === true);
+            stripeIsEnabled = enabled === 'true' || enabled === true;
           } else if (setting.key === 'allow_pay_in_person') {
-            setAllowPayInPerson(enabled === 'true' || enabled === true);
+            allowPayInPersonValue = enabled === 'true' || enabled === true;
+          } else if (setting.key === 'paypal_enabled') {
+            paypalIsEnabled = enabled === 'true' || enabled === true;
+          } else if (setting.key === 'paypal_client_id') {
+            paypalClientIdValue = setting.value;
           }
         } catch {
-          // Handle parse errors
+          if (setting.key === 'paypal_client_id') {
+            paypalClientIdValue = setting.value;
+          }
         }
       });
+
+      setStripeEnabled(stripeIsEnabled);
+      setPaypalEnabled(paypalIsEnabled);
+      setPaypalClientId(paypalClientIdValue);
+      setAllowPayInPerson(allowPayInPersonValue);
+
+      // Set default payment method based on what's enabled
+      if (stripeIsEnabled) {
+        setSelectedPaymentMethod('stripe');
+      } else if (paypalIsEnabled) {
+        setSelectedPaymentMethod('paypal');
+      } else if (allowPayInPersonValue) {
+        setSelectedPaymentMethod('in_person');
+      }
     }
     setLoading(false);
   };
