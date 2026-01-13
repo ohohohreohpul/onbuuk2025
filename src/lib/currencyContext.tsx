@@ -23,7 +23,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     loadCurrency();
 
     const channel = supabase
-      .channel(`site_settings:${businessId}`)
+      .channel(`site_settings_currency:${businessId}`)
       .on(
         'postgres_changes',
         {
@@ -32,8 +32,23 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           table: 'site_settings',
           filter: `business_id=eq.${businessId}`,
         },
-        (payload) => {
-          if (payload.new?.currency) {
+        (payload: any) => {
+          // Check if this is a currency update using key/value pattern
+          if (payload.new?.key === 'currency' && payload.new?.value) {
+            let currencyValue = payload.new.value;
+            // Handle potential JSON-encoded value
+            try {
+              const parsed = JSON.parse(currencyValue);
+              if (typeof parsed === 'string') {
+                currencyValue = parsed;
+              }
+            } catch {
+              // Not JSON, use as-is
+            }
+            setCurrencyState(currencyValue);
+          }
+          // Also check for legacy currency column
+          else if (payload.new?.currency) {
             setCurrencyState(payload.new.currency);
           }
         }
@@ -48,16 +63,58 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const loadCurrency = async () => {
     if (!businessId) return;
 
-    const { data } = await supabase
+    // First try to get currency from key/value pattern
+    const { data: keyValueData } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('business_id', businessId)
+      .eq('key', 'currency')
+      .maybeSingle();
+
+    if (keyValueData?.value) {
+      let currencyValue = keyValueData.value;
+      // Handle potential JSON-encoded value
+      try {
+        const parsed = JSON.parse(currencyValue);
+        if (typeof parsed === 'string') {
+          currencyValue = parsed;
+        }
+      } catch {
+        // Not JSON, use as-is
+      }
+      setCurrencyState(currencyValue);
+      return;
+    }
+
+    // Fallback: check for legacy currency column
+    const { data: legacyData } = await supabase
       .from('site_settings')
       .select('currency')
       .eq('business_id', businessId)
+      .not('currency', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (data?.currency) {
-      setCurrencyState(data.currency);
+    if (legacyData?.currency) {
+      setCurrencyState(legacyData.currency);
+      // Migrate to key/value pattern
+      await migrateCurrencyToKeyValue(businessId, legacyData.currency);
+    }
+  };
+
+  const migrateCurrencyToKeyValue = async (businessId: string, currencyValue: string) => {
+    try {
+      await supabase
+        .from('site_settings')
+        .upsert({
+          business_id: businessId,
+          key: 'currency',
+          value: currencyValue,
+          category: 'general',
+        }, { onConflict: 'business_id,key' });
+    } catch (error) {
+      console.error('Error migrating currency to key/value:', error);
     }
   };
 
@@ -65,44 +122,25 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     setCurrencyState(newCurrency);
 
     if (businessId) {
-      const { data: existing, error: selectError } = await supabase
-        .from('site_settings')
-        .select('id')
-        .eq('business_id', businessId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (selectError) {
-        console.error('Error checking existing settings:', selectError);
-        throw selectError;
-      }
-
-      if (existing) {
-        const { error: updateError } = await supabase
+      try {
+        // Use key/value pattern for consistency
+        const { error } = await supabase
           .from('site_settings')
-          .update({ currency: newCurrency, updated_at: new Date().toISOString() })
-          .eq('id', existing.id);
-
-        if (updateError) {
-          console.error('Error updating currency:', updateError);
-          throw updateError;
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('site_settings')
-          .insert({
-            key: `settings_${businessId}`,
+          .upsert({
+            business_id: businessId,
+            key: 'currency',
             value: newCurrency,
             category: 'general',
-            business_id: businessId,
-            currency: newCurrency,
-          });
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'business_id,key' });
 
-        if (insertError) {
-          console.error('Error inserting currency:', insertError);
-          throw insertError;
+        if (error) {
+          console.error('Error saving currency:', error);
+          throw error;
         }
+      } catch (error) {
+        console.error('Error updating currency:', error);
+        throw error;
       }
     }
   };
