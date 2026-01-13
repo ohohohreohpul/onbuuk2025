@@ -6,7 +6,6 @@ import AccountCreationPrompt from './AccountCreationPrompt';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from './ui/button';
-import '../types/paypal.d.ts';
 
 interface SelectedProduct {
   product: {
