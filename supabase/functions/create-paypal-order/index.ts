@@ -106,6 +106,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get PayPal access token
+    console.log("Attempting PayPal authentication...");
     const authResponse = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
       method: "POST",
       headers: {
@@ -118,7 +119,12 @@ Deno.serve(async (req: Request) => {
     if (!authResponse.ok) {
       const errorText = await authResponse.text();
       console.error("PayPal auth error:", errorText);
-      throw new Error("Failed to authenticate with PayPal");
+      
+      // Provide helpful error message
+      if (authResponse.status === 401) {
+        throw new Error("PayPal authentication failed. Please check that your PayPal Client ID and Secret are correct and are LIVE credentials (not sandbox).");
+      }
+      throw new Error(`Failed to authenticate with PayPal: ${errorText}`);
     }
 
     const authData = await authResponse.json();
