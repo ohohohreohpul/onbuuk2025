@@ -397,10 +397,24 @@ export default function PaymentSettings() {
               <input
                 type="password"
                 value={stripeSecretKey}
-                onChange={(e) => setStripeSecretKey(e.target.value)}
-                className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
+                onChange={(e) => setStripeSecretKey(e.target.value.trim())}
+                className={`w-full px-4 py-2 border rounded focus:outline-none ${
+                  stripeSecretKey && !stripeSecretKey.startsWith('sk_live_') && !stripeSecretKey.startsWith('sk_test_')
+                    ? 'border-red-300 focus:border-red-500'
+                    : 'border-stone-200 focus:border-stone-800'
+                }`}
                 placeholder="sk_live_..."
               />
+              {stripeSecretKey && !stripeSecretKey.startsWith('sk_live_') && !stripeSecretKey.startsWith('sk_test_') && (
+                <p className="text-xs text-red-500 mt-1">
+                  Invalid key format. Stripe secret keys should start with "sk_live_" or "sk_test_"
+                </p>
+              )}
+              {stripeSecretKey && stripeSecretKey.startsWith('sk_test_') && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Warning: You're using a test key. Switch to a live key (sk_live_) for production payments.
+                </p>
+              )}
               <p className="text-xs text-stone-500 mt-1">
                 Get your live secret key from{' '}
                 <a
