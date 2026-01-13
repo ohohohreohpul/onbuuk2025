@@ -106,21 +106,21 @@ Deno.serve(async (req: Request) => {
     const captureData = await captureResponse.json();
     console.log("PayPal order captured:", captureData.id, captureData.status);
 
-    // Process based on metadata in custom_id
+    // Process based on custom_id format
     if (captureData.status === "COMPLETED") {
       const purchaseUnit = captureData.purchase_units?.[0];
-      let metadata: any = {};
+      const customId = purchaseUnit?.payments?.captures?.[0]?.custom_id || purchaseUnit?.custom_id || "";
       
-      try {
-        metadata = JSON.parse(purchaseUnit?.payments?.captures?.[0]?.custom_id || purchaseUnit?.custom_id || "{}");
-      } catch (e) {
-        console.error("Error parsing metadata:", e);
-      }
+      console.log("Processing payment with custom_id:", customId);
 
-      console.log("Processing payment with metadata:", metadata);
-
-      if (metadata.type === "booking" && metadata.booking_id) {
-        // Update booking status
+      // Parse the short custom_id format: type|business_prefix|identifier
+      const parts = customId.split("|");
+      const type = parts[0]; // 'gc' for gift card, 'bk' for booking
+      
+      if (type === "bk" && parts[1]) {
+        // Booking payment
+        const bookingId = parts[1];
+        
         const { error: bookingError } = await supabase
           .from("bookings")
           .update({
@@ -128,34 +128,60 @@ Deno.serve(async (req: Request) => {
             status: "confirmed",
             paypal_order_id: orderId,
           })
-          .eq("id", metadata.booking_id);
+          .eq("id", bookingId);
 
         if (bookingError) {
           console.error("Error updating booking:", bookingError);
         } else {
-          console.log("Booking confirmed:", metadata.booking_id);
-
-          // Send confirmation email
-          await sendBookingConfirmationEmail(supabase, metadata.booking_id);
+          console.log("Booking confirmed:", bookingId);
+          await sendBookingConfirmationEmail(supabase, bookingId);
         }
-      } else if (metadata.type === "gift_card" && metadata.gc_code) {
-        // Create gift card
+      } else if (type === "gc" && parts[2]) {
+        // Gift card payment - retrieve metadata from temp storage
+        const gcCode = parts[2];
+        const tempKey = `paypal_temp_gc_${gcCode}`;
+        
+        const { data: tempData } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("business_id", businessId)
+          .eq("key", tempKey)
+          .maybeSingle();
+        
+        let metadata: any = {};
+        if (tempData?.value) {
+          try {
+            metadata = JSON.parse(tempData.value);
+          } catch (e) {
+            console.error("Error parsing temp metadata:", e);
+          }
+        }
+        
+        console.log("Gift card metadata:", metadata);
+        
+        // Check if gift card already exists
         const { data: existingGiftCard } = await supabase
           .from("gift_cards")
           .select("id")
-          .eq("paypal_order_id", orderId)
+          .eq("code", gcCode)
           .maybeSingle();
 
         if (existingGiftCard) {
-          console.log("Gift card already exists for this order");
+          // Update existing gift card with PayPal order ID
+          await supabase
+            .from("gift_cards")
+            .update({ paypal_order_id: orderId, status: "active" })
+            .eq("id", existingGiftCard.id);
+          console.log("Gift card updated:", existingGiftCard.id);
         } else {
+          // Create new gift card
           const { data: newGiftCard, error: giftCardError } = await supabase
             .from("gift_cards")
             .insert({
-              business_id: metadata.business_id,
-              code: metadata.gc_code,
-              original_value_cents: parseInt(metadata.gc_amount),
-              current_balance_cents: parseInt(metadata.gc_amount),
+              business_id: metadata.business_id || businessId,
+              code: gcCode,
+              original_value_cents: parseInt(metadata.gc_amount) || 0,
+              current_balance_cents: parseInt(metadata.gc_amount) || 0,
               status: "active",
               paypal_order_id: orderId,
               purchased_for_email: metadata.gc_recipient_email || null,
@@ -172,9 +198,9 @@ Deno.serve(async (req: Request) => {
             // Record transaction
             await supabase.from("gift_card_transactions").insert({
               gift_card_id: newGiftCard.id,
-              amount_cents: parseInt(metadata.gc_amount),
+              amount_cents: parseInt(metadata.gc_amount) || 0,
               transaction_type: "purchase",
-              description: `Purchased by ${metadata.customer_name} via PayPal`,
+              description: `Purchased by ${metadata.customer_name || 'Customer'} via PayPal`,
             });
 
             // Send email to recipient if provided
@@ -183,6 +209,13 @@ Deno.serve(async (req: Request) => {
             }
           }
         }
+        
+        // Clean up temp data
+        await supabase
+          .from("site_settings")
+          .delete()
+          .eq("business_id", businessId)
+          .eq("key", tempKey);
       }
     }
 
