@@ -1,0 +1,323 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+interface CaptureRequest {
+  orderId: string;
+  businessId: string;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const { orderId, businessId }: CaptureRequest = await req.json();
+
+    if (!orderId || !businessId) {
+      throw new Error("orderId and businessId are required");
+    }
+
+    // Get PayPal credentials for this business
+    const { data: settings } = await supabase
+      .from("site_settings")
+      .select("key, value")
+      .eq("business_id", businessId)
+      .in("key", ["paypal_client_id", "paypal_secret"]);
+
+    const settingsMap: { [key: string]: string } = {};
+    if (settings) {
+      settings.forEach((setting: { key: string; value: string }) => {
+        try {
+          settingsMap[setting.key] = JSON.parse(setting.value);
+        } catch {
+          settingsMap[setting.key] = setting.value;
+        }
+      });
+    }
+
+    const paypalClientId = settingsMap.paypal_client_id || "";
+    const paypalSecret = settingsMap.paypal_secret || "";
+
+    if (!paypalClientId || !paypalSecret) {
+      throw new Error("PayPal credentials not configured for this business");
+    }
+
+    // Get PayPal access token
+    const authResponse = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalSecret}`)}`
+      },
+      body: "grant_type=client_credentials"
+    });
+
+    if (!authResponse.ok) {
+      throw new Error("Failed to authenticate with PayPal");
+    }
+
+    const authData = await authResponse.json();
+    const accessToken = authData.access_token;
+
+    // Capture the order
+    const captureResponse = await fetch(`https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!captureResponse.ok) {
+      const errorData = await captureResponse.text();
+      console.error("PayPal capture error:", errorData);
+      throw new Error(`Failed to capture PayPal order: ${errorData}`);
+    }
+
+    const captureData = await captureResponse.json();
+    console.log("PayPal order captured:", captureData.id, captureData.status);
+
+    // Process based on metadata in custom_id
+    if (captureData.status === "COMPLETED") {
+      const purchaseUnit = captureData.purchase_units?.[0];
+      let metadata: any = {};
+      
+      try {
+        metadata = JSON.parse(purchaseUnit?.payments?.captures?.[0]?.custom_id || purchaseUnit?.custom_id || "{}");
+      } catch (e) {
+        console.error("Error parsing metadata:", e);
+      }
+
+      console.log("Processing payment with metadata:", metadata);
+
+      if (metadata.type === "booking" && metadata.booking_id) {
+        // Update booking status
+        const { error: bookingError } = await supabase
+          .from("bookings")
+          .update({
+            payment_status: "completed",
+            status: "confirmed",
+            paypal_order_id: orderId,
+          })
+          .eq("id", metadata.booking_id);
+
+        if (bookingError) {
+          console.error("Error updating booking:", bookingError);
+        } else {
+          console.log("Booking confirmed:", metadata.booking_id);
+
+          // Send confirmation email
+          await sendBookingConfirmationEmail(supabase, metadata.booking_id);
+        }
+      } else if (metadata.type === "gift_card" && metadata.gc_code) {
+        // Create gift card
+        const { data: existingGiftCard } = await supabase
+          .from("gift_cards")
+          .select("id")
+          .eq("paypal_order_id", orderId)
+          .maybeSingle();
+
+        if (existingGiftCard) {
+          console.log("Gift card already exists for this order");
+        } else {
+          const { data: newGiftCard, error: giftCardError } = await supabase
+            .from("gift_cards")
+            .insert({
+              business_id: metadata.business_id,
+              code: metadata.gc_code,
+              original_value_cents: parseInt(metadata.gc_amount),
+              current_balance_cents: parseInt(metadata.gc_amount),
+              status: "active",
+              paypal_order_id: orderId,
+              purchased_for_email: metadata.gc_recipient_email || null,
+              expires_at: metadata.gc_expires_at || null,
+            })
+            .select()
+            .single();
+
+          if (giftCardError) {
+            console.error("Error creating gift card:", giftCardError);
+          } else {
+            console.log("Gift card created:", newGiftCard.id);
+
+            // Record transaction
+            await supabase.from("gift_card_transactions").insert({
+              gift_card_id: newGiftCard.id,
+              amount_cents: parseInt(metadata.gc_amount),
+              transaction_type: "purchase",
+              description: `Purchased by ${metadata.customer_name} via PayPal`,
+            });
+
+            // Send email to recipient if provided
+            if (metadata.gc_recipient_email) {
+              await sendGiftCardEmail(supabase, metadata, newGiftCard.id);
+            }
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        status: captureData.status,
+        orderId: captureData.id,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error capturing PayPal order:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Failed to capture PayPal order" }),
+      {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+});
+
+async function sendBookingConfirmationEmail(supabase: any, bookingId: string) {
+  try {
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("customer_email, customer_name, service_id, duration_id, specialist_id, booking_date, start_time, business_id")
+      .eq("id", bookingId)
+      .maybeSingle();
+
+    if (!booking) return;
+
+    const { data: service } = await supabase
+      .from("services")
+      .select("name")
+      .eq("id", booking.service_id)
+      .maybeSingle();
+
+    const { data: duration } = await supabase
+      .from("service_durations")
+      .select("duration_minutes, price_cents")
+      .eq("id", booking.duration_id)
+      .maybeSingle();
+
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("name, address, phone")
+      .eq("id", booking.business_id)
+      .maybeSingle();
+
+    let specialistName = "Any Available Specialist";
+    if (booking.specialist_id) {
+      const { data: specialist } = await supabase
+        .from("specialists")
+        .select("name")
+        .eq("id", booking.specialist_id)
+        .maybeSingle();
+      if (specialist) {
+        specialistName = specialist.name;
+      }
+    }
+
+    const calculateEndTime = (startTime: string, durationMinutes: number): string => {
+      const [hours, minutes] = startTime.split(":").map(Number);
+      const totalMinutes = hours * 60 + minutes + durationMinutes;
+      const endHours = Math.floor(totalMinutes / 60) % 24;
+      const endMinutes = totalMinutes % 60;
+      return `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+    };
+
+    const formattedDate = new Date(booking.booking_date).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const endTime = duration ? calculateEndTime(booking.start_time, duration.duration_minutes) : booking.start_time;
+    const cancelUrl = `${Deno.env.get("SUPABASE_URL")?.replace("/functions/v1", "")}/cancel?id=${bookingId}`;
+
+    await supabase.functions.invoke("send-business-email", {
+      body: {
+        business_id: booking.business_id,
+        event_key: "booking_confirmation",
+        recipient_email: booking.customer_email,
+        recipient_name: booking.customer_name,
+        variables: {
+          customer_name: booking.customer_name,
+          customer_email: booking.customer_email,
+          service_name: service?.name || "Service",
+          service_duration: duration ? `${duration.duration_minutes} minutes` : "N/A",
+          service_price: duration ? `€${(duration.price_cents / 100).toFixed(2)}` : "N/A",
+          booking_date: formattedDate,
+          booking_time: booking.start_time,
+          booking_end_time: endTime,
+          specialist_name: specialistName,
+          business_name: business?.name || "Our Business",
+          business_address: business?.address || "",
+          business_phone: business?.phone || "",
+          business_email: "",
+          cancellation_link: cancelUrl,
+          reschedule_link: cancelUrl,
+        },
+        booking_id: bookingId,
+      },
+    });
+
+    console.log("Booking confirmation email sent");
+  } catch (error) {
+    console.error("Error sending booking confirmation email:", error);
+  }
+}
+
+async function sendGiftCardEmail(supabase: any, metadata: any, giftCardId: string) {
+  try {
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("name")
+      .eq("id", metadata.business_id)
+      .maybeSingle();
+
+    await supabase.functions.invoke("send-business-email", {
+      body: {
+        business_id: metadata.business_id,
+        event_key: "gift_card_received",
+        recipient_email: metadata.gc_recipient_email,
+        recipient_name: metadata.gc_recipient_email.split("@")[0],
+        variables: {
+          recipient_email: metadata.gc_recipient_email,
+          gift_card_code: metadata.gc_code,
+          amount: `€${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
+          message: metadata.gc_message || "",
+          sender_name: metadata.customer_name,
+          business_name: business?.name || "Our Business",
+        },
+      },
+    });
+
+    console.log("Gift card email sent");
+  } catch (error) {
+    console.error("Error sending gift card email:", error);
+  }
+}
