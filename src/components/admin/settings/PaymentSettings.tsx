@@ -188,6 +188,24 @@ export default function PaymentSettings() {
           value: JSON.stringify(allowPayInPerson),
           category: 'payment',
         },
+        {
+          business_id: businessId,
+          key: 'paypal_enabled',
+          value: JSON.stringify(paypalEnabled),
+          category: 'payment',
+        },
+        {
+          business_id: businessId,
+          key: 'paypal_client_id',
+          value: paypalClientId,
+          category: 'payment',
+        },
+        {
+          business_id: businessId,
+          key: 'paypal_secret',
+          value: paypalSecret,
+          category: 'payment',
+        },
       ];
 
       for (const update of updates) {
