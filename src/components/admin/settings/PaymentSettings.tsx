@@ -53,7 +53,7 @@ export default function PaymentSettings() {
       .from('site_settings')
       .select('key, value')
       .eq('business_id', businessId)
-      .in('key', ['stripe_enabled', 'stripe_secret_key', 'allow_pay_in_person']);
+      .in('key', ['stripe_enabled', 'stripe_secret_key', 'allow_pay_in_person', 'paypal_enabled', 'paypal_client_id', 'paypal_secret']);
 
     if (data) {
       data.forEach((setting) => {
@@ -64,6 +64,12 @@ export default function PaymentSettings() {
           setStripeSecretKey(value);
         } else if (setting.key === 'allow_pay_in_person') {
           setAllowPayInPerson(value === 'true' || value === true);
+        } else if (setting.key === 'paypal_enabled') {
+          setPaypalEnabled(value === 'true' || value === true);
+        } else if (setting.key === 'paypal_client_id') {
+          setPaypalClientId(value);
+        } else if (setting.key === 'paypal_secret') {
+          setPaypalSecret(value);
         }
       });
     }
