@@ -419,15 +419,104 @@ export default function PaymentSettings() {
           {allowPayInPerson && (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded">
               <p className="text-sm text-blue-800">
-                When enabled, customers will see two payment options:
+                When enabled, customers will see payment options including:
               </p>
               <ul className="text-sm text-blue-700 mt-2 space-y-1 ml-4 list-disc">
-                <li>Pay Online (via Stripe)</li>
+                <li>Pay Online (via Stripe or PayPal if enabled)</li>
                 <li>Pay in Person (at your location)</li>
               </ul>
               <p className="text-xs text-blue-600 mt-2">
                 You can mark "Pay in Person" bookings as paid in the POS system
               </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* PayPal Settings */}
+      <div>
+        <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">
+          <Wallet className="w-5 h-5" />
+          <span>PayPal Payments</span>
+        </h3>
+
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-800">
+              Accept payments via PayPal. Customers can pay with their PayPal balance, linked bank accounts, or credit/debit cards through PayPal.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-stone-50 rounded">
+            <div>
+              <p className="font-medium text-stone-800">Enable PayPal Payments</p>
+              <p className="text-sm text-stone-600">Accept online payments via PayPal</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={paypalEnabled}
+                onChange={(e) => setPaypalEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          {paypalEnabled && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  PayPal Client ID
+                </label>
+                <input
+                  type="text"
+                  value={paypalClientId}
+                  onChange={(e) => setPaypalClientId(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
+                  placeholder="Enter your PayPal Client ID"
+                />
+                <p className="text-xs text-stone-500 mt-1">
+                  Get your Client ID from{' '}
+                  <a
+                    href="https://developer.paypal.com/dashboard/applications/live"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    PayPal Developer Dashboard
+                  </a>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  PayPal Secret Key
+                </label>
+                <input
+                  type="password"
+                  value={paypalSecret}
+                  onChange={(e) => setPaypalSecret(e.target.value)}
+                  className="w-full px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800"
+                  placeholder="Enter your PayPal Secret"
+                />
+                <p className="text-xs text-stone-500 mt-1">
+                  Your PayPal Secret Key (keep this secure)
+                </p>
+              </div>
+
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded">
+                <p className="text-sm text-amber-800 font-medium mb-2">How to get PayPal API credentials:</p>
+                <ol className="text-sm text-amber-700 space-y-1 ml-4 list-decimal">
+                  <li>Go to <a href="https://developer.paypal.com/" target="_blank" rel="noopener noreferrer" className="underline">developer.paypal.com</a></li>
+                  <li>Log in with your PayPal Business account</li>
+                  <li>Navigate to Apps & Credentials</li>
+                  <li>Click "Create App" under Live credentials</li>
+                  <li>Copy the Client ID and Secret</li>
+                </ol>
+              </div>
+            </div>
+          )}
             </div>
           )}
         </div>
