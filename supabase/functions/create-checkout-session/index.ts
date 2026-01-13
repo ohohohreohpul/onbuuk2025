@@ -88,19 +88,50 @@ Deno.serve(async (req: Request) => {
     const settingsMap: { [key: string]: string } = {};
     if (settings) {
       settings.forEach((setting: { key: string; value: string }) => {
+        let value = setting.value;
+        
+        // Handle potential double-encoding or JSON-stringified values
+        // First, try to parse as JSON to remove any quotes
         try {
-          settingsMap[setting.key] = JSON.parse(setting.value);
+          const parsed = JSON.parse(value);
+          // If parsed successfully and it's a string, use it
+          if (typeof parsed === 'string') {
+            value = parsed;
+          } else if (typeof parsed === 'boolean') {
+            value = parsed.toString();
+          }
         } catch {
-          settingsMap[setting.key] = setting.value;
+          // Not JSON, use as-is but trim whitespace
+          value = value.trim();
         }
+        
+        // Remove any remaining wrapper quotes (in case of double encoding)
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        }
+        
+        settingsMap[setting.key] = value;
       });
     }
 
     let stripeSecretKey = settingsMap.stripe_secret_key || "";
+    
+    // Clean up the key - remove any whitespace and validate format
+    stripeSecretKey = stripeSecretKey.trim();
+    
+    // Log key format for debugging (only first/last chars for security)
+    if (stripeSecretKey) {
+      const keyPreview = stripeSecretKey.length > 10 
+        ? `${stripeSecretKey.substring(0, 7)}...${stripeSecretKey.substring(stripeSecretKey.length - 4)}`
+        : "too_short";
+      console.log(`Stripe key format check: ${keyPreview}, length: ${stripeSecretKey.length}`);
+    }
+    
     if (!stripeSecretKey || stripeSecretKey === "") {
       const platformKey = Deno.env.get("STRIPE_SECRET_KEY");
       if (platformKey) {
         stripeSecretKey = platformKey;
+        console.log("Using platform Stripe key");
       } else {
         throw new Error("Stripe secret key not configured");
       }
