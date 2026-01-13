@@ -125,6 +125,15 @@ Deno.serve(async (req: Request) => {
         ? `${stripeSecretKey.substring(0, 7)}...${stripeSecretKey.substring(stripeSecretKey.length - 4)}`
         : "too_short";
       console.log(`Stripe key format check: ${keyPreview}, length: ${stripeSecretKey.length}`);
+      
+      // Validate key format
+      if (!stripeSecretKey.startsWith('sk_live_') && !stripeSecretKey.startsWith('sk_test_')) {
+        console.error(`Invalid Stripe key format. Key starts with: ${stripeSecretKey.substring(0, 10)}`);
+        throw new Error(
+          "Invalid Stripe secret key format. The key should start with 'sk_live_' or 'sk_test_'. " +
+          "Please check your Payment Settings and re-enter the key without any extra characters."
+        );
+      }
     }
     
     if (!stripeSecretKey || stripeSecretKey === "") {
