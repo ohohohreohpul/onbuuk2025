@@ -4,13 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
-
-// PayPal Script loader
-declare global {
-  interface Window {
-    paypal?: any;
-  }
-}
+import '../types/paypal.d.ts';
 
 interface GiftCardSettings {
   enabled: boolean;
