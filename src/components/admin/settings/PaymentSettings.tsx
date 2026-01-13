@@ -57,19 +57,37 @@ export default function PaymentSettings() {
 
     if (data) {
       data.forEach((setting) => {
-        const value = setting.value;
+        let value = setting.value;
+        
+        // Handle potential JSON-encoded values or values with extra quotes
+        try {
+          const parsed = JSON.parse(value);
+          if (typeof parsed === 'string') {
+            value = parsed;
+          }
+        } catch {
+          // Not JSON, use as-is
+        }
+        
+        // Trim whitespace
+        value = typeof value === 'string' ? value.trim() : value;
+        
         if (setting.key === 'stripe_enabled') {
           setStripeEnabled(value === 'true' || value === true);
         } else if (setting.key === 'stripe_secret_key') {
+          // Remove any wrapper quotes that might have been accidentally added
+          if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+            value = value.slice(1, -1);
+          }
           setStripeSecretKey(value);
         } else if (setting.key === 'allow_pay_in_person') {
           setAllowPayInPerson(value === 'true' || value === true);
         } else if (setting.key === 'paypal_enabled') {
           setPaypalEnabled(value === 'true' || value === true);
         } else if (setting.key === 'paypal_client_id') {
-          setPaypalClientId(value);
+          setPaypalClientId(typeof value === 'string' ? value : '');
         } else if (setting.key === 'paypal_secret') {
-          setPaypalSecret(value);
+          setPaypalSecret(typeof value === 'string' ? value : '');
         }
       });
     }
