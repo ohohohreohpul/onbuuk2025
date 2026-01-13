@@ -72,19 +72,37 @@ Deno.serve(async (req: Request) => {
     const settingsMap: { [key: string]: string } = {};
     if (settings) {
       settings.forEach((setting: { key: string; value: string }) => {
+        let value = setting.value;
+        
+        // Handle potential double-encoding or JSON-stringified values
         try {
-          settingsMap[setting.key] = JSON.parse(setting.value);
+          const parsed = JSON.parse(value);
+          if (typeof parsed === 'string') {
+            value = parsed;
+          } else if (typeof parsed === 'boolean') {
+            value = parsed.toString();
+          }
         } catch {
-          settingsMap[setting.key] = setting.value;
+          // Not JSON, use as-is but trim whitespace
+          value = value.trim();
         }
+        
+        // Remove any remaining wrapper quotes
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        }
+        
+        settingsMap[setting.key] = value.trim();
       });
     }
 
     const paypalClientId = settingsMap.paypal_client_id || "";
     const paypalSecret = settingsMap.paypal_secret || "";
 
+    console.log(`PayPal credentials check - Client ID length: ${paypalClientId.length}, Secret length: ${paypalSecret.length}`);
+
     if (!paypalClientId || !paypalSecret) {
-      throw new Error("PayPal credentials not configured for this business");
+      throw new Error("PayPal credentials not configured for this business. Please add your PayPal Client ID and Secret in Payment Settings.");
     }
 
     // Get PayPal access token
