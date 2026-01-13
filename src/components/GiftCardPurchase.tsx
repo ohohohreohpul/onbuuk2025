@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
-import '../types/paypal.d.ts';
 
 interface GiftCardSettings {
   enabled: boolean;
