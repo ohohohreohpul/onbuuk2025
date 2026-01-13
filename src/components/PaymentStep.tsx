@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight, Wallet } from 'lucide-react';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from './ui/button';
+
+// PayPal Script loader
+declare global {
+  interface Window {
+    paypal?: any;
+  }
+}
 
 interface SelectedProduct {
   product: {
@@ -50,11 +57,15 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [stripeEnabled, setStripeEnabled] = useState<boolean>(false);
+  const [paypalEnabled, setPaypalEnabled] = useState<boolean>(false);
+  const [paypalClientId, setPaypalClientId] = useState<string>('');
   const [allowPayInPerson, setAllowPayInPerson] = useState<boolean>(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'in_person'>('stripe');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'in_person'>('stripe');
   const [loading, setLoading] = useState(true);
   const [specialistName, setSpecialistName] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
   const primaryColor = colors.primary || '#008374';
   const primaryHoverColor = colors.primaryHover || '#006d5f';
@@ -72,7 +83,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [showGiftCardSection, setShowGiftCardSection] = useState(false);
 
   useEffect(() => {
-    checkStripeStatus();
+    checkPaymentStatus();
     if (bookingData.specialistId) {
       fetchSpecialistName();
     }
