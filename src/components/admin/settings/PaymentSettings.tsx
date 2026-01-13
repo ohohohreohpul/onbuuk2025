@@ -23,6 +23,11 @@ export default function PaymentSettings() {
   const [connectData, setConnectData] = useState<BusinessConnectData | null>(null);
   const [selectedCountry, setSelectedCountry] = useState('DE');
   const [connectingToStripe, setConnectingToStripe] = useState(false);
+  
+  // PayPal settings
+  const [paypalEnabled, setPaypalEnabled] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState('');
+  const [paypalSecret, setPaypalSecret] = useState('');
 
   useEffect(() => {
     fetchSettings();
