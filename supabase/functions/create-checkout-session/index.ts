@@ -248,7 +248,21 @@ Deno.serve(async (req: Request) => {
 
     if (!stripeResponse.ok) {
       const errorData = await stripeResponse.text();
-      throw new Error(`Stripe API error: ${errorData}`);
+      console.error("Stripe API error response:", errorData);
+      
+      // Parse and provide more helpful error messages
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error?.message?.includes("Invalid API Key")) {
+          throw new Error(
+            "Invalid Stripe API key. Please check that your secret key is correct and doesn't have extra spaces or quotes. " +
+            "Go to Payment Settings and re-enter your Stripe secret key."
+          );
+        }
+        throw new Error(`Stripe error: ${errorJson.error?.message || errorData}`);
+      } catch (parseError) {
+        throw new Error(`Stripe API error: ${errorData}`);
+      }
     }
 
     const session = await stripeResponse.json();
