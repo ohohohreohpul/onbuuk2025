@@ -168,16 +168,6 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     setProcessing(true);
 
     try {
-      // Generate gift card code
-      const { data: codeData, error: codeError } = await supabase
-        .rpc('generate_gift_card_code');
-
-      if (codeError || !codeData) {
-        throw new Error('Failed to generate gift card code');
-      }
-
-      const code = codeData;
-
       // Calculate expiry
       let calculatedExpiresAt: string | null = null;
       if (settings?.expiry_days) {
