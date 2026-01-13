@@ -152,29 +152,39 @@ Deno.serve(async (req: Request) => {
     const businessSubdomain = businessData?.subdomain || '';
     const cancelUrlParams = businessSubdomain ? `?from=${businessSubdomain}` : '';
 
-    // Build custom_id with metadata
-    const metadata: any = {
-      business_id: businessId,
-      customer_name: customerName,
-      customer_email: customerEmail,
-    };
-
+    // Build custom_id with minimal metadata (PayPal limits to 127 chars)
+    // Store full metadata in database instead
+    let customId: string;
+    
     if (isGiftCard && giftCardData) {
-      metadata.type = "gift_card";
-      metadata.gc_code = giftCardData.code;
-      metadata.gc_amount = giftCardData.originalValueCents.toString();
-      if (giftCardData.purchasedForEmail) {
-        metadata.gc_recipient_email = giftCardData.purchasedForEmail;
-      }
-      if (giftCardData.expiresAt) {
-        metadata.gc_expires_at = giftCardData.expiresAt;
-      }
-      if (giftCardData.message) {
-        metadata.gc_message = giftCardData.message;
-      }
+      // Store gift card data in a temporary record and reference it
+      const { data: tempRecord, error: tempError } = await supabase
+        .from("site_settings")
+        .upsert({
+          business_id: businessId,
+          key: `paypal_temp_gc_${giftCardData.code}`,
+          value: JSON.stringify({
+            business_id: businessId,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            type: "gift_card",
+            gc_code: giftCardData.code,
+            gc_amount: giftCardData.originalValueCents.toString(),
+            gc_recipient_email: giftCardData.purchasedForEmail || null,
+            gc_expires_at: giftCardData.expiresAt || null,
+            gc_message: giftCardData.message || null,
+          }),
+          category: "paypal_temp",
+        }, { onConflict: 'business_id,key' })
+        .select();
+      
+      // Short custom_id format: gc|business_id_prefix|code
+      customId = `gc|${businessId.substring(0, 8)}|${giftCardData.code}`;
     } else if (bookingId) {
-      metadata.type = "booking";
-      metadata.booking_id = bookingId;
+      // For bookings, just store booking ID - we can look up everything else
+      customId = `bk|${bookingId}`;
+    } else {
+      customId = `${businessId.substring(0, 8)}|${Date.now()}`;
     }
 
     // Create PayPal order
