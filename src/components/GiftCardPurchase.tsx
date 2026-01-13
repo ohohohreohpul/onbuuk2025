@@ -446,21 +446,235 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         </div>
       </div>
 
-      {/* Purchase Button */}
-      <button
-        onClick={handlePurchase}
-        disabled={processing}
-        className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-3 mb-8"
-      >
-        {processing ? (
-          'Processing...'
-        ) : (
-          <>
-            <CreditCard className="w-5 h-5" />
-            {stripeEnabled ? customization.continue_payment_button : customization.complete_purchase_button}
-          </>
-        )}
-      </button>
+      {/* Payment Method Selection */}
+      {(stripeEnabled || paypalEnabled) && !showPayPalButtons && (
+        <div className="space-y-3 pt-4 border-t">
+          <h3 className="font-medium text-gray-900">Payment Method</h3>
+          <div className="space-y-2">
+            {stripeEnabled && (
+              <button
+                onClick={() => setSelectedPaymentMethod('stripe')}
+                className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                  selectedPaymentMethod === 'stripe'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="font-medium text-gray-800">Pay with Card</p>
+                      <p className="text-xs text-gray-600">Secure payment via Stripe</p>
+                    </div>
+                  </div>
+                  {selectedPaymentMethod === 'stripe' && (
+                    <Check className="w-5 h-5 text-blue-600" />
+                  )}
+                </div>
+              </button>
+            )}
+
+            {paypalEnabled && (
+              <button
+                onClick={() => setSelectedPaymentMethod('paypal')}
+                className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                  selectedPaymentMethod === 'paypal'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Wallet className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-gray-800">Pay with PayPal</p>
+                      <p className="text-xs text-gray-600">PayPal, Credit/Debit Card, Pay Later</p>
+                    </div>
+                  </div>
+                  {selectedPaymentMethod === 'paypal' && (
+                    <Check className="w-5 h-5 text-blue-600" />
+                  )}
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PayPal Buttons */}
+      {showPayPalButtons && paypalLoaded && (
+        <div className="space-y-3 pt-4 border-t">
+          <h3 className="font-medium text-gray-900">Complete Payment with PayPal</h3>
+          <GiftCardPayPalButtons
+            businessId={businessId!}
+            amount={getFinalAmount() / 100}
+            customerEmail={buyerEmail}
+            customerName={buyerName}
+            giftCardData={{
+              code: giftCardCode,
+              originalValueCents: getFinalAmount(),
+              purchasedForEmail: recipientEmail || null,
+              expiresAt: expiresAt,
+              message: message || null,
+            }}
+            onSuccess={() => {
+              alert(`Gift card purchased successfully!\n\nYour gift card code: ${giftCardCode}\n\nAn email has been sent with the details.`);
+              onBack();
+            }}
+            onError={(err) => {
+              setError(err);
+              setShowPayPalButtons(false);
+            }}
+          />
+          <button
+            onClick={() => setShowPayPalButtons(false)}
+            className="w-full text-sm text-gray-600 hover:text-gray-800"
+          >
+            ← Choose different payment method
+          </button>
+        </div>
+      )}
+
+      {/* Purchase Button - Hide when showing PayPal buttons */}
+      {!showPayPalButtons && (
+        <button
+          onClick={handlePurchase}
+          disabled={processing}
+          className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-3 mb-8"
+        >
+          {processing ? (
+            'Processing...'
+          ) : (
+            <>
+              {selectedPaymentMethod === 'paypal' ? (
+                <Wallet className="w-5 h-5" />
+              ) : (
+                <CreditCard className="w-5 h-5" />
+              )}
+              {stripeEnabled || paypalEnabled ? customization.continue_payment_button : customization.complete_purchase_button}
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
+}
+
+// PayPal Button Container for Gift Cards
+interface GiftCardPayPalButtonsProps {
+  businessId: string;
+  amount: number;
+  customerEmail: string;
+  customerName: string;
+  giftCardData: {
+    code: string;
+    originalValueCents: number;
+    purchasedForEmail: string | null;
+    expiresAt: string | null;
+    message: string | null;
+  };
+  onSuccess: () => void;
+  onError: (error: string) => void;
+}
+
+function GiftCardPayPalButtons({
+  businessId,
+  amount,
+  customerEmail,
+  customerName,
+  giftCardData,
+  onSuccess,
+  onError,
+}: GiftCardPayPalButtonsProps) {
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node && window.paypal) {
+      node.innerHTML = '';
+      
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal',
+        },
+        createOrder: async () => {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paypal-order`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  businessId,
+                  amount,
+                  customerEmail,
+                  customerName,
+                  serviceName: 'Gift Card',
+                  dateTime: giftCardData.purchasedForEmail ? `For ${giftCardData.purchasedForEmail}` : 'For yourself',
+                  isGiftCard: true,
+                  giftCardData,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to create PayPal order');
+            }
+
+            const { orderId } = await response.json();
+            return orderId;
+          } catch (error: any) {
+            console.error('Error creating PayPal order:', error);
+            onError(error.message || 'Failed to create PayPal order');
+            throw error;
+          }
+        },
+        onApprove: async (data: any) => {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-paypal-order`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderId: data.orderID,
+                  businessId,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to capture PayPal order');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+              onSuccess();
+            } else {
+              throw new Error('Payment capture failed');
+            }
+          } catch (error: any) {
+            console.error('Error capturing PayPal order:', error);
+            onError(error.message || 'Failed to complete payment');
+          }
+        },
+        onError: (err: any) => {
+          console.error('PayPal error:', err);
+          onError('PayPal encountered an error. Please try again.');
+        },
+        onCancel: () => {
+          console.log('PayPal payment cancelled');
+        },
+      }).render(node);
+    }
+  }, [businessId, amount, customerEmail, customerName, giftCardData, onSuccess, onError]);
+
+  return <div ref={containerRef} />;
 }
