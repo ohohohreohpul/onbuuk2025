@@ -1116,3 +1116,122 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     </div>
   );
 }
+
+// PayPal Button Container Component
+interface PayPalButtonContainerProps {
+  bookingId: string;
+  businessId: string;
+  amount: number;
+  customerEmail: string;
+  customerName: string;
+  serviceName: string;
+  specialistName: string;
+  dateTime: string;
+  onSuccess: (orderId: string) => void;
+  onError: (error: string) => void;
+}
+
+function PayPalButtonContainer({
+  bookingId,
+  businessId,
+  amount,
+  customerEmail,
+  customerName,
+  serviceName,
+  specialistName,
+  dateTime,
+  onSuccess,
+  onError,
+}: PayPalButtonContainerProps) {
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node && window.paypal) {
+      // Clear any existing buttons
+      node.innerHTML = '';
+      
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal',
+        },
+        createOrder: async () => {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-paypal-order`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  bookingId,
+                  businessId,
+                  amount,
+                  customerEmail,
+                  customerName,
+                  serviceName,
+                  specialistName,
+                  dateTime,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to create PayPal order');
+            }
+
+            const { orderId } = await response.json();
+            return orderId;
+          } catch (error: any) {
+            console.error('Error creating PayPal order:', error);
+            onError(error.message || 'Failed to create PayPal order');
+            throw error;
+          }
+        },
+        onApprove: async (data: any) => {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-paypal-order`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderId: data.orderID,
+                  businessId,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to capture PayPal order');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+              onSuccess(data.orderID);
+            } else {
+              throw new Error('Payment capture failed');
+            }
+          } catch (error: any) {
+            console.error('Error capturing PayPal order:', error);
+            onError(error.message || 'Failed to complete payment');
+          }
+        },
+        onError: (err: any) => {
+          console.error('PayPal error:', err);
+          onError('PayPal encountered an error. Please try again.');
+        },
+        onCancel: () => {
+          console.log('PayPal payment cancelled');
+        },
+      }).render(node);
+    }
+  }, [bookingId, businessId, amount, customerEmail, customerName, serviceName, specialistName, dateTime, onSuccess, onError]);
+
+  return <div ref={containerRef} />;
+}
