@@ -517,8 +517,6 @@ export default function PaymentSettings() {
               </div>
             </div>
           )}
-            </div>
-          )}
         </div>
       </div>
 
