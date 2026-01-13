@@ -949,62 +949,115 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             <h3 className="text-sm font-medium text-stone-700">Payment Method</h3>
           </div>
 
-          {stripeEnabled && allowPayInPerson ? (
+          {(stripeEnabled || paypalEnabled || allowPayInPerson) && finalPrice > 0 ? (
             <div className="space-y-3">
-              <button
-                onClick={() => setSelectedPaymentMethod('stripe')}
-                className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
-                  selectedPaymentMethod === 'stripe'
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-stone-300 hover:border-stone-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-stone-600" />
-                    <div>
-                      <p className="font-medium text-stone-800">Pay Online</p>
-                      <p className="text-xs text-stone-600">Secure payment via Stripe</p>
+              {stripeEnabled && (
+                <button
+                  onClick={() => setSelectedPaymentMethod('stripe')}
+                  disabled={createdBookingId !== null}
+                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                    selectedPaymentMethod === 'stripe'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-stone-300 hover:border-stone-400'
+                  } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="w-5 h-5 text-stone-600" />
+                      <div>
+                        <p className="font-medium text-stone-800">Pay with Card</p>
+                        <p className="text-xs text-stone-600">Secure payment via Stripe</p>
+                      </div>
                     </div>
+                    {selectedPaymentMethod === 'stripe' && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
                   </div>
-                  {selectedPaymentMethod === 'stripe' && (
-                    <Check className="w-5 h-5 text-blue-600" />
-                  )}
-                </div>
-              </button>
+                </button>
+              )}
 
-              <button
-                onClick={() => setSelectedPaymentMethod('in_person')}
-                className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
-                  selectedPaymentMethod === 'in_person'
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-stone-300 hover:border-stone-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 text-stone-600">💵</div>
-                    <div>
-                      <p className="font-medium text-stone-800">Pay in Person</p>
-                      <p className="text-xs text-stone-600">Pay when you arrive</p>
+              {paypalEnabled && (
+                <button
+                  onClick={() => setSelectedPaymentMethod('paypal')}
+                  disabled={createdBookingId !== null}
+                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                    selectedPaymentMethod === 'paypal'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-stone-300 hover:border-stone-400'
+                  } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Wallet className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-stone-800">Pay with PayPal</p>
+                        <p className="text-xs text-stone-600">PayPal, Credit/Debit Card, Pay Later</p>
+                      </div>
                     </div>
+                    {selectedPaymentMethod === 'paypal' && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
                   </div>
-                  {selectedPaymentMethod === 'in_person' && (
-                    <Check className="w-5 h-5 text-blue-600" />
-                  )}
-                </div>
-              </button>
+                </button>
+              )}
+
+              {allowPayInPerson && (
+                <button
+                  onClick={() => setSelectedPaymentMethod('in_person')}
+                  disabled={createdBookingId !== null}
+                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                    selectedPaymentMethod === 'in_person'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-stone-300 hover:border-stone-400'
+                  } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 text-stone-600">💵</div>
+                      <div>
+                        <p className="font-medium text-stone-800">Pay in Person</p>
+                        <p className="text-xs text-stone-600">Pay when you arrive</p>
+                      </div>
+                    </div>
+                    {selectedPaymentMethod === 'in_person' && (
+                      <Check className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                </button>
+              )}
             </div>
           ) : (
             <p className="text-sm text-stone-600 leading-relaxed">
               {finalPrice === 0
                 ? 'Your booking is fully covered by gift cards. No payment is required.'
-                : stripeEnabled
-                ? `You will be redirected to Stripe to complete your payment of ${formatPrice(finalPrice)} securely.`
-                : allowPayInPerson
-                ? 'You will pay when you arrive at our location.'
-                : 'Payment will be processed securely. For this demo, clicking "Confirm & Pay" will create your booking immediately.'}
+                : 'Payment will be processed securely. Click "Confirm Booking" to proceed.'}
             </p>
+          )}
+
+          {/* PayPal Buttons - Show when PayPal is selected and booking is created */}
+          {selectedPaymentMethod === 'paypal' && paypalEnabled && createdBookingId && paypalLoaded && finalPrice > 0 && (
+            <div className="mt-4 pt-4 border-t border-stone-200">
+              <p className="text-sm text-stone-600 mb-3">Complete your payment with PayPal:</p>
+              <PayPalButtonContainer
+                bookingId={createdBookingId}
+                businessId={tenant.businessId!}
+                amount={finalPrice / 100}
+                customerEmail={bookingData.customerDetails.email}
+                customerName={bookingData.customerDetails.name}
+                serviceName={bookingData.service.name}
+                specialistName={specialistName || 'Any Available Specialist'}
+                dateTime={`${formatDate(bookingData.date)} at ${bookingData.time}`}
+                onSuccess={(orderId) => {
+                  console.log('PayPal payment successful:', orderId);
+                  setBookingId(createdBookingId);
+                  setIsComplete(true);
+                }}
+                onError={(error) => {
+                  console.error('PayPal payment error:', error);
+                  alert(`Payment failed: ${error}`);
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -1017,6 +1070,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           borderTopColor: colors.border || '#e5e5e5',
         }}
       >
+        {/* Hide the button when PayPal is selected and booking is created (PayPal buttons take over) */}
+        {!(selectedPaymentMethod === 'paypal' && createdBookingId) && (
         <Button
           onClick={handlePayment}
           disabled={isProcessing}
