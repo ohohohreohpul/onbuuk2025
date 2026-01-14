@@ -1,4 +1,4 @@
-import { Building2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Building2, AlertCircle, ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
@@ -16,10 +16,15 @@ const RESERVED_ROUTES = [
   'cancel',
   'account',
   'accept-invite',
+  'booking-success',
+  'gift-card-success',
+  'payment-cancelled',
 ];
 
 export function NoBusinessFound() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const currentPath = window.location.pathname;
   const pathParts = currentPath.split('/').filter(p => p);
   const firstSegment = pathParts[0];
@@ -29,7 +34,26 @@ export function NoBusinessFound() {
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
-  }, []);
+    
+    // Auto-retry once after a short delay (handles race conditions)
+    if (attemptedPermalink && retryCount === 0) {
+      const timer = setTimeout(() => {
+        setRetryCount(1);
+        window.location.reload();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [attemptedPermalink, retryCount]);
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    // Clear any cached data that might be stale
+    localStorage.removeItem('current_business_id');
+    localStorage.removeItem('business_permalink');
+    // Force reload
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 relative overflow-hidden">
@@ -51,7 +75,7 @@ export function NoBusinessFound() {
           </div>
           
           <h2 className="text-2xl font-bold text-foreground mb-3 tracking-tight">Business Not Found</h2>
-          <p className="text-muted-foreground mb-8">
+          <p className="text-muted-foreground mb-6">
             {attemptedPermalink ? (
               <>
                 The booking page <span className="font-semibold text-foreground">/{attemptedPermalink}</span> could not be found.
@@ -61,7 +85,25 @@ export function NoBusinessFound() {
             )}
           </p>
 
+          {attemptedPermalink && (
+            <p className="text-sm text-muted-foreground mb-6">
+              This might be a temporary issue. Please try refreshing the page.
+            </p>
+          )}
+
           <div className="flex flex-col gap-3">
+            {attemptedPermalink && (
+              <Button
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 group"
+                size="lg"
+              >
+                <RefreshCw className={`w-5 h-5 mr-2 ${isRetrying ? 'animate-spin' : ''}`} />
+                {isRetrying ? 'Refreshing...' : 'Try Again'}
+              </Button>
+            )}
+            
             <Button
               asChild
               className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300 group"
