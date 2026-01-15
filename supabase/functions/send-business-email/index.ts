@@ -91,10 +91,26 @@ Deno.serve(async (req: Request) => {
 
     if (!template) {
       console.warn(`⚠️ No template found for event_key: ${event_key} in business ${business_id}`);
+      
+      // Check if any template exists but is disabled
+      const { data: disabledTemplate } = await supabase
+        .from('email_templates')
+        .select('id, name, is_enabled')
+        .eq('business_id', business_id)
+        .eq('event_key', event_key)
+        .maybeSingle();
+      
+      let errorMessage = `Email template "${event_key}" not found for this business.`;
+      if (disabledTemplate && !disabledTemplate.is_enabled) {
+        errorMessage = `Email template "${event_key}" exists but is disabled. Please enable it in Email Settings.`;
+      } else {
+        errorMessage = `Email template "${event_key}" not found. Please create it in Email Settings > Templates.`;
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Email template not found or disabled for event: ${event_key}` 
+          error: errorMessage
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
