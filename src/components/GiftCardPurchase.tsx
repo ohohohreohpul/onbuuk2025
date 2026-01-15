@@ -235,6 +235,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             original_value_cents: finalAmount,
             current_balance_cents: finalAmount,
             purchased_for_email: recipientEmail || null,
+            purchased_by_email: buyerEmail || null,
+            purchased_by_name: buyerName || null,
             expires_at: calculatedExpiresAt,
             status: 'active',
           })
