@@ -128,8 +128,38 @@ export function GiftCardDetailModal({
 
     setSendingEmail(target);
     try {
-      const emailPromises = [];
       const errors: string[] = [];
+
+      // Generate PDF for attachment
+      let pdfAttachment: { filename: string; content: string; contentType: string } | null = null;
+      try {
+        const { data: pdfData, error: pdfError } = await supabase.functions.invoke('generate-gift-card-pdf', {
+          body: {
+            code: giftCard.code,
+            amount: formatAmount(giftCard.original_value_cents / 100),
+            businessName: businessName,
+            businessId: businessId,
+            expiresAt: giftCard.expires_at,
+            recipientEmail: recipientEmail,
+            senderName: buyerName,
+          },
+        });
+
+        if (!pdfError && pdfData?.pdf) {
+          pdfAttachment = {
+            filename: pdfData.filename || `GiftCard-${giftCard.code}.pdf`,
+            content: pdfData.pdf,
+            contentType: 'application/pdf',
+          };
+          console.log('PDF generated successfully');
+        } else {
+          console.warn('Could not generate PDF:', pdfError || pdfData?.error);
+        }
+      } catch (pdfErr) {
+        console.warn('PDF generation failed, sending email without attachment:', pdfErr);
+      }
+
+      const emailPromises = [];
 
       // Send to buyer
       if ((target === 'buyer' || target === 'both') && buyerEmail) {
@@ -149,6 +179,7 @@ export function GiftCardDetailModal({
                 message: '',
                 business_name: businessName,
               },
+              attachments: pdfAttachment ? [pdfAttachment] : undefined,
             },
           }).then(({ data, error }) => {
             if (error) {
@@ -182,6 +213,7 @@ export function GiftCardDetailModal({
                 sender_name: buyerName || 'Someone special',
                 business_name: businessName,
               },
+              attachments: pdfAttachment ? [pdfAttachment] : undefined,
             },
           }).then(({ data, error }) => {
             if (error) {
@@ -206,7 +238,7 @@ export function GiftCardDetailModal({
         const sentTo = target === 'both' 
           ? 'buyer and recipient' 
           : target;
-        alert(`Email sent successfully to ${sentTo}!`);
+        alert(`Email with PDF attachment sent successfully to ${sentTo}!`);
       }
     } catch (error: any) {
       console.error('Error sending email:', error);
