@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { jsPDF } from "npm:jspdf@2.5.1";
+import { PDFDocument, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,63 +19,119 @@ interface GiftCardPDFRequest {
   message?: string | null;
 }
 
-function generateGiftCardPDF(data: GiftCardPDFRequest, designUrl?: string): string {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: [180, 100],
-  });
-
-  const width = 180;
-  const height = 100;
-
-  // Background gradient simulation with rectangles
-  doc.setFillColor(102, 126, 234); // #667eea
-  doc.rect(0, 0, width, height, "F");
+async function generateGiftCardPDF(data: GiftCardPDFRequest): Promise<string> {
+  // Create a new PDF document
+  const pdfDoc = await PDFDocument.create();
   
-  // Add a slightly lighter overlay for gradient effect
-  doc.setFillColor(118, 75, 162, 0.3); // #764ba2 with opacity
-  doc.rect(width * 0.3, 0, width * 0.7, height, "F");
-
-  // White card area
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(10, 10, width - 20, height - 20, 5, 5, "F");
-
-  // Gift icon / Header
-  doc.setFontSize(24);
-  doc.setTextColor(102, 126, 234);
-  doc.text("🎁 GIFT CARD", width / 2, 25, { align: "center" });
-
+  // Add a page with gift card dimensions (landscape, credit card-ish size)
+  const page = pdfDoc.addPage([500, 280]);
+  const { width, height } = page.getSize();
+  
+  // Embed fonts
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const courier = await pdfDoc.embedFont(StandardFonts.Courier);
+  
+  // Colors
+  const primaryColor = rgb(0.4, 0.49, 0.92); // #667eea
+  const darkGray = rgb(0.2, 0.2, 0.2);
+  const mediumGray = rgb(0.4, 0.4, 0.4);
+  const lightGray = rgb(0.95, 0.95, 0.95);
+  const white = rgb(1, 1, 1);
+  const redColor = rgb(0.86, 0.21, 0.27);
+  
+  // Draw background
+  page.drawRectangle({
+    x: 0,
+    y: 0,
+    width: width,
+    height: height,
+    color: primaryColor,
+  });
+  
+  // Draw white card area with padding
+  const cardPadding = 20;
+  page.drawRectangle({
+    x: cardPadding,
+    y: cardPadding,
+    width: width - (cardPadding * 2),
+    height: height - (cardPadding * 2),
+    color: white,
+  });
+  
+  // Header - "GIFT CARD"
+  const headerText = "GIFT CARD";
+  const headerFontSize = 28;
+  const headerWidth = helveticaBold.widthOfTextAtSize(headerText, headerFontSize);
+  page.drawText(headerText, {
+    x: (width - headerWidth) / 2,
+    y: height - 60,
+    size: headerFontSize,
+    font: helveticaBold,
+    color: primaryColor,
+  });
+  
   // Business name
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text(data.businessName, width / 2, 33, { align: "center" });
-
-  // Amount
-  doc.setFontSize(36);
-  doc.setTextColor(51, 51, 51);
-  const amountText = data.amount;
-  doc.text(amountText, width / 2, 52, { align: "center" });
-
+  const businessFontSize = 12;
+  const businessWidth = helvetica.widthOfTextAtSize(data.businessName, businessFontSize);
+  page.drawText(data.businessName, {
+    x: (width - businessWidth) / 2,
+    y: height - 80,
+    size: businessFontSize,
+    font: helvetica,
+    color: mediumGray,
+  });
+  
+  // Amount - large and centered
+  const amountFontSize = 42;
+  const amountWidth = helveticaBold.widthOfTextAtSize(data.amount, amountFontSize);
+  page.drawText(data.amount, {
+    x: (width - amountWidth) / 2,
+    y: height - 135,
+    size: amountFontSize,
+    font: helveticaBold,
+    color: darkGray,
+  });
+  
   // Code box background
-  doc.setFillColor(248, 249, 250);
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineDashPattern([2, 2], 0);
-  doc.roundedRect(30, 58, width - 60, 18, 3, 3, "FD");
-  doc.setLineDashPattern([], 0);
-
+  const codeBoxWidth = 280;
+  const codeBoxHeight = 50;
+  const codeBoxX = (width - codeBoxWidth) / 2;
+  const codeBoxY = 55;
+  
+  page.drawRectangle({
+    x: codeBoxX,
+    y: codeBoxY,
+    width: codeBoxWidth,
+    height: codeBoxHeight,
+    color: lightGray,
+    borderColor: rgb(0.8, 0.8, 0.8),
+    borderWidth: 1,
+  });
+  
   // Code label
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-  doc.text("GIFT CARD CODE", width / 2, 64, { align: "center" });
-
-  // Code
-  doc.setFontSize(16);
-  doc.setTextColor(51, 51, 51);
-  doc.setFont("courier", "bold");
-  doc.text(data.code, width / 2, 72, { align: "center" });
-  doc.setFont("helvetica", "normal");
-
+  const codeLabelText = "GIFT CARD CODE";
+  const codeLabelFontSize = 9;
+  const codeLabelWidth = helvetica.widthOfTextAtSize(codeLabelText, codeLabelFontSize);
+  page.drawText(codeLabelText, {
+    x: (width - codeLabelWidth) / 2,
+    y: codeBoxY + codeBoxHeight - 15,
+    size: codeLabelFontSize,
+    font: helvetica,
+    color: mediumGray,
+  });
+  
+  // Gift card code
+  const codeFontSize = 20;
+  const codeWidth = courier.widthOfTextAtSize(data.code, codeFontSize);
+  page.drawText(data.code, {
+    x: (width - codeWidth) / 2,
+    y: codeBoxY + 12,
+    size: codeFontSize,
+    font: courier,
+    color: darkGray,
+  });
+  
   // Expiry date if provided
   if (data.expiresAt) {
     const expiryDate = new Date(data.expiresAt).toLocaleDateString("en-US", {
@@ -84,18 +139,37 @@ function generateGiftCardPDF(data: GiftCardPDFRequest, designUrl?: string): stri
       month: "long",
       day: "numeric",
     });
-    doc.setFontSize(8);
-    doc.setTextColor(220, 53, 69); // Red for expiry
-    doc.text(`Expires: ${expiryDate}`, width / 2, 82, { align: "center" });
+    const expiryText = `Expires: ${expiryDate}`;
+    const expiryFontSize = 10;
+    const expiryWidth = helvetica.widthOfTextAtSize(expiryText, expiryFontSize);
+    page.drawText(expiryText, {
+      x: (width - expiryWidth) / 2,
+      y: 38,
+      size: expiryFontSize,
+      font: helvetica,
+      color: redColor,
+    });
   }
-
+  
   // Footer
-  doc.setFontSize(7);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Redeemable at ${data.businessName}`, width / 2, 90, { align: "center" });
-
-  // Return base64 encoded PDF
-  return doc.output("datauristring").split(",")[1];
+  const footerText = `Redeemable at ${data.businessName}`;
+  const footerFontSize = 8;
+  const footerWidth = helvetica.widthOfTextAtSize(footerText, footerFontSize);
+  page.drawText(footerText, {
+    x: (width - footerWidth) / 2,
+    y: 25,
+    size: footerFontSize,
+    font: helvetica,
+    color: mediumGray,
+  });
+  
+  // Serialize the PDF to bytes
+  const pdfBytes = await pdfDoc.save();
+  
+  // Convert to base64
+  const base64 = btoa(String.fromCharCode(...pdfBytes));
+  
+  return base64;
 }
 
 Deno.serve(async (req: Request) => {
@@ -106,6 +180,8 @@ Deno.serve(async (req: Request) => {
   try {
     const data: GiftCardPDFRequest = await req.json();
 
+    console.log("Generating PDF for gift card:", data.code);
+
     if (!data.code || !data.amount || !data.businessName) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: code, amount, businessName" }),
@@ -114,7 +190,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Generate the PDF
-    const pdfBase64 = generateGiftCardPDF(data);
+    const pdfBase64 = await generateGiftCardPDF(data);
+
+    console.log("PDF generated successfully, size:", pdfBase64.length);
 
     return new Response(
       JSON.stringify({ 
