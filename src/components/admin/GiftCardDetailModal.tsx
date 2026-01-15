@@ -506,12 +506,6 @@ export function GiftCardDetailModal({
               <Download className="w-4 h-4" />
               <span>Download PDF</span>
             </button>
-            {giftCard.purchased_for_email && (
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded transition-colors">
-                <Mail className="w-4 h-4" />
-                <span>Email PDF</span>
-              </button>
-            )}
           </div>
 
           {giftCard.status === 'active' && !isExpired && (
