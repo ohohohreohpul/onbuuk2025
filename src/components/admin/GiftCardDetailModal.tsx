@@ -129,6 +129,7 @@ export function GiftCardDetailModal({
     setSendingEmail(target);
     try {
       const emailPromises = [];
+      const errors: string[] = [];
 
       // Send to buyer
       if ((target === 'buyer' || target === 'both') && buyerEmail) {
@@ -149,6 +150,17 @@ export function GiftCardDetailModal({
                 business_name: businessName,
               },
             },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error('Error sending to buyer:', error);
+              errors.push(`Buyer: ${error.message}`);
+            } else if (data?.error) {
+              console.error('Email service error (buyer):', data.error);
+              errors.push(`Buyer: ${data.error}`);
+            } else {
+              console.log('Email sent to buyer successfully');
+            }
+            return { data, error };
           })
         );
       }
@@ -171,19 +183,34 @@ export function GiftCardDetailModal({
                 business_name: businessName,
               },
             },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error('Error sending to recipient:', error);
+              errors.push(`Recipient: ${error.message}`);
+            } else if (data?.error) {
+              console.error('Email service error (recipient):', data.error);
+              errors.push(`Recipient: ${data.error}`);
+            } else {
+              console.log('Email sent to recipient successfully');
+            }
+            return { data, error };
           })
         );
       }
 
       await Promise.all(emailPromises);
       
-      const sentTo = target === 'both' 
-        ? 'buyer and recipient' 
-        : target;
-      alert(`Email sent successfully to ${sentTo}!`);
-    } catch (error) {
+      if (errors.length > 0) {
+        alert(`Some emails failed to send:\n${errors.join('\n')}\n\nPlease check your email settings.`);
+      } else {
+        const sentTo = target === 'both' 
+          ? 'buyer and recipient' 
+          : target;
+        alert(`Email sent successfully to ${sentTo}!`);
+      }
+    } catch (error: any) {
       console.error('Error sending email:', error);
-      alert('Failed to send email. Please try again.');
+      alert(`Failed to send email: ${error.message || 'Please try again.'}`);
     } finally {
       setSendingEmail(null);
     }
