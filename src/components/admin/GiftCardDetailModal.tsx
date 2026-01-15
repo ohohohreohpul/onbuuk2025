@@ -45,16 +45,31 @@ export function GiftCardDetailModal({
   onUpdate,
 }: GiftCardDetailModalProps) {
   const { currencySymbol, formatAmount } = useCurrency();
+  const { businessId } = useTenant();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
   const [redeemAmount, setRedeemAmount] = useState('');
   const [redeemDescription, setRedeemDescription] = useState('');
   const [deleting, setDeleting] = useState(false);
+  
+  // Email editing state
+  const [isEditingEmails, setIsEditingEmails] = useState(false);
+  const [buyerEmail, setBuyerEmail] = useState(giftCard.purchased_by_email || '');
+  const [buyerName, setBuyerName] = useState(giftCard.purchased_by_name || '');
+  const [recipientEmail, setRecipientEmail] = useState(giftCard.purchased_for_email || '');
+  const [savingEmails, setSavingEmails] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<'buyer' | 'recipient' | 'both' | null>(null);
 
   useEffect(() => {
     loadTransactions();
   }, [giftCard.id]);
+
+  useEffect(() => {
+    setBuyerEmail(giftCard.purchased_by_email || '');
+    setBuyerName(giftCard.purchased_by_name || '');
+    setRecipientEmail(giftCard.purchased_for_email || '');
+  }, [giftCard]);
 
   const loadTransactions = async () => {
     const { data } = await supabase
