@@ -16,6 +16,89 @@ interface BusinessEmailRequest {
   booking_id?: string;
 }
 
+interface GiftCardVisualData {
+  code: string;
+  amount: string;
+  businessName: string;
+  message: string | null;
+  senderName: string | null;
+}
+
+function generateGiftCardVisual(data: GiftCardVisualData): string {
+  const messageSection = data.message 
+    ? `<tr>
+        <td style="padding: 15px 30px;">
+          <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0; font-style: italic; color: #856404;">"${data.message}"</p>
+            ${data.senderName ? `<p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">- ${data.senderName}</p>` : ''}
+          </div>
+        </td>
+      </tr>`
+    : '';
+
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 30px; font-family: Arial, sans-serif;">
+      <tr>
+        <td align="center">
+          <table width="500" cellpadding="0" cellspacing="0" style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <!-- Header -->
+            <tr>
+              <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                <h2 style="margin: 0; color: white; font-size: 24px;">🎁 Your Gift Card</h2>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">${data.businessName}</p>
+              </td>
+            </tr>
+            
+            <!-- Amount -->
+            <tr>
+              <td style="padding: 30px; text-align: center;">
+                <div style="font-size: 48px; font-weight: bold; color: #333;">${data.amount}</div>
+              </td>
+            </tr>
+            
+            ${messageSection}
+            
+            <!-- Code Box -->
+            <tr>
+              <td style="padding: 0 30px 30px 30px;">
+                <div style="background: #f8f9fa; border: 2px dashed #ddd; border-radius: 12px; padding: 20px; text-align: center;">
+                  <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 2px;">Gift Card Code</div>
+                  <div style="font-size: 22px; font-weight: bold; color: #333; letter-spacing: 3px; margin-top: 8px; font-family: 'Courier New', monospace;">${data.code}</div>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Instructions -->
+            <tr>
+              <td style="padding: 0 30px 30px 30px;">
+                <div style="background: #e8f5e9; border-radius: 8px; padding: 20px;">
+                  <h3 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 14px;">How to Redeem</h3>
+                  <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 13px; line-height: 1.8;">
+                    <li>Visit ${data.businessName}'s booking page</li>
+                    <li>Select your desired service</li>
+                    <li>Enter your gift card code at checkout</li>
+                    <li>Enjoy!</li>
+                  </ol>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 20px 30px; border-top: 1px solid #eee; text-align: center;">
+                <p style="margin: 0; color: #999; font-size: 11px;">
+                  This gift card is redeemable only at ${data.businessName}.<br>
+                  Please save this email - it contains your unique gift card code.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
 function replaceVariables(template: string, variables: { [key: string]: string }): string {
   let result = template;
   Object.entries(variables).forEach(([key, value]) => {
