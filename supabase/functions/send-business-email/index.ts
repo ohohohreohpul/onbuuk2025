@@ -7,6 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
+interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType: string;
+}
+
 interface BusinessEmailRequest {
   business_id: string;
   event_key: string;
@@ -14,7 +20,7 @@ interface BusinessEmailRequest {
   recipient_name: string;
   variables: { [key: string]: string };
   booking_id?: string;
-  attach_gift_card_pdf?: boolean;
+  attachments?: Attachment[];
 }
 
 function replaceVariables(template: string, variables: { [key: string]: string }): string {
