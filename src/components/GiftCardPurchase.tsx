@@ -403,7 +403,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Recipient Email */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.recipient_email_label}
+          {customization.recipient_email_label} <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
@@ -411,16 +411,17 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           onChange={(e) => setRecipientEmail(e.target.value)}
           placeholder="recipient@example.com"
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required
         />
         <p className="text-xs text-gray-500">
           {customization.recipient_email_helper}
         </p>
       </div>
 
-      {/* Message (Optional) */}
+      {/* Message */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.message_label}
+          {customization.message_label} <span className="text-gray-400 text-xs font-normal">(Optional)</span>
         </label>
         <textarea
           value={message}
@@ -437,7 +438,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {customization.your_name_label}
+              {customization.your_name_label} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -450,7 +451,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {customization.your_email_label}
+              {customization.your_email_label} <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -460,6 +461,9 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              We'll send you a confirmation email with the gift card details
+            </p>
           </div>
         </div>
       </div>
