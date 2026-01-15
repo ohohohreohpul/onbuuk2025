@@ -130,31 +130,25 @@ export function GiftCardDetailModal({
     try {
       const errors: string[] = [];
 
-      // Generate PDF for attachment
+      // Generate PDF using the same client-side generator as "Download PDF" button
       let pdfAttachment: { filename: string; content: string; contentType: string } | null = null;
       try {
-        const { data: pdfData, error: pdfError } = await supabase.functions.invoke('generate-gift-card-pdf', {
-          body: {
-            code: giftCard.code,
-            amount: formatAmount(giftCard.original_value_cents / 100),
-            businessName: businessName,
-            businessId: businessId,
-            expiresAt: giftCard.expires_at,
-            recipientEmail: recipientEmail,
-            senderName: buyerName,
-          },
+        const pdfBase64 = await getGiftCardPDFBase64({
+          code: giftCard.code,
+          amount: giftCard.original_value_cents / 100,
+          designUrl: designUrl,
+          termsAndConditions: termsAndConditions,
+          businessName: businessName,
+          expiresAt: giftCard.expires_at,
+          currencySymbol: currencySymbol,
         });
 
-        if (!pdfError && pdfData?.pdf) {
-          pdfAttachment = {
-            filename: pdfData.filename || `GiftCard-${giftCard.code}.pdf`,
-            content: pdfData.pdf,
-            contentType: 'application/pdf',
-          };
-          console.log('PDF generated successfully');
-        } else {
-          console.warn('Could not generate PDF:', pdfError || pdfData?.error);
-        }
+        pdfAttachment = {
+          filename: `GiftCard-${giftCard.code}.pdf`,
+          content: pdfBase64,
+          contentType: 'application/pdf',
+        };
+        console.log('PDF generated successfully');
       } catch (pdfErr) {
         console.warn('PDF generation failed, sending email without attachment:', pdfErr);
       }
