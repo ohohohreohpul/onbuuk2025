@@ -167,10 +167,15 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
 
         if (existingGiftCard) {
-          // Update existing gift card with PayPal order ID
+          // Update existing gift card with PayPal order ID and buyer info
           await supabase
             .from("gift_cards")
-            .update({ paypal_order_id: orderId, status: "active" })
+            .update({ 
+              paypal_order_id: orderId, 
+              status: "active",
+              purchased_by_email: metadata.customer_email || null,
+              purchased_by_name: metadata.customer_name || null,
+            })
             .eq("id", existingGiftCard.id);
           console.log("Gift card updated:", existingGiftCard.id);
         } else {
@@ -185,6 +190,8 @@ Deno.serve(async (req: Request) => {
               status: "active",
               paypal_order_id: orderId,
               purchased_for_email: metadata.gc_recipient_email || null,
+              purchased_by_email: metadata.customer_email || null,
+              purchased_by_name: metadata.customer_name || null,
               expires_at: metadata.gc_expires_at || null,
             })
             .select()
