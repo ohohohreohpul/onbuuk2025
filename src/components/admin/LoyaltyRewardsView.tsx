@@ -274,12 +274,44 @@ export function LoyaltyRewardsView() {
 
     try {
       setMessage('Sending gift card email...');
-      setMessage('Email functionality coming soon!');
+      
+      const { data, error } = await supabase.functions.invoke('send-business-email', {
+        body: {
+          business_id: businessId,
+          event_key: 'gift_card_received',
+          recipient_email: card.purchased_for_email,
+          recipient_name: card.purchased_for_email.split('@')[0],
+          variables: {
+            recipient_email: card.purchased_for_email,
+            gift_card_code: card.code,
+            amount: formatAmount(card.original_value_cents / 100),
+            message: '',
+            sender_name: (card as any).purchased_by_name || 'Someone special',
+            business_name: businessName,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Error sending email:', error);
+        setMessage(`Error: ${error.message}`);
+        setTimeout(() => setMessage(''), 5000);
+        return;
+      }
+
+      if (data?.error) {
+        console.error('Email service error:', data.error);
+        setMessage(`Error: ${data.error}`);
+        setTimeout(() => setMessage(''), 5000);
+        return;
+      }
+
+      setMessage('Gift card email sent successfully!');
       setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error emailing gift card:', error);
-      setMessage('Error sending gift card email');
-      setTimeout(() => setMessage(''), 3000);
+      setMessage(`Error sending email: ${error.message || 'Unknown error'}`);
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 
