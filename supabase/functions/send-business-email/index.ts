@@ -161,6 +161,7 @@ Deno.serve(async (req: Request) => {
         subject: subject,
         body: body,
         customerId: customerId,
+        attachments: attachments,
       },
     });
 
