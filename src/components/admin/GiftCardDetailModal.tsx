@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, CreditCard, Calendar, DollarSign, Download, Mail } from 'lucide-react';
+import { X, Trash2, CreditCard, Calendar, DollarSign, Download, Mail, Edit2, Save, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
+import { useTenant } from '../../lib/tenantContext';
 import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 
 interface GiftCard {
@@ -13,6 +14,8 @@ interface GiftCard {
   purchased_at: string;
   expires_at: string | null;
   purchased_for_email: string | null;
+  purchased_by_email?: string | null;
+  purchased_by_name?: string | null;
 }
 
 interface Transaction {
