@@ -159,3 +159,16 @@ export async function downloadGiftCardPDF(giftCard: GiftCardData): Promise<void>
 
   URL.revokeObjectURL(url);
 }
+
+export async function getGiftCardPDFBase64(giftCard: GiftCardData): Promise<string> {
+  const blob = await generateGiftCardPDF(giftCard);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
