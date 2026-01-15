@@ -7,12 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
+interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType: string;
+}
+
 interface EmailRequest {
   businessId: string;
   toEmail: string;
   subject: string;
   body: string;
   customerId?: string;
+  attachments?: Attachment[];
 }
 
 interface EmailSettings {
@@ -26,19 +33,28 @@ interface EmailSettings {
   from_name: string;
 }
 
-async function sendWithResend(settings: EmailSettings, toEmail: string, subject: string, body: string) {
+async function sendWithResend(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
+  const emailData: any = {
+    from: `${settings.from_name} <${settings.from_email}>`,
+    to: [toEmail],
+    subject: subject,
+    html: body,
+  };
+
+  if (attachments && attachments.length > 0) {
+    emailData.attachments = attachments.map(att => ({
+      filename: att.filename,
+      content: att.content,
+    }));
+  }
+
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${settings.api_key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      from: `${settings.from_name} <${settings.from_email}>`,
-      to: [toEmail],
-      subject: subject,
-      html: body,
-    }),
+    body: JSON.stringify(emailData),
   });
 
   if (!response.ok) {
@@ -49,25 +65,36 @@ async function sendWithResend(settings: EmailSettings, toEmail: string, subject:
   return await response.json();
 }
 
-async function sendWithSMTP(settings: EmailSettings, toEmail: string, subject: string, body: string) {
+async function sendWithSMTP(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
   // For SMTP, we would need a SMTP library
   // This is a placeholder - SMTP is complex in edge functions
   throw new Error('SMTP provider is not yet implemented. Please use Resend, SendGrid, or Mailgun.');
 }
 
-async function sendWithSendGrid(settings: EmailSettings, toEmail: string, subject: string, body: string) {
+async function sendWithSendGrid(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
+  const emailData: any = {
+    personalizations: [{ to: [{ email: toEmail }] }],
+    from: { email: settings.from_email, name: settings.from_name },
+    subject: subject,
+    content: [{ type: 'text/html', value: body }],
+  };
+
+  if (attachments && attachments.length > 0) {
+    emailData.attachments = attachments.map(att => ({
+      filename: att.filename,
+      content: att.content,
+      type: att.contentType,
+      disposition: 'attachment',
+    }));
+  }
+
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${settings.api_key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: toEmail }] }],
-      from: { email: settings.from_email, name: settings.from_name },
-      subject: subject,
-      content: [{ type: 'text/html', value: body }],
-    }),
+    body: JSON.stringify(emailData),
   });
 
   if (!response.ok) {
@@ -78,7 +105,7 @@ async function sendWithSendGrid(settings: EmailSettings, toEmail: string, subjec
   return { success: true };
 }
 
-async function sendWithMailgun(settings: EmailSettings, toEmail: string, subject: string, body: string) {
+async function sendWithMailgun(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
   // Mailgun requires a domain - we'll assume it's in the api_key as "domain:apikey"
   const [domain, apiKey] = settings.api_key?.split(':') || [];
   
@@ -91,6 +118,19 @@ async function sendWithMailgun(settings: EmailSettings, toEmail: string, subject
   formData.append('to', toEmail);
   formData.append('subject', subject);
   formData.append('html', body);
+
+  if (attachments && attachments.length > 0) {
+    for (const att of attachments) {
+      // Convert base64 to blob for Mailgun
+      const binaryString = atob(att.content);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: att.contentType });
+      formData.append('attachment', blob, att.filename);
+    }
+  }
 
   const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
     method: 'POST',
