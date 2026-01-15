@@ -153,8 +153,31 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       }
     }
 
-    if (!buyerEmail || !buyerName) {
-      setError('Please enter your name and email');
+    if (!recipientEmail) {
+      setError('Please enter the recipient\'s email address');
+      return;
+    }
+
+    // Validate recipient email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      setError('Please enter a valid recipient email address');
+      return;
+    }
+
+    if (!buyerName) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (!buyerEmail) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    // Validate buyer email format
+    if (!emailRegex.test(buyerEmail)) {
+      setError('Please enter a valid email address');
       return;
     }
 
