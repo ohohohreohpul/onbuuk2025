@@ -3,7 +3,7 @@ import { X, Trash2, CreditCard, Calendar, DollarSign, Download, Mail, Edit2, Sav
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
 import { useTenant } from '../../lib/tenantContext';
-import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
+import { downloadGiftCardPDF, getGiftCardPDFBase64 } from '../../lib/giftCardPdfGenerator';
 
 interface GiftCard {
   id: string;
