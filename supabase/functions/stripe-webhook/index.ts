@@ -262,6 +262,8 @@ async function handleEvent(event: Stripe.Event) {
               status: 'active',
               stripe_session_id: checkout_session_id,
               purchased_for_email: metadata.gc_recipient_email || null,
+              purchased_by_email: metadata.customer_email || null,
+              purchased_by_name: metadata.customer_name || null,
               expires_at: metadata.gc_expires_at || null,
             };
 
