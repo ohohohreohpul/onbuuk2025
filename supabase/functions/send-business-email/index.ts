@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { business_id, event_key, recipient_email, recipient_name, variables, booking_id }: BusinessEmailRequest = await req.json();
+    const { business_id, event_key, recipient_email, recipient_name, variables, booking_id, attachments }: BusinessEmailRequest = await req.json();
 
     console.log(`📧 Sending ${event_key} email to ${recipient_email} for business ${business_id}`);
 
