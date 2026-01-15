@@ -84,6 +84,111 @@ export function GiftCardDetailModal({
     setLoading(false);
   };
 
+  const handleSaveEmails = async () => {
+    setSavingEmails(true);
+    try {
+      const { error } = await supabase
+        .from('gift_cards')
+        .update({
+          purchased_by_email: buyerEmail || null,
+          purchased_by_name: buyerName || null,
+          purchased_for_email: recipientEmail || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', giftCard.id);
+
+      if (error) throw error;
+
+      setIsEditingEmails(false);
+      onUpdate();
+      alert('Email information saved successfully!');
+    } catch (error) {
+      console.error('Error saving emails:', error);
+      alert('Failed to save email information');
+    } finally {
+      setSavingEmails(false);
+    }
+  };
+
+  const handleSendEmail = async (target: 'buyer' | 'recipient' | 'both') => {
+    const targetEmail = target === 'buyer' ? buyerEmail : target === 'recipient' ? recipientEmail : null;
+    
+    if (target === 'buyer' && !buyerEmail) {
+      alert('Please add a buyer email first');
+      return;
+    }
+    if (target === 'recipient' && !recipientEmail) {
+      alert('Please add a recipient email first');
+      return;
+    }
+    if (target === 'both' && !buyerEmail && !recipientEmail) {
+      alert('Please add at least one email address');
+      return;
+    }
+
+    setSendingEmail(target);
+    try {
+      const emailPromises = [];
+
+      // Send to buyer
+      if ((target === 'buyer' || target === 'both') && buyerEmail) {
+        emailPromises.push(
+          supabase.functions.invoke('send-business-email', {
+            body: {
+              business_id: businessId,
+              event_key: 'gift_card_purchased',
+              recipient_email: buyerEmail,
+              recipient_name: buyerName || buyerEmail.split('@')[0],
+              variables: {
+                customer_name: buyerName || 'Valued Customer',
+                customer_email: buyerEmail,
+                gift_card_code: giftCard.code,
+                amount: formatAmount(giftCard.original_value_cents / 100),
+                recipient_email: recipientEmail || 'N/A',
+                message: '',
+                business_name: businessName,
+              },
+            },
+          })
+        );
+      }
+
+      // Send to recipient
+      if ((target === 'recipient' || target === 'both') && recipientEmail) {
+        emailPromises.push(
+          supabase.functions.invoke('send-business-email', {
+            body: {
+              business_id: businessId,
+              event_key: 'gift_card_received',
+              recipient_email: recipientEmail,
+              recipient_name: recipientEmail.split('@')[0],
+              variables: {
+                recipient_email: recipientEmail,
+                gift_card_code: giftCard.code,
+                amount: formatAmount(giftCard.original_value_cents / 100),
+                message: '',
+                sender_name: buyerName || 'Someone special',
+                business_name: businessName,
+              },
+            },
+          })
+        );
+      }
+
+      await Promise.all(emailPromises);
+      
+      const sentTo = target === 'both' 
+        ? 'buyer and recipient' 
+        : target;
+      alert(`Email sent successfully to ${sentTo}!`);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email. Please try again.');
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
   const handleRedeem = async () => {
     if (!redeemAmount || parseFloat(redeemAmount) <= 0) {
       alert('Please enter a valid amount');
