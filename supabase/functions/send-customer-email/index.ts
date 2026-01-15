@@ -158,7 +158,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { businessId, toEmail, subject, body, customerId }: EmailRequest = await req.json();
+    const { businessId, toEmail, subject, body, customerId, attachments }: EmailRequest = await req.json();
 
     if (!businessId || !toEmail || !subject || !body) {
       return new Response(
@@ -189,16 +189,16 @@ Deno.serve(async (req: Request) => {
       // Send email based on provider
       switch (settings.provider) {
         case 'resend':
-          emailResult = await sendWithResend(settings, toEmail, subject, body);
+          emailResult = await sendWithResend(settings, toEmail, subject, body, attachments);
           break;
         case 'sendgrid':
-          emailResult = await sendWithSendGrid(settings, toEmail, subject, body);
+          emailResult = await sendWithSendGrid(settings, toEmail, subject, body, attachments);
           break;
         case 'mailgun':
-          emailResult = await sendWithMailgun(settings, toEmail, subject, body);
+          emailResult = await sendWithMailgun(settings, toEmail, subject, body, attachments);
           break;
         case 'smtp':
-          emailResult = await sendWithSMTP(settings, toEmail, subject, body);
+          emailResult = await sendWithSMTP(settings, toEmail, subject, body, attachments);
           break;
         default:
           throw new Error(`Unsupported email provider: ${settings.provider}`);
