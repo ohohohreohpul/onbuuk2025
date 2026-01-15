@@ -45,6 +45,7 @@ Deno.serve(async (req: Request) => {
     const { business_id, event_key, recipient_email, recipient_name, variables, booking_id, attachments }: BusinessEmailRequest = await req.json();
 
     console.log(`📧 Sending ${event_key} email to ${recipient_email} for business ${business_id}`);
+    console.log(`📎 Attachments received: ${attachments ? attachments.length : 0}`);
 
     if (!business_id || !event_key || !recipient_email || !variables) {
       return new Response(
