@@ -121,19 +121,7 @@ Deno.serve(async (req: Request) => {
 
     // Replace variables in subject and body
     const subject = replaceVariables(template.subject, variables);
-    let body = replaceVariables(template.body, variables);
-
-    // For gift card emails, append a beautiful gift card visual
-    if (event_key === 'gift_card_received' || event_key === 'gift_card_purchased') {
-      const giftCardVisual = generateGiftCardVisual({
-        code: variables.gift_card_code || '',
-        amount: variables.amount || '',
-        businessName: variables.business_name || '',
-        message: variables.message || null,
-        senderName: variables.sender_name || null,
-      });
-      body = body + giftCardVisual;
-    }
+    const body = replaceVariables(template.body, variables);
 
     // Find customer_id if booking_id is provided
     let customerId = null;
