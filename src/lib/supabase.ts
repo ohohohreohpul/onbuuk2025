@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// WordPress plugin injects window.buukConfig; fall back to env vars for the standalone SaaS build
+const _buukConfig = (window as any).buukConfig as Record<string, string> | undefined;
+const supabaseUrl = _buukConfig?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = _buukConfig?.supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

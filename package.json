@@ -7,6 +7,7 @@
     "dev": "vite",
     "start": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
+    "build:wp": "vite build --config vite.config.wp.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"

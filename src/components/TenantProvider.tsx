@@ -42,6 +42,38 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     mountedRef.current = true;
 
     async function fetchTenantInfo() {
+      // WordPress plugin can inject a permalink directly, bypassing URL-based resolution
+      const wpPermalink = ((window as any).buukConfig as Record<string, string> | undefined)?.permalink;
+      if (wpPermalink) {
+        const result = await executeWithTimeout(
+          supabase
+            .from('businesses')
+            .select('*')
+            .eq('permalink', wpPermalink)
+            .eq('is_active', true)
+            .maybeSingle(),
+          { timeout: 10000, retries: 3, retryDelay: 1000 }
+        );
+        if (mountedRef.current) {
+          const business = result.data;
+          if (business) {
+            localStorage.setItem('current_business_id', business.id);
+            localStorage.setItem('business_permalink', business.permalink);
+            setTenantInfo({
+              businessId: business.id,
+              businessName: business.name,
+              subdomain: business.subdomain,
+              customDomain: business.custom_domain,
+              planType: business.plan_type,
+              isLoading: false,
+            });
+          } else {
+            setTenantInfo({ businessId: null, businessName: null, subdomain: null, customDomain: null, planType: 'starter', isLoading: false });
+          }
+        }
+        return;
+      }
+
       const abortController = new AbortController();
 
       fetchTimeoutRef.current = setTimeout(() => {
