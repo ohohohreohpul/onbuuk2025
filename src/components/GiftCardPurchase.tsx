@@ -20,7 +20,7 @@ interface GiftCardPurchaseProps {
 
 export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const { businessId } = useTenant();
-  const { currencySymbol, formatAmount } = useCurrency();
+  const { currency, currencySymbol, formatAmount } = useCurrency();
   const { customization } = useGiftCardCustomization();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GiftCardSettings | null>(null);
@@ -119,7 +119,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     }
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&intent=capture`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${currency}&intent=capture`;
     script.async = true;
     script.onload = () => {
       setPaypalLoaded(true);
@@ -194,7 +194,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
       // Generate gift card code for all payment methods
       const { data: codeData, error: codeError } = await supabase
-        .rpc('generate_gift_card_code');
+        .rpc('generate_gift_card_code', { p_business_id: businessId });
 
       if (codeError || !codeData) {
         throw new Error('Failed to generate gift card code');

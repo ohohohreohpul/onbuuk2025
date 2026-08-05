@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { DollarSign, Check, X, Search } from 'lucide-react';
+import { DollarSign, Check, X, Search, AlertCircle } from 'lucide-react';
+import { adminAuth } from '../../lib/adminAuth';
+import NoShowAnalytics from './noshow/NoShowAnalytics';
 
 interface NoShowFee {
   id: string;
@@ -16,31 +18,46 @@ interface NoShowFee {
 }
 
 export default function NoShowFeesView() {
+  const adminUser = adminAuth.getCurrentUser();
+  const businessId = adminUser?.business_id || null;
   const [fees, setFees] = useState<NoShowFee[]>([]);
   const [filteredFees, setFilteredFees] = useState<NoShowFee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
 
   useEffect(() => {
     fetchFees();
-  }, []);
+  }, [businessId]);
 
   useEffect(() => {
     filterFees();
   }, [searchTerm, statusFilter, fees]);
 
   const fetchFees = async () => {
-    const { data, error } = await supabase
+    if (!businessId) {
+      setError('Unable to determine your business. Please try logging in again.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const { data, error: fetchError } = await supabase
       .from('no_show_fees')
       .select(`
         *,
-        customer:customers(name, email)
+        customer:customers(name, email),
+        booking:bookings!inner(business_id)
       `)
+      .eq('booking.business_id', businessId)
       .order('charged_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching no-show fees:', error);
+    if (fetchError) {
+      console.error('Error fetching no-show fees:', fetchError);
+      setError('Failed to load no-show fees.');
     } else {
       setFees(data as any);
     }
@@ -124,12 +141,23 @@ export default function NoShowFeesView() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <p className="text-sm">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-light text-stone-800 mb-2">No-Show Fees</h1>
         <p className="text-stone-600">Track and manage no-show and late cancellation fees</p>
       </div>
+
+      <NoShowAnalytics businessId={businessId!} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-stone-200 p-6">

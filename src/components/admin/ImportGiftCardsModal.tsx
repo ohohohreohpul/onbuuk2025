@@ -175,7 +175,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
         // Generate code if not provided
         let code: string = giftCard.code || '';
         if (!code) {
-          const { data: generatedCode, error: codeError } = await supabase.rpc('generate_gift_card_code');
+          const { data: generatedCode, error: codeError } = await supabase.rpc('generate_gift_card_code', { p_business_id: businessId });
           if (codeError || !generatedCode) {
             throw new Error('Failed to generate gift card code');
           }

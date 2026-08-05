@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw, Gift, CheckCircle, Sparkles } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, Plus, ChevronDown, ArrowUpRight, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import CreateBookingModal from './CreateBookingModal';
+import GiftCardStation from './GiftCardStation';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout, getUserFriendlyErrorMessage } from '../../lib/queryUtils';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -16,6 +17,8 @@ interface DashboardStats {
   todayBookings: number;
   totalRevenue: number;
   totalCustomers: number;
+  noShowCount: number;
+  noShowRate: number;
 }
 
 interface RecentBooking {
@@ -40,17 +43,14 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     todayBookings: 0,
     totalRevenue: 0,
     totalCustomers: 0,
+    noShowCount: 0,
+    noShowRate: 0,
   });
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
-  const [giftCardCode, setGiftCardCode] = useState('');
-  const [giftCardBalance, setGiftCardBalance] = useState<number | null>(null);
-  const [giftCardStatus, setGiftCardStatus] = useState<string | null>(null);
-  const [giftCardError, setGiftCardError] = useState<string | null>(null);
-  const [checkingGiftCard, setCheckingGiftCard] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
@@ -86,56 +86,6 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       setShowCreateBookingModal(true);
     } else {
       onNavigate(action);
-    }
-  };
-
-  const checkGiftCardBalance = async () => {
-    if (!giftCardCode.trim()) {
-      setGiftCardError('Please enter a gift card code');
-      return;
-    }
-
-    setCheckingGiftCard(true);
-    setGiftCardError(null);
-    setGiftCardBalance(null);
-    setGiftCardStatus(null);
-
-    const businessId = adminUser?.business_id;
-    if (!businessId) {
-      setGiftCardError('Unable to determine your business');
-      setCheckingGiftCard(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('gift_cards')
-        .select('current_balance_cents, status, expires_at')
-        .eq('business_id', businessId)
-        .eq('code', giftCardCode.trim().toUpperCase())
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
-        setGiftCardError('Gift card not found');
-      } else {
-        if (data.status === 'redeemed') {
-          setGiftCardError('This gift card has already been fully redeemed');
-        } else if (data.status === 'expired') {
-          setGiftCardError('This gift card has expired');
-        } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
-          setGiftCardError('This gift card has expired');
-        } else {
-          setGiftCardBalance(data.current_balance_cents / 100);
-          setGiftCardStatus(data.status);
-        }
-      }
-    } catch (err) {
-      console.error('Error checking gift card:', err);
-      setGiftCardError('Failed to check gift card balance');
-    } finally {
-      setCheckingGiftCard(false);
     }
   };
 
@@ -190,12 +140,16 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         }, 0);
 
         const uniqueCustomers = new Set(bookings.map(b => b.customer_email)).size;
+        const noShowCount = bookings.filter((b: any) => b.no_show).length;
+        const noShowRate = bookings.length > 0 ? (noShowCount / bookings.length) * 100 : 0;
 
         setStats({
           totalBookings: bookings.length,
           todayBookings: todayCount,
           totalRevenue: revenue,
           totalCustomers: uniqueCustomers,
+          noShowCount,
+          noShowRate,
         });
 
         const recent = bookings
@@ -398,70 +352,40 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         ))}
       </div>
 
-      {/* Gift Card Check */}
-      <Card glass className={`transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#008374] to-[#00a894]">
-              <Gift className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Check Gift Card Balance</CardTitle>
-              <p className="text-sm text-muted-foreground">Enter a gift card code to check its balance</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={giftCardCode}
-                onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && checkGiftCardBalance()}
-                placeholder="Enter gift card code"
-                className="flex-1 px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008374]/20 focus:border-[#008374] transition-all uppercase placeholder:normal-case"
-              />
+      {/* No-Show Alert */}
+      {stats.noShowCount > 0 && (
+        <Card
+          glass
+          className={`border-orange-200 bg-orange-50/50 transform transition-all duration-500 delay-100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-xl bg-orange-100">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-orange-900">
+                  {stats.noShowCount} no-show{stats.noShowCount === 1 ? '' : 's'} ({stats.noShowRate.toFixed(1)}% of bookings)
+                </p>
+                <p className="text-xs text-orange-700 mt-0.5">Review no-show fees, trends, and repeat offenders</p>
+              </div>
               <Button
-                onClick={checkGiftCardBalance}
-                disabled={checkingGiftCard || !giftCardCode.trim()}
-                className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 px-6"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate('fees')}
+                className="border-orange-300 hover:bg-orange-100 text-orange-700"
               >
-                {checkingGiftCard ? 'Checking...' : 'Check Balance'}
+                View Details
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
 
-            {giftCardError && (
-              <div className="flex items-center gap-3 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl text-red-700 animate-fade-in">
-                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                <p className="text-sm">{giftCardError}</p>
-              </div>
-            )}
-
-            {giftCardBalance !== null && giftCardStatus && (
-              <div className="flex items-center gap-3 p-4 bg-green-50/80 backdrop-blur-sm border border-green-200 rounded-xl animate-fade-in">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-green-900">Gift Card Active</p>
-                  <p className="text-sm text-green-700 mt-0.5">
-                    Current Balance: <span className="font-bold text-lg">{formatPrice(giftCardBalance * 100)}</span>
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onNavigate('gift-cards')}
-                  className="border-green-300 hover:bg-green-100 text-green-700"
-                >
-                  View Details
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Gift Card Station */}
+      <div className={`transform transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+        <GiftCardStation businessId={adminUser?.business_id || ''} onNavigate={onNavigate} />
+      </div>
 
       {/* Recent Bookings */}
       <Card glass className={`transform transition-all duration-500 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>

@@ -62,18 +62,18 @@ Deno.serve(async (req: Request) => {
       throw new Error("Could not determine business ID");
     }
 
-    // Get PayPal credentials for this business
+    // Get PayPal credentials and currency preference for this business
     const { data: settings } = await supabase
       .from("site_settings")
       .select("key, value")
       .eq("business_id", businessId)
-      .in("key", ["paypal_enabled", "paypal_client_id", "paypal_secret"]);
+      .in("key", ["paypal_enabled", "paypal_client_id", "paypal_secret", "currency"]);
 
     const settingsMap: { [key: string]: string } = {};
     if (settings) {
       settings.forEach((setting: { key: string; value: string }) => {
         let value = setting.value;
-        
+
         // Handle potential double-encoding or JSON-stringified values
         try {
           const parsed = JSON.parse(value);
@@ -86,18 +86,19 @@ Deno.serve(async (req: Request) => {
           // Not JSON, use as-is but trim whitespace
           value = value.trim();
         }
-        
+
         // Remove any remaining wrapper quotes
         if (value.startsWith('"') && value.endsWith('"')) {
           value = value.slice(1, -1);
         }
-        
+
         settingsMap[setting.key] = value.trim();
       });
     }
 
     const paypalClientId = settingsMap.paypal_client_id || "";
     const paypalSecret = settingsMap.paypal_secret || "";
+    const currencyCode = (settingsMap.currency || "EUR").toUpperCase();
 
     console.log(`PayPal credentials check - Client ID length: ${paypalClientId.length}, Secret length: ${paypalSecret.length}`);
 
@@ -139,19 +140,6 @@ Deno.serve(async (req: Request) => {
       description += ` - ${dateTime}`;
     }
 
-    // Get origin for return URLs
-    const origin = req.headers.get("origin") || "";
-    
-    // Get business subdomain for cancel URL
-    const { data: businessData } = await supabase
-      .from("businesses")
-      .select("subdomain")
-      .eq("id", businessId)
-      .maybeSingle();
-
-    const businessSubdomain = businessData?.subdomain || '';
-    const cancelUrlParams = businessSubdomain ? `?from=${businessSubdomain}` : '';
-
     // Build custom_id with minimal metadata (PayPal limits to 127 chars)
     // Store full metadata in database instead
     let customId: string;
@@ -187,7 +175,10 @@ Deno.serve(async (req: Request) => {
       customId = `${businessId.substring(0, 8)}|${Date.now()}`;
     }
 
-    // Create PayPal order
+    // Create PayPal order. Deliberately omit `payment_source.paypal` / `experience_context`:
+    // those force PayPal's redirect-based Advanced Checkout flow, which conflicts with the
+    // in-page JS SDK Smart Buttons popup (createOrder/onApprove) used on the client. Leaving
+    // payment_source unset lets the JS SDK drive the approval popup correctly.
     const orderResponse = await fetch("https://api-m.paypal.com/v2/checkout/orders", {
       method: "POST",
       headers: {
@@ -202,26 +193,10 @@ Deno.serve(async (req: Request) => {
           description: description.substring(0, 127), // PayPal limits to 127 chars
           custom_id: customId, // Now using short format
           amount: {
-            currency_code: "EUR",
+            currency_code: currencyCode,
             value: amount.toFixed(2)
           }
-        }],
-        payment_source: {
-          paypal: {
-            experience_context: {
-              payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
-              brand_name: "Booking",
-              locale: "en-US",
-              landing_page: "LOGIN",
-              shipping_preference: "NO_SHIPPING",
-              user_action: "PAY_NOW",
-              return_url: isGiftCard 
-                ? `${origin}/gift-card-success?paypal=true&business_id=${businessId}`
-                : `${origin}/booking-success?paypal=true&booking_id=${bookingId}`,
-              cancel_url: `${origin}/payment-cancelled${cancelUrlParams}`
-            }
-          }
-        }
+        }]
       })
     });
 

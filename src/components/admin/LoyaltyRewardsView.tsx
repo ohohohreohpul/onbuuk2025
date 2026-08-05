@@ -16,6 +16,8 @@ interface LoyaltySettings {
   welcome_bonus_points: number;
 }
 
+type GiftCardCodeFormat = 'standard' | 'numeric_6' | 'alphanumeric_6' | 'prefix_numeric';
+
 interface GiftCardSettings {
   enabled: boolean;
   preset_amounts_cents: number[];
@@ -25,7 +27,16 @@ interface GiftCardSettings {
   expiry_days: number | null;
   design_url: string | null;
   terms_and_conditions: string | null;
+  code_format: GiftCardCodeFormat;
+  code_prefix: string | null;
 }
+
+const CODE_FORMAT_OPTIONS: { value: GiftCardCodeFormat; label: string; example: string }[] = [
+  { value: 'standard', label: 'Standard (current)', example: 'ABCD-EFGH-JKLM-NPQR' },
+  { value: 'numeric_6', label: '6-Digit Numeric', example: '482917' },
+  { value: 'alphanumeric_6', label: '6-Character Alphanumeric', example: 'A3K8F2' },
+  { value: 'prefix_numeric', label: 'Custom Prefix + 6 Digits', example: 'SPA-483921' },
+];
 
 interface GiftCard {
   id: string;
@@ -66,6 +77,8 @@ export function LoyaltyRewardsView() {
     expiry_days: null,
     design_url: null,
     terms_and_conditions: null,
+    code_format: 'standard',
+    code_prefix: null,
   });
   const [uploadingDesign, setUploadingDesign] = useState(false);
 
@@ -195,6 +208,16 @@ export function LoyaltyRewardsView() {
   };
 
   const createGiftCard = async () => {
+    const trimmedEmail = newGiftCardEmail.trim();
+    if (!trimmedEmail) {
+      setMessage('Recipient email is required');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setMessage('Please enter a valid recipient email');
+      return;
+    }
+
     setCreatingGiftCard(true);
     setMessage('');
 
@@ -202,7 +225,7 @@ export function LoyaltyRewardsView() {
 
     // Generate code using the database function
     const { data: codeData, error: codeError } = await supabase
-      .rpc('generate_gift_card_code');
+      .rpc('generate_gift_card_code', { p_business_id: businessId });
 
     if (codeError || !codeData) {
       setMessage('Error generating gift card code');
@@ -227,7 +250,7 @@ export function LoyaltyRewardsView() {
         code,
         original_value_cents: amountCents,
         current_balance_cents: amountCents,
-        purchased_for_email: newGiftCardEmail || null,
+        purchased_for_email: trimmedEmail,
         expires_at: expiresAt,
       });
 
@@ -554,6 +577,60 @@ export function LoyaltyRewardsView() {
               </p>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gift Card Code Format
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Applies to newly generated codes only — existing gift cards keep their current code.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {CODE_FORMAT_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      giftCardSettings.code_format === option.value
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="code_format"
+                      value={option.value}
+                      checked={giftCardSettings.code_format === option.value}
+                      onChange={() => setGiftCardSettings({ ...giftCardSettings, code_format: option.value })}
+                      className="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-800">{option.label}</div>
+                      <div className="text-xs text-gray-500 font-mono">{option.example}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {giftCardSettings.code_format === 'prefix_numeric' && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Code Prefix
+                  </label>
+                  <input
+                    type="text"
+                    value={giftCardSettings.code_prefix || ''}
+                    onChange={(e) =>
+                      setGiftCardSettings({ ...giftCardSettings, code_prefix: e.target.value.toUpperCase().slice(0, 10) })
+                    }
+                    placeholder="SPA"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Codes will look like: {(giftCardSettings.code_prefix || 'GC').toUpperCase()}-483921
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="border-t border-gray-200 pt-6">
               <h4 className="text-base font-semibold text-gray-800 mb-4">Gift Card Design & PDF Settings</h4>
 
@@ -682,10 +759,11 @@ export function LoyaltyRewardsView() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipient Email (optional)
+                  Recipient Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
+                  required
                   value={newGiftCardEmail}
                   onChange={(e) => setNewGiftCardEmail(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -695,8 +773,8 @@ export function LoyaltyRewardsView() {
             </div>
             <button
               onClick={createGiftCard}
-              disabled={creatingGiftCard}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={creatingGiftCard || !newGiftCardEmail.trim()}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Gift className="w-4 h-4" />
               {creatingGiftCard ? 'Creating...' : 'Create Gift Card'}

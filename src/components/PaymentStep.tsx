@@ -5,6 +5,7 @@ import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
+import { useCurrency } from '../lib/currencyContext';
 import { Button } from './ui/button';
 
 interface SelectedProduct {
@@ -46,6 +47,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
+  const { currency } = useCurrency();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -58,6 +60,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [specialistName, setSpecialistName] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [paypalLoadError, setPaypalLoadError] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
   const primaryColor = colors.primary || '#008374';
@@ -136,7 +139,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
   // Load PayPal SDK when PayPal is selected and enabled
   useEffect(() => {
-    if (paypalEnabled && paypalClientId && selectedPaymentMethod === 'paypal' && !paypalLoaded) {
+    if (paypalEnabled && paypalClientId && selectedPaymentMethod === 'paypal' && !paypalLoaded && !paypalLoadError) {
       loadPayPalScript();
     }
   }, [paypalEnabled, paypalClientId, selectedPaymentMethod]);
@@ -148,15 +151,26 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     }
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&intent=capture`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${currency}&intent=capture`;
     script.async = true;
     script.onload = () => {
       setPaypalLoaded(true);
     };
     script.onerror = () => {
       console.error('Failed to load PayPal SDK');
+      setPaypalLoadError(true);
     };
     document.body.appendChild(script);
+  };
+
+  const resetPayPalAttempt = async () => {
+    if (createdBookingId) {
+      await supabase
+        .from('bookings')
+        .update({ status: 'cancelled', payment_status: 'abandoned' })
+        .eq('id', createdBookingId);
+    }
+    setCreatedBookingId(null);
   };
 
   const fetchSpecialistName = async () => {
@@ -1028,28 +1042,63 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           )}
 
           {/* PayPal Buttons - Show when PayPal is selected and booking is created */}
-          {selectedPaymentMethod === 'paypal' && paypalEnabled && createdBookingId && paypalLoaded && finalPrice > 0 && (
+          {selectedPaymentMethod === 'paypal' && paypalEnabled && createdBookingId && finalPrice > 0 && (
             <div className="mt-4 pt-4 border-t border-stone-200">
-              <p className="text-sm text-stone-600 mb-3">Complete your payment with PayPal:</p>
-              <PayPalButtonContainer
-                bookingId={createdBookingId}
-                businessId={tenant.businessId!}
-                amount={finalPrice / 100}
-                customerEmail={bookingData.customerDetails.email}
-                customerName={bookingData.customerDetails.name}
-                serviceName={bookingData.service.name}
-                specialistName={specialistName || 'Any Available Specialist'}
-                dateTime={`${formatDate(bookingData.date)} at ${bookingData.time}`}
-                onSuccess={(orderId) => {
-                  console.log('PayPal payment successful:', orderId);
-                  setBookingId(createdBookingId);
-                  setIsComplete(true);
-                }}
-                onError={(error) => {
-                  console.error('PayPal payment error:', error);
-                  alert(`Payment failed: ${error}`);
-                }}
-              />
+              {paypalLoadError ? (
+                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-800">
+                    <p>Couldn't load PayPal. Please check your connection and try again.</p>
+                    <button
+                      onClick={async () => {
+                        await resetPayPalAttempt();
+                        setPaypalLoadError(false);
+                      }}
+                      className="mt-2 font-medium underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              ) : !paypalLoaded ? (
+                <div className="flex items-center gap-3 text-sm text-stone-600">
+                  <div className="w-4 h-4 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin"></div>
+                  Loading PayPal...
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-stone-600 mb-3">Complete your payment with PayPal:</p>
+                  <PayPalButtonContainer
+                    bookingId={createdBookingId}
+                    businessId={tenant.businessId!}
+                    amount={finalPrice / 100}
+                    customerEmail={bookingData.customerDetails.email}
+                    customerName={bookingData.customerDetails.name}
+                    serviceName={bookingData.service.name}
+                    specialistName={specialistName || 'Any Available Specialist'}
+                    dateTime={`${formatDate(bookingData.date)} at ${bookingData.time}`}
+                    onSuccess={(orderId) => {
+                      console.log('PayPal payment successful:', orderId);
+                      setBookingId(createdBookingId);
+                      setIsComplete(true);
+                    }}
+                    onError={async (error) => {
+                      console.error('PayPal payment error:', error);
+                      alert(`Payment failed: ${error}`);
+                      await resetPayPalAttempt();
+                    }}
+                    onCancel={async () => {
+                      await resetPayPalAttempt();
+                    }}
+                  />
+                  <button
+                    onClick={resetPayPalAttempt}
+                    className="mt-3 text-xs text-stone-500 hover:text-stone-700 underline"
+                  >
+                    Cancel and choose a different payment method
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1122,6 +1171,7 @@ interface PayPalButtonContainerProps {
   dateTime: string;
   onSuccess: (orderId: string) => void;
   onError: (error: string) => void;
+  onCancel: () => void;
 }
 
 function PayPalButtonContainer({
@@ -1135,6 +1185,7 @@ function PayPalButtonContainer({
   dateTime,
   onSuccess,
   onError,
+  onCancel,
 }: PayPalButtonContainerProps) {
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node && window.paypal) {
@@ -1221,10 +1272,11 @@ function PayPalButtonContainer({
         },
         onCancel: () => {
           console.log('PayPal payment cancelled');
+          onCancel();
         },
       }).render(node);
     }
-  }, [bookingId, businessId, amount, customerEmail, customerName, serviceName, specialistName, dateTime, onSuccess, onError]);
+  }, [bookingId, businessId, amount, customerEmail, customerName, serviceName, specialistName, dateTime, onSuccess, onError, onCancel]);
 
   return <div ref={containerRef} />;
 }
