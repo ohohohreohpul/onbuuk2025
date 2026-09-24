@@ -4,6 +4,60 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  back: string;
+  title: string;
+  subtitle: string;
+  continue: string;
+  nameLabel: string;
+  emailLabel: string;
+  phoneLabel: string;
+  notesLabel: string;
+  nameRequired: string;
+  emailRequired: string;
+  emailInvalid: string;
+  phoneRequired: string;
+  namePlaceholder: string;
+  emailPlaceholder: string;
+  notesPlaceholder: string;
+}> = {
+  en: {
+    back: 'Back',
+    title: 'Your Details',
+    subtitle: 'Please provide your contact information',
+    continue: 'Continue',
+    nameLabel: 'Full Name',
+    emailLabel: 'Email Address',
+    phoneLabel: 'Phone Number',
+    notesLabel: 'Additional Notes (Optional)',
+    nameRequired: 'Name is required',
+    emailRequired: 'Email is required',
+    emailInvalid: 'Please enter a valid email',
+    phoneRequired: 'Phone number is required',
+    namePlaceholder: 'Enter your full name',
+    emailPlaceholder: 'your.email@example.com',
+    notesPlaceholder: 'Any special requests or health considerations we should know about...',
+  },
+  de: {
+    back: 'Zurück',
+    title: 'Persönliche Angaben',
+    subtitle: 'Bitte Kontaktdaten angeben',
+    continue: 'Weiter',
+    nameLabel: 'Vollständiger Name',
+    emailLabel: 'E-Mail-Adresse',
+    phoneLabel: 'Telefonnummer',
+    notesLabel: 'Anmerkungen (optional)',
+    nameRequired: 'Bitte Namen angeben',
+    emailRequired: 'Bitte E-Mail-Adresse angeben',
+    emailInvalid: 'Bitte eine gültige E-Mail-Adresse eingeben',
+    phoneRequired: 'Bitte Telefonnummer angeben',
+    namePlaceholder: 'Vor- und Nachname',
+    emailPlaceholder: 'name@beispiel.de',
+    notesPlaceholder: 'Besondere Wünsche oder gesundheitliche Hinweise, die wir kennen sollten …',
+  },
+};
 
 interface PersonalDetailsStepProps {
   onNext: (details: { name: string; email: string; phone: string; notes: string }) => void;
@@ -13,6 +67,7 @@ interface PersonalDetailsStepProps {
 export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsStepProps) {
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
+  const { t } = useBookingText(TEXT);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,14 +83,14 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
   }, []);
 
   const content = {
-    title: customization?.details_step?.title || 'Your Details',
-    subtitle: customization?.details_step?.subtitle || 'Please provide your contact information',
-    buttonText: customization?.details_step?.buttonText || 'Continue',
+    title: customization?.details_step?.title || t.title,
+    subtitle: customization?.details_step?.subtitle || t.subtitle,
+    buttonText: customization?.details_step?.buttonText || t.continue,
     labels: {
-      name: customization?.details_step?.labels?.name || 'Full Name',
-      email: customization?.details_step?.labels?.email || 'Email Address',
-      phone: customization?.details_step?.labels?.phone || 'Phone Number',
-      notes: customization?.details_step?.labels?.notes || 'Additional Notes (Optional)'
+      name: customization?.details_step?.labels?.name || t.nameLabel,
+      email: customization?.details_step?.labels?.email || t.emailLabel,
+      phone: customization?.details_step?.labels?.phone || t.phoneLabel,
+      notes: customization?.details_step?.labels?.notes || t.notesLabel
     }
   };
 
@@ -43,17 +98,17 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
     const newErrors: { [key: string]: string } = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t.nameRequired;
     }
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t.emailRequired;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = t.emailInvalid;
     }
 
     if (!phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = t.phoneRequired;
     }
 
     setErrors(newErrors);
@@ -80,7 +135,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary || '#737373'}
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-semibold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
@@ -113,7 +168,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
                 color: colors.textPrimary,
                 '--tw-ring-color': primaryColor 
               } as any}
-              placeholder="Enter your full name"
+              placeholder={t.namePlaceholder}
             />
           </Card>
           {errors.name && (
@@ -146,7 +201,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
                 color: colors.textPrimary,
                 '--tw-ring-color': primaryColor 
               } as any}
-              placeholder="your.email@example.com"
+              placeholder={t.emailPlaceholder}
             />
           </Card>
           {errors.email && (
@@ -210,7 +265,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
                 color: colors.textPrimary,
                 '--tw-ring-color': primaryColor 
               } as any}
-              placeholder="Any special requests or health considerations we should know about..."
+              placeholder={t.notesPlaceholder}
             />
           </Card>
         </div>

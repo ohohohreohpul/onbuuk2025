@@ -7,8 +7,269 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { useCurrency } from '../lib/currencyContext';
 import { Button } from './ui/button';
+import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
 
 const CARD_GUARANTEE_POLICY_VERSION = '2026-09';
+
+const TEXT: Translations<{
+  back: string;
+  title: string;
+  subtitle: string;
+  confirmBooking: string;
+  enterGiftCardCode: string;
+  alreadyFullyCovered: string;
+  invalidGiftCard: string;
+  giftCardAlreadyApplied: string;
+  bothUnitsCovered: string;
+  passAlreadyApplied: string;
+  giftCardValidationFailed: string;
+  redeemFailed: string;
+  totalNotVerified: string;
+  businessNotFound: string;
+  createBookingFailed: string;
+  checkoutFailed: string;
+  unknownError: string;
+  bookingFailedAlert: string;
+  successPrefix: string;
+  successSuffix: string;
+  bookingDetails: string;
+  bookingIdLabel: string;
+  serviceLabel: string;
+  durationLabel: string;
+  durationMinutes: string;
+  dateLabel: string;
+  timeLabel: string;
+  typeLabel: string;
+  couplesSession: string;
+  arrivalNote: string;
+  bookingSummary: string;
+  nameLabel: string;
+  emailLabel: string;
+  addOnsLabel: string;
+  subtotalLabel: string;
+  servicePass: string;
+  valueCard: string;
+  amountToPayLabel: string;
+  totalLabel: string;
+  giftCardQuestion: string;
+  giftCardHint: string;
+  giftCardCodeLabel: string;
+  validating: string;
+  apply: string;
+  appliedCards: string;
+  visitApplied: string;
+  visitsLeft: string;
+  appliedAmount: string;
+  remainingAmount: string;
+  removeGiftCard: string;
+  giftCardInfo: string;
+  paymentMethod: string;
+  policyTitle: string;
+  policyText: string;
+  payWithCard: string;
+  payWithCardHint: string;
+  payWithPayPal: string;
+  payWithPayPalHint: string;
+  prepaymentRequired: string;
+  prepaymentText: string;
+  payInPersonSecured: string;
+  payInPersonSecuredHint: string;
+  payInPerson: string;
+  payInPersonHint: string;
+  fullyCovered: string;
+  securePaymentNote: string;
+  consentPrefix: string;
+  consentSuffix: string;
+  paypalLoadError: string;
+  tryAgain: string;
+  loadingPayPal: string;
+  completeWithPayPal: string;
+  paymentFailed: string;
+  cancelPayPal: string;
+  processing: string;
+  completeGiftCard: string;
+  confirmPayInPerson: string;
+  confirmAndPay: string;
+  cancellationAgreement: string;
+  paypalCreateOrderFailed: string;
+  paypalCaptureFailed: string;
+  paymentCaptureFailed: string;
+  completePaymentFailed: string;
+  paypalGenericError: string;
+}> = {
+  en: {
+    back: 'Back',
+    title: 'Review & Pay',
+    subtitle: 'Please review your booking details',
+    confirmBooking: 'Confirm Booking',
+    enterGiftCardCode: 'Please enter a gift card code',
+    alreadyFullyCovered: 'Your booking is already fully covered by cards or passes',
+    invalidGiftCard: 'Invalid gift card or pass code',
+    giftCardAlreadyApplied: 'This gift card or pass has already been applied',
+    bothUnitsCovered: 'Both service units are already covered by passes',
+    passAlreadyApplied: 'This booking already has a service pass applied',
+    giftCardValidationFailed: 'Failed to validate gift card. Please try again.',
+    redeemFailed: 'Could not redeem {code}: {message}',
+    totalNotVerified: 'The booking total could not be verified after redemption',
+    businessNotFound: 'Business not found',
+    createBookingFailed: 'Failed to create booking: {message}',
+    checkoutFailed: 'Failed to create checkout session',
+    unknownError: 'Unknown error occurred',
+    bookingFailedAlert: 'Failed to create booking: {message}\n\nPlease check the console for more details.',
+    successPrefix: 'Your appointment has been successfully scheduled. We\'ve sent a confirmation email to',
+    successSuffix: '',
+    bookingDetails: 'Booking Details',
+    bookingIdLabel: 'Booking ID:',
+    serviceLabel: 'Service:',
+    durationLabel: 'Duration:',
+    durationMinutes: '{minutes} minutes',
+    dateLabel: 'Date:',
+    timeLabel: 'Time:',
+    typeLabel: 'Type:',
+    couplesSession: 'Couples Session',
+    arrivalNote: 'Please arrive 10 minutes before your appointment. If you need to reschedule or cancel, please contact us at least 24 hours in advance.',
+    bookingSummary: 'Booking Summary',
+    nameLabel: 'Name:',
+    emailLabel: 'Email:',
+    addOnsLabel: 'Add-Ons:',
+    subtotalLabel: 'Subtotal:',
+    servicePass: 'Service pass',
+    valueCard: 'Value card',
+    amountToPayLabel: 'Amount to Pay:',
+    totalLabel: 'Total:',
+    giftCardQuestion: 'Have a gift card or service pass?',
+    giftCardHint: 'Apply value or redeem one eligible visit',
+    giftCardCodeLabel: 'Gift card or pass code',
+    validating: 'Validating...',
+    apply: 'Apply',
+    appliedCards: 'Applied cards and passes',
+    visitApplied: '1 visit applied',
+    visitsLeft: '{count} left',
+    appliedAmount: 'Applied: {amount}',
+    remainingAmount: 'Remaining: {amount}',
+    removeGiftCard: 'Remove gift card',
+    giftCardInfo: 'Value cards reduce the total. A service pass uses one visit and covers one matching service unit; add-ons and a second guest remain payable.',
+    paymentMethod: 'Payment Method',
+    policyTitle: 'No-show & late-cancel policy.',
+    policyText: 'Leaving your card details secures your booking — you won\'t be charged during booking. Your card may be charged {fee} if you cancel less than {hours} hours before your appointment or don\'t show up.',
+    payWithCard: 'Pay with Card',
+    payWithCardHint: 'Secure payment via Stripe',
+    payWithPayPal: 'Pay with PayPal',
+    payWithPayPalHint: 'PayPal, Credit/Debit Card, Pay Later',
+    prepaymentRequired: 'Prepayment required',
+    prepaymentText: 'You\'ve missed or cancelled several appointments, so we ask that you prepay this one.',
+    payInPersonSecured: 'Pay in Person — Secure with Card',
+    payInPersonSecuredHint: 'Leave your card details; no charge now. Charged {fee} only if you no-show or cancel within {hours}h',
+    payInPerson: 'Pay in Person',
+    payInPersonHint: 'Pay when you arrive',
+    fullyCovered: 'Your booking is fully covered by cards or passes. No payment is required.',
+    securePaymentNote: 'Payment will be processed securely. Click "Confirm Booking" to proceed.',
+    consentPrefix: 'I authorize this business to save my card and charge up to ',
+    consentSuffix: ' if I do not attend or cancel less than {hours} hours before the appointment. No appointment payment is taken now.',
+    paypalLoadError: 'Couldn\'t load PayPal. Please check your connection and try again.',
+    tryAgain: 'Try again',
+    loadingPayPal: 'Loading PayPal...',
+    completeWithPayPal: 'Complete your payment with PayPal:',
+    paymentFailed: 'Payment failed: {error}',
+    cancelPayPal: 'Cancel and choose a different payment method',
+    processing: 'Processing...',
+    completeGiftCard: 'Complete Booking - Paid with Gift Card',
+    confirmPayInPerson: 'Confirm Booking - Pay in Person',
+    confirmAndPay: 'Confirm & Pay {amount}',
+    cancellationAgreement: 'By confirming this booking, you agree to our cancellation policy. Cancellations must be made at least 24 hours in advance.',
+    paypalCreateOrderFailed: 'Failed to create PayPal order',
+    paypalCaptureFailed: 'Failed to capture PayPal order',
+    paymentCaptureFailed: 'Payment capture failed',
+    completePaymentFailed: 'Failed to complete payment',
+    paypalGenericError: 'PayPal encountered an error. Please try again.',
+  },
+  de: {
+    back: 'Zurück',
+    title: 'Prüfen & bezahlen',
+    subtitle: 'Bitte die Buchungsdetails prüfen',
+    confirmBooking: 'Buchung bestätigen',
+    enterGiftCardCode: 'Bitte einen Gutscheincode eingeben',
+    alreadyFullyCovered: 'Die Buchung ist bereits vollständig durch Gutscheine oder Pässe abgedeckt',
+    invalidGiftCard: 'Ungültiger Gutschein- oder Passcode',
+    giftCardAlreadyApplied: 'Dieser Gutschein oder Pass wurde bereits hinzugefügt',
+    bothUnitsCovered: 'Beide Leistungen sind bereits durch Pässe abgedeckt',
+    passAlreadyApplied: 'Für diese Buchung wurde bereits ein Behandlungsgutschein eingelöst',
+    giftCardValidationFailed: 'Gutschein konnte nicht geprüft werden. Bitte erneut versuchen.',
+    redeemFailed: 'Einlösung von {code} fehlgeschlagen: {message}',
+    totalNotVerified: 'Der Buchungsbetrag konnte nach der Einlösung nicht überprüft werden',
+    businessNotFound: 'Unternehmen nicht gefunden',
+    createBookingFailed: 'Buchung konnte nicht erstellt werden: {message}',
+    checkoutFailed: 'Bezahlvorgang konnte nicht gestartet werden',
+    unknownError: 'Unbekannter Fehler',
+    bookingFailedAlert: 'Buchung konnte nicht erstellt werden: {message}\n\nWeitere Details sind in der Browser-Konsole zu finden.',
+    successPrefix: 'Der Termin wurde erfolgreich gebucht. Eine Bestätigung wurde per E-Mail an',
+    successSuffix: ' gesendet.',
+    bookingDetails: 'Buchungsdetails',
+    bookingIdLabel: 'Buchungsnummer:',
+    serviceLabel: 'Leistung:',
+    durationLabel: 'Dauer:',
+    durationMinutes: '{minutes} Minuten',
+    dateLabel: 'Datum:',
+    timeLabel: 'Uhrzeit:',
+    typeLabel: 'Art:',
+    couplesSession: 'Paarbehandlung',
+    arrivalNote: 'Bitte 10 Minuten vor Terminbeginn eintreffen. Terminverschiebungen oder Absagen bitte mindestens 24 Stunden im Voraus mitteilen.',
+    bookingSummary: 'Buchungsübersicht',
+    nameLabel: 'Name:',
+    emailLabel: 'E-Mail:',
+    addOnsLabel: 'Zusatzleistungen:',
+    subtotalLabel: 'Zwischensumme:',
+    servicePass: 'Behandlungsgutschein',
+    valueCard: 'Wertgutschein',
+    amountToPayLabel: 'Zu zahlen:',
+    totalLabel: 'Gesamt:',
+    giftCardQuestion: 'Gutschein oder Behandlungsgutschein vorhanden?',
+    giftCardHint: 'Guthaben einlösen oder einen passenden Besuch abbuchen',
+    giftCardCodeLabel: 'Gutschein- oder Passcode',
+    validating: 'Wird geprüft …',
+    apply: 'Einlösen',
+    appliedCards: 'Eingelöste Gutscheine und Pässe',
+    visitApplied: '1 Besuch eingelöst',
+    visitsLeft: 'noch {count} übrig',
+    appliedAmount: 'Eingelöst: {amount}',
+    remainingAmount: 'Restguthaben: {amount}',
+    removeGiftCard: 'Gutschein entfernen',
+    giftCardInfo: 'Wertgutscheine reduzieren den Gesamtbetrag. Ein Behandlungsgutschein verbraucht einen Besuch und deckt eine passende Leistung ab; Zusatzleistungen und eine zweite Person bleiben zahlungspflichtig.',
+    paymentMethod: 'Zahlungsmethode',
+    policyTitle: 'Regelung bei Nichterscheinen und kurzfristiger Absage.',
+    policyText: 'Die hinterlegten Kartendaten sichern die Buchung – bei der Buchung erfolgt keine Belastung. Bei einer Absage weniger als {hours} Stunden vor dem Termin oder bei Nichterscheinen kann die Karte mit {fee} belastet werden.',
+    payWithCard: 'Mit Karte bezahlen',
+    payWithCardHint: 'Sichere Zahlung über Stripe',
+    payWithPayPal: 'Mit PayPal bezahlen',
+    payWithPayPalHint: 'PayPal, Kredit-/Debitkarte, später bezahlen',
+    prepaymentRequired: 'Vorauszahlung erforderlich',
+    prepaymentText: 'Da mehrere Termine nicht wahrgenommen oder abgesagt wurden, bitten wir für diesen Termin um Vorauszahlung.',
+    payInPersonSecured: 'Vor Ort bezahlen – mit Karte sichern',
+    payInPersonSecuredHint: 'Kartendaten hinterlegen, jetzt keine Belastung. {fee} werden nur bei Nichterscheinen oder Absage innerhalb von {hours} Std. vor dem Termin belastet',
+    payInPerson: 'Vor Ort bezahlen',
+    payInPersonHint: 'Zahlung bei Ankunft',
+    fullyCovered: 'Die Buchung ist vollständig durch Gutscheine oder Pässe abgedeckt. Es ist keine Zahlung erforderlich.',
+    securePaymentNote: 'Die Zahlung wird sicher abgewickelt. Zum Fortfahren auf „Buchung bestätigen“ klicken.',
+    consentPrefix: 'Ich ermächtige dieses Unternehmen, meine Karte zu speichern und mit bis zu ',
+    consentSuffix: ' zu belasten, falls ich den Termin nicht wahrnehme oder weniger als {hours} Stunden vor dem Termin absage. Eine Zahlung für den Termin wird jetzt nicht eingezogen.',
+    paypalLoadError: 'PayPal konnte nicht geladen werden. Bitte die Internetverbindung prüfen und erneut versuchen.',
+    tryAgain: 'Erneut versuchen',
+    loadingPayPal: 'PayPal wird geladen …',
+    completeWithPayPal: 'Zahlung mit PayPal abschließen:',
+    paymentFailed: 'Zahlung fehlgeschlagen: {error}',
+    cancelPayPal: 'Abbrechen und andere Zahlungsmethode wählen',
+    processing: 'Wird verarbeitet …',
+    completeGiftCard: 'Buchung abschließen – mit Gutschein bezahlt',
+    confirmPayInPerson: 'Buchung bestätigen – vor Ort bezahlen',
+    confirmAndPay: 'Bestätigen & {amount} bezahlen',
+    cancellationAgreement: 'Mit der Bestätigung dieser Buchung werden unsere Stornierungsbedingungen akzeptiert. Stornierungen müssen mindestens 24 Stunden im Voraus erfolgen.',
+    paypalCreateOrderFailed: 'PayPal-Bestellung konnte nicht erstellt werden',
+    paypalCaptureFailed: 'PayPal-Zahlung konnte nicht abgeschlossen werden',
+    paymentCaptureFailed: 'Zahlung konnte nicht abgeschlossen werden',
+    completePaymentFailed: 'Zahlung konnte nicht abgeschlossen werden',
+    paypalGenericError: 'Bei PayPal ist ein Fehler aufgetreten. Bitte erneut versuchen.',
+  },
+};
 
 interface SelectedProduct {
   product: {
@@ -54,6 +315,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
   const { currency, formatPrice } = useCurrency();
+  const { t, locale } = useBookingText(TEXT);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -76,9 +338,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const primaryColor = colors.primary || '#1A1714';
 
   const content = {
-    title: customization?.payment_step?.title || 'Review & Pay',
-    subtitle: customization?.payment_step?.subtitle || 'Please review your booking details',
-    buttonText: customization?.payment_step?.buttonText || 'Confirm Booking'
+    title: customization?.payment_step?.title || t.title,
+    subtitle: customization?.payment_step?.subtitle || t.subtitle,
+    buttonText: customization?.payment_step?.buttonText || t.confirmBooking
   };
 
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
@@ -250,7 +512,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
   const handleApplyGiftCard = async () => {
     if (!giftCardCode.trim()) {
-      setGiftCardError('Please enter a gift card code');
+      setGiftCardError(t.enterGiftCardCode);
       return;
     }
 
@@ -265,7 +527,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       const remainingToPay = Math.max(0, currentTotal - currentDiscount);
 
       if (remainingToPay <= 0) {
-        setGiftCardError('Your booking is already fully covered by cards or passes');
+        setGiftCardError(t.alreadyFullyCovered);
         setIsValidatingGiftCard(false);
         return;
       }
@@ -279,12 +541,12 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       });
 
       if (previewError || !preview) {
-        setGiftCardError(previewError?.message || 'Invalid gift card or pass code');
+        setGiftCardError(previewError?.message || t.invalidGiftCard);
         return;
       }
 
       if (appliedGiftCards.some((card) => card.id === preview.id)) {
-        setGiftCardError('This gift card or pass has already been applied');
+        setGiftCardError(t.giftCardAlreadyApplied);
         return;
       }
 
@@ -293,8 +555,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         appliedGiftCards.filter((card) => card.cardType === 'service_pass').length >= (bookingData.isPairBooking ? 2 : 1)
       ) {
         setGiftCardError(bookingData.isPairBooking
-          ? 'Both service units are already covered by passes'
-          : 'This booking already has a service pass applied');
+          ? t.bothUnitsCovered
+          : t.passAlreadyApplied);
         return;
       }
 
@@ -314,7 +576,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       setGiftCardError(null);
     } catch (err) {
       console.error('Error validating gift card:', err);
-      setGiftCardError('Failed to validate gift card. Please try again.');
+      setGiftCardError(t.giftCardValidationFailed);
     } finally {
       setIsValidatingGiftCard(false);
     }
@@ -331,9 +593,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   };
 
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string, dateLocale = 'en-US') => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(dateLocale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -389,7 +651,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       });
 
       if (error) {
-        throw new Error(`Could not redeem ${giftCard.code}: ${error.message}`);
+        throw new Error(fillText(t.redeemFailed, { code: giftCard.code, message: error.message }));
       }
     }
 
@@ -400,7 +662,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       .single();
 
     if (bookingError || !updatedBooking) {
-      throw new Error('The booking total could not be verified after redemption');
+      throw new Error(t.totalNotVerified);
     }
 
     return {
@@ -415,7 +677,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     try {
       if (!tenant.businessId) {
         console.error('Business ID is missing:', tenant);
-        throw new Error('Business not found');
+        throw new Error(t.businessNotFound);
       }
 
       console.log('Creating booking with data:', {
@@ -459,7 +721,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
-          throw new Error(`Failed to create booking: ${bookingError.message}`);
+          throw new Error(fillText(t.createBookingFailed, { message: bookingError.message }));
         }
 
         if (appliedGiftCards.length > 0) {
@@ -509,7 +771,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
-          throw new Error(`Failed to create booking: ${bookingError.message}`);
+          throw new Error(fillText(t.createBookingFailed, { message: bookingError.message }));
         }
 
         console.log('Booking created successfully:', createdBooking);
@@ -565,7 +827,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           } catch {
             errorData = { error: errorText };
           }
-          throw new Error(errorData.error || 'Failed to create checkout session');
+          throw new Error(errorData.error || t.checkoutFailed);
         }
 
         const { url } = await checkoutResponse.json();
@@ -599,7 +861,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (error) {
           console.error('Booking creation error (pay in person):', error);
-          throw new Error(`Failed to create booking: ${error.message}`);
+          throw new Error(fillText(t.createBookingFailed, { message: error.message }));
         }
 
         console.log('Booking created successfully:', data);
@@ -733,8 +995,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       }
     } catch (error: any) {
       console.error('Error creating booking:', error);
-      const errorMessage = error?.message || 'Unknown error occurred';
-      alert(`Failed to create booking: ${errorMessage}\n\nPlease check the console for more details.`);
+      const errorMessage = error?.message || t.unknownError;
+      alert(fillText(t.bookingFailedAlert, { message: errorMessage }));
     } finally {
       setIsProcessing(false);
     }
@@ -749,41 +1011,41 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           </div>
           <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-3">{content.title}</h2>
           <p className="text-custom-secondary leading-relaxed">
-            Your appointment has been successfully scheduled. We've sent a confirmation email to{' '}
-            <span className="font-medium">{bookingData.customerDetails.email}</span>
+            {t.successPrefix}{' '}
+            <span className="font-medium">{bookingData.customerDetails.email}</span>{t.successSuffix}
           </p>
         </div>
 
         <div className="border border-stone-200 p-6 space-y-4 bg-stone-50">
           <h3 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-4">
-            Booking Details
+            {t.bookingDetails}
           </h3>
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-stone-600">Booking ID:</span>
+              <span className="text-stone-600">{t.bookingIdLabel}</span>
               <span className="text-stone-800 font-medium">{bookingId?.slice(0, 8)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-600">Service:</span>
+              <span className="text-stone-600">{t.serviceLabel}</span>
               <span className="text-stone-800 font-medium">{bookingData.service.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-600">Duration:</span>
-              <span className="text-stone-800 font-medium">{bookingData.duration.duration_minutes} minutes</span>
+              <span className="text-stone-600">{t.durationLabel}</span>
+              <span className="text-stone-800 font-medium">{fillText(t.durationMinutes, { minutes: bookingData.duration.duration_minutes })}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-600">Date:</span>
-              <span className="text-stone-800 font-medium">{formatDate(bookingData.date)}</span>
+              <span className="text-stone-600">{t.dateLabel}</span>
+              <span className="text-stone-800 font-medium">{formatDate(bookingData.date, locale)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-600">Time:</span>
+              <span className="text-stone-600">{t.timeLabel}</span>
               <span className="text-stone-800 font-medium">{bookingData.time}</span>
             </div>
             {bookingData.isPairBooking && (
               <div className="flex justify-between">
-                <span className="text-stone-600">Type:</span>
-                <span className="text-stone-800 font-medium">Couples Session</span>
+                <span className="text-stone-600">{t.typeLabel}</span>
+                <span className="text-stone-800 font-medium">{t.couplesSession}</span>
               </div>
             )}
           </div>
@@ -796,8 +1058,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         />
 
         <div className="text-center text-sm text-stone-600 leading-relaxed">
-          Please arrive 10 minutes before your appointment. If you need to reschedule or cancel,
-          please contact us at least 24 hours in advance.
+          {t.arrivalNote}
         </div>
       </div>
     );
@@ -864,45 +1125,45 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pb-6">
         <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/[0.72] p-6 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
         <h3 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-4">
-          Booking Summary
+          {t.bookingSummary}
         </h3>
 
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-stone-600">Service:</span>
+            <span className="text-stone-600">{t.serviceLabel}</span>
             <span className="text-stone-800 font-medium">{bookingData.service.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-600">Duration:</span>
-            <span className="text-stone-800 font-medium">{bookingData.duration.duration_minutes} minutes</span>
+            <span className="text-stone-600">{t.durationLabel}</span>
+            <span className="text-stone-800 font-medium">{fillText(t.durationMinutes, { minutes: bookingData.duration.duration_minutes })}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-600">Date:</span>
-            <span className="text-stone-800 font-medium">{formatDate(bookingData.date)}</span>
+            <span className="text-stone-600">{t.dateLabel}</span>
+            <span className="text-stone-800 font-medium">{formatDate(bookingData.date, locale)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-600">Time:</span>
+            <span className="text-stone-600">{t.timeLabel}</span>
             <span className="text-stone-800 font-medium">{bookingData.time}</span>
           </div>
           {bookingData.isPairBooking && (
             <div className="flex justify-between">
-              <span className="text-stone-600">Type:</span>
-              <span className="text-stone-800 font-medium">Couples Session</span>
+              <span className="text-stone-600">{t.typeLabel}</span>
+              <span className="text-stone-800 font-medium">{t.couplesSession}</span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-stone-600">Name:</span>
+            <span className="text-stone-600">{t.nameLabel}</span>
             <span className="text-stone-800 font-medium">{bookingData.customerDetails.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-600">Email:</span>
+            <span className="text-stone-600">{t.emailLabel}</span>
             <span className="text-stone-800 font-medium">{bookingData.customerDetails.email}</span>
           </div>
 
           {/* Add-Ons Section */}
           {bookingData.selectedProducts && bookingData.selectedProducts.length > 0 && (
             <div className="pt-3 mt-3 border-t border-stone-200">
-              <p className="text-stone-600 mb-2 font-medium">Add-Ons:</p>
+              <p className="text-stone-600 mb-2 font-medium">{t.addOnsLabel}</p>
               <div className="space-y-2 pl-2">
                 {bookingData.selectedProducts.map((item, index) => (
                   <div key={index} className="flex justify-between text-sm">
@@ -922,23 +1183,23 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             {appliedGiftCards.length > 0 ? (
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-stone-600">Subtotal:</span>
+                  <span className="text-stone-600">{t.subtotalLabel}</span>
                   <span className="text-stone-800">{formatPrice(totalPrice)}</span>
                 </div>
                 {appliedGiftCards.map((card) => (
                   <div key={card.id} className="flex justify-between text-green-600 text-sm">
-                    <span>{card.cardType === 'service_pass' ? card.servicePassName || 'Service pass' : 'Value card'} ({card.code}):</span>
+                    <span>{card.cardType === 'service_pass' ? card.servicePassName || t.servicePass : t.valueCard} ({card.code}):</span>
                     <span>-{formatPrice(card.amountUsedCents)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 border-t border-stone-200">
-                  <span className="text-stone-800 font-medium">Amount to Pay:</span>
+                  <span className="text-stone-800 font-medium">{t.amountToPayLabel}</span>
                   <span className="text-xl font-medium text-stone-800">{formatPrice(finalPrice)}</span>
                 </div>
               </div>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-stone-800 font-medium">Total:</span>
+                <span className="text-stone-800 font-medium">{t.totalLabel}</span>
                 <span className="text-xl font-medium text-stone-800">{formatPrice(totalPrice)}</span>
               </div>
             )}
@@ -955,8 +1216,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             <div className="flex items-center space-x-3">
               <Gift className="w-5 h-5 text-stone-600" />
               <div className="text-left">
-                <h3 className="text-sm font-medium text-stone-700">Have a gift card or service pass?</h3>
-                <p className="text-xs text-stone-500">Apply value or redeem one eligible visit</p>
+                <h3 className="text-sm font-medium text-stone-700">{t.giftCardQuestion}</h3>
+                <p className="text-xs text-stone-500">{t.giftCardHint}</p>
               </div>
             </div>
             {showGiftCardSection ? (
@@ -971,7 +1232,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
               <div className="space-y-3 pt-4">
                 <div>
                   <label htmlFor="giftCardCode" className="block text-sm text-stone-600 mb-2">
-                    Gift card or pass code
+                    {t.giftCardCodeLabel}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -989,7 +1250,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                       disabled={isValidatingGiftCard || !giftCardCode.trim()}
                       className="px-6 py-2 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:bg-stone-400 disabled:cursor-not-allowed"
                     >
-                      {isValidatingGiftCard ? 'Validating...' : 'Apply'}
+                      {isValidatingGiftCard ? t.validating : t.apply}
                     </button>
                   </div>
                 </div>
@@ -1004,7 +1265,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 {appliedGiftCards.length > 0 && (
                   <div className="space-y-3 pt-2">
                     <h4 className="text-xs font-medium text-stone-700 uppercase tracking-wider">
-                      Applied cards and passes
+                      {t.appliedCards}
                     </h4>
                     {appliedGiftCards.map((card) => (
                       <div
@@ -1019,9 +1280,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                             <p className="text-sm font-medium text-stone-800">{card.code}</p>
                             <p className="text-xs text-stone-600">
                               {card.cardType === 'service_pass' ? (
-                                <>{card.servicePassName || 'Service pass'} · 1 visit applied{card.remainingVisits !== undefined ? ` · ${card.remainingVisits} left` : ''}</>
+                                <>{card.servicePassName || t.servicePass} · {t.visitApplied}{card.remainingVisits !== undefined ? ` · ${fillText(t.visitsLeft, { count: card.remainingVisits })}` : ''}</>
                               ) : (
-                                <>Applied: {formatPrice(card.amountUsedCents)}{card.remainingBalanceCents > 0 ? ` · Remaining: ${formatPrice(card.remainingBalanceCents)}` : ''}</>
+                                <>{fillText(t.appliedAmount, { amount: formatPrice(card.amountUsedCents) })}{card.remainingBalanceCents > 0 ? ` · ${fillText(t.remainingAmount, { amount: formatPrice(card.remainingBalanceCents) })}` : ''}</>
                               )}
                             </p>
                           </div>
@@ -1029,7 +1290,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                         <button
                           onClick={() => handleRemoveGiftCard(card.id)}
                           className="p-2 text-stone-500 hover:text-red-600 transition-colors"
-                          title="Remove gift card"
+                          title={t.removeGiftCard}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -1040,7 +1301,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
                 <div className="rounded-xl border border-stone-200/80 bg-stone-100/70 p-3">
                   <p className="text-xs text-stone-600 leading-relaxed">
-                    Value cards reduce the total. A service pass uses one visit and covers one matching service unit; add-ons and a second guest remain payable.
+                    {t.giftCardInfo}
                   </p>
                 </div>
               </div>
@@ -1051,12 +1312,12 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         <div className="rounded-[24px] border border-white/80 bg-white/[0.72] p-6 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
           <div className="flex items-center space-x-3 mb-4">
             <CreditCard className="w-5 h-5 text-stone-600" />
-            <h3 className="text-sm font-medium text-stone-700">Payment Method</h3>
+            <h3 className="text-sm font-medium text-stone-700">{t.paymentMethod}</h3>
           </div>
 
           {noShowFeeCents > 0 && (
             <div className="mb-4 rounded-2xl border border-stone-200/80 bg-stone-100/70 p-4 text-xs leading-relaxed text-stone-600">
-              <span className="font-semibold text-stone-800">No-show & late-cancel policy.</span> Leaving your card details secures your booking — you won't be charged during booking. Your card may be charged {formatPrice(noShowFeeCents)} if you cancel less than {lateCancelHours} hours before your appointment or don't show up.
+              <span className="font-semibold text-stone-800">{t.policyTitle}</span> {fillText(t.policyText, { fee: formatPrice(noShowFeeCents), hours: lateCancelHours })}
             </div>
           )}
 
@@ -1076,8 +1337,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     <div className="flex items-center gap-3">
                       <CreditCard className="w-5 h-5 text-stone-600" />
                       <div>
-                        <p className="font-medium text-stone-800">Pay with Card</p>
-                        <p className="text-xs text-stone-600">Secure payment via Stripe</p>
+                        <p className="font-medium text-stone-800">{t.payWithCard}</p>
+                        <p className="text-xs text-stone-600">{t.payWithCardHint}</p>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'stripe' && (
@@ -1101,8 +1362,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     <div className="flex items-center gap-3">
                       <Wallet className="h-5 w-5 text-stone-700" />
                       <div>
-                        <p className="font-medium text-stone-800">Pay with PayPal</p>
-                        <p className="text-xs text-stone-600">PayPal, Credit/Debit Card, Pay Later</p>
+                        <p className="font-medium text-stone-800">{t.payWithPayPal}</p>
+                        <p className="text-xs text-stone-600">{t.payWithPayPalHint}</p>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'paypal' && (
@@ -1114,9 +1375,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
               {repeatOffender && (
                 <div className="w-full p-4 mb-3 border border-amber-200 bg-amber-50 rounded-lg text-left">
-                  <p className="text-sm font-semibold text-amber-900">Prepayment required</p>
+                  <p className="text-sm font-semibold text-amber-900">{t.prepaymentRequired}</p>
                   <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                    You've missed or cancelled several appointments, so we ask that you prepay this one.
+                    {t.prepaymentText}
                   </p>
                 </div>
               )}
@@ -1135,8 +1396,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 text-stone-600">💳</div>
                       <div>
-                        <p className="font-medium text-stone-800">Pay in Person — Secure with Card</p>
-                        <p className="text-xs text-stone-600">Leave your card details; no charge now. Charged {formatPrice(noShowFeeCents)} only if you no-show or cancel within {lateCancelHours}h</p>
+                        <p className="font-medium text-stone-800">{t.payInPersonSecured}</p>
+                        <p className="text-xs text-stone-600">{fillText(t.payInPersonSecuredHint, { fee: formatPrice(noShowFeeCents), hours: lateCancelHours })}</p>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'in_person' && (
@@ -1160,8 +1421,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 text-stone-600">💵</div>
                       <div>
-                        <p className="font-medium text-stone-800">Pay in Person</p>
-                        <p className="text-xs text-stone-600">Pay when you arrive</p>
+                        <p className="font-medium text-stone-800">{t.payInPerson}</p>
+                        <p className="text-xs text-stone-600">{t.payInPersonHint}</p>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'in_person' && (
@@ -1174,8 +1435,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           ) : (
             <p className="text-sm text-stone-600 leading-relaxed">
               {finalPrice === 0
-                ? 'Your booking is fully covered by cards or passes. No payment is required.'
-                : 'Payment will be processed securely. Click "Confirm Booking" to proceed.'}
+                ? t.fullyCovered
+                : t.securePaymentNote}
             </p>
           )}
 
@@ -1188,7 +1449,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 className="mt-1 h-4 w-4 rounded border-stone-300 accent-stone-900"
               />
               <span>
-                I authorize this business to save my card and charge up to <strong className="font-semibold text-stone-900">{formatPrice(noShowFeeCents)}</strong> if I do not attend or cancel less than {lateCancelHours} hours before the appointment. No appointment payment is taken now.
+                {t.consentPrefix}<strong className="font-semibold text-stone-900">{formatPrice(noShowFeeCents)}</strong>{fillText(t.consentSuffix, { hours: lateCancelHours })}
               </span>
             </label>
           )}
@@ -1200,7 +1461,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded">
                   <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-red-800">
-                    <p>Couldn't load PayPal. Please check your connection and try again.</p>
+                    <p>{t.paypalLoadError}</p>
                     <button
                       onClick={async () => {
                         await resetPayPalAttempt();
@@ -1208,18 +1469,18 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                       }}
                       className="mt-2 font-medium underline"
                     >
-                      Try again
+                      {t.tryAgain}
                     </button>
                   </div>
                 </div>
               ) : !paypalLoaded ? (
                 <div className="flex items-center gap-3 text-sm text-stone-600">
                   <div className="w-4 h-4 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin"></div>
-                  Loading PayPal...
+                  {t.loadingPayPal}
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-stone-600 mb-3">Complete your payment with PayPal:</p>
+                  <p className="text-sm text-stone-600 mb-3">{t.completeWithPayPal}</p>
                   <PayPalButtonContainer
                     bookingId={createdBookingId}
                     businessId={tenant.businessId!}
@@ -1236,7 +1497,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     }}
                     onError={async (error) => {
                       console.error('PayPal payment error:', error);
-                      alert(`Payment failed: ${error}`);
+                      alert(fillText(t.paymentFailed, { error }));
                       await resetPayPalAttempt();
                     }}
                     onCancel={async () => {
@@ -1247,7 +1508,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                     onClick={resetPayPalAttempt}
                     className="mt-3 text-xs text-stone-500 hover:text-stone-700 underline"
                   >
-                    Cancel and choose a different payment method
+                    {t.cancelPayPal}
                   </button>
                 </>
               )}
@@ -1281,21 +1542,21 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           {isProcessing ? (
             <span className="flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-              Processing...
+              {t.processing}
             </span>
           ) : finalPrice === 0 ? (
             <>
-              Complete Booking - Paid with Gift Card
+              {t.completeGiftCard}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </>
           ) : selectedPaymentMethod === 'in_person' ? (
             <>
-              Confirm Booking - Pay in Person
+              {t.confirmPayInPerson}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </>
           ) : (
             <>
-              Confirm & Pay {formatPrice(finalPrice)}
+              {fillText(t.confirmAndPay, { amount: formatPrice(finalPrice) })}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </>
           )}
@@ -1303,8 +1564,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         )}
 
         <p className="text-xs text-center leading-relaxed" style={{ color: colors.textSecondary }}>
-          By confirming this booking, you agree to our cancellation policy.
-          Cancellations must be made at least 24 hours in advance.
+          {t.cancellationAgreement}
         </p>
       </div>
     </div>
@@ -1339,6 +1599,7 @@ function PayPalButtonContainer({
   onError,
   onCancel,
 }: PayPalButtonContainerProps) {
+  const { t } = useBookingText(TEXT);
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node && window.paypal) {
       // Clear any existing buttons
@@ -1375,14 +1636,14 @@ function PayPalButtonContainer({
 
             if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to create PayPal order');
+              throw new Error(errorData.error || t.paypalCreateOrderFailed);
             }
 
             const { orderId } = await response.json();
             return orderId;
           } catch (error: any) {
             console.error('Error creating PayPal order:', error);
-            onError(error.message || 'Failed to create PayPal order');
+            onError(error.message || t.paypalCreateOrderFailed);
             throw error;
           }
         },
@@ -1404,23 +1665,23 @@ function PayPalButtonContainer({
 
             if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to capture PayPal order');
+              throw new Error(errorData.error || t.paypalCaptureFailed);
             }
 
             const result = await response.json();
             if (result.success) {
               onSuccess(data.orderID);
             } else {
-              throw new Error('Payment capture failed');
+              throw new Error(t.paymentCaptureFailed);
             }
           } catch (error: any) {
             console.error('Error capturing PayPal order:', error);
-            onError(error.message || 'Failed to complete payment');
+            onError(error.message || t.completePaymentFailed);
           }
         },
         onError: (err: any) => {
           console.error('PayPal error:', err);
-          onError('PayPal encountered an error. Please try again.');
+          onError(t.paypalGenericError);
         },
         onCancel: () => {
           console.log('PayPal payment cancelled');
@@ -1428,7 +1689,7 @@ function PayPalButtonContainer({
         },
       }).render(node);
     }
-  }, [bookingId, businessId, amount, customerEmail, customerName, serviceName, specialistName, dateTime, onSuccess, onError, onCancel]);
+  }, [bookingId, businessId, amount, customerEmail, customerName, serviceName, specialistName, dateTime, onSuccess, onError, onCancel, t]);
 
   return <div ref={containerRef} />;
 }

@@ -36,7 +36,10 @@ interface BusinessRow {
   name: string;
   permalink: string;
   plan_type: TenantInfo['planType'];
+  language?: string | null;
 }
+
+const toLanguage = (value: string | null | undefined): TenantInfo['language'] => (value === 'de' ? 'de' : 'en');
 
 interface ResolvedTenantRow {
   business_id: string;
@@ -59,6 +62,7 @@ const EMPTY_TENANT = {
   subdomain: null,
   customDomain: null,
   planType: 'starter' as const,
+  language: 'en' as const,
 };
 
 const currentPathWithQuery = () =>
@@ -80,9 +84,17 @@ async function resolveShopHost(): Promise<Resolution> {
     return { kind: 'redirecting' };
   }
 
+  const { data: languageRow } = await supabase.from('businesses').select('language').eq('id', row.business_id).maybeSingle();
+
   return {
     kind: 'tenant',
-    business: { id: row.business_id, name: row.business_name, permalink: row.permalink, plan_type: row.plan_type },
+    business: {
+      id: row.business_id,
+      name: row.business_name,
+      permalink: row.permalink,
+      plan_type: row.plan_type,
+      language: (languageRow as { language?: string } | null)?.language ?? null,
+    },
     customDomain: row.match_type === 'custom_domain' ? window.location.hostname : null,
   };
 }
@@ -90,7 +102,7 @@ async function resolveShopHost(): Promise<Resolution> {
 async function fetchBusiness(column: 'id' | 'permalink', value: string): Promise<BusinessRow | null> {
   const { data, error } = await supabase
     .from('businesses')
-    .select('id, name, permalink, plan_type')
+    .select('id, name, permalink, plan_type, language')
     .eq(column, value)
     .eq('is_active', true)
     .maybeSingle();
@@ -164,6 +176,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           subdomain: result.business.permalink,
           customDomain: result.customDomain,
           planType: result.business.plan_type,
+          language: toLanguage(result.business.language),
           hostKind,
           isLoading: false,
         });

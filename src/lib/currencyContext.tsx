@@ -14,7 +14,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { businessId } = useTenant();
+  const { businessId, language: tenantLanguage } = useTenant();
   const [currency, setCurrencyState] = useState<string>('USD');
 
   useEffect(() => {
@@ -145,12 +145,15 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // German businesses get German money formatting ("70,00 €"); others keep the existing style.
+  const moneyLocale = tenantLanguage === 'de' ? 'de-DE' : undefined;
+
   const formatPrice = (cents: number): string => {
-    return formatCurrencyUtil(cents, currency);
+    return formatCurrencyUtil(cents, currency, moneyLocale);
   };
 
   const formatAmount = (amount: number): string => {
-    return formatCurrencyUtil(Math.round(amount * 100), currency);
+    return formatCurrencyUtil(Math.round(amount * 100), currency, moneyLocale);
   };
 
   const currencySymbol = getSymbol(currency);

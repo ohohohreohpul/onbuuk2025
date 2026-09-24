@@ -4,6 +4,48 @@ import { ChevronRight, Plus, Minus, Package, Check } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCurrency } from '../lib/currencyContext';
+import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  skipButtonText: string;
+  back: string;
+  noProducts: string;
+  selectOne: string;
+  maxPerBooking: string;
+  selected: string;
+  select: string;
+  addOnsTotal: string;
+}> = {
+  en: {
+    title: 'Add-On Products',
+    subtitle: 'Enhance your experience with optional add-ons',
+    buttonText: 'Continue',
+    skipButtonText: 'Continue Without Add-Ons',
+    back: 'Back',
+    noProducts: 'No add-on products available for this service',
+    selectOne: 'Select one',
+    maxPerBooking: 'Max {count} per booking',
+    selected: 'Selected',
+    select: 'Select',
+    addOnsTotal: 'Add-Ons Total:',
+  },
+  de: {
+    title: 'Extras',
+    subtitle: 'Optionale Extras zur Behandlung hinzufügen',
+    buttonText: 'Weiter',
+    skipButtonText: 'Ohne Extras fortfahren',
+    back: 'Zurück',
+    noProducts: 'Für diese Behandlung sind keine Extras verfügbar',
+    selectOne: 'Eine Option wählen',
+    maxPerBooking: 'Max. {count} pro Buchung',
+    selected: 'Ausgewählt',
+    select: 'Auswählen',
+    addOnsTotal: 'Summe Extras:',
+  },
+};
 
 interface Product {
   id: string;
@@ -31,15 +73,16 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
   const { formatPrice } = useCurrency();
   const { businessId } = useTenant();
   const { customization } = useBookingCustomization();
+  const { t } = useBookingText(TEXT);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const content = {
-    title: customization?.addons_step?.title || 'Add-On Products',
-    subtitle: customization?.addons_step?.subtitle || 'Enhance your experience with optional add-ons',
-    buttonText: customization?.addons_step?.buttonText || 'Continue',
-    skipButtonText: customization?.addons_step?.skipButtonText || 'Continue Without Add-Ons'
+    title: customization?.addons_step?.title || t.title,
+    subtitle: customization?.addons_step?.subtitle || t.subtitle,
+    buttonText: customization?.addons_step?.buttonText || t.buttonText,
+    skipButtonText: customization?.addons_step?.skipButtonText || t.skipButtonText
   };
 
   useEffect(() => {
@@ -209,7 +252,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
           className="text-gray-600 hover:text-black text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-2">{content.title}</h2>
         <p className="text-custom-secondary">{content.subtitle}</p>
@@ -219,7 +262,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500">
             <Package className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p>No add-on products available for this service</p>
+            <p>{t.noProducts}</p>
             <button
               onClick={() => onNext([])}
               className="mt-6 px-8 py-3 bg-custom-primary text-white hover:bg-custom transition-colors"
@@ -242,7 +285,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{category}</h3>
                       {hasExclusive && (
                         <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                          Select one
+                          {t.selectOne}
                         </span>
                       )}
                     </div>
@@ -281,7 +324,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                                 <h3 className="text-lg font-medium text-black">{product.name}</h3>
                                 <p className="text-sm text-gray-600 mt-1">{product.description}</p>
                                 {maxQty && !isExclusive && (
-                                  <p className="text-xs text-gray-500 mt-1">Max {maxQty} per booking</p>
+                                  <p className="text-xs text-gray-500 mt-1">{fillText(t.maxPerBooking, { count: maxQty })}</p>
                                 )}
                               </div>
                               <span className="text-lg font-medium text-black ml-4">
@@ -302,7 +345,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                                   }`}
                                 >
                                   {isSelected && <Check className="w-4 h-4" />}
-                                  <span>{isSelected ? 'Selected' : 'Select'}</span>
+                                  <span>{isSelected ? t.selected : t.select}</span>
                                 </button>
                               ) : (
                                 // Quantity controls for regular products
@@ -339,7 +382,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
             {selectedProducts.size > 0 && (
               <div className="p-4 bg-[#f9f9f9] border border-gray-200">
                 <div className="flex items-center justify-between text-lg">
-                  <span className="text-gray-700">Add-Ons Total:</span>
+                  <span className="text-gray-700">{t.addOnsTotal}</span>
                   <span className="font-medium text-black">{formatPrice(getTotalPrice())}</span>
                 </div>
               </div>

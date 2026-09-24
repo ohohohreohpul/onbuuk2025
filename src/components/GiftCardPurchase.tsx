@@ -4,6 +4,216 @@ import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
+import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  back: string;
+  loading: string;
+  notAvailableTitle: string;
+  notAvailableText: string;
+  defaultTitle: string;
+  defaultSubtitle: string;
+  defaultSelectAmountLabel: string;
+  defaultEnterCustomLabel: string;
+  defaultUsePresetLabel: string;
+  defaultRecipientEmailLabel: string;
+  defaultRecipientEmailHelper: string;
+  defaultMessageLabel: string;
+  defaultYourDetailsLabel: string;
+  defaultYourNameLabel: string;
+  defaultYourEmailLabel: string;
+  defaultContinuePaymentButton: string;
+  defaultCompletePurchaseButton: string;
+  valueTab: string;
+  valueTabHint: string;
+  passTab: string;
+  passTabHint: string;
+  choosePassTitle: string;
+  choosePassHint: string;
+  serviceFallback: string;
+  passServiceLine: string;
+  visitOne: string;
+  visitMany: string;
+  redemptionOne: string;
+  redemptionMany: string;
+  expiryDays: string;
+  standardExpiry: string;
+  standardValue: string;
+  customAmountPlaceholder: string;
+  recipientPlaceholder: string;
+  optional: string;
+  messagePlaceholder: string;
+  namePlaceholder: string;
+  emailPlaceholder: string;
+  confirmationHint: string;
+  paymentMethod: string;
+  payCard: string;
+  payCardHint: string;
+  payPaypal: string;
+  payPaypalHint: string;
+  completePaypal: string;
+  changePayment: string;
+  processing: string;
+  productValue: string;
+  productPass: string;
+  purchaseSuccessAlert: string;
+  errChoosePass: string;
+  errAmount: string;
+  errMin: string;
+  errMax: string;
+  errRecipientRequired: string;
+  errRecipientInvalid: string;
+  errName: string;
+  errEmail: string;
+  errEmailInvalid: string;
+  errCode: string;
+  errCheckout: string;
+  errPurchase: string;
+  errPaypalCreate: string;
+  errPaypalCapture: string;
+  errPaymentCapture: string;
+  errPaymentComplete: string;
+  errPaypalGeneric: string;
+}> = {
+  en: {
+    back: 'Back',
+    loading: 'Loading...',
+    notAvailableTitle: 'Gift Cards Not Available',
+    notAvailableText: 'Gift cards are not currently available for purchase.',
+    defaultTitle: 'Purchase a Gift Card',
+    defaultSubtitle: 'Give the gift of choice with a gift card',
+    defaultSelectAmountLabel: 'Select Amount',
+    defaultEnterCustomLabel: 'Enter custom amount',
+    defaultUsePresetLabel: 'Use preset amount',
+    defaultRecipientEmailLabel: 'Recipient Email (Optional)',
+    defaultRecipientEmailHelper: 'Leave blank to purchase for yourself, or enter an email to send as a gift',
+    defaultMessageLabel: 'Personal Message (Optional)',
+    defaultYourDetailsLabel: 'Your Details',
+    defaultYourNameLabel: 'Your Name',
+    defaultYourEmailLabel: 'Your Email',
+    defaultContinuePaymentButton: 'Continue to Payment',
+    defaultCompletePurchaseButton: 'Complete Purchase',
+    valueTab: 'Value card',
+    valueTabHint: 'Choose an amount to spend freely',
+    passTab: 'Service pass',
+    passTabHint: 'Gift one visit or a package',
+    choosePassTitle: 'Choose a service pass',
+    choosePassHint: 'Each visit is redeemable only for the service and duration shown.',
+    serviceFallback: 'Service',
+    passServiceLine: '{service} · {minutes} minutes',
+    visitOne: '{count} visit',
+    visitMany: '{count} visits',
+    redemptionOne: 'One code · {count} redemption',
+    redemptionMany: 'One code · {count} redemptions',
+    expiryDays: '{days} days',
+    standardExpiry: 'Standard expiry',
+    standardValue: 'Standard value {amount}',
+    customAmountPlaceholder: 'Min: {min}, Max: {max}',
+    recipientPlaceholder: 'recipient@example.com',
+    optional: '(Optional)',
+    messagePlaceholder: 'Add a personal message...',
+    namePlaceholder: 'John Doe',
+    emailPlaceholder: 'you@example.com',
+    confirmationHint: "We'll send you a confirmation email with the card or pass details",
+    paymentMethod: 'Payment Method',
+    payCard: 'Pay with Card',
+    payCardHint: 'Secure payment via Stripe',
+    payPaypal: 'Pay with PayPal',
+    payPaypalHint: 'PayPal, Credit/Debit Card, Pay Later',
+    completePaypal: 'Complete Payment with PayPal',
+    changePayment: '← Choose different payment method',
+    processing: 'Processing...',
+    productValue: 'Gift card',
+    productPass: 'Service pass',
+    purchaseSuccessAlert: '{product} purchased successfully!\n\nYour code: {code}\n\nAn email has been sent with the details.',
+    errChoosePass: 'Please choose a service pass',
+    errAmount: 'Please select or enter a valid amount',
+    errMin: 'Minimum amount is {amount}',
+    errMax: 'Maximum amount is {amount}',
+    errRecipientRequired: "Please enter the recipient's email address",
+    errRecipientInvalid: 'Please enter a valid recipient email address',
+    errName: 'Please enter your name',
+    errEmail: 'Please enter your email address',
+    errEmailInvalid: 'Please enter a valid email address',
+    errCode: 'Failed to generate gift card code',
+    errCheckout: 'Failed to create checkout session',
+    errPurchase: 'Failed to purchase gift card',
+    errPaypalCreate: 'Failed to create PayPal order',
+    errPaypalCapture: 'Failed to capture PayPal order',
+    errPaymentCapture: 'Payment capture failed',
+    errPaymentComplete: 'Failed to complete payment',
+    errPaypalGeneric: 'PayPal encountered an error. Please try again.',
+  },
+  de: {
+    back: 'Zurück',
+    loading: 'Wird geladen …',
+    notAvailableTitle: 'Gutscheine nicht verfügbar',
+    notAvailableText: 'Gutscheine können derzeit nicht gekauft werden.',
+    defaultTitle: 'Gutschein kaufen',
+    defaultSubtitle: 'Freude schenken – mit einem Gutschein',
+    defaultSelectAmountLabel: 'Betrag wählen',
+    defaultEnterCustomLabel: 'Eigenen Betrag eingeben',
+    defaultUsePresetLabel: 'Vorgegebenen Betrag wählen',
+    defaultRecipientEmailLabel: 'E-Mail-Adresse des Empfängers',
+    defaultRecipientEmailHelper: 'Der Gutschein wird an diese Adresse gesendet. Für einen Kauf für sich selbst die eigene E-Mail-Adresse eingeben.',
+    defaultMessageLabel: 'Persönliche Nachricht',
+    defaultYourDetailsLabel: 'Ihre Angaben',
+    defaultYourNameLabel: 'Name',
+    defaultYourEmailLabel: 'E-Mail-Adresse',
+    defaultContinuePaymentButton: 'Weiter zur Zahlung',
+    defaultCompletePurchaseButton: 'Kauf abschließen',
+    valueTab: 'Wertgutschein',
+    valueTabHint: 'Betrag wählen, frei einlösbar',
+    passTab: 'Behandlungsgutschein',
+    passTabHint: 'Eine Behandlung oder ein Paket verschenken',
+    choosePassTitle: 'Behandlungsgutschein wählen',
+    choosePassHint: 'Jeder Besuch ist nur für die angegebene Behandlung und Dauer einlösbar.',
+    serviceFallback: 'Behandlung',
+    passServiceLine: '{service} · {minutes} Minuten',
+    visitOne: '{count} Besuch',
+    visitMany: '{count} Besuche',
+    redemptionOne: 'Ein Code · {count} Einlösung',
+    redemptionMany: 'Ein Code · {count} Einlösungen',
+    expiryDays: '{days} Tage gültig',
+    standardExpiry: 'Reguläre Gültigkeit',
+    standardValue: 'Regulärer Wert {amount}',
+    customAmountPlaceholder: 'Min.: {min}, max.: {max}',
+    recipientPlaceholder: 'empfaenger@beispiel.de',
+    optional: '(optional)',
+    messagePlaceholder: 'Persönliche Nachricht hinzufügen …',
+    namePlaceholder: 'Max Mustermann',
+    emailPlaceholder: 'name@beispiel.de',
+    confirmationHint: 'Sie erhalten eine Bestätigung mit allen Gutscheindetails per E-Mail.',
+    paymentMethod: 'Zahlungsart',
+    payCard: 'Mit Karte bezahlen',
+    payCardHint: 'Sichere Zahlung über Stripe',
+    payPaypal: 'Mit PayPal bezahlen',
+    payPaypalHint: 'PayPal, Kredit-/Debitkarte, später bezahlen',
+    completePaypal: 'Zahlung mit PayPal abschließen',
+    changePayment: '← Andere Zahlungsart wählen',
+    processing: 'Wird verarbeitet …',
+    productValue: 'Wertgutschein',
+    productPass: 'Behandlungsgutschein',
+    purchaseSuccessAlert: '{product} erfolgreich gekauft!\n\nIhr Code: {code}\n\nDie Details wurden per E-Mail versendet.',
+    errChoosePass: 'Bitte einen Behandlungsgutschein wählen',
+    errAmount: 'Bitte einen gültigen Betrag wählen oder eingeben',
+    errMin: 'Der Mindestbetrag beträgt {amount}',
+    errMax: 'Der Höchstbetrag beträgt {amount}',
+    errRecipientRequired: 'Bitte die E-Mail-Adresse des Empfängers angeben',
+    errRecipientInvalid: 'Bitte eine gültige E-Mail-Adresse des Empfängers angeben',
+    errName: 'Bitte Ihren Namen angeben',
+    errEmail: 'Bitte Ihre E-Mail-Adresse angeben',
+    errEmailInvalid: 'Bitte eine gültige E-Mail-Adresse angeben',
+    errCode: 'Gutscheincode konnte nicht erstellt werden',
+    errCheckout: 'Die Zahlung konnte nicht gestartet werden',
+    errPurchase: 'Der Gutschein konnte nicht gekauft werden',
+    errPaypalCreate: 'Die PayPal-Zahlung konnte nicht gestartet werden',
+    errPaypalCapture: 'Die PayPal-Zahlung konnte nicht abgeschlossen werden',
+    errPaymentCapture: 'Die Zahlung konnte nicht abgeschlossen werden',
+    errPaymentComplete: 'Die Zahlung ist fehlgeschlagen',
+    errPaypalGeneric: 'Bei PayPal ist ein Fehler aufgetreten. Bitte erneut versuchen.',
+  },
+};
 
 interface GiftCardSettings {
   enabled: boolean;
@@ -34,7 +244,27 @@ interface ServicePassOffer {
 export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const { businessId } = useTenant();
   const { currency, formatAmount } = useCurrency();
-  const { customization } = useGiftCardCustomization();
+  const { customization: savedCustomization } = useGiftCardCustomization();
+  const { t } = useBookingText(TEXT);
+  // Business-saved texts win; without a saved row, fall back to the built-in texts in the business's language.
+  const customization = savedCustomization.id
+    ? savedCustomization
+    : {
+        ...savedCustomization,
+        title: t.defaultTitle,
+        subtitle: t.defaultSubtitle,
+        select_amount_label: t.defaultSelectAmountLabel,
+        enter_custom_label: t.defaultEnterCustomLabel,
+        use_preset_label: t.defaultUsePresetLabel,
+        recipient_email_label: t.defaultRecipientEmailLabel,
+        recipient_email_helper: t.defaultRecipientEmailHelper,
+        message_label: t.defaultMessageLabel,
+        your_details_label: t.defaultYourDetailsLabel,
+        your_name_label: t.defaultYourNameLabel,
+        your_email_label: t.defaultYourEmailLabel,
+        continue_payment_button: t.defaultContinuePaymentButton,
+        complete_purchase_button: t.defaultCompletePurchaseButton,
+      };
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GiftCardSettings | null>(null);
   const [purchaseType, setPurchaseType] = useState<'value' | 'service_pass'>('value');
@@ -177,51 +407,51 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         : selectedAmount;
 
     if (purchaseType === 'service_pass' && !selectedServicePass) {
-      setError('Please choose a service pass');
+      setError(t.errChoosePass);
       return;
     }
 
     if (!finalAmount || finalAmount <= 0) {
-      setError('Please select or enter a valid amount');
+      setError(t.errAmount);
       return;
     }
 
     if (purchaseType === 'value' && settings && useCustom) {
       if (finalAmount < settings.min_custom_amount_cents) {
-        setError(`Minimum amount is ${formatAmount(settings.min_custom_amount_cents / 100)}`);
+        setError(fillText(t.errMin, { amount: formatAmount(settings.min_custom_amount_cents / 100) }));
         return;
       }
       if (finalAmount > settings.max_custom_amount_cents) {
-        setError(`Maximum amount is ${formatAmount(settings.max_custom_amount_cents / 100)}`);
+        setError(fillText(t.errMax, { amount: formatAmount(settings.max_custom_amount_cents / 100) }));
         return;
       }
     }
 
     if (!recipientEmail) {
-      setError('Please enter the recipient\'s email address');
+      setError(t.errRecipientRequired);
       return;
     }
 
     // Validate recipient email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(recipientEmail)) {
-      setError('Please enter a valid recipient email address');
+      setError(t.errRecipientInvalid);
       return;
     }
 
     if (!buyerName) {
-      setError('Please enter your name');
+      setError(t.errName);
       return;
     }
 
     if (!buyerEmail) {
-      setError('Please enter your email address');
+      setError(t.errEmail);
       return;
     }
 
     // Validate buyer email format
     if (!emailRegex.test(buyerEmail)) {
-      setError('Please enter a valid email address');
+      setError(t.errEmailInvalid);
       return;
     }
 
@@ -244,7 +474,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         .rpc('generate_gift_card_code', { p_business_id: businessId });
 
       if (codeError || !codeData) {
-        throw new Error('Failed to generate gift card code');
+        throw new Error(t.errCode);
       }
 
       const code = codeData;
@@ -292,7 +522,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
         if (!checkoutResponse.ok) {
           const errorData = await checkoutResponse.json();
-          throw new Error(errorData.error || 'Failed to create checkout session');
+          throw new Error(errorData.error || t.errCheckout);
         }
 
         const { url } = await checkoutResponse.json();
@@ -353,13 +583,13 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           });
 
         // Show success with code
-        const purchasedProduct = purchaseType === 'service_pass' ? 'Service pass' : 'Gift card';
-        alert(`${purchasedProduct} purchased successfully!\n\nYour code: ${code}\n\nAn email has been sent with the details.`);
+        const purchasedProduct = purchaseType === 'service_pass' ? t.productPass : t.productValue;
+        alert(fillText(t.purchaseSuccessAlert, { product: purchasedProduct, code }));
         onBack();
       }
     } catch (err: any) {
       console.error('Error purchasing gift card:', err);
-      setError(err.message || 'Failed to purchase gift card');
+      setError(err.message || t.errPurchase);
     } finally {
       setProcessing(false);
     }
@@ -379,7 +609,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="text-center text-gray-600">Loading...</div>
+        <div className="text-center text-gray-600">{t.loading}</div>
       </div>
     );
   }
@@ -392,12 +622,12 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           className="flex items-center gap-2 text-custom-primary hover:text-custom-primary-hover"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back
+          {t.back}
         </button>
         <div className="text-center py-12">
           <Gift className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Gift Cards Not Available</h2>
-          <p className="text-gray-600">Gift cards are not currently available for purchase.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.notAvailableTitle}</h2>
+          <p className="text-gray-600">{t.notAvailableText}</p>
         </div>
       </div>
     );
@@ -410,7 +640,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         className="flex items-center gap-2 text-custom-primary hover:text-custom-primary-hover"
       >
         <ArrowLeft className="w-5 h-5" />
-        Back
+        {t.back}
       </button>
 
       <div>
@@ -435,16 +665,16 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             onClick={() => setPurchaseType('value')}
             className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'value' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
           >
-            <span className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4" /> Value card</span>
-            <span className={`mt-1 block text-xs ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>Choose an amount to spend freely</span>
+            <span className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4" /> {t.valueTab}</span>
+            <span className={`mt-1 block text-xs ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>{t.valueTabHint}</span>
           </button>
           <button
             type="button"
             onClick={() => setPurchaseType('service_pass')}
             className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'service_pass' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
           >
-            <span className="flex items-center gap-2 text-sm font-semibold"><Package className="h-4 w-4" /> Service pass</span>
-            <span className={`mt-1 block text-xs ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>Gift one visit or a package</span>
+            <span className="flex items-center gap-2 text-sm font-semibold"><Package className="h-4 w-4" /> {t.passTab}</span>
+            <span className={`mt-1 block text-xs ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>{t.passTabHint}</span>
           </button>
         </div>
       )}
@@ -490,7 +720,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
                   type="number"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder={`Min: ${formatAmount(settings.min_custom_amount_cents / 100)}, Max: ${formatAmount(settings.max_custom_amount_cents / 100)}`}
+                  placeholder={fillText(t.customAmountPlaceholder, { min: formatAmount(settings.min_custom_amount_cents / 100), max: formatAmount(settings.max_custom_amount_cents / 100) })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   step="0.01"
                   min={settings.min_custom_amount_cents / 100}
@@ -504,8 +734,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       ) : (
         <div className="space-y-3">
           <div>
-            <h2 className="text-sm font-semibold text-stone-800">Choose a service pass</h2>
-            <p className="mt-1 text-xs text-stone-500">Each visit is redeemable only for the service and duration shown.</p>
+            <h2 className="text-sm font-semibold text-stone-800">{t.choosePassTitle}</h2>
+            <p className="mt-1 text-xs text-stone-500">{t.choosePassHint}</p>
           </div>
           <div className="grid gap-3">
             {servicePassOffers.map((offer) => {
@@ -525,19 +755,19 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
                         <span className="font-semibold tracking-tight">{offer.name}</span>
                       </div>
                       <p className={`mt-2 text-sm ${selected ? 'text-white/60' : 'text-stone-500'}`}>
-                        {offer.services?.name || 'Service'} · {offer.service_durations?.duration_minutes || '—'} minutes
+                        {fillText(t.passServiceLine, { service: offer.services?.name || t.serviceFallback, minutes: offer.service_durations?.duration_minutes || '—' })}
                       </p>
                       {offer.description && <p className={`mt-2 text-xs leading-5 ${selected ? 'text-white/45' : 'text-stone-400'}`}>{offer.description}</p>}
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-xl font-semibold tracking-tight">{formatAmount(offer.price_cents / 100)}</p>
-                      <p className={`mt-1 text-xs ${selected ? 'text-white/50' : 'text-stone-400'}`}>{offer.visit_count} {offer.visit_count === 1 ? 'visit' : 'visits'}</p>
+                      <p className={`mt-1 text-xs ${selected ? 'text-white/50' : 'text-stone-400'}`}>{fillText(offer.visit_count === 1 ? t.visitOne : t.visitMany, { count: offer.visit_count })}</p>
                     </div>
                   </div>
                   <div className={`mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs ${selected ? 'border-white/10 text-white/50' : 'border-stone-200/70 text-stone-400'}`}>
-                    <span>One code · {offer.visit_count} redemption{offer.visit_count === 1 ? '' : 's'}</span>
-                    <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{offer.expiry_days ? `${offer.expiry_days} days` : 'Standard expiry'}</span>
-                    {standardValue > offer.price_cents && <span>Standard value {formatAmount(standardValue / 100)}</span>}
+                    <span>{fillText(offer.visit_count === 1 ? t.redemptionOne : t.redemptionMany, { count: offer.visit_count })}</span>
+                    <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{offer.expiry_days ? fillText(t.expiryDays, { days: offer.expiry_days }) : t.standardExpiry}</span>
+                    {standardValue > offer.price_cents && <span>{fillText(t.standardValue, { amount: formatAmount(standardValue / 100) })}</span>}
                   </div>
                 </button>
               );
@@ -555,7 +785,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           type="email"
           value={recipientEmail}
           onChange={(e) => setRecipientEmail(e.target.value)}
-          placeholder="recipient@example.com"
+          placeholder={t.recipientPlaceholder}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
@@ -567,12 +797,12 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Message */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.message_label} <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+          {customization.message_label} <span className="text-gray-400 text-xs font-normal">{t.optional}</span>
         </label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Add a personal message..."
+          placeholder={t.messagePlaceholder}
           rows={3}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
@@ -590,7 +820,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               type="text"
               value={buyerName}
               onChange={(e) => setBuyerName(e.target.value)}
-              placeholder="John Doe"
+              placeholder={t.namePlaceholder}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
@@ -603,12 +833,12 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               type="email"
               value={buyerEmail}
               onChange={(e) => setBuyerEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t.emailPlaceholder}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              We'll send you a confirmation email with the card or pass details
+              {t.confirmationHint}
             </p>
           </div>
         </div>
@@ -617,7 +847,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Payment Method Selection */}
       {(stripeEnabled || paypalEnabled) && !showPayPalButtons && (
         <div className="space-y-3 pt-4 border-t">
-          <h3 className="font-medium text-gray-900">Payment Method</h3>
+          <h3 className="font-medium text-gray-900">{t.paymentMethod}</h3>
           <div className="space-y-2">
             {stripeEnabled && (
               <button
@@ -632,8 +862,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
                   <div className="flex items-center gap-3">
                     <CreditCard className="w-5 h-5 text-gray-600" />
                     <div>
-                      <p className="font-medium text-gray-800">Pay with Card</p>
-                      <p className="text-xs text-gray-600">Secure payment via Stripe</p>
+                      <p className="font-medium text-gray-800">{t.payCard}</p>
+                      <p className="text-xs text-gray-600">{t.payCardHint}</p>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'stripe' && (
@@ -656,8 +886,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
                   <div className="flex items-center gap-3">
                     <Wallet className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="font-medium text-gray-800">Pay with PayPal</p>
-                      <p className="text-xs text-gray-600">PayPal, Credit/Debit Card, Pay Later</p>
+                      <p className="font-medium text-gray-800">{t.payPaypal}</p>
+                      <p className="text-xs text-gray-600">{t.payPaypalHint}</p>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'paypal' && (
@@ -673,7 +903,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* PayPal Buttons */}
       {showPayPalButtons && paypalLoaded && (
         <div className="space-y-3 pt-4 border-t">
-          <h3 className="font-medium text-gray-900">Complete Payment with PayPal</h3>
+          <h3 className="font-medium text-gray-900">{t.completePaypal}</h3>
           <GiftCardPayPalButtons
             businessId={businessId!}
             amount={getFinalAmount() / 100}
@@ -690,8 +920,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               message: message || null,
             }}
             onSuccess={() => {
-              const purchasedProduct = purchaseType === 'service_pass' ? 'Service pass' : 'Gift card';
-              alert(`${purchasedProduct} purchased successfully!\n\nYour code: ${giftCardCode}\n\nAn email has been sent with the details.`);
+              const purchasedProduct = purchaseType === 'service_pass' ? t.productPass : t.productValue;
+              alert(fillText(t.purchaseSuccessAlert, { product: purchasedProduct, code: giftCardCode }));
               onBack();
             }}
             onError={(err) => {
@@ -703,7 +933,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             onClick={() => setShowPayPalButtons(false)}
             className="w-full text-sm text-gray-600 hover:text-gray-800"
           >
-            ← Choose different payment method
+            {t.changePayment}
           </button>
         </div>
       )}
@@ -716,7 +946,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           className="w-full px-8 py-4 bg-custom-primary text-white text-sm tracking-wide hover:bg-custom-primary-hover transition-colors duration-200 disabled:opacity-50 flex items-center justify-center gap-3 mb-8"
         >
           {processing ? (
-            'Processing...'
+            t.processing
           ) : (
             <>
               {selectedPaymentMethod === 'paypal' ? (
@@ -763,6 +993,7 @@ function GiftCardPayPalButtons({
   onSuccess,
   onError,
 }: GiftCardPayPalButtonsProps) {
+  const { t } = useBookingText(TEXT);
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node && window.paypal) {
       node.innerHTML = '';
@@ -798,14 +1029,14 @@ function GiftCardPayPalButtons({
 
             if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to create PayPal order');
+              throw new Error(errorData.error || t.errPaypalCreate);
             }
 
             const { orderId } = await response.json();
             return orderId;
           } catch (error: any) {
             console.error('Error creating PayPal order:', error);
-            onError(error.message || 'Failed to create PayPal order');
+            onError(error.message || t.errPaypalCreate);
             throw error;
           }
         },
@@ -827,30 +1058,30 @@ function GiftCardPayPalButtons({
 
             if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to capture PayPal order');
+              throw new Error(errorData.error || t.errPaypalCapture);
             }
 
             const result = await response.json();
             if (result.success) {
               onSuccess();
             } else {
-              throw new Error('Payment capture failed');
+              throw new Error(t.errPaymentCapture);
             }
           } catch (error: any) {
             console.error('Error capturing PayPal order:', error);
-            onError(error.message || 'Failed to complete payment');
+            onError(error.message || t.errPaymentComplete);
           }
         },
         onError: (err: any) => {
           console.error('PayPal error:', err);
-          onError('PayPal encountered an error. Please try again.');
+          onError(t.errPaypalGeneric);
         },
         onCancel: () => {
           console.log('PayPal payment cancelled');
         },
       }).render(node);
     }
-  }, [businessId, amount, customerEmail, customerName, serviceName, giftCardData, onSuccess, onError]);
+  }, [businessId, amount, customerEmail, customerName, serviceName, giftCardData, onSuccess, onError, t]);
 
   return <div ref={containerRef} />;
 }

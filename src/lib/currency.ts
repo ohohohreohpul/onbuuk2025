@@ -110,7 +110,25 @@ export const CURRENCY_NAMES: Record<string, string> = {
 
 const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'IDR'];
 
-export function formatCurrency(cents: number, currencyCode: string = 'USD'): string {
+/**
+ * Format minor units as money. With a locale (e.g. 'de-DE') the result follows
+ * that locale's conventions ("70,00 €"); without one the legacy "€70.00" style is kept.
+ */
+export function formatCurrency(cents: number, currencyCode: string = 'USD', locale?: string): string {
+  if (locale) {
+    try {
+      const fractionDigits = ZERO_DECIMAL_CURRENCIES.includes(currencyCode) ? 0 : 2;
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      }).format(cents / 100);
+    } catch {
+      // Unknown currency code for Intl: fall through to the symbol-based format.
+    }
+  }
+
   const symbol = CURRENCY_SYMBOLS[currencyCode] || currencyCode;
 
   if (ZERO_DECIMAL_CURRENCIES.includes(currencyCode)) {

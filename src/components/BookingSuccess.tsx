@@ -6,17 +6,101 @@ import AccountCreationPrompt from './AccountCreationPrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCurrency } from '../lib/currencyContext';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  errorMissingId: string;
+  errorNotFound: string;
+  errorLoadFailed: string;
+  errorGeneric: string;
+  loading: string;
+  unableToLoad: string;
+  returnHome: string;
+  confirmedTitle: string;
+  confirmedBody: string;
+  bookingDetails: string;
+  bookingId: string;
+  service: string;
+  specialist: string;
+  date: string;
+  time: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  addOns: string;
+  productFallback: string;
+  whatsNext: string;
+  arriveEarly: string;
+  reminder: string;
+  reschedule: string;
+}> = {
+  en: {
+    errorMissingId: 'Booking ID not found',
+    errorNotFound: 'Booking not found',
+    errorLoadFailed: 'Failed to load booking details',
+    errorGeneric: 'Something went wrong',
+    loading: 'Loading booking details...',
+    unableToLoad: 'Unable to Load Booking',
+    returnHome: 'Return to Home',
+    confirmedTitle: 'Booking Confirmed!',
+    confirmedBody: "Your payment has been processed successfully. We've sent a confirmation email to",
+    bookingDetails: 'Booking Details',
+    bookingId: 'Booking ID',
+    service: 'Service',
+    specialist: 'Specialist',
+    date: 'Date',
+    time: 'Time',
+    customerName: 'Customer Name',
+    email: 'Email',
+    phone: 'Phone',
+    addOns: 'Add-Ons',
+    productFallback: 'Product',
+    whatsNext: "What's Next?",
+    arriveEarly: 'Please arrive 10 minutes before your appointment',
+    reminder: "You'll receive a reminder email 24 hours before your booking",
+    reschedule: 'To reschedule or cancel, please contact us at least 24 hours in advance',
+  },
+  de: {
+    errorMissingId: 'Buchungsnummer nicht gefunden',
+    errorNotFound: 'Buchung nicht gefunden',
+    errorLoadFailed: 'Buchungsdetails konnten nicht geladen werden',
+    errorGeneric: 'Etwas ist schiefgelaufen',
+    loading: 'Buchungsdetails werden geladen …',
+    unableToLoad: 'Buchung kann nicht geladen werden',
+    returnHome: 'Zur Startseite',
+    confirmedTitle: 'Buchung bestätigt!',
+    confirmedBody: 'Die Zahlung war erfolgreich. Eine Bestätigung wurde per E-Mail gesendet an',
+    bookingDetails: 'Buchungsdetails',
+    bookingId: 'Buchungsnummer',
+    service: 'Behandlung',
+    specialist: 'Fachkraft',
+    date: 'Datum',
+    time: 'Uhrzeit',
+    customerName: 'Name',
+    email: 'E-Mail',
+    phone: 'Telefon',
+    addOns: 'Extras',
+    productFallback: 'Produkt',
+    whatsNext: 'Wie geht es weiter?',
+    arriveEarly: 'Bitte kommen Sie 10 Minuten vor Ihrem Termin',
+    reminder: 'Eine Erinnerung per E-Mail folgt 24 Stunden vor dem Termin',
+    reschedule: 'Für Terminänderungen oder Stornierungen bitten wir um Kontakt mindestens 24 Stunden im Voraus',
+  },
+};
+
+type BookingErrorKey = 'errorMissingId' | 'errorNotFound' | 'errorLoadFailed';
 
 export default function BookingSuccess() {
   const { formatPrice } = useCurrency();
   const tenant = useTenant();
+  const { t, locale } = useBookingText(TEXT);
   const [loading, setLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
   const [specialist, setSpecialist] = useState<any>(null);
   const [bookingProducts, setBookingProducts] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<BookingErrorKey | null>(null);
 
   useEffect(() => {
     fetchBookingDetails();
@@ -29,7 +113,7 @@ export default function BookingSuccess() {
       const bookingId = params.get('booking_id');
 
       if (!bookingId) {
-        setError('Booking ID not found');
+        setError('errorMissingId');
         setLoading(false);
         return;
       }
@@ -41,7 +125,7 @@ export default function BookingSuccess() {
         .maybeSingle();
 
       if (bookingError || !bookingData) {
-        setError('Booking not found');
+        setError('errorNotFound');
         setLoading(false);
         return;
       }
@@ -100,14 +184,14 @@ export default function BookingSuccess() {
       setTimeout(() => setIsLoaded(true), 100);
     } catch (err) {
       console.error('Error fetching booking details:', err);
-      setError('Failed to load booking details');
+      setError('errorLoadFailed');
       setLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -123,7 +207,7 @@ export default function BookingSuccess() {
         <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
         <div className="text-center relative z-10">
           <div className="w-10 h-10 border-3 border-[#1A1714]/20 border-t-[#1A1714] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading booking details...</p>
+          <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
@@ -139,14 +223,14 @@ export default function BookingSuccess() {
               <span className="text-2xl">❌</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2 tracking-tight">
-              Unable to Load Booking
+              {t.unableToLoad}
             </h1>
-            <p className="text-muted-foreground mb-6">{error || 'Something went wrong'}</p>
+            <p className="text-muted-foreground mb-6">{error ? t[error] : t.errorGeneric}</p>
             <Button
               onClick={() => (window.location.href = '/')}
               className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25"
             >
-              Return to Home
+              {t.returnHome}
             </Button>
           </CardContent>
         </Card>
@@ -172,10 +256,10 @@ export default function BookingSuccess() {
               </div>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 tracking-tight">
-              Booking Confirmed!
+              {t.confirmedTitle}
             </h1>
             <p className="text-muted-foreground leading-relaxed">
-              Your payment has been processed successfully. We've sent a confirmation email to{' '}
+              {t.confirmedBody}{' '}
               <span className="font-semibold text-foreground">{booking.customer_email}</span>
             </p>
           </div>
@@ -184,20 +268,20 @@ export default function BookingSuccess() {
           <div className="bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 md:p-8 mb-8">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#1A1714]" />
-              Booking Details
+              {t.bookingDetails}
             </h2>
 
             <div className="space-y-4">
               <DetailRow
                 icon={<span className="text-lg">🎯</span>}
-                label="Booking ID"
+                label={t.bookingId}
                 value={booking.id.slice(0, 8).toUpperCase()}
               />
 
               {service && (
                 <DetailRow
                   icon={<span className="text-lg">✨</span>}
-                  label="Service"
+                  label={t.service}
                   value={service.name}
                 />
               )}
@@ -205,39 +289,39 @@ export default function BookingSuccess() {
               {specialist && (
                 <DetailRow
                   icon={<User className="w-5 h-5 text-[#1A1714]" />}
-                  label="Specialist"
+                  label={t.specialist}
                   value={specialist.name}
                 />
               )}
 
               <DetailRow
                 icon={<Calendar className="w-5 h-5 text-[#1A1714]" />}
-                label="Date"
+                label={t.date}
                 value={formatDate(booking.booking_date)}
               />
 
               <DetailRow
                 icon={<Clock className="w-5 h-5 text-[#1A1714]" />}
-                label="Time"
+                label={t.time}
                 value={booking.start_time}
               />
 
               <DetailRow
                 icon={<User className="w-5 h-5 text-[#1A1714]" />}
-                label="Customer Name"
+                label={t.customerName}
                 value={booking.customer_name}
               />
 
               <DetailRow
                 icon={<Mail className="w-5 h-5 text-[#1A1714]" />}
-                label="Email"
+                label={t.email}
                 value={booking.customer_email}
               />
 
               {booking.customer_phone && (
                 <DetailRow
                   icon={<Phone className="w-5 h-5 text-[#1A1714]" />}
-                  label="Phone"
+                  label={t.phone}
                   value={booking.customer_phone}
                 />
               )}
@@ -251,13 +335,13 @@ export default function BookingSuccess() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-                        Add-Ons
+                        {t.addOns}
                       </p>
                       <div className="space-y-1">
                         {bookingProducts.map((item: any) => (
                           <div key={item.id} className="flex justify-between text-sm">
                             <span className="text-foreground">
-                              {(item.products as any)?.name || 'Product'} {item.quantity > 1 && `×${item.quantity}`}
+                              {(item.products as any)?.name || t.productFallback} {item.quantity > 1 && `×${item.quantity}`}
                             </span>
                             <span className="text-foreground font-medium">
                               {formatPrice(item.price_cents * item.quantity)}
@@ -282,20 +366,20 @@ export default function BookingSuccess() {
           <div className="mt-8 p-6 bg-[#1A1714]/5 backdrop-blur-sm border border-[#1A1714]/20 rounded-2xl">
             <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-[#1A1714]" />
-              What's Next?
+              {t.whatsNext}
             </h3>
             <ul className="text-sm text-muted-foreground space-y-2 leading-relaxed">
               <li className="flex items-start gap-2">
                 <span className="text-[#1A1714]">•</span>
-                Please arrive 10 minutes before your appointment
+                {t.arriveEarly}
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#1A1714]">•</span>
-                You'll receive a reminder email 24 hours before your booking
+                {t.reminder}
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#1A1714]">•</span>
-                To reschedule or cancel, please contact us at least 24 hours in advance
+                {t.reschedule}
               </li>
             </ul>
           </div>
@@ -307,7 +391,7 @@ export default function BookingSuccess() {
               className="h-12 px-8 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300 group"
               size="lg"
             >
-              Return to Home
+              {t.returnHome}
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>

@@ -3,6 +3,39 @@ import { supabase, Specialist } from '../lib/supabase';
 import { ChevronRight, User } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  anySpecialist: string;
+  back: string;
+  anySpecialistHint: string;
+  orChoose: string;
+  noSpecialists: string;
+}> = {
+  en: {
+    title: 'Choose Your Specialist',
+    subtitle: 'Select a therapist or let us assign one for you',
+    buttonText: 'Continue',
+    anySpecialist: 'Anyone Available',
+    back: 'Back',
+    anySpecialistHint: "We'll assign the first available specialist",
+    orChoose: 'or choose a specialist',
+    noSpecialists: "No specialists found for this service. We'll assign one for you.",
+  },
+  de: {
+    title: 'Fachkraft wählen',
+    subtitle: 'Wunschperson auswählen oder automatisch zuweisen lassen',
+    buttonText: 'Weiter',
+    anySpecialist: 'Nächste verfügbare Person',
+    back: 'Zurück',
+    anySpecialistHint: 'Wir wählen die erste freie Fachkraft',
+    orChoose: 'oder Fachkraft auswählen',
+    noSpecialists: 'Für diese Behandlung ist keine Fachkraft hinterlegt. Die Zuweisung erfolgt automatisch.',
+  },
+};
 
 interface SpecialistStepProps {
   serviceId: string;
@@ -13,15 +46,16 @@ interface SpecialistStepProps {
 export default function SpecialistStep({ serviceId, onNext, onBack }: SpecialistStepProps) {
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
+  const { t } = useBookingText(TEXT);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpecialistId, setSelectedSpecialistId] = useState<string | null>(null);
 
   const content = {
-    title: customization?.specialist_step?.title || 'Choose Your Specialist',
-    subtitle: customization?.specialist_step?.subtitle || 'Select a therapist or let us assign one for you',
-    buttonText: customization?.specialist_step?.buttonText || 'Continue',
-    anySpecialistText: customization?.specialist_step?.anySpecialistText || 'Anyone Available'
+    title: customization?.specialist_step?.title || t.title,
+    subtitle: customization?.specialist_step?.subtitle || t.subtitle,
+    buttonText: customization?.specialist_step?.buttonText || t.buttonText,
+    anySpecialistText: customization?.specialist_step?.anySpecialistText || t.anySpecialist
   };
 
   useEffect(() => {
@@ -79,7 +113,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           className="text-muted-foreground hover:text-foreground text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-semibold tracking-tight text-theme-primary mb-2">{content.title}</h2>
         <p className="text-theme-secondary">{content.subtitle}</p>
@@ -102,7 +136,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
               <div>
                 <h3 className="text-foreground font-medium">{content.anySpecialistText}</h3>
                 <p className="text-muted-foreground text-sm mt-0.5">
-                  We'll assign the first available specialist
+                  {t.anySpecialistHint}
                 </p>
               </div>
             </div>
@@ -126,7 +160,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           </div>
           <div className="relative flex justify-center">
             <span className="px-3 bg-background text-xs text-muted-foreground uppercase tracking-wider">
-              or choose a specialist
+              {t.orChoose}
             </span>
           </div>
         </div>
@@ -180,7 +214,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
 
         {specialists.length === 0 && (
           <div className="text-center py-6 text-muted-foreground text-sm">
-            No specialists found for this service. We'll assign one for you.
+            {t.noSpecialists}
           </div>
         )}
       </div>

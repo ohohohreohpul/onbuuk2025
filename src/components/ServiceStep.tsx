@@ -7,6 +7,45 @@ import { useTheme } from '../lib/themeContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  loadingServices: string;
+  otherServices: string;
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  back: string;
+  couples: string;
+  bookingType: string;
+  individualSession: string;
+  couplesSession: string;
+}> = {
+  en: {
+    loadingServices: 'Loading services...',
+    otherServices: 'Other Services',
+    title: 'Choose Your Service',
+    subtitle: 'Select the service you would like to book',
+    buttonText: 'Continue',
+    back: 'Back',
+    couples: 'Couples',
+    bookingType: 'Booking Type',
+    individualSession: 'Individual session',
+    couplesSession: 'Couples session',
+  },
+  de: {
+    loadingServices: 'Behandlungen werden geladen …',
+    otherServices: 'Weitere Behandlungen',
+    title: 'Behandlung wählen',
+    subtitle: 'Gewünschte Behandlung auswählen',
+    buttonText: 'Weiter',
+    back: 'Zurück',
+    couples: 'Für Paare',
+    bookingType: 'Art der Buchung',
+    individualSession: 'Einzelbehandlung',
+    couplesSession: 'Paarbehandlung',
+  },
+};
 
 interface ServiceStepProps {
   onNext: (service: Service, isPairBooking: boolean) => void;
@@ -17,6 +56,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
+  const { t } = useBookingText(TEXT);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -80,7 +120,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
               borderTopColor: primaryColor 
             }}
           />
-          <p style={{ color: colors.textSecondary }}>Loading services...</p>
+          <p style={{ color: colors.textSecondary }}>{t.loadingServices}</p>
         </div>
       </div>
     );
@@ -99,15 +139,15 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   }, {} as Record<string, Service[]>);
 
   if (servicesWithoutCategory.length > 0) {
-    groupedServices['Other Services'] = servicesWithoutCategory;
+    groupedServices[t.otherServices] = servicesWithoutCategory;
   }
 
   const categories = Object.keys(groupedServices);
 
   const serviceContent = customization?.service_step || {
-    title: "Choose Your Service",
-    subtitle: "Select the service you would like to book",
-    buttonText: "Continue"
+    title: t.title,
+    subtitle: t.subtitle,
+    buttonText: t.buttonText
   };
 
   return (
@@ -122,7 +162,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
           onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary || '#737373'}
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{serviceContent.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{serviceContent.subtitle}</p>
@@ -179,7 +219,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                             style={{ backgroundColor: primaryColor }}
                           >
                             <Sparkles className="w-3 h-3 mr-1" />
-                            Couples
+                            {t.couples}
                           </Badge>
                         )}
                       </h3>
@@ -214,7 +254,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       >
         {selectedService?.is_pair_massage && (
           <Card glass className="p-5" style={{ borderColor: `${primaryColor}30` }}>
-            <p className="text-sm font-semibold mb-3" style={{ color: colors.textPrimary }}>Booking Type</p>
+            <p className="text-sm font-semibold mb-3" style={{ color: colors.textPrimary }}>{t.bookingType}</p>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setIsPairBooking(false)}
@@ -226,7 +266,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                   boxShadow: !isPairBooking ? `0 10px 25px -5px ${primaryColor}40` : 'none',
                 }}
               >
-                Individual session
+                {t.individualSession}
               </button>
               <button
                 onClick={() => setIsPairBooking(true)}
@@ -238,7 +278,7 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
                   boxShadow: isPairBooking ? `0 10px 25px -5px ${primaryColor}40` : 'none',
                 }}
               >
-                Couples session
+                {t.couplesSession}
               </button>
             </div>
           </Card>

@@ -92,7 +92,8 @@ const DEFAULT_CUSTOMIZATION: Partial<BookingFormCustomization> = {
     bookingButtonText: "Book an Appointment",
     giftCardButtonText: "Purchase a Gift Card",
     showBookingButton: true,
-    showGiftCardButton: true
+    showGiftCardButton: true,
+    showAccountButton: true
   },
   service_step: {
     title: "Choose Your Service",

@@ -4,6 +4,36 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  back: string;
+  selectDate: string;
+  today: string;
+  selectTime: string;
+}> = {
+  en: {
+    title: 'Choose Date & Time',
+    subtitle: 'Select your preferred appointment slot',
+    buttonText: 'Continue',
+    back: 'Back',
+    selectDate: 'Select Date',
+    today: '(Today)',
+    selectTime: 'Select Time',
+  },
+  de: {
+    title: 'Datum & Uhrzeit wählen',
+    subtitle: 'Wunschtermin auswählen',
+    buttonText: 'Weiter',
+    back: 'Zurück',
+    selectDate: 'Datum wählen',
+    today: '(Heute)',
+    selectTime: 'Uhrzeit wählen',
+  },
+};
 
 interface DateTimeStepProps {
   onNext: (date: string, time: string) => void;
@@ -13,6 +43,7 @@ interface DateTimeStepProps {
 export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
+  const { t, locale } = useBookingText(TEXT);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
@@ -27,9 +58,9 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
   }, []);
 
   const content = {
-    title: customization?.datetime_step?.title || 'Choose Date & Time',
-    subtitle: customization?.datetime_step?.subtitle || 'Select your preferred appointment slot',
-    buttonText: customization?.datetime_step?.buttonText || 'Continue'
+    title: customization?.datetime_step?.title || t.title,
+    subtitle: customization?.datetime_step?.subtitle || t.subtitle,
+    buttonText: customization?.datetime_step?.buttonText || t.buttonText
   };
 
   const generateTimeSlots = () => {
@@ -64,7 +95,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
       month: 'short',
       day: 'numeric'
     };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString(locale, options);
   };
 
   const isToday = (date: Date) => {
@@ -93,7 +124,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
           onMouseLeave={(e) => e.currentTarget.style.color = colors.textSecondary || '#737373'}
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
@@ -109,7 +140,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
             >
               <Calendar className="w-4 h-4" style={{ color: primaryColor }} />
             </div>
-            <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Select Date</label>
+            <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{t.selectDate}</label>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {availableDays.map((day) => {
@@ -145,7 +176,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
                         className="ml-1.5 text-[10px] font-normal opacity-60"
                         style={{ color: colors.textSecondary }}
                       >
-                        (Today)
+                        {t.today}
                       </span>
                     )}
                   </div>
@@ -165,7 +196,7 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
               >
                 <Clock className="w-4 h-4" style={{ color: secondaryColor }} />
               </div>
-              <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Select Time</label>
+              <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{t.selectTime}</label>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2">
               {timeSlots.map((time) => {

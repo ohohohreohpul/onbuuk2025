@@ -8,6 +8,8 @@ export interface TenantInfo {
   subdomain: string | null;
   customDomain: string | null;
   planType: 'starter' | 'professional' | 'enterprise';
+  /** Language of the business's customer-facing pages. */
+  language: 'en' | 'de';
   hostKind: HostKind;
   isLoading: boolean;
 }
@@ -18,6 +20,7 @@ export const TenantContext = createContext<TenantInfo>({
   subdomain: null,
   customDomain: null,
   planType: 'starter',
+  language: 'en',
   hostKind: 'app',
   isLoading: true,
 });

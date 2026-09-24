@@ -675,10 +675,6 @@ export function LoyaltyRewardsView() {
           <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[#1A1714]">Loyalty & Rewards</h1>
           <p className="text-sm text-stone-500">Turn repeat visits into lasting relationships and manage cards and service passes.</p>
         </div>
-        <span className={`${ADMIN_STATUS_PILL} w-fit ${loyaltySettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-900/[0.05] text-stone-500'}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${loyaltySettings.enabled ? 'bg-emerald-500' : 'bg-stone-400'}`} />
-          Loyalty {loyaltySettings.enabled ? 'active' : 'paused'}
-        </span>
       </div>
 
       {message && (

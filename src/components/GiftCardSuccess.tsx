@@ -4,8 +4,171 @@ import { supabase } from '../lib/supabase';
 import { downloadGiftCardPDF } from '../lib/giftCardPdfGenerator';
 import { BRAND_SUPPORT_URL } from '../lib/brand';
 import { CURRENCY_SYMBOLS, formatCurrency } from '../lib/currency';
+import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  errNotFound: string;
+  errRetrieve: string;
+  errProcessFallback: string;
+  errProcess: string;
+  errUnexpected: string;
+  errMissing: string;
+  errMissingDetail: string;
+  errLoad: string;
+  businessFallback: string;
+  alertNoCard: string;
+  alertNoBusiness: string;
+  alertPdfFailed: string;
+  unableTitle: string;
+  somethingWrong: string;
+  errorDetails: string;
+  sessionIdLabel: string;
+  saveSessionId: string;
+  retrying: string;
+  tryAgain: string;
+  paymentOkHint: string;
+  contactSupport: string;
+  titlePass: string;
+  titleValue: string;
+  paymentProcessed: string;
+  sentToPass: string;
+  sentToValue: string;
+  sentToSuffix: string;
+  cardLabelPass: string;
+  cardLabelValue: string;
+  passNameFallback: string;
+  visitOne: string;
+  visitMany: string;
+  minutesEach: string;
+  codeLabelPass: string;
+  codeLabelValue: string;
+  visitsRemaining: string;
+  balance: string;
+  remainingOf: string;
+  purchasedFor: string;
+  recipientEmail: string;
+  purchasedOn: string;
+  validUntil: string;
+  emailNotification: string;
+  recipientInfoPass: string;
+  recipientInfoValue: string;
+  generatingPdf: string;
+  downloadPass: string;
+  downloadValue: string;
+  pdfHint: string;
+  needHelp: string;
+  contactUs: string;
+}> = {
+  en: {
+    errNotFound: "Gift card not found",
+    errRetrieve: "Gift card created but could not be retrieved. Please check your email or contact support.",
+    errProcessFallback: "Failed to process gift card",
+    errProcess: "Unable to process your gift card at this time",
+    errUnexpected: "An unexpected error occurred while processing your gift card.",
+    errMissing: "Missing gift card information",
+    errMissingDetail: "No session ID or gift card ID was provided in the URL.",
+    errLoad: "Failed to load gift card details",
+    businessFallback: "Business",
+    alertNoCard: "Gift card data is not available. Please try refreshing the page.",
+    alertNoBusiness: "Business information is not available. Please try refreshing the page.",
+    alertPdfFailed: "Failed to download PDF. Please try again or contact support if the issue persists.",
+    unableTitle: "Unable to Load Gift Card",
+    somethingWrong: "Something went wrong",
+    errorDetails: "Error Details:",
+    sessionIdLabel: "Session ID:",
+    saveSessionId: "Save this ID when contacting support",
+    retrying: "Retrying...",
+    tryAgain: "Try Again",
+    paymentOkHint: "Your payment was successful. If you continue to see this error, please check your email for gift card details or contact support.",
+    contactSupport: "Contact Support",
+    titlePass: "Service Pass Purchased!",
+    titleValue: "Gift Card Purchased!",
+    paymentProcessed: "Your payment has been processed successfully.",
+    sentToPass: "We've sent the pass details to",
+    sentToValue: "We've sent the gift card details to",
+    sentToSuffix: "",
+    cardLabelPass: "Service Pass",
+    cardLabelValue: "Gift Card",
+    passNameFallback: "Service pass",
+    visitOne: "{count} visit",
+    visitMany: "{count} visits",
+    minutesEach: " · {minutes} minutes each",
+    codeLabelPass: "Pass Code:",
+    codeLabelValue: "Gift Card Code:",
+    visitsRemaining: "Visits remaining:",
+    balance: "Balance:",
+    remainingOf: "{remaining} of {total}",
+    purchasedFor: "Purchased for:",
+    recipientEmail: "Recipient Email:",
+    purchasedOn: "Purchased On:",
+    validUntil: "Valid Until:",
+    emailNotification: "Email Notification",
+    recipientInfoPass: "The recipient will receive an email with the service-pass details and redemption instructions.",
+    recipientInfoValue: "The recipient will receive an email with the gift-card details and redemption instructions.",
+    generatingPdf: "Generating PDF...",
+    downloadPass: "Download Service Pass PDF",
+    downloadValue: "Download Gift Card PDF",
+    pdfHint: "Download a printable PDF version of the gift card",
+    needHelp: "Need help?",
+    contactUs: "Contact us",
+  },
+  de: {
+    errNotFound: "Gutschein nicht gefunden",
+    errRetrieve: "Der Gutschein wurde erstellt, konnte aber nicht abgerufen werden. Bitte das E-Mail-Postfach prüfen oder den Support kontaktieren.",
+    errProcessFallback: "Der Gutschein konnte nicht verarbeitet werden",
+    errProcess: "Der Gutschein kann derzeit nicht verarbeitet werden",
+    errUnexpected: "Bei der Verarbeitung des Gutscheins ist ein unerwarteter Fehler aufgetreten.",
+    errMissing: "Gutscheininformationen fehlen",
+    errMissingDetail: "In der URL wurde weder eine Sitzungs-ID noch eine Gutschein-ID übergeben.",
+    errLoad: "Gutscheindetails konnten nicht geladen werden",
+    businessFallback: "Unternehmen",
+    alertNoCard: "Gutscheindaten sind nicht verfügbar. Bitte die Seite neu laden.",
+    alertNoBusiness: "Unternehmensdaten sind nicht verfügbar. Bitte die Seite neu laden.",
+    alertPdfFailed: "Das PDF konnte nicht heruntergeladen werden. Bitte erneut versuchen oder bei anhaltenden Problemen den Support kontaktieren.",
+    unableTitle: "Gutschein konnte nicht geladen werden",
+    somethingWrong: "Etwas ist schiefgelaufen",
+    errorDetails: "Fehlerdetails:",
+    sessionIdLabel: "Sitzungs-ID:",
+    saveSessionId: "Bitte diese ID bei einer Anfrage an den Support angeben",
+    retrying: "Neuer Versuch …",
+    tryAgain: "Erneut versuchen",
+    paymentOkHint: "Die Zahlung war erfolgreich. Wird dieser Fehler weiterhin angezeigt, finden Sie die Gutscheindetails in Ihrem E-Mail-Postfach – oder wenden Sie sich an den Support.",
+    contactSupport: "Support kontaktieren",
+    titlePass: "Behandlungsgutschein gekauft!",
+    titleValue: "Gutschein gekauft!",
+    paymentProcessed: "Die Zahlung wurde erfolgreich abgeschlossen.",
+    sentToPass: "Die Gutscheindetails wurden an",
+    sentToValue: "Die Gutscheindetails wurden an",
+    sentToSuffix: " gesendet.",
+    cardLabelPass: "Behandlungsgutschein",
+    cardLabelValue: "Wertgutschein",
+    passNameFallback: "Behandlungsgutschein",
+    visitOne: "{count} Besuch",
+    visitMany: "{count} Besuche",
+    minutesEach: " · je {minutes} Minuten",
+    codeLabelPass: "Gutscheincode:",
+    codeLabelValue: "Gutscheincode:",
+    visitsRemaining: "Verbleibende Besuche:",
+    balance: "Guthaben:",
+    remainingOf: "{remaining} von {total}",
+    purchasedFor: "Kaufpreis:",
+    recipientEmail: "E-Mail des Empfängers:",
+    purchasedOn: "Gekauft am:",
+    validUntil: "Gültig bis:",
+    emailNotification: "E-Mail-Benachrichtigung",
+    recipientInfoPass: "Der Empfänger erhält eine E-Mail mit den Gutscheindetails und Hinweisen zur Einlösung.",
+    recipientInfoValue: "Der Empfänger erhält eine E-Mail mit den Gutscheindetails und Hinweisen zur Einlösung.",
+    generatingPdf: "PDF wird erstellt …",
+    downloadPass: "Behandlungsgutschein als PDF herunterladen",
+    downloadValue: "Gutschein als PDF herunterladen",
+    pdfHint: "Druckbare PDF-Version des Gutscheins herunterladen",
+    needHelp: "Hilfe benötigt?",
+    contactUs: "Kontakt aufnehmen",
+  },
+};
 
 export default function GiftCardSuccess() {
+  const { t, locale } = useBookingText(TEXT);
   const [loading, setLoading] = useState(true);
   const [giftCard, setGiftCard] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
@@ -39,7 +202,7 @@ export default function GiftCardSuccess() {
           .maybeSingle();
 
         if (error || !data) {
-          setError('Gift card not found');
+          setError(t.errNotFound);
           setLoading(false);
           return;
         }
@@ -90,7 +253,7 @@ export default function GiftCardSuccess() {
 
               if (!response.ok) {
                 const errorData = await response.json();
-                const errorMessage = errorData.error || 'Failed to process gift card';
+                const errorMessage = errorData.error || t.errProcessFallback;
                 console.error('Manual processing failed:', errorMessage);
 
                 // If it's a duplicate key error, the gift card exists - try to fetch it
@@ -125,15 +288,15 @@ export default function GiftCardSuccess() {
 
                 if (finalError || !finalData) {
                   console.error('Failed to fetch gift card after manual creation');
-                  throw new Error('Gift card created but could not be retrieved. Please check your email or contact support.');
+                  throw new Error(t.errRetrieve);
                 }
 
                 giftCardData = finalData;
               }
             } catch (err: any) {
               console.error('Error processing gift card:', err);
-              setError('Unable to process your gift card at this time');
-              setDetailedError(err.message || 'An unexpected error occurred while processing your gift card.');
+              setError(t.errProcess);
+              setDetailedError(err.message || t.errUnexpected);
               setLoading(false);
               return;
             }
@@ -144,8 +307,8 @@ export default function GiftCardSuccess() {
           giftCardData = data;
         }
       } else {
-        setError('Missing gift card information');
-        setDetailedError('No session ID or gift card ID was provided in the URL.');
+        setError(t.errMissing);
+        setDetailedError(t.errMissingDetail);
         setLoading(false);
         return;
       }
@@ -204,7 +367,7 @@ export default function GiftCardSuccess() {
 
       // Combine business data with currency
       const fullBusinessData = {
-        name: businessData?.name || 'Business',
+        name: businessData?.name || t.businessFallback,
         currency_code: currencyCode,
         currency_symbol: currencySymbol,
       };
@@ -226,7 +389,7 @@ export default function GiftCardSuccess() {
       setLoading(false);
     } catch (err) {
       console.error('Error fetching gift card details:', err);
-      setError('Failed to load gift card details');
+      setError(t.errLoad);
       setLoading(false);
     }
   };
@@ -237,7 +400,7 @@ export default function GiftCardSuccess() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -255,12 +418,12 @@ export default function GiftCardSuccess() {
 
   const handleDownloadPDF = async () => {
     if (!giftCard) {
-      alert('Gift card data is not available. Please try refreshing the page.');
+      alert(t.alertNoCard);
       return;
     }
 
     if (!business) {
-      alert('Business information is not available. Please try refreshing the page.');
+      alert(t.alertNoBusiness);
       return;
     }
 
@@ -285,7 +448,7 @@ export default function GiftCardSuccess() {
       console.log('PDF download initiated successfully');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Failed to download PDF. Please try again or contact support if the issue persists.');
+      alert(t.alertPdfFailed);
     } finally {
       setDownloadingPdf(false);
     }
@@ -308,23 +471,23 @@ export default function GiftCardSuccess() {
               <span className="text-2xl">❌</span>
             </div>
             <h1 className="text-2xl font-light text-stone-800 mb-2">
-              Unable to Load Gift Card
+              {t.unableTitle}
             </h1>
-            <p className="text-stone-600 mb-4">{error || 'Something went wrong'}</p>
+            <p className="text-stone-600 mb-4">{error || t.somethingWrong}</p>
 
             {detailedError && (
               <div className="bg-stone-50 border border-stone-200 p-4 rounded mb-4 text-left">
-                <p className="text-sm text-stone-700 mb-2 font-medium">Error Details:</p>
+                <p className="text-sm text-stone-700 mb-2 font-medium">{t.errorDetails}</p>
                 <p className="text-sm text-stone-600 break-words">{detailedError}</p>
               </div>
             )}
 
             {sessionId && (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4 text-left">
-                <p className="text-sm text-blue-900 mb-2 font-medium">Session ID:</p>
+                <p className="text-sm text-blue-900 mb-2 font-medium">{t.sessionIdLabel}</p>
                 <p className="text-xs text-blue-800 font-mono break-all">{sessionId}</p>
                 <p className="text-xs text-blue-700 mt-2">
-                  Save this ID when contacting support
+                  {t.saveSessionId}
                 </p>
               </div>
             )}
@@ -336,13 +499,13 @@ export default function GiftCardSuccess() {
                   disabled={retrying}
                   className="w-full px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {retrying ? 'Retrying...' : 'Try Again'}
+                  {retrying ? t.retrying : t.tryAgain}
                 </button>
               )}
 
               <div className="pt-4 border-t border-stone-200">
                 <p className="text-sm text-stone-600 mb-2">
-                  Your payment was successful. If you continue to see this error, please check your email for gift card details or contact support.
+                  {t.paymentOkHint}
                 </p>
                 <a
                   href={BRAND_SUPPORT_URL}
@@ -350,7 +513,7 @@ export default function GiftCardSuccess() {
                   rel="noopener noreferrer"
                   className="text-sm text-stone-700 hover:underline inline-flex items-center gap-1"
                 >
-                  Contact Support
+                  {t.contactSupport}
                 </a>
               </div>
             </div>
@@ -368,14 +531,15 @@ export default function GiftCardSuccess() {
             <Check className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-3xl md:text-4xl font-light text-stone-800 mb-3">
-            {giftCard.card_type === 'service_pass' ? 'Service Pass Purchased!' : 'Gift Card Purchased!'}
+            {giftCard.card_type === 'service_pass' ? t.titlePass : t.titleValue}
           </h1>
           <p className="text-stone-600 leading-relaxed">
-            Your payment has been processed successfully.
+            {t.paymentProcessed}
             {giftCard.purchased_for_email && (
               <>
-                {' '}We've sent the {giftCard.card_type === 'service_pass' ? 'pass' : 'gift card'} details to{' '}
+                {' '}{giftCard.card_type === 'service_pass' ? t.sentToPass : t.sentToValue}{' '}
                 <span className="font-medium">{giftCard.purchased_for_email}</span>
+                {t.sentToSuffix}
               </>
             )}
           </p>
@@ -387,48 +551,48 @@ export default function GiftCardSuccess() {
           </div>
 
           <h2 className="text-center text-2xl font-light text-stone-800 mb-2">
-            {giftCard.card_type === 'service_pass' ? 'Service Pass' : 'Gift Card'}
+            {giftCard.card_type === 'service_pass' ? t.cardLabelPass : t.cardLabelValue}
           </h2>
           <p className="text-center text-3xl font-medium text-stone-900 mb-6">
             {giftCard.card_type === 'service_pass'
-              ? giftCard.service_pass_name || 'Service pass'
+              ? giftCard.service_pass_name || t.passNameFallback
               : formatPrice(giftCard.original_value_cents)}
           </p>
 
           {giftCard.card_type === 'service_pass' && (
             <p className="-mt-3 mb-6 text-center text-sm text-stone-500">
-              {giftCard.original_visits} {giftCard.original_visits === 1 ? 'visit' : 'visits'}
-              {giftCard.service_durations?.duration_minutes ? ` · ${giftCard.service_durations.duration_minutes} minutes each` : ''}
+              {fillText(giftCard.original_visits === 1 ? t.visitOne : t.visitMany, { count: giftCard.original_visits })}
+              {giftCard.service_durations?.duration_minutes ? fillText(t.minutesEach, { minutes: giftCard.service_durations.duration_minutes }) : ''}
             </p>
           )}
 
           <div className="space-y-4 bg-white p-6 rounded-lg border border-stone-200">
             <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? 'Pass' : 'Gift Card'} Code:</span>
+              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? t.codeLabelPass : t.codeLabelValue}</span>
               <span className="text-lg font-mono font-medium text-stone-900">
                 {giftCard.code}
               </span>
             </div>
 
             <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? 'Visits remaining:' : 'Balance:'}</span>
+              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? t.visitsRemaining : t.balance}</span>
               <span className="text-stone-900 font-medium">
                 {giftCard.card_type === 'service_pass'
-                  ? `${giftCard.remaining_visits} of ${giftCard.original_visits}`
+                  ? fillText(t.remainingOf, { remaining: giftCard.remaining_visits, total: giftCard.original_visits })
                   : formatPrice(giftCard.current_balance_cents)}
               </span>
             </div>
 
             {giftCard.card_type === 'service_pass' && (
               <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-                <span className="text-sm text-stone-600">Purchased for:</span>
+                <span className="text-sm text-stone-600">{t.purchasedFor}</span>
                 <span className="text-stone-900 font-medium">{formatPrice(giftCard.purchase_price_cents)}</span>
               </div>
             )}
 
             {giftCard.purchased_for_email && (
               <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-                <span className="text-sm text-stone-600">Recipient Email:</span>
+                <span className="text-sm text-stone-600">{t.recipientEmail}</span>
                 <span className="text-stone-900 font-medium">
                   {giftCard.purchased_for_email}
                 </span>
@@ -436,7 +600,7 @@ export default function GiftCardSuccess() {
             )}
 
             <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-              <span className="text-sm text-stone-600">Purchased On:</span>
+              <span className="text-sm text-stone-600">{t.purchasedOn}</span>
               <span className="text-stone-900 font-medium">
                 {formatDate(giftCard.purchased_at)}
               </span>
@@ -444,7 +608,7 @@ export default function GiftCardSuccess() {
 
             {giftCard.expires_at && (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-stone-600">Valid Until:</span>
+                <span className="text-sm text-stone-600">{t.validUntil}</span>
                 <span className="text-stone-900 font-medium">
                   {formatDate(giftCard.expires_at)}
                 </span>
@@ -458,9 +622,9 @@ export default function GiftCardSuccess() {
             <div className="flex items-start gap-3">
               <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-medium text-stone-800 mb-1">Email Notification</h3>
+                <h3 className="font-medium text-stone-800 mb-1">{t.emailNotification}</h3>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  The recipient will receive an email with the {giftCard.card_type === 'service_pass' ? 'service-pass' : 'gift-card'} details and redemption instructions.
+                  {giftCard.card_type === 'service_pass' ? t.recipientInfoPass : t.recipientInfoValue}
                 </p>
               </div>
             </div>
@@ -474,23 +638,23 @@ export default function GiftCardSuccess() {
             className="w-full px-6 py-4 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
           >
             <Download className="w-5 h-5" />
-            {downloadingPdf ? 'Generating PDF...' : `Download ${giftCard.card_type === 'service_pass' ? 'Service Pass' : 'Gift Card'} PDF`}
+            {downloadingPdf ? t.generatingPdf : giftCard.card_type === 'service_pass' ? t.downloadPass : t.downloadValue}
           </button>
           <p className="text-xs text-stone-500 text-center mt-2">
-            Download a printable PDF version of the gift card
+            {t.pdfHint}
           </p>
         </div>
 
         <div className="text-center">
           <p className="text-sm text-stone-500">
-            Need help?{' '}
+            {t.needHelp}{' '}
             <a
               href={BRAND_SUPPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-stone-700 hover:underline"
             >
-              Contact us
+              {t.contactUs}
             </a>
           </p>
         </div>

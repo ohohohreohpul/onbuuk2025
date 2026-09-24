@@ -4,6 +4,36 @@ import { ChevronRight, Clock } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCurrency } from '../lib/currencyContext';
+import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  back: string;
+  pairBooking: string;
+  minutes: string;
+  noDurations: string;
+}> = {
+  en: {
+    title: 'Select Duration',
+    subtitle: "Choose how long you'd like your session to be",
+    buttonText: 'Continue',
+    back: 'Back',
+    pairBooking: 'Booking for 2 people',
+    minutes: '{count} minutes',
+    noDurations: 'No duration options available for this service',
+  },
+  de: {
+    title: 'Dauer wählen',
+    subtitle: 'Gewünschte Dauer der Behandlung auswählen',
+    buttonText: 'Weiter',
+    back: 'Zurück',
+    pairBooking: 'Buchung für 2 Personen',
+    minutes: '{count} Minuten',
+    noDurations: 'Für diese Behandlung ist keine Dauer verfügbar',
+  },
+};
 
 interface DurationStepProps {
   serviceId: string;
@@ -16,14 +46,15 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
   const { formatPrice } = useCurrency();
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
+  const { t } = useBookingText(TEXT);
   const [durations, setDurations] = useState<ServiceDuration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDuration, setSelectedDuration] = useState<ServiceDuration | null>(null);
 
   const content = {
-    title: customization?.duration_step?.title || 'Select Duration',
-    subtitle: customization?.duration_step?.subtitle || "Choose how long you'd like your session to be",
-    buttonText: customization?.duration_step?.buttonText || 'Continue'
+    title: customization?.duration_step?.title || t.title,
+    subtitle: customization?.duration_step?.subtitle || t.subtitle,
+    buttonText: customization?.duration_step?.buttonText || t.buttonText
   };
 
   useEffect(() => {
@@ -74,13 +105,13 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           className="text-muted-foreground hover:text-foreground text-sm mb-4 inline-flex items-center transition-colors"
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-semibold tracking-tight text-theme-primary mb-2">{content.title}</h2>
         <p className="text-theme-secondary">{content.subtitle}</p>
         {isPairBooking && (
           <div className="mt-3 text-sm text-foreground bg-theme-secondary-bg p-3 border border-border rounded-lg">
-            Booking for 2 people
+            {t.pairBooking}
           </div>
         )}
       </div>
@@ -103,7 +134,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
                 </div>
                 <div>
                   <h3 className="text-foreground font-medium">
-                    {duration.duration_minutes} minutes
+                    {fillText(t.minutes, { count: duration.duration_minutes })}
                   </h3>
                   <p className="text-muted-foreground text-sm mt-0.5">
                     {formatPrice(isPairBooking ? duration.price_cents : duration.price_cents)}
@@ -127,7 +158,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
 
         {durations.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            No duration options available for this service
+            {t.noDurations}
           </div>
         )}
       </div>

@@ -11,6 +11,51 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import DOMPurify from 'isomorphic-dompurify';
 import { useTheme } from '../lib/themeContext';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  loading: string;
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  myAccount: string;
+  signIn: string;
+  paymentCancelledTitle: string;
+  paymentCancelledBody: string;
+  unavailableTitle: string;
+  unavailableBody: string;
+  bookAppointment: string;
+  purchaseGiftCard: string;
+}> = {
+  en: {
+    loading: 'Loading...',
+    title: "Welcome! Let's get you booked",
+    subtitle: 'Choose your preferred service and time',
+    buttonText: 'Get Started',
+    myAccount: 'My Account',
+    signIn: 'Sign In',
+    paymentCancelledTitle: 'Payment Cancelled',
+    paymentCancelledBody: "Your payment was cancelled. No charges were made. You can try booking again whenever you're ready.",
+    unavailableTitle: 'Online booking is temporarily unavailable',
+    unavailableBody: 'Please contact us directly to make a booking or purchase a gift card.',
+    bookAppointment: 'Book an Appointment',
+    purchaseGiftCard: 'Purchase a Gift Card',
+  },
+  de: {
+    loading: 'Wird geladen …',
+    title: 'Willkommen! Jetzt Termin buchen',
+    subtitle: 'Behandlung und Wunschtermin auswählen',
+    buttonText: 'Los geht’s',
+    myAccount: 'Mein Konto',
+    signIn: 'Anmelden',
+    paymentCancelledTitle: 'Zahlung abgebrochen',
+    paymentCancelledBody: 'Die Zahlung wurde abgebrochen, es wurde nichts abgebucht. Eine neue Buchung ist jederzeit möglich.',
+    unavailableTitle: 'Online-Buchung derzeit nicht verfügbar',
+    unavailableBody: 'Bitte kontaktieren Sie uns direkt, um einen Termin zu buchen oder einen Gutschein zu kaufen.',
+    bookAppointment: 'Termin buchen',
+    purchaseGiftCard: 'Gutschein kaufen',
+  },
+};
 
 interface WelcomeStepProps {
   onBookAppointment: () => void;
@@ -33,6 +78,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
   const { businessId } = useTenant();
   const { customization, loading: customizationLoading } = useBookingCustomization();
   const { colors } = useTheme();
+  const { t } = useBookingText(TEXT);
   const [showAuth, setShowAuth] = useState(false);
   const [enableBookings, setEnableBookings] = useState(true);
   const [enableGiftCards, setEnableGiftCards] = useState(true);
@@ -128,16 +174,16 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
               borderTopColor: primaryColor 
             }}
           />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
   }
 
   const welcomeContent = customization?.welcome_step || {
-    title: "Welcome! Let's get you booked",
-    subtitle: "Choose your preferred service and time",
-    buttonText: "Get Started"
+    title: t.title,
+    subtitle: t.subtitle,
+    buttonText: t.buttonText
   };
 
   return (
@@ -154,6 +200,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             {welcomeContent.subtitle}
           </p>
         </div>
+        {customization?.welcome_step?.showAccountButton !== false && (
         <Button
           variant="outline"
           onClick={handleAccountClick}
@@ -175,8 +222,9 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
           }}
         >
           <User className="w-4 h-4 mr-2" />
-          {customer ? 'My Account' : 'Sign In'}
+          {customer ? t.myAccount : t.signIn}
         </Button>
+        )}
       </div>
 
       {showAuth && <CustomerAuth onClose={() => setShowAuth(false)} />}
@@ -184,9 +232,9 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
       {showCancelledMessage && (
         <Alert className="relative bg-yellow-50/80 backdrop-blur-sm border-yellow-200 animate-fade-in">
           <AlertCircle className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">Payment Cancelled</AlertTitle>
+          <AlertTitle className="text-yellow-800">{t.paymentCancelledTitle}</AlertTitle>
           <AlertDescription className="text-yellow-700">
-            Your payment was cancelled. No charges were made. You can try booking again whenever you're ready.
+            {t.paymentCancelledBody}
           </AlertDescription>
           <Button
             variant="ghost"
@@ -254,9 +302,9 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         {!enableBookings && !enableGiftCards && (
           <Alert className="bg-amber-50/80 backdrop-blur-sm border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">Online booking is temporarily unavailable</AlertTitle>
+            <AlertTitle className="text-amber-800">{t.unavailableTitle}</AlertTitle>
             <AlertDescription className="text-amber-700">
-              Please contact us directly to make a booking or purchase a gift card.
+              {t.unavailableBody}
             </AlertDescription>
           </Alert>
         )}
@@ -280,7 +328,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             }}
           >
             <Calendar className="w-5 h-5 mr-2" />
-            {customization?.welcome_step?.bookingButtonText || 'Book an Appointment'}
+            {customization?.welcome_step?.bookingButtonText || t.bookAppointment}
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
         )}
@@ -307,7 +355,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             }}
           >
             <Gift className="w-5 h-5 mr-2" />
-            {customization?.welcome_step?.giftCardButtonText || 'Purchase a Gift Card'}
+            {customization?.welcome_step?.giftCardButtonText || t.purchaseGiftCard}
             <Sparkles className="w-4 h-4 ml-2 group-hover:rotate-12 transition-transform" />
           </Button>
         )}

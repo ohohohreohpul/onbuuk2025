@@ -450,6 +450,19 @@ export default function BookingFormAppearance() {
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-stone-700">Show Customer Sign In</label>
+                    <p className="text-xs text-stone-500">Lets customers sign in to see their bookings and rewards.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={stepData.showAccountButton !== false}
+                    onChange={(e) => updateStepContent(stepKey, 'showAccountButton', e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
                   <label className="text-sm font-medium text-stone-700">
                     Show Gift Card Button
                   </label>

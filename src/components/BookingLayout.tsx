@@ -5,6 +5,12 @@ import DefaultLayout from './layouts/DefaultLayout';
 import VerticalLayout from './layouts/VerticalLayout';
 import MinimalLayout from './layouts/MinimalLayout';
 import SplitPanelLayout from './layouts/SplitPanelLayout';
+import { useBookingText, type Translations } from '../lib/bookingLanguage';
+
+const TEXT: Translations<{ loading: string }> = {
+  en: { loading: 'Loading...' },
+  de: { loading: 'Wird geladen …' },
+};
 
 interface BookingLayoutProps {
   children: ReactNode;
@@ -26,6 +32,7 @@ interface BookingLayoutProps {
 
 export default function BookingLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt, bookingSummary }: BookingLayoutProps) {
   const { businessId } = useTenant();
+  const { t } = useBookingText(TEXT);
   const [layoutType, setLayoutType] = useState<string>('default');
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +89,7 @@ export default function BookingLayout({ children, imageUrl, imageMobile, imageTa
         <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
         <div className="text-center relative z-10">
           <div className="w-10 h-10 border-3 border-[#1A1714]/20 border-t-[#1A1714] rounded-full animate-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
