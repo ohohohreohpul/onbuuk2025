@@ -1,15 +1,14 @@
-import { useState, useRef } from 'react';
-import { X, Upload, Download, AlertCircle, CheckCircle, FileText, CreditCard } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X, Upload, Download, AlertCircle, CheckCircle, FileText, CreditCard, Ticket } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
-
-interface ParsedGiftCard {
-  code: string | null; // null means auto-generate
-  original_value_cents: number;
-  recipient_email: string | null;
-  expires_at: string | null;
-}
+import {
+  parseGiftCardCsv,
+  toGiftCardInsert,
+  type GiftCardImportRow,
+  type ServicePassOffer,
+} from './giftCardImport/parseGiftCardCsv';
 
 interface ImportGiftCardsModalProps {
   onClose: () => void;
@@ -17,252 +16,218 @@ interface ImportGiftCardsModalProps {
   expiryDays: number | null;
 }
 
+interface ImportOutcome {
+  row: GiftCardImportRow;
+  code: string | null;
+  error: string | null;
+}
+
+type Step = 'upload' | 'preview' | 'importing' | 'complete';
+
+const PREVIEW_LIMIT = 20;
+
+const friendlyInsertError = (message: string) =>
+  message.includes('gift_cards_code_key') || message.includes('duplicate key')
+    ? 'This code is already used by another gift card.'
+    : message.includes('service_pass')
+      ? 'The service pass details are incomplete.'
+      : 'Could not be saved. Please try again.';
+
+const downloadCsv = (filename: string, lines: string[]) => {
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const csvCell = (value: string | number | null) => {
+  const text = value === null ? '' : String(value);
+  return /[",;\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
 export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: ImportGiftCardsModalProps) {
   const { businessId } = useTenant();
   const { currency, formatAmount } = useCurrency();
-  const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
-  const [parsedGiftCards, setParsedGiftCards] = useState<ParsedGiftCard[]>([]);
+  const [step, setStep] = useState<Step>('upload');
+  const [offers, setOffers] = useState<ServicePassOffer[]>([]);
+  const [rows, setRows] = useState<GiftCardImportRow[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
-  const [importResults, setImportResults] = useState<{ success: number; failed: number; codes: string[] }>({ success: 0, failed: 0, codes: [] });
+  const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!businessId) return;
+    supabase
+      .from('service_pass_offers')
+      .select('id, name, service_id, duration_id, visit_count, price_cents, expiry_days, is_active')
+      .eq('business_id', businessId)
+      .order('name')
+      .then(({ data, error }) => {
+        if (error) console.error('Could not load service passes:', error);
+        setOffers((data || []) as ServicePassOffer[]);
+      });
+  }, [businessId]);
+
+  const activeOffers = offers.filter((offer) => offer.is_active);
+  const exampleOffer = activeOffers[0];
+
   const downloadTemplate = () => {
-    const headers = [
-      'code',
-      'value',
-      'recipient_email',
-      'expires_at'
-    ];
-
-    const exampleRows = [
-      ['', '50.00', 'customer@example.com', ''],
-      ['GC-CUSTOM-CODE', '100.00', '', '2025-12-31'],
-      ['', '75.00', 'gift@example.com', '']
-    ];
-
-    const instructions = [
-      '# Gift Card Import Template',
-      '# ',
-      '# Instructions:',
-      '# - code: Leave empty to auto-generate, or provide custom code (must be unique)',
-      `# - value: Gift card value in ${currency} (required)`,
-      '# - recipient_email: Optional email address of recipient',
-      '# - expires_at: Optional expiry date (YYYY-MM-DD format), leave empty to use default settings',
-      '#'
-    ];
-
-    const csvContent = [
-      ...instructions,
-      headers.join(','),
-      ...exampleRows.map(row => row.join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'gift_cards_import_template.csv';
-    link.click();
-    URL.revokeObjectURL(url);
+    const passName = exampleOffer?.name ?? '10er Karte Massage';
+    const passVisits = exampleOffer?.visit_count ?? 10;
+    downloadCsv('gift_cards_import_template.csv', [
+      '# Gift card import template',
+      '# type: "value" for a money gift card, "service_pass" for a visit pass (empty = value)',
+      '# code: leave empty to generate one, or use your own (4-40 letters, numbers, dashes; must be unique)',
+      `# value: money cards = balance in ${currency}; service passes = price paid (empty = the pass price)`,
+      '# pass: service passes only - the exact name of a Service Pass you created',
+      '# visits: service passes only - visits left on the card (empty = all visits of the pass)',
+      '# recipient_email: optional',
+      '# expires_at: optional, 2027-12-31 or 31.12.2027 (empty = your default expiry)',
+      activeOffers.length > 0
+        ? `# Your service passes: ${activeOffers.map((offer) => offer.name).join(' | ')}`
+        : '# You have no service passes yet: create one under Service Passes to import passes.',
+      'type,code,value,pass,visits,recipient_email,expires_at',
+      'value,,50.00,,,customer@example.com,',
+      'value,GC-CUSTOM-CODE,100.00,,,,2027-12-31',
+      `service_pass,,,${csvCell(passName)},${passVisits},regular@example.com,`,
+      `service_pass,,,${csvCell(passName)},3,,`,
+    ]);
   };
 
-  const parseCSV = (csvText: string): { giftCards: ParsedGiftCard[]; errors: string[] } => {
-    const lines = csvText.split(/\r?\n/).filter(line => line.trim() && !line.trim().startsWith('#'));
-    if (lines.length < 2) {
-      return { giftCards: [], errors: ['CSV file must have a header row and at least one data row'] };
+  const readFile = (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setErrors(['Please choose a .csv file. In Excel or Numbers use "Export as CSV".']);
+      setRows([]);
+      setStep('preview');
+      return;
     }
-
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const giftCards: ParsedGiftCard[] = [];
-    const errors: string[] = [];
-
-    // Validate required headers
-    if (!headers.includes('value') && !headers.includes('value_eur')) {
-      return { giftCards: [], errors: ['Missing required column: value'] };
-    }
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      if (values.length === 0) continue;
-
-      const row: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index]?.trim() || '';
-      });
-
-      // Parse value
-      // `value_eur` remains accepted for older templates, but values always use
-      // the business currency selected in Settings.
-      const value = parseFloat(row.value || row.value_eur);
-      if (isNaN(value) || value <= 0) {
-        errors.push(`Row ${i + 1}: Valid positive value is required`);
-        continue;
-      }
-
-      // Parse expires_at
-      let expiresAt: string | null = null;
-      if (row.expires_at) {
-        const date = new Date(row.expires_at);
-        if (isNaN(date.getTime())) {
-          errors.push(`Row ${i + 1}: Invalid date format for expires_at (use YYYY-MM-DD)`);
-          continue;
-        }
-        expiresAt = date.toISOString();
-      } else if (expiryDays) {
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + expiryDays);
-        expiresAt = expiry.toISOString();
-      }
-
-      giftCards.push({
-        code: row.code || null,
-        original_value_cents: Math.round(value * 100),
-        recipient_email: row.recipient_email || null,
-        expires_at: expiresAt
-      });
-    }
-
-    return { giftCards, errors };
-  };
-
-  // Parse CSV line handling quoted fields
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current);
-    return result;
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const { giftCards, errors } = parseCSV(text);
-      setParsedGiftCards(giftCards);
-      setErrors(errors);
+    reader.onload = (event) => {
+      const result = parseGiftCardCsv(String(event.target?.result ?? ''), { offers, defaultExpiryDays: expiryDays });
+      setRows(result.rows);
+      setErrors(result.errors);
+      setStep('preview');
+    };
+    reader.onerror = () => {
+      setErrors(['The file could not be read. Please try again.']);
       setStep('preview');
     };
     reader.readAsText(file);
   };
 
-  const handleImport = async () => {
-    if (!businessId || parsedGiftCards.length === 0) return;
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) readFile(file);
+    event.target.value = '';
+  };
 
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) readFile(file);
+  };
+
+  const handleImport = async () => {
+    if (!businessId || rows.length === 0) return;
     setStep('importing');
     setImportProgress(0);
-    let success = 0;
-    let failed = 0;
-    const codes: string[] = [];
 
-    for (let i = 0; i < parsedGiftCards.length; i++) {
-      const giftCard = parsedGiftCards[i];
+    const results: ImportOutcome[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       try {
-        // Generate code if not provided
-        let code: string = giftCard.code || '';
+        let code = row.code;
         if (!code) {
-          const { data: generatedCode, error: codeError } = await supabase.rpc('generate_gift_card_code', { p_business_id: businessId });
-          if (codeError || !generatedCode) {
-            throw new Error('Failed to generate gift card code');
-          }
-          code = generatedCode as string;
+          const { data: generated, error: codeError } = await supabase.rpc('generate_gift_card_code', { p_business_id: businessId });
+          if (codeError || !generated) throw new Error('Could not generate a code.');
+          code = generated as string;
         }
 
-        // Insert gift card
-        const { error: insertError } = await supabase
-          .from('gift_cards')
-          .insert({
-            business_id: businessId,
-            code: code,
-            original_value_cents: giftCard.original_value_cents,
-            current_balance_cents: giftCard.original_value_cents,
-            purchased_for_email: giftCard.recipient_email,
-            expires_at: giftCard.expires_at,
-            status: 'active'
-          });
-
+        const { error: insertError } = await supabase.from('gift_cards').insert(toGiftCardInsert(row, businessId, code));
         if (insertError) {
-          throw new Error(insertError.message);
+          console.error(`Gift card import row ${row.rowNumber} failed:`, insertError);
+          results.push({ row, code, error: friendlyInsertError(insertError.message) });
+        } else {
+          results.push({ row, code, error: null });
         }
-
-        codes.push(code);
-        success++;
       } catch (error) {
-        console.error('Error importing gift card:', error);
-        failed++;
+        console.error(`Gift card import row ${row.rowNumber} failed:`, error);
+        results.push({ row, code: row.code, error: error instanceof Error ? error.message : 'Could not be saved.' });
+      } finally {
+        setImportProgress(Math.round(((i + 1) / rows.length) * 100));
       }
-
-      setImportProgress(Math.round(((i + 1) / parsedGiftCards.length) * 100));
     }
 
-    setImportResults({ success, failed, codes });
+    setOutcomes(results);
     setStep('complete');
   };
 
-  const downloadImportedCodes = () => {
-    const csvContent = ['code,value,status', ...importResults.codes.map(code => {
-      const gc = parsedGiftCards.find(g => g.code === code || !g.code);
-      return `${code},${gc ? (gc.original_value_cents / 100).toFixed(2) : ''},imported`;
-    })].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `imported_gift_cards_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const downloadResults = () => {
+    downloadCsv(`gift_card_import_results_${new Date().toISOString().slice(0, 10)}.csv`, [
+      'row,result,type,code,value,pass,visits,recipient_email,expires_at,reason',
+      ...outcomes.map(({ row, code, error }) =>
+        [
+          row.rowNumber,
+          error ? 'failed' : 'imported',
+          row.type,
+          code,
+          ((row.type === 'value' ? row.valueCents : row.pricePaidCents) / 100).toFixed(2),
+          row.type === 'service_pass' ? row.offer.name : '',
+          row.type === 'service_pass' ? row.visitsLeft : '',
+          row.recipientEmail,
+          row.expiresAt ? row.expiresAt.slice(0, 10) : '',
+          error,
+        ]
+          .map(csvCell)
+          .join(',')
+      ),
+    ]);
   };
+
+  const valueRows = rows.filter((row) => row.type === 'value');
+  const passRows = rows.filter((row) => row.type === 'service_pass');
+  const totalValueCents = valueRows.reduce((sum, row) => sum + (row.type === 'value' ? row.valueCents : 0), 0);
+  const succeeded = outcomes.filter((outcome) => !outcome.error).length;
+  const failed = outcomes.filter((outcome) => outcome.error);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col rounded-xl shadow-xl">
-        {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <CreditCard className="w-6 h-6 text-blue-600" />
+            <CreditCard className="w-6 h-6 text-[#1A1714]" />
             <div>
               <h2 className="text-2xl font-semibold text-gray-900">Import Gift Cards</h2>
-              <p className="text-gray-600 mt-1">Bulk create gift cards from a CSV file</p>
+              <p className="text-gray-600 mt-1">Bulk create gift cards and service passes from a CSV file</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {step === 'upload' && (
             <div className="space-y-6">
-              {/* Download Template */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-stone-50 border border-stone-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <FileText className="w-5 h-5 text-stone-600 mt-0.5" />
                   <div className="flex-1">
-                    <h3 className="font-medium text-blue-900">Download Template</h3>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Download the CSV template with instructions and example data.
+                    <h3 className="font-medium text-gray-900">Download Template</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      A ready-to-fill file with examples for money gift cards
+                      {activeOffers.length > 0 ? ' and your service passes' : ''}.
                     </p>
                     <button
                       onClick={downloadTemplate}
-                      className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors text-sm"
                     >
                       <Download className="w-4 h-4" />
                       <span>Download Template</span>
@@ -271,32 +236,46 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
                 </div>
               </div>
 
-              {/* Upload Area */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && fileInputRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                  isDragging ? 'border-[#1A1714] bg-stone-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-700">Click to upload CSV file</p>
-                <p className="text-sm text-gray-500 mt-2">or drag and drop</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <p className="text-sm text-gray-500 mt-2">or drag and drop it here</p>
+                <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleFileUpload} className="hidden" />
               </div>
 
-              {/* Instructions */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-2">CSV Format Guide</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• <strong>code:</strong> Leave empty to auto-generate unique codes</li>
-                  <li>• <strong>value:</strong> Gift card value in {currency} (required)</li>
-                  <li>• <strong>recipient_email:</strong> Optional email for the gift card recipient</li>
-                  <li>• <strong>expires_at:</strong> Optional expiry date (YYYY-MM-DD format){expiryDays && ` - defaults to ${expiryDays} days from now`}</li>
+                  <li>• <strong>type:</strong> <code>value</code> for a money gift card, <code>service_pass</code> for a visit pass (empty = value)</li>
+                  <li>• <strong>code:</strong> leave empty to generate a unique code</li>
+                  <li>• <strong>value:</strong> money cards: balance in {currency}. Service passes: price paid (empty = pass price)</li>
+                  <li>• <strong>pass:</strong> service passes only: the exact name of your Service Pass</li>
+                  <li>• <strong>visits:</strong> service passes only: visits left (empty = all visits)</li>
+                  <li>• <strong>recipient_email:</strong> optional</li>
+                  <li>
+                    • <strong>expires_at:</strong> optional, e.g. 2027-12-31 or 31.12.2027
+                    {expiryDays ? ` (empty = ${expiryDays} days from today, or the pass's own expiry)` : ''}
+                  </li>
                 </ul>
+                <p className="mt-3 text-xs text-gray-500">
+                  {activeOffers.length > 0
+                    ? `Your service passes: ${activeOffers.map((offer) => offer.name).join(', ')}`
+                    : 'You have no service passes yet. Create one under Service Passes to import passes.'}
+                </p>
               </div>
             </div>
           )}
@@ -308,45 +287,38 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
                   <div className="flex items-start space-x-3">
                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-red-900">Validation Errors</h3>
+                      <h3 className="font-medium text-red-900">
+                        {errors.length} row{errors.length === 1 ? '' : 's'} will be skipped
+                      </h3>
                       <ul className="text-sm text-red-700 mt-2 space-y-1">
-                        {errors.map((error, i) => (
+                        {errors.slice(0, 50).map((error, i) => (
                           <li key={i}>• {error}</li>
                         ))}
                       </ul>
+                      {errors.length > 50 && <p className="text-sm text-red-700 mt-1">… and {errors.length - 50} more</p>}
                     </div>
                   </div>
                 </div>
               )}
 
-              {parsedGiftCards.length > 0 && (
+              {rows.length > 0 && (
                 <>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="text-green-900 font-medium">
-                        {parsedGiftCards.length} gift card(s) ready to import
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-gray-900">{parsedGiftCards.length}</p>
-                      <p className="text-sm text-gray-600">Total Cards</p>
+                      <p className="text-2xl font-bold text-gray-900">{rows.length}</p>
+                      <p className="text-sm text-gray-600">Ready to import</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {formatAmount(parsedGiftCards.reduce((sum, gc) => sum + gc.original_value_cents, 0) / 100)}
-                      </p>
-                      <p className="text-sm text-gray-600">Total Value</p>
+                      <p className="text-2xl font-bold text-gray-900">{formatAmount(totalValueCents / 100)}</p>
+                      <p className="text-sm text-gray-600">{valueRows.length} money card{valueRows.length === 1 ? '' : 's'}</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {parsedGiftCards.filter(gc => !gc.code).length}
-                      </p>
-                      <p className="text-sm text-gray-600">Auto-Generate Codes</p>
+                      <p className="text-2xl font-bold text-gray-900">{passRows.length}</p>
+                      <p className="text-sm text-gray-600">Service passes</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-gray-900">{rows.filter((row) => !row.code).length}</p>
+                      <p className="text-sm text-gray-600">Codes to generate</p>
                     </div>
                   </div>
 
@@ -354,34 +326,50 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Code</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Value</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Recipient Email</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Expires</th>
+                          {['Row', 'Type', 'Code', 'Value / Pass', 'Recipient', 'Expires'].map((heading) => (
+                            <th key={heading} className="px-4 py-3 text-left font-medium text-gray-700">{heading}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {parsedGiftCards.slice(0, 20).map((gc, i) => (
-                          <tr key={i} className="hover:bg-gray-50">
+                        {rows.slice(0, PREVIEW_LIMIT).map((row) => (
+                          <tr key={row.rowNumber} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-gray-400">{row.rowNumber}</td>
+                            <td className="px-4 py-3">
+                              {row.type === 'service_pass' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                  <Ticket className="h-3 w-3" /> Pass
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">Money</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 font-mono text-gray-900">
-                              {gc.code || <span className="text-gray-400 italic">Auto-generate</span>}
+                              {row.code || <span className="text-gray-400 italic font-sans">Auto</span>}
                             </td>
-                            <td className="px-4 py-3 font-medium text-gray-900">
-                              {formatAmount(gc.original_value_cents / 100)}
+                            <td className="px-4 py-3 text-gray-900">
+                              {row.type === 'value' ? (
+                                <span className="font-medium">{formatAmount(row.valueCents / 100)}</span>
+                              ) : (
+                                <span>
+                                  <span className="font-medium">{row.offer.name}</span>
+                                  <span className="block text-xs text-gray-500">
+                                    {row.visitsLeft} of {row.visitsTotal} visits left · paid {formatAmount(row.pricePaidCents / 100)}
+                                  </span>
+                                </span>
+                              )}
                             </td>
+                            <td className="px-4 py-3 text-gray-600">{row.recipientEmail || '–'}</td>
                             <td className="px-4 py-3 text-gray-600">
-                              {gc.recipient_email || '-'}
-                            </td>
-                            <td className="px-4 py-3 text-gray-600">
-                              {gc.expires_at ? new Date(gc.expires_at).toLocaleDateString() : 'Never'}
+                              {row.expiresAt ? new Date(row.expiresAt).toLocaleDateString() : 'Never'}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    {parsedGiftCards.length > 20 && (
+                    {rows.length > PREVIEW_LIMIT && (
                       <div className="bg-gray-50 px-4 py-2 text-sm text-gray-600 text-center">
-                        ... and {parsedGiftCards.length - 20} more gift cards
+                        … and {rows.length - PREVIEW_LIMIT} more
                       </div>
                     )}
                   </div>
@@ -392,69 +380,79 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
 
           {step === 'importing' && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <p className="text-lg font-medium text-gray-900">Creating gift cards...</p>
+              <div className="w-16 h-16 border-4 border-gray-200 border-t-[#1A1714] rounded-full animate-spin mx-auto mb-6"></div>
+              <p className="text-lg font-medium text-gray-900">Creating gift cards…</p>
               <div className="mt-4 w-full max-w-xs mx-auto bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${importProgress}%` }}
-                ></div>
+                <div className="bg-[#1A1714] h-2 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
               </div>
               <p className="text-sm text-gray-600 mt-2">{importProgress}% complete</p>
             </div>
           )}
 
           {step === 'complete' && (
-            <div className="text-center py-12">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Import Complete!</h3>
-              <p className="text-gray-600 mb-6">
-                Successfully created {importResults.success} gift card(s)
-                {importResults.failed > 0 && (
-                  <span className="text-red-600"> ({importResults.failed} failed)</span>
+            <div className="py-10">
+              <div className="text-center">
+                {failed.length === 0 ? (
+                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
+                ) : (
+                  <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-6" />
                 )}
-              </p>
-              
-              {importResults.codes.length > 0 && (
-                <div className="mb-6">
-                  <button
-                    onClick={downloadImportedCodes}
-                    className="inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Imported Codes</span>
-                  </button>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {failed.length === 0 ? 'Import complete' : 'Import finished with problems'}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Created {succeeded} card{succeeded === 1 ? '' : 's'}
+                  {failed.length > 0 && <span className="text-red-600">, {failed.length} not created</span>}.
+                </p>
+              </div>
+
+              {failed.length > 0 && (
+                <div className="mx-auto mb-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <ul className="space-y-1">
+                    {failed.slice(0, 20).map(({ row, code, error }) => (
+                      <li key={row.rowNumber}>• Row {row.rowNumber}{code ? ` (${code})` : ''}: {error}</li>
+                    ))}
+                  </ul>
+                  {failed.length > 20 && <p className="mt-1">… and {failed.length - 20} more. See the results file.</p>}
                 </div>
               )}
-              
-              <button
-                onClick={async () => {
-                  await onImportComplete();
-                  onClose();
-                }}
-                className="px-6 py-3 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
-              >
-                Done
-              </button>
+
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={downloadResults}
+                  className="inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download results</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    await onImportComplete();
+                    onClose();
+                  }}
+                  className="px-6 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
         {(step === 'upload' || step === 'preview') && (
           <div className="p-6 border-t border-gray-200 flex justify-between">
             <button
-              onClick={() => step === 'preview' ? setStep('upload') : onClose()}
+              onClick={() => (step === 'preview' ? setStep('upload') : onClose())}
               className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               {step === 'preview' ? 'Back' : 'Cancel'}
             </button>
-            {step === 'preview' && parsedGiftCards.length > 0 && (
+            {step === 'preview' && rows.length > 0 && (
               <button
                 onClick={handleImport}
                 className="px-6 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
-                Import {parsedGiftCards.length} Gift Card(s)
+                Import {rows.length} card{rows.length === 1 ? '' : 's'}
               </button>
             )}
           </div>
