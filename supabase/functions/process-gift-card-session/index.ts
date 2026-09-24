@@ -53,66 +53,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // First, try to get the business_id from the session metadata if available
-    // We need to use platform-level keys initially to retrieve basic session info
-    let stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-    let businessId: string | null = null;
-
-    if (stripeSecret) {
-      try {
-        console.log("Attempting to retrieve session with platform keys to get business_id...");
-        const platformStripe = new Stripe(stripeSecret);
-        const platformSession = await platformStripe.checkout.sessions.retrieve(sessionId);
-        businessId = platformSession.metadata?.business_id || null;
-        console.log(`Got business_id from session metadata: ${businessId}`);
-      } catch (error: any) {
-        console.log("Platform-level session retrieval failed (expected if using business-specific keys):", error.message);
-        // This is expected if the session was created with business-specific keys
-        // We'll need to try a different approach
-      }
+    const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecret) {
+      throw new Error("Stripe is not configured for the Zenno platform");
     }
 
-    // If we couldn't get business_id from platform keys, we need to infer it
-    // In production, you might want to add the business_id to the URL params
-    if (!businessId) {
-      // Try to get from URL params if passed
-      const url = new URL(req.url);
-      businessId = url.searchParams.get("business_id");
-
-      if (!businessId) {
-        throw new Error("Could not determine business_id. Please include business_id in the request.");
-      }
-      console.log(`Using business_id from URL params: ${businessId}`);
-    }
-
-    // Now get the business-specific Stripe keys
-    const { data: stripeSettings } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("business_id", businessId)
-      .eq("key", "stripe_secret_key")
-      .maybeSingle();
-
-    if (!stripeSettings?.value) {
-      console.log("No business-specific Stripe key found, trying platform key...");
-      if (!stripeSecret) {
-        throw new Error("Stripe secret key not configured");
-      }
-    } else {
-      // Use business-specific key
-      try {
-        const parsed = JSON.parse(stripeSettings.value);
-        stripeSecret = parsed;
-        console.log("Using business-specific Stripe key");
-      } catch {
-        stripeSecret = stripeSettings.value;
-        console.log("Using business-specific Stripe key (direct value)");
-      }
-    }
-
-    console.log("Retrieving Stripe session with appropriate keys...");
+    console.log("Retrieving Stripe session with the Zenno platform key...");
     const stripe = new Stripe(stripeSecret);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const businessId = session.metadata?.business_id || null;
+
+    if (!businessId) {
+      throw new Error("The Stripe session is missing its business reference");
+    }
 
     console.log(`Stripe session retrieved. Payment status: ${session.payment_status}`);
 
@@ -135,14 +88,45 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Missing required gift card data: ${missing.join(", ")}`);
     }
 
+    const cardType = metadata.gc_card_type === "service_pass" ? "service_pass" : "value";
+    const purchasePriceCents = parseInt(metadata.gc_amount);
+
+    if (!Number.isInteger(purchasePriceCents) || purchasePriceCents <= 0) {
+      throw new Error("Invalid gift-card purchase amount");
+    }
+
+    if (session.amount_total !== null && session.amount_total !== purchasePriceCents) {
+      throw new Error("Paid amount does not match the gift-card purchase");
+    }
+
+    if (cardType === "service_pass" && (
+      !metadata.gc_service_pass_offer_id
+      || !metadata.gc_service_pass_name
+      || !metadata.gc_service_id
+      || !metadata.gc_duration_id
+      || !metadata.gc_visit_count
+    )) {
+      throw new Error("Missing required service-pass data");
+    }
+
     const giftCardInsert: any = {
       business_id: metadata.business_id,
       code: metadata.gc_code,
-      original_value_cents: parseInt(metadata.gc_amount),
-      current_balance_cents: parseInt(metadata.gc_amount),
+      card_type: cardType,
+      purchase_price_cents: purchasePriceCents,
+      original_value_cents: cardType === "service_pass" ? 0 : purchasePriceCents,
+      current_balance_cents: cardType === "service_pass" ? 0 : purchasePriceCents,
+      service_pass_offer_id: cardType === "service_pass" ? metadata.gc_service_pass_offer_id : null,
+      service_pass_name: cardType === "service_pass" ? metadata.gc_service_pass_name : null,
+      service_id: cardType === "service_pass" ? metadata.gc_service_id : null,
+      duration_id: cardType === "service_pass" ? metadata.gc_duration_id : null,
+      original_visits: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : null,
+      remaining_visits: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : null,
       status: "active",
       stripe_session_id: sessionId,
       purchased_for_email: metadata.gc_recipient_email || null,
+      purchased_by_email: session.customer_details?.email || session.customer_email || null,
+      purchased_by_name: metadata.customer_name || null,
       expires_at: metadata.gc_expires_at || null,
     };
 
@@ -194,9 +178,10 @@ Deno.serve(async (req: Request) => {
         .from("gift_card_transactions")
         .insert({
           gift_card_id: finalGiftCard.id,
-          amount_cents: parseInt(metadata.gc_amount),
+          amount_cents: purchasePriceCents,
+          visit_count: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : 0,
           transaction_type: "purchase",
-          description: `Purchased by ${metadata.customer_name}`,
+          description: `${cardType === "service_pass" ? "Service pass" : "Gift card"} purchased by ${metadata.customer_name}`,
         });
       console.log("Created purchase transaction for gift card");
     } else {
@@ -219,7 +204,9 @@ Deno.serve(async (req: Request) => {
           variables: {
             recipient_email: metadata.gc_recipient_email,
             gift_card_code: metadata.gc_code,
-            amount: `$${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
+            amount: cardType === "service_pass"
+              ? `${metadata.gc_service_pass_name} · ${metadata.gc_visit_count} ${metadata.gc_visit_count === "1" ? "visit" : "visits"}`
+              : new Intl.NumberFormat("en", { style: "currency", currency: (session.currency || "usd").toUpperCase() }).format(purchasePriceCents / 100),
             message: metadata.gc_message || "",
             sender_name: metadata.customer_name,
             business_name: giftCardBusiness?.name || 'Our Business',

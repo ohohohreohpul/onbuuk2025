@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
+import { useCurrency } from '../../lib/currencyContext';
 
 interface ParsedService {
   name: string;
@@ -24,6 +25,7 @@ interface ImportServicesModalProps {
 
 export function ImportServicesModal({ onClose, onImportComplete }: ImportServicesModalProps) {
   const { businessId } = useTenant();
+  const { currency, currencySymbol, formatPrice } = useCurrency();
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [parsedServices, setParsedServices] = useState<ParsedService[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -40,15 +42,15 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
       'image_url',
       'buffer_before_minutes',
       'buffer_after_minutes',
-      'no_show_fee_eur',
-      'late_cancel_fee_eur',
+      'no_show_fee',
+      'late_cancel_fee',
       'late_cancel_hours',
       'duration1_minutes',
-      'duration1_price_eur',
+      'duration1_price',
       'duration2_minutes',
-      'duration2_price_eur',
+      'duration2_price',
       'duration3_minutes',
-      'duration3_price_eur'
+      'duration3_price'
     ];
 
     const exampleRow = [
@@ -120,7 +122,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
       const durations: Array<{ duration_minutes: number; price_cents: number }> = [];
       for (let d = 1; d <= 5; d++) {
         const minutes = parseFloat(row[`duration${d}_minutes`]);
-        const price = parseFloat(row[`duration${d}_price_eur`]);
+        const price = parseFloat(row[`duration${d}_price`] || row[`duration${d}_price_eur`]);
         if (!isNaN(minutes) && minutes > 0 && !isNaN(price) && price >= 0) {
           durations.push({
             duration_minutes: Math.round(minutes),
@@ -142,8 +144,8 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
         image_url: row.image_url || null,
         buffer_before: parseInt(row.buffer_before_minutes) || 0,
         buffer_after: parseInt(row.buffer_after_minutes) || 0,
-        no_show_fee: Math.round((parseFloat(row.no_show_fee_eur) || 0) * 100),
-        late_cancel_fee: Math.round((parseFloat(row.late_cancel_fee_eur) || 0) * 100),
+        no_show_fee: Math.round((parseFloat(row.no_show_fee || row.no_show_fee_eur) || 0) * 100),
+        late_cancel_fee: Math.round((parseFloat(row.late_cancel_fee || row.late_cancel_fee_eur) || 0) * 100),
         late_cancel_hours: parseInt(row.late_cancel_hours) || 24,
         durations
       });
@@ -246,8 +248,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
     setStep('complete');
   };
 
-  const formatPrice = (cents: number) => `€${(cents / 100).toFixed(2)}`;
-
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col rounded-xl shadow-xl">
@@ -309,7 +310,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• <strong>Required columns:</strong> name, category, and at least one duration with price</li>
                   <li>• <strong>is_pair_massage:</strong> Use 'true' or 'false' for couples availability</li>
-                  <li>• <strong>Prices:</strong> Enter prices in EUR (e.g., 45.00)</li>
+                  <li>• <strong>Prices:</strong> Enter values in {currency} ({currencySymbol}), using the business currency setting (e.g., 45.00)</li>
                   <li>• <strong>Durations:</strong> You can have up to 5 duration/price pairs per service</li>
                   <li>• <strong>Buffer times:</strong> Enter in minutes</li>
                 </ul>
@@ -412,7 +413,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                   onImportComplete();
                   onClose();
                 }}
-                className="px-6 py-3 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-colors"
+                className="px-6 py-3 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
                 Done
               </button>
@@ -432,7 +433,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
             {step === 'preview' && parsedServices.length > 0 && (
               <button
                 onClick={handleImport}
-                className="px-6 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-colors"
+                className="px-6 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
                 Import {parsedServices.length} Service(s)
               </button>

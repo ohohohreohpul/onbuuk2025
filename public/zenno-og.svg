@@ -1,0 +1,7 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#FDFCFA"/>
+  <circle cx="1070" cy="82" r="220" fill="#F0EDE8"/>
+  <circle cx="88" cy="590" r="190" fill="#EEEBE6"/>
+  <image href="zenno-logo.svg" x="220" y="190" width="760" height="210"/>
+  <text x="600" y="462" fill="#6B6560" font-family="Inter, Arial, sans-serif" font-size="30" text-anchor="middle" letter-spacing="1">Bookings, customers, and revenue in one place.</text>
+</svg>

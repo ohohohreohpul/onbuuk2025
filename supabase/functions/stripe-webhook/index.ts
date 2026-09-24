@@ -98,6 +98,56 @@ async function handleEvent(event: Stripe.Event) {
 
     const { mode, payment_status } = stripeData as Stripe.Checkout.Session;
 
+    // Card-guarantee setup session completed — save the card to the booking for off-session charges
+    if (event.type === 'checkout.session.completed' && mode === 'setup') {
+      try {
+        const setupData = stripeData as Stripe.Checkout.Session;
+        const metadata = setupData.metadata;
+        if (metadata?.type === 'booking_card_guarantee' && metadata?.booking_id) {
+          const setupIntentId = typeof setupData.setup_intent === 'string' ? setupData.setup_intent : (setupData.setup_intent as any)?.id;
+          if (setupIntentId) {
+            const siRes = await fetch(`https://api.stripe.com/v1/setup_intents/${setupIntentId}`, {
+              headers: { Authorization: `Bearer ${stripeSecret}` },
+            });
+            if (siRes.ok) {
+              const si = await siRes.json();
+              const pm = typeof si.payment_method === 'string' ? si.payment_method : si.payment_method?.id;
+              const setupCustomer = typeof si.customer === 'string' ? si.customer : si.customer?.id;
+              const sessionCustomer = typeof setupData.customer === 'string'
+                ? setupData.customer
+                : (setupData.customer as any)?.id;
+              const customer = setupCustomer || sessionCustomer;
+
+              if (!pm || !customer) {
+                console.error(`Card-guarantee setup ${setupIntentId} is missing a payment method or customer`);
+                return;
+              }
+
+              let updateQuery = supabase
+                .from('bookings')
+                .update({
+                  stripe_payment_method_id: pm,
+                  stripe_customer_id: customer,
+                  stripe_session_id: setupData.id,
+                })
+                .eq('id', metadata.booking_id);
+
+              if (metadata.business_id) {
+                updateQuery = updateQuery.eq('business_id', metadata.business_id);
+              }
+
+              const { error: cardErr } = await updateQuery;
+              if (cardErr) console.error('Card-on-file save error:', cardErr);
+              else console.info(`Card-guarantee saved for booking ${metadata.booking_id}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Card-guarantee setup handling failed:', e);
+      }
+      return;
+    }
+
     if (isSubscription) {
       console.info(`Starting subscription sync for customer: ${customerId}`);
       await syncCustomerFromStripe(customerId);
@@ -128,6 +178,34 @@ async function handleEvent(event: Stripe.Event) {
               stripe_session_id: checkout_session_id,
             })
             .eq('id', bookingId);
+
+          // Card-on-file for off-session no-show/late-cancel charges (Treatwell model)
+          if (payment_intent && typeof payment_intent === 'string') {
+            try {
+              const stripeKey = await resolveBusinessStripeKey(metadata.business_id);
+              const piRes = await fetch(`https://api.stripe.com/v1/payment_intents/${payment_intent}?expand[]=payment_method`, {
+                headers: { Authorization: `Bearer ${stripeKey}` },
+              });
+              if (piRes.ok) {
+                const pi = await piRes.json();
+                const pm = pi.payment_method;
+                const cust = pi.customer;
+                if (pm || cust) {
+                  const { error: cardErr } = await supabase
+                    .from('bookings')
+                    .update({
+                      stripe_payment_method_id: typeof pm === 'string' ? pm : pm?.id || null,
+                      stripe_customer_id: typeof cust === 'string' ? cust : cust?.id || null,
+                    })
+                    .eq('id', bookingId);
+                  if (cardErr) console.error('Failed to save card-on-file:', cardErr);
+                  else console.info(`Card-on-file saved for booking: ${bookingId}`);
+                }
+              }
+            } catch (cardSaveError) {
+              console.error('Card-on-file save error (non-fatal):', cardSaveError);
+            }
+          }
 
           if (bookingUpdateError) {
             console.error('Error updating booking:', bookingUpdateError);
@@ -254,11 +332,36 @@ async function handleEvent(event: Stripe.Event) {
           if (existingGiftCard) {
             console.log(`Gift card already exists with session ${checkout_session_id}, skipping creation. ID: ${existingGiftCard.id}`);
           } else {
+            const cardType = metadata.gc_card_type === 'service_pass' ? 'service_pass' : 'value';
+            const purchasePriceCents = parseInt(metadata.gc_amount);
+
+            if (!Number.isInteger(purchasePriceCents) || purchasePriceCents <= 0 || amount_total !== purchasePriceCents) {
+              throw new Error('Paid amount does not match the gift-card purchase');
+            }
+
+            if (cardType === 'service_pass' && (
+              !metadata.gc_service_pass_offer_id
+              || !metadata.gc_service_pass_name
+              || !metadata.gc_service_id
+              || !metadata.gc_duration_id
+              || !metadata.gc_visit_count
+            )) {
+              throw new Error('Missing required service-pass data');
+            }
+
             const giftCardInsert: any = {
               business_id: metadata.business_id,
               code: metadata.gc_code,
-              original_value_cents: parseInt(metadata.gc_amount),
-              current_balance_cents: parseInt(metadata.gc_amount),
+              card_type: cardType,
+              purchase_price_cents: purchasePriceCents,
+              original_value_cents: cardType === 'service_pass' ? 0 : purchasePriceCents,
+              current_balance_cents: cardType === 'service_pass' ? 0 : purchasePriceCents,
+              service_pass_offer_id: cardType === 'service_pass' ? metadata.gc_service_pass_offer_id : null,
+              service_pass_name: cardType === 'service_pass' ? metadata.gc_service_pass_name : null,
+              service_id: cardType === 'service_pass' ? metadata.gc_service_id : null,
+              duration_id: cardType === 'service_pass' ? metadata.gc_duration_id : null,
+              original_visits: cardType === 'service_pass' ? parseInt(metadata.gc_visit_count) : null,
+              remaining_visits: cardType === 'service_pass' ? parseInt(metadata.gc_visit_count) : null,
               status: 'active',
               stripe_session_id: checkout_session_id,
               purchased_for_email: metadata.gc_recipient_email || null,
@@ -303,9 +406,10 @@ async function handleEvent(event: Stripe.Event) {
                 .from('gift_card_transactions')
                 .insert({
                   gift_card_id: newGiftCard.id,
-                  amount_cents: parseInt(metadata.gc_amount),
+                  amount_cents: purchasePriceCents,
+                  visit_count: cardType === 'service_pass' ? parseInt(metadata.gc_visit_count) : 0,
                   transaction_type: 'purchase',
-                  description: `Purchased by ${metadata.customer_name}`,
+                  description: `${cardType === 'service_pass' ? 'Service pass' : 'Gift card'} purchased by ${metadata.customer_name}`,
                 });
 
               if (metadata.gc_recipient_email) {
@@ -326,7 +430,9 @@ async function handleEvent(event: Stripe.Event) {
                     variables: {
                       recipient_email: metadata.gc_recipient_email,
                       gift_card_code: metadata.gc_code,
-                      amount: `$${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
+                      amount: cardType === 'service_pass'
+                        ? `${metadata.gc_service_pass_name} · ${metadata.gc_visit_count} ${metadata.gc_visit_count === '1' ? 'visit' : 'visits'}`
+                        : new Intl.NumberFormat('en', { style: 'currency', currency: (currency || 'usd').toUpperCase() }).format(purchasePriceCents / 100),
                       message: metadata.gc_message || '',
                       sender_name: metadata.customer_name,
                       business_name: giftCardBusiness?.name || 'Our Business',
@@ -486,7 +592,7 @@ async function handleNewSignup(customerId: string, session: Stripe.Checkout.Sess
         plan_type: metadata.plan_type,
         is_active: true,
         owner_id: authData.user.id,
-        custom_logo_url: '/defbuuklogo.png',
+        custom_logo_url: '/zenno-logo.svg',
         stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
         subscription_status: subscription.status,

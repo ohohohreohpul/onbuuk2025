@@ -1,16 +1,30 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, Gift, Search, Check, X, DollarSign } from 'lucide-react';
+import { Gift, Search, Check, DollarSign } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
+import {
+  ADMIN_INPUT,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_SEGMENT_ACTIVE,
+  ADMIN_SEGMENT_INACTIVE,
+  ADMIN_SEGMENTED_CONTROL,
+  ADMIN_SURFACE,
+} from './adminUi';
 
 interface GiftCard {
   id: string;
   code: string;
   original_value_cents: number;
   current_balance_cents: number;
+  card_type?: 'value' | 'service_pass';
+  service_pass_name?: string | null;
+  original_visits?: number | null;
+  remaining_visits?: number | null;
   status: string;
   expires_at: string | null;
+  service?: { name: string } | null;
+  duration?: { duration_minutes: number; price_cents: number } | null;
 }
 
 interface PendingBooking {
@@ -82,7 +96,7 @@ export function POSView() {
 
     const { data: card, error: cardError } = await supabase
       .from('gift_cards')
-      .select('*')
+      .select('*, service:services(name), duration:service_durations(duration_minutes, price_cents)')
       .eq('code', giftCardCode.toUpperCase().trim())
       .eq('business_id', businessId)
       .maybeSingle();
@@ -99,19 +113,38 @@ export function POSView() {
       return;
     }
 
-    if (card.current_balance_cents <= 0) {
-      setError('This gift card has a zero balance');
+    if (card.card_type === 'service_pass' ? (card.remaining_visits || 0) <= 0 : card.current_balance_cents <= 0) {
+      setError(card.card_type === 'service_pass' ? 'This service pass has no visits remaining' : 'This gift card has a zero balance');
       setSearchingCard(false);
       return;
     }
 
     setFoundCard(card);
-    setRedeemAmount(((card.current_balance_cents / 100).toFixed(2)));
+    setRedeemAmount(card.card_type === 'service_pass' ? '' : ((card.current_balance_cents / 100).toFixed(2)));
     setSearchingCard(false);
   };
 
   const handleRedeemGiftCard = async () => {
     if (!foundCard) return;
+
+    if (foundCard.card_type === 'service_pass') {
+      setRedeeming(true);
+      setError('');
+      const { data, error: redemptionError } = await supabase.rpc('redeem_service_pass_at_pos', {
+        p_code: foundCard.code,
+      });
+
+      if (redemptionError) {
+        setError(redemptionError.message || 'Failed to redeem service pass');
+      } else {
+        setMessage(`Visit redeemed. ${data?.remainingVisits || 0} ${data?.remainingVisits === 1 ? 'visit remains' : 'visits remain'}.`);
+        setGiftCardCode('');
+        setFoundCard(null);
+        setTimeout(() => setMessage(''), 5000);
+      }
+      setRedeeming(false);
+      return;
+    }
 
     const amountCents = Math.round(parseFloat(redeemAmount) * 100);
 
@@ -172,8 +205,9 @@ export function POSView() {
       .eq('id', bookingId);
 
     if (error) {
-      alert('Failed to update booking');
+      setError('Failed to update booking');
     } else {
+      setError('');
       setMessage('Booking marked as paid!');
       loadPendingBookings();
       setTimeout(() => setMessage(''), 3000);
@@ -181,186 +215,206 @@ export function POSView() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Point of Sale (POS)</h2>
-        <p className="text-gray-600 mt-1">
-          Process gift card redemptions and manage walk-in payments
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">Checkout desk</h2>
+          <p className="mt-1 text-sm text-stone-500">Redeem value cards or service-pass visits and close pending in-person payments.</p>
+        </div>
+        <span className="text-xs text-stone-400">{pendingBookings.length} pending payment{pendingBookings.length === 1 ? '' : 's'}</span>
       </div>
 
       {(message || error) && (
-        <div className={`p-4 rounded-lg ${error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div role="status" className={`rounded-2xl border px-4 py-3 text-sm ${error ? 'border-red-200/80 bg-red-50/70 text-red-700' : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800'}`}>
           {error || message}
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="border-b">
-        <div className="flex gap-6">
+      <div className="overflow-x-auto pb-1">
+        <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
           <button
+            type="button"
             onClick={() => setActiveTab('gift_cards')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'gift_cards'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'gift_cards' ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Gift className="w-5 h-5" />
-              Redeem Gift Card
-            </div>
+            <Gift className="h-4 w-4" strokeWidth={1.75} />
+            Redeem card or pass
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('bookings')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'bookings'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'bookings' ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Pending Payments ({pendingBookings.length})
-            </div>
+            <DollarSign className="h-4 w-4" strokeWidth={1.75} />
+            Pending payments
+            <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${activeTab === 'bookings' ? 'bg-white/[0.15]' : 'bg-stone-900/[0.05]'}`}>
+              {pendingBookings.length}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Gift Card Redemption */}
       {activeTab === 'gift_cards' && (
-        <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Scan or Enter Gift Card Code</h3>
-            <form onSubmit={handleSearchGiftCard} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Gift Card Code
-                </label>
-                <div className="flex gap-2">
+        <section className={`${ADMIN_SURFACE} p-6`}>
+          <div className="mb-5 flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900/[0.06] text-[#1A1714]">
+              <Gift className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[#1A1714]">Find a card or pass</h3>
+              <p className="mt-1 text-sm text-stone-500">Scan a code or enter it exactly as shown to check its live balance or remaining visits.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSearchGiftCard}>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-stone-700">Card or pass code</span>
+              <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
                     value={giftCardCode}
                     onChange={(e) => setGiftCardCode(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
+                    className={`${ADMIN_INPUT} flex-1 uppercase`}
                     placeholder="GC-XXXX-XXXX-XXXX"
                     required
                   />
                   <button
                     type="submit"
                     disabled={searchingCard}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                    className={ADMIN_PRIMARY_BUTTON}
                   >
-                    <Search className="w-5 h-5" />
-                    {searchingCard ? 'Searching...' : 'Search'}
+                    <Search className="h-4 w-4" />
+                    {searchingCard ? 'Searching…' : 'Find card'}
                   </button>
+              </div>
+            </label>
+          </form>
+
+          {foundCard && (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-emerald-200/70 bg-emerald-50/60">
+              <div className="flex items-center justify-between gap-4 p-5">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-emerald-700/70">{foundCard.card_type === 'service_pass' ? 'Service entitlement' : 'Available balance'}</p>
+                  <p className="mt-2 text-3xl font-semibold tracking-tight text-emerald-950">
+                    {foundCard.card_type === 'service_pass'
+                      ? `${foundCard.remaining_visits || 0} ${(foundCard.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left`
+                      : formatAmount(foundCard.current_balance_cents / 100)}
+                  </p>
+                  {foundCard.card_type === 'service_pass' && (
+                    <p className="mt-1 text-sm text-emerald-800">{foundCard.service_pass_name} · {foundCard.service?.name} · {foundCard.duration?.duration_minutes} min</p>
+                  )}
+                  <p className="mt-1 font-mono text-xs text-emerald-700/70">{foundCard.code}</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.65] text-emerald-700 ring-1 ring-emerald-900/[0.05]">
+                  <Check className="h-6 w-6" />
                 </div>
               </div>
-            </form>
 
-            {foundCard && (
-              <div className="mt-6 p-6 bg-green-50 border border-green-200 rounded-lg space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="border-t border-emerald-200/70 bg-white/30 p-5">
+                {foundCard.card_type === 'service_pass' ? (
                   <div>
-                    <p className="text-sm text-green-700 mb-1">Gift Card Found</p>
-                    <p className="text-2xl font-bold text-green-900">
-                      {formatAmount(foundCard.current_balance_cents / 100)}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      Code: {foundCard.code}
-                    </p>
+                    <p className="text-sm leading-6 text-emerald-900">Redeem one visit for the service shown above. This records the current service value but never turns the pass into cash.</p>
+                    <button type="button" onClick={handleRedeemGiftCard} disabled={redeeming} className={`${ADMIN_PRIMARY_BUTTON} mt-4 w-full`}>
+                      {redeeming ? 'Processing…' : 'Redeem one visit'}
+                    </button>
                   </div>
-                  <Check className="w-12 h-12 text-green-600" />
-                </div>
-
-                <div className="pt-4 border-t border-green-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount to Redeem ({currencySymbol})
-                  </label>
-                  <div className="flex gap-2">
+                ) : (
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium text-emerald-950">Amount to redeem ({currencySymbol})</span>
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       type="number"
                       value={redeemAmount}
                       onChange={(e) => setRedeemAmount(e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`${ADMIN_INPUT} flex-1`}
                       step="0.01"
                       min="0.01"
                       max={(foundCard.current_balance_cents / 100).toFixed(2)}
                       required
                     />
                     <button
+                      type="button"
                       onClick={handleRedeemGiftCard}
                       disabled={redeeming}
-                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      className={ADMIN_PRIMARY_BUTTON}
                     >
-                      {redeeming ? 'Processing...' : 'Redeem'}
+                      {redeeming ? 'Processing…' : 'Redeem value'}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Max: {formatAmount(foundCard.current_balance_cents / 100)}
-                  </p>
-                </div>
+                  <span className="mt-1.5 block text-xs text-emerald-700/70">Maximum {formatAmount(foundCard.current_balance_cents / 100)}</span>
+                </label>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </section>
       )}
 
-      {/* Pending Bookings */}
       {activeTab === 'bookings' && (
-        <div className="bg-white border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Bookings Awaiting Payment</h3>
+        <section className={`${ADMIN_SURFACE} overflow-hidden`}>
+          <div className="border-b border-stone-200/70 px-5 py-4">
+            <h3 className="font-semibold text-[#1A1714]">Bookings awaiting payment</h3>
+            <p className="mt-1 text-xs text-stone-400">Use this after collecting payment at the venue.</p>
+          </div>
           {loadingBookings ? (
-            <p className="text-gray-600">Loading...</p>
+            <div className="animate-pulse space-y-3 p-5">
+              {[0, 1, 2].map((row) => <div key={row} className="h-14 rounded-xl bg-stone-900/[0.035]" />)}
+            </div>
           ) : pendingBookings.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No pending payments</p>
+            <div className="px-6 py-14 text-center">
+              <Check className="mx-auto h-6 w-6 text-emerald-500" strokeWidth={1.75} />
+              <p className="mt-3 text-sm font-medium text-stone-600">Nothing waiting for payment</p>
+              <p className="mt-1 text-xs text-stone-400">New pay-at-venue bookings appear here.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date & Time</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Customer</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Service</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Amount</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Action</th>
+              <table className="w-full min-w-[820px]">
+                <thead className="bg-stone-900/[0.025]">
+                  <tr>
+                    {['Date & time', 'Customer', 'Service', 'Amount', ''].map((heading) => (
+                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">{heading}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-stone-200/60">
                   {pendingBookings.map((booking) => (
-                    <tr key={booking.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
+                    <tr key={booking.id} className="transition-colors hover:bg-white/60">
+                      <td className="px-5 py-4">
                         <div className="text-sm">
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-[#1A1714]">
                             {new Date(booking.booking_date).toLocaleDateString()}
                           </p>
-                          <p className="text-gray-600">{booking.start_time}</p>
+                          <p className="mt-0.5 text-xs text-stone-400">{booking.start_time}</p>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-5 py-4">
                         <div className="text-sm">
-                          <p className="font-medium text-gray-900">{booking.customer_name}</p>
-                          <p className="text-gray-600">{booking.customer_email}</p>
+                          <p className="font-medium text-[#1A1714]">{booking.customer_name}</p>
+                          <p className="mt-0.5 text-xs text-stone-400">{booking.customer_email}</p>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-5 py-4">
                         <div className="text-sm">
-                          <p className="font-medium text-gray-900">{booking.service.name}</p>
-                          <p className="text-gray-600">{booking.duration.duration_minutes} min</p>
+                          <p className="font-medium text-[#1A1714]">{booking.service.name}</p>
+                          <p className="mt-0.5 text-xs text-stone-400">{booking.duration.duration_minutes} min</p>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <p className="text-lg font-bold text-gray-900">
+                      <td className="px-5 py-4">
+                        <p className="text-sm font-semibold text-[#1A1714]">
                           {formatAmount(booking.duration.price_cents / 100)}
                         </p>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-5 py-4 text-right">
                         <button
+                          type="button"
                           onClick={() => handleMarkAsPaid(booking.id)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2"
+                          className={ADMIN_PRIMARY_BUTTON}
                         >
-                          <Check className="w-4 h-4" />
-                          Mark as Paid
+                          <Check className="h-4 w-4" /> Mark paid
                         </button>
                       </td>
                     </tr>
@@ -369,7 +423,7 @@ export function POSView() {
               </table>
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );

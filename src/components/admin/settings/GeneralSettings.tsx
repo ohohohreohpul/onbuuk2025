@@ -5,6 +5,7 @@ import { useTenant } from '../../../lib/tenantContext';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 import { CURRENCY_NAMES, CURRENCY_SYMBOLS } from '../../../lib/currency';
 import { useCurrency } from '../../../lib/currencyContext';
+import { BRAND_FAVICON, BRAND_LOGO, BRAND_NAME } from '../../../lib/brand';
 
 interface Business {
   id: string;
@@ -206,12 +207,12 @@ export default function GeneralSettings() {
     try {
       const { error } = await supabase
         .from('businesses')
-        .update({ custom_logo_url: '/defbuuklogo.png' })
+        .update({ custom_logo_url: BRAND_LOGO })
         .eq('id', businessId);
 
       if (error) throw error;
 
-      setBusiness({ ...business, custom_logo_url: '/defbuuklogo.png' });
+      setBusiness({ ...business, custom_logo_url: BRAND_LOGO });
       setSavedMessage('Logo removed successfully!');
       setTimeout(() => setSavedMessage(''), 3000);
     } catch (error) {
@@ -310,7 +311,7 @@ export default function GeneralSettings() {
       if (error) throw error;
 
       setBusiness({ ...business, custom_favicon_url: null });
-      setSavedMessage('Favicon removed - will use default Buuk icon');
+      setSavedMessage(`Favicon removed - will use the default ${BRAND_NAME} icon`);
       setTimeout(() => setSavedMessage(''), 3000);
     } catch (error) {
       console.error('Error removing favicon:', error);
@@ -530,7 +531,7 @@ export default function GeneralSettings() {
                       e.currentTarget.style.display = 'none';
                     }}
                   />
-                  {premiumFeatures.isPro && business.custom_logo_url !== '/defbuuklogo.png' && (
+                  {premiumFeatures.isPro && business.custom_logo_url !== BRAND_LOGO && (
                     <button
                       type="button"
                       onClick={handleRemoveLogo}
@@ -545,7 +546,7 @@ export default function GeneralSettings() {
             <p className="text-xs text-stone-500 mt-1">
               {premiumFeatures.isPro
                 ? 'Upload a custom logo for your brand (PNG, JPG, max 2MB) - shown in admin panel'
-                : 'Using default buuk logo'}
+                : `Using default ${BRAND_NAME} logo`}
             </p>
           </div>
 
@@ -614,19 +615,19 @@ export default function GeneralSettings() {
                 <div className="flex items-center space-x-4">
                   <div className="bg-stone-100 p-4 rounded border border-stone-200">
                     <img
-                      src="/blbuuklogo.png"
+                      src={BRAND_LOGO}
                       alt="Default login logo"
                       className="h-16 object-contain"
                     />
                   </div>
-                  <span className="text-sm text-stone-600">Default Buuk logo</span>
+                  <span className="text-sm text-stone-600">Default {BRAND_NAME} logo</span>
                 </div>
               )}
             </div>
             <p className="text-xs text-stone-500 mt-1">
               {premiumFeatures.isPro
                 ? 'Upload a logo specifically for your admin login page (PNG, JPG, max 2MB)'
-                : 'Using default buuk logo on login page'}
+                : `Using default ${BRAND_NAME} logo on login page`}
             </p>
           </div>
         </div>
@@ -734,8 +735,8 @@ export default function GeneralSettings() {
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 border border-stone-200 rounded">
             <div>
-              <h4 className="font-medium text-stone-800">Hide "Powered by buuk" Badge</h4>
-              <p className="text-sm text-stone-600">Remove the buuk branding from your booking pages</p>
+              <h4 className="font-medium text-stone-800">Hide "Powered by {BRAND_NAME}" badge</h4>
+              <p className="text-sm text-stone-600">Remove the {BRAND_NAME} branding from your booking pages</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -820,7 +821,7 @@ export default function GeneralSettings() {
                         alt="Favicon preview" 
                         className="w-10 h-10 object-contain"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/iconobrowser.png';
+                          (e.target as HTMLImageElement).src = BRAND_FAVICON;
                         }}
                       />
                     </div>

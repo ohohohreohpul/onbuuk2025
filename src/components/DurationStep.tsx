@@ -3,6 +3,7 @@ import { supabase, ServiceDuration } from '../lib/supabase';
 import { ChevronRight, Clock } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
+import { useCurrency } from '../lib/currencyContext';
 
 interface DurationStepProps {
   serviceId: string;
@@ -12,6 +13,7 @@ interface DurationStepProps {
 }
 
 export default function DurationStep({ serviceId, isPairBooking, onNext, onBack }: DurationStepProps) {
+  const { formatPrice } = useCurrency();
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
   const [durations, setDurations] = useState<ServiceDuration[]>([]);
@@ -48,9 +50,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
     setLoading(false);
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   const handleContinue = () => {
     if (selectedDuration) {
@@ -76,7 +76,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-theme-primary mb-2">{content.title}</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-theme-primary mb-2">{content.title}</h2>
         <p className="text-theme-secondary">{content.subtitle}</p>
         {isPairBooking && (
           <div className="mt-3 text-sm text-foreground bg-theme-secondary-bg p-3 border border-border rounded-lg">
@@ -90,7 +90,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           <button
             key={duration.id}
             onClick={() => setSelectedDuration(duration)}
-            className={`w-full text-left p-5 border transition-all duration-200 rounded-lg ${
+            className={`w-full text-left p-5 border transition-all duration-200 rounded-2xl ${
               selectedDuration?.id === duration.id
                 ? 'border-theme-primary bg-theme-secondary-bg'
                 : 'border-border hover:border-theme-primary bg-card'
@@ -98,7 +98,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-theme-primary flex items-center justify-center flex-shrink-0 rounded-lg">
+                <div className="w-12 h-12 bg-theme-primary flex items-center justify-center flex-shrink-0 rounded-xl">
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -136,7 +136,7 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
         <button
           onClick={handleContinue}
           disabled={!selectedDuration}
-          className="w-full px-8 py-4 bg-theme-primary text-white text-sm tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 disabled:bg-muted disabled:cursor-not-allowed rounded-lg"
+          className="w-full px-8 py-4 bg-theme-primary text-white text-sm font-medium tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 disabled:bg-muted disabled:cursor-not-allowed rounded-xl shadow-[0_2px_12px_rgba(26,23,20,0.16)]"
         >
           {content.buttonText}
         </button>

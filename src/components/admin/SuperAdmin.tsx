@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { shopUrl } from '../../lib/tenantHost';
 import { Building2, Users, CreditCard, Settings, Shield, LogOut } from 'lucide-react';
 import { superAdminAuth } from '../../lib/superAdminAuth';
 import SuperAdminLogin from './SuperAdminLogin';
@@ -93,7 +94,7 @@ export default function SuperAdmin() {
               <Shield className="w-8 h-8 text-red-500" />
               <div>
                 <h1 className="text-2xl font-bold">Super Admin Portal</h1>
-                <p className="text-sm text-slate-400">Buuk System Management</p>
+                <p className="text-sm text-slate-400">Zenno System Management</p>
               </div>
             </div>
             <button
@@ -240,7 +241,7 @@ export default function SuperAdmin() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <a
-                            href={`/?business=${business.permalink}`}
+                            href={shopUrl(business.permalink)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-900"

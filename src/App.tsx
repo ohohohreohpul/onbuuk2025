@@ -28,6 +28,7 @@ import GiftCardSuccess from './components/GiftCardSuccess';
 import PaymentCancelled from './components/PaymentCancelled';
 import { DynamicBranding } from './components/DynamicBranding';
 import { useTenant } from './lib/tenantContext';
+import { appUrl, isAppOnlyPath } from './lib/tenantHost';
 import { useBookingCustomization } from './hooks/useBookingCustomization';
 import { CurrencyProvider } from './lib/currencyContext';
 import { ThemeProvider } from './lib/themeContext';
@@ -43,13 +44,6 @@ interface SelectedProduct {
     price_cents: number;
   };
   quantity: number;
-}
-
-interface AppliedGiftCard {
-  id: string;
-  code: string;
-  amountUsedCents: number;
-  remainingBalanceCents: number;
 }
 
 interface BookingState {
@@ -77,6 +71,20 @@ function AppContent() {
 
     if (hash.includes('type=recovery') || hash.includes('type=magiclink')) {
       return 'reset-password';
+    }
+
+    // Shop hosts only serve the shop. Admin, login and sign-up live on the app host.
+    if (tenant.hostKind === 'shop') {
+      if (isAppOnlyPath(path)) {
+        window.location.replace(appUrl(`${path}${window.location.search}${hash}`));
+      }
+      if (path === '/booking-success') return 'booking-success';
+      if (path === '/gift-card-success') return 'gift-card-success';
+      if (path === '/payment-cancelled') return 'payment-cancelled';
+      if (path === '/reset-password') return 'reset-password';
+      if (path === '/cancel') return 'cancel';
+      if (path === '/account') return 'customer';
+      return 'booking';
     }
 
     if (path === '/superadmin' || path.endsWith('/superadmin')) return 'superadmin';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Gift, ArrowLeft, Check, CreditCard, Wallet } from 'lucide-react';
+import { Gift, ArrowLeft, Check, CreditCard, Wallet, Package, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
@@ -18,12 +18,28 @@ interface GiftCardPurchaseProps {
   onBack: () => void;
 }
 
+interface ServicePassOffer {
+  id: string;
+  name: string;
+  description: string | null;
+  service_id: string;
+  duration_id: string;
+  visit_count: number;
+  price_cents: number;
+  expiry_days: number | null;
+  services?: { name: string } | null;
+  service_durations?: { duration_minutes: number; price_cents: number } | null;
+}
+
 export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const { businessId } = useTenant();
-  const { currency, currencySymbol, formatAmount } = useCurrency();
+  const { currency, formatAmount } = useCurrency();
   const { customization } = useGiftCardCustomization();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GiftCardSettings | null>(null);
+  const [purchaseType, setPurchaseType] = useState<'value' | 'service_pass'>('value');
+  const [servicePassOffers, setServicePassOffers] = useState<ServicePassOffer[]>([]);
+  const [selectedServicePassId, setSelectedServicePassId] = useState('');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [useCustom, setUseCustom] = useState(false);
@@ -48,17 +64,36 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   }, [businessId]);
 
   const loadSettings = async () => {
-    const { data } = await supabase
-      .from('gift_card_settings')
-      .select('*')
-      .eq('business_id', businessId)
-      .maybeSingle();
+    const [settingsResult, passesResult] = await Promise.all([
+      supabase
+        .from('gift_card_settings')
+        .select('*')
+        .eq('business_id', businessId)
+        .maybeSingle(),
+      supabase
+        .from('service_pass_offers')
+        .select('*, services(name), service_durations(duration_minutes, price_cents)')
+        .eq('business_id', businessId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true }),
+    ]);
+
+    const data = settingsResult.data;
 
     if (data) {
       setSettings(data);
       if (data.preset_amounts_cents && data.preset_amounts_cents.length > 0) {
         setSelectedAmount(data.preset_amounts_cents[0]);
       }
+    }
+    if (passesResult.data) {
+      const normalizedOffers = passesResult.data.map((offer) => ({
+        ...offer,
+        services: Array.isArray(offer.services) ? offer.services[0] || null : offer.services,
+        service_durations: Array.isArray(offer.service_durations) ? offer.service_durations[0] || null : offer.service_durations,
+      })) as ServicePassOffer[];
+      setServicePassOffers(normalizedOffers);
+      setSelectedServicePassId(passesResult.data[0]?.id || '');
     }
     setLoading(false);
   };
@@ -133,16 +168,25 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const handlePurchase = async () => {
     setError('');
 
-    const finalAmount = useCustom
-      ? Math.round(parseFloat(customAmount) * 100)
-      : selectedAmount;
+    const selectedServicePass = servicePassOffers.find((offer) => offer.id === selectedServicePassId);
+
+    const finalAmount = purchaseType === 'service_pass'
+      ? selectedServicePass?.price_cents || 0
+      : useCustom
+        ? Math.round(parseFloat(customAmount) * 100)
+        : selectedAmount;
+
+    if (purchaseType === 'service_pass' && !selectedServicePass) {
+      setError('Please choose a service pass');
+      return;
+    }
 
     if (!finalAmount || finalAmount <= 0) {
       setError('Please select or enter a valid amount');
       return;
     }
 
-    if (settings && useCustom) {
+    if (purchaseType === 'value' && settings && useCustom) {
       if (finalAmount < settings.min_custom_amount_cents) {
         setError(`Minimum amount is ${formatAmount(settings.min_custom_amount_cents / 100)}`);
         return;
@@ -186,9 +230,12 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     try {
       // Calculate expiry
       let calculatedExpiresAt: string | null = null;
-      if (settings?.expiry_days) {
+      const expiryDays = purchaseType === 'service_pass'
+        ? selectedServicePass?.expiry_days ?? settings?.expiry_days
+        : settings?.expiry_days;
+      if (expiryDays) {
         const expiry = new Date();
-        expiry.setDate(expiry.getDate() + settings.expiry_days);
+        expiry.setDate(expiry.getDate() + expiryDays);
         calculatedExpiresAt = expiry.toISOString();
       }
 
@@ -226,12 +273,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               customerEmail: buyerEmail,
               customerName: buyerName,
               amount: finalAmount / 100,
-              serviceName: 'Gift Card',
+              serviceName: purchaseType === 'service_pass' ? selectedServicePass?.name || 'Service Pass' : 'Gift Card',
               specialistName: '',
               dateTime: recipientEmail ? `For ${recipientEmail}` : 'For yourself',
               isGiftCard: true,
               giftCardData: {
                 code,
+                cardType: purchaseType,
+                servicePassOfferId: purchaseType === 'service_pass' ? selectedServicePass?.id : null,
                 originalValueCents: finalAmount,
                 purchasedForEmail: recipientEmail || null,
                 expiresAt: calculatedExpiresAt,
@@ -250,19 +299,43 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         window.location.href = url;
       } else {
         // Create gift card directly (no online payment)
+        const directCardPayload = purchaseType === 'service_pass' && selectedServicePass
+          ? {
+              business_id: businessId,
+              code,
+              card_type: 'service_pass',
+              service_pass_offer_id: selectedServicePass.id,
+              service_pass_name: selectedServicePass.name,
+              service_id: selectedServicePass.service_id,
+              duration_id: selectedServicePass.duration_id,
+              original_visits: selectedServicePass.visit_count,
+              remaining_visits: selectedServicePass.visit_count,
+              purchase_price_cents: selectedServicePass.price_cents,
+              original_value_cents: 0,
+              current_balance_cents: 0,
+              purchased_for_email: recipientEmail || null,
+              purchased_by_email: buyerEmail || null,
+              purchased_by_name: buyerName || null,
+              expires_at: calculatedExpiresAt,
+              status: 'active',
+            }
+          : {
+              business_id: businessId,
+              code,
+              card_type: 'value',
+              purchase_price_cents: finalAmount,
+              original_value_cents: finalAmount,
+              current_balance_cents: finalAmount,
+              purchased_for_email: recipientEmail || null,
+              purchased_by_email: buyerEmail || null,
+              purchased_by_name: buyerName || null,
+              expires_at: calculatedExpiresAt,
+              status: 'active',
+            };
+
         const { data: giftCard, error: giftCardError } = await supabase
           .from('gift_cards')
-          .insert({
-            business_id: businessId,
-            code,
-            original_value_cents: finalAmount,
-            current_balance_cents: finalAmount,
-            purchased_for_email: recipientEmail || null,
-            purchased_by_email: buyerEmail || null,
-            purchased_by_name: buyerName || null,
-            expires_at: calculatedExpiresAt,
-            status: 'active',
-          })
+          .insert(directCardPayload)
           .select()
           .single();
 
@@ -274,12 +347,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           .insert({
             gift_card_id: giftCard.id,
             amount_cents: finalAmount,
+            visit_count: purchaseType === 'service_pass' ? selectedServicePass?.visit_count || 0 : 0,
             transaction_type: 'purchase',
-            description: `Purchased by ${buyerName} (${buyerEmail})`,
+            description: `${purchaseType === 'service_pass' ? 'Service pass' : 'Gift card'} purchased by ${buyerName} (${buyerEmail})`,
           });
 
         // Show success with code
-        alert(`Gift card purchased successfully!\n\nYour gift card code: ${code}\n\nAn email has been sent with the details.`);
+        const purchasedProduct = purchaseType === 'service_pass' ? 'Service pass' : 'Gift card';
+        alert(`${purchasedProduct} purchased successfully!\n\nYour code: ${code}\n\nAn email has been sent with the details.`);
         onBack();
       }
     } catch (err: any) {
@@ -291,10 +366,15 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   };
 
   const getFinalAmount = () => {
+    if (purchaseType === 'service_pass') {
+      return servicePassOffers.find((offer) => offer.id === selectedServicePassId)?.price_cents || 0;
+    }
     return useCustom
       ? Math.round(parseFloat(customAmount) * 100)
       : selectedAmount || 0;
   };
+
+  const selectedServicePass = servicePassOffers.find((offer) => offer.id === selectedServicePassId);
 
   if (loading) {
     return (
@@ -348,8 +428,30 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         </div>
       )}
 
+      {servicePassOffers.length > 0 && (
+        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/80 bg-white/60 p-1.5 shadow-[0_16px_45px_-36px_rgba(28,25,23,0.6)] backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => setPurchaseType('value')}
+            className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'value' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4" /> Value card</span>
+            <span className={`mt-1 block text-xs ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>Choose an amount to spend freely</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPurchaseType('service_pass')}
+            className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'service_pass' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold"><Package className="h-4 w-4" /> Service pass</span>
+            <span className={`mt-1 block text-xs ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>Gift one visit or a package</span>
+          </button>
+        </div>
+      )}
+
       {/* Select Amount */}
-      <div className="space-y-3">
+      {purchaseType === 'value' ? (
+      <div className="space-y-3 rounded-[24px] border border-white/80 bg-white/[0.68] p-5 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
         <label className="block text-sm font-medium text-gray-700">
           {customization.select_amount_label}
         </label>
@@ -399,6 +501,50 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           </div>
         )}
       </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-stone-800">Choose a service pass</h2>
+            <p className="mt-1 text-xs text-stone-500">Each visit is redeemable only for the service and duration shown.</p>
+          </div>
+          <div className="grid gap-3">
+            {servicePassOffers.map((offer) => {
+              const selected = selectedServicePassId === offer.id;
+              const standardValue = (offer.service_durations?.price_cents || 0) * offer.visit_count;
+              return (
+                <button
+                  key={offer.id}
+                  type="button"
+                  onClick={() => setSelectedServicePassId(offer.id)}
+                  className={`group rounded-[22px] border p-5 text-left transition-all ${selected ? 'border-[#1A1714] bg-[#1A1714] text-white shadow-[0_18px_45px_-25px_rgba(26,23,20,0.5)]' : 'border-white/90 bg-white/[0.68] text-stone-800 shadow-[0_16px_42px_-36px_rgba(28,25,23,0.55)] backdrop-blur-xl hover:border-stone-300'}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Package className={`h-4 w-4 ${selected ? 'text-white/75' : 'text-violet-600'}`} />
+                        <span className="font-semibold tracking-tight">{offer.name}</span>
+                      </div>
+                      <p className={`mt-2 text-sm ${selected ? 'text-white/60' : 'text-stone-500'}`}>
+                        {offer.services?.name || 'Service'} · {offer.service_durations?.duration_minutes || '—'} minutes
+                      </p>
+                      {offer.description && <p className={`mt-2 text-xs leading-5 ${selected ? 'text-white/45' : 'text-stone-400'}`}>{offer.description}</p>}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xl font-semibold tracking-tight">{formatAmount(offer.price_cents / 100)}</p>
+                      <p className={`mt-1 text-xs ${selected ? 'text-white/50' : 'text-stone-400'}`}>{offer.visit_count} {offer.visit_count === 1 ? 'visit' : 'visits'}</p>
+                    </div>
+                  </div>
+                  <div className={`mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs ${selected ? 'border-white/10 text-white/50' : 'border-stone-200/70 text-stone-400'}`}>
+                    <span>One code · {offer.visit_count} redemption{offer.visit_count === 1 ? '' : 's'}</span>
+                    <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{offer.expiry_days ? `${offer.expiry_days} days` : 'Standard expiry'}</span>
+                    {standardValue > offer.price_cents && <span>Standard value {formatAmount(standardValue / 100)}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recipient Email */}
       <div className="space-y-2">
@@ -462,7 +608,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              We'll send you a confirmation email with the gift card details
+              We'll send you a confirmation email with the card or pass details
             </p>
           </div>
         </div>
@@ -533,15 +679,19 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             amount={getFinalAmount() / 100}
             customerEmail={buyerEmail}
             customerName={buyerName}
+            serviceName={purchaseType === 'service_pass' ? selectedServicePass?.name || 'Service Pass' : 'Gift Card'}
             giftCardData={{
               code: giftCardCode,
+              cardType: purchaseType,
+              servicePassOfferId: purchaseType === 'service_pass' ? selectedServicePass?.id || null : null,
               originalValueCents: getFinalAmount(),
               purchasedForEmail: recipientEmail || null,
               expiresAt: expiresAt,
               message: message || null,
             }}
             onSuccess={() => {
-              alert(`Gift card purchased successfully!\n\nYour gift card code: ${giftCardCode}\n\nAn email has been sent with the details.`);
+              const purchasedProduct = purchaseType === 'service_pass' ? 'Service pass' : 'Gift card';
+              alert(`${purchasedProduct} purchased successfully!\n\nYour code: ${giftCardCode}\n\nAn email has been sent with the details.`);
               onBack();
             }}
             onError={(err) => {
@@ -589,8 +739,11 @@ interface GiftCardPayPalButtonsProps {
   amount: number;
   customerEmail: string;
   customerName: string;
+  serviceName: string;
   giftCardData: {
     code: string;
+    cardType: 'value' | 'service_pass';
+    servicePassOfferId: string | null;
     originalValueCents: number;
     purchasedForEmail: string | null;
     expiresAt: string | null;
@@ -605,6 +758,7 @@ function GiftCardPayPalButtons({
   amount,
   customerEmail,
   customerName,
+  serviceName,
   giftCardData,
   onSuccess,
   onError,
@@ -634,7 +788,7 @@ function GiftCardPayPalButtons({
                   amount,
                   customerEmail,
                   customerName,
-                  serviceName: 'Gift Card',
+                  serviceName,
                   dateTime: giftCardData.purchasedForEmail ? `For ${giftCardData.purchasedForEmail}` : 'For yourself',
                   isGiftCard: true,
                   giftCardData,
@@ -696,7 +850,7 @@ function GiftCardPayPalButtons({
         },
       }).render(node);
     }
-  }, [businessId, amount, customerEmail, customerName, giftCardData, onSuccess, onError]);
+  }, [businessId, amount, customerEmail, customerName, serviceName, giftCardData, onSuccess, onError]);
 
   return <div ref={containerRef} />;
 }

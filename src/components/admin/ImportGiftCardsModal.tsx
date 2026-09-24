@@ -19,7 +19,7 @@ interface ImportGiftCardsModalProps {
 
 export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: ImportGiftCardsModalProps) {
   const { businessId } = useTenant();
-  const { formatAmount } = useCurrency();
+  const { currency, formatAmount } = useCurrency();
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [parsedGiftCards, setParsedGiftCards] = useState<ParsedGiftCard[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -30,7 +30,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
   const downloadTemplate = () => {
     const headers = [
       'code',
-      'value_eur',
+      'value',
       'recipient_email',
       'expires_at'
     ];
@@ -46,7 +46,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
       '# ',
       '# Instructions:',
       '# - code: Leave empty to auto-generate, or provide custom code (must be unique)',
-      '# - value_eur: Gift card value in EUR (required)',
+      `# - value: Gift card value in ${currency} (required)`,
       '# - recipient_email: Optional email address of recipient',
       '# - expires_at: Optional expiry date (YYYY-MM-DD format), leave empty to use default settings',
       '#'
@@ -78,8 +78,8 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
     const errors: string[] = [];
 
     // Validate required headers
-    if (!headers.includes('value_eur')) {
-      return { giftCards: [], errors: ['Missing required column: value_eur'] };
+    if (!headers.includes('value') && !headers.includes('value_eur')) {
+      return { giftCards: [], errors: ['Missing required column: value'] };
     }
 
     for (let i = 1; i < lines.length; i++) {
@@ -92,7 +92,9 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
       });
 
       // Parse value
-      const value = parseFloat(row.value_eur);
+      // `value_eur` remains accepted for older templates, but values always use
+      // the business currency selected in Settings.
+      const value = parseFloat(row.value || row.value_eur);
       if (isNaN(value) || value <= 0) {
         errors.push(`Row ${i + 1}: Valid positive value is required`);
         continue;
@@ -214,7 +216,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
   };
 
   const downloadImportedCodes = () => {
-    const csvContent = ['code,value_eur,status', ...importResults.codes.map(code => {
+    const csvContent = ['code,value,status', ...importResults.codes.map(code => {
       const gc = parsedGiftCards.find(g => g.code === code || !g.code);
       return `${code},${gc ? (gc.original_value_cents / 100).toFixed(2) : ''},imported`;
     })].join('\n');
@@ -291,7 +293,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
                 <h4 className="font-medium text-gray-900 mb-2">CSV Format Guide</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>• <strong>code:</strong> Leave empty to auto-generate unique codes</li>
-                  <li>• <strong>value_eur:</strong> Gift card value in EUR (required)</li>
+                  <li>• <strong>value:</strong> Gift card value in {currency} (required)</li>
                   <li>• <strong>recipient_email:</strong> Optional email for the gift card recipient</li>
                   <li>• <strong>expires_at:</strong> Optional expiry date (YYYY-MM-DD format){expiryDays && ` - defaults to ${expiryDays} days from now`}</li>
                 </ul>
@@ -430,7 +432,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
                   await onImportComplete();
                   onClose();
                 }}
-                className="px-6 py-3 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-colors"
+                className="px-6 py-3 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
                 Done
               </button>
@@ -450,7 +452,7 @@ export function ImportGiftCardsModal({ onClose, onImportComplete, expiryDays }: 
             {step === 'preview' && parsedGiftCards.length > 0 && (
               <button
                 onClick={handleImport}
-                className="px-6 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-colors"
+                className="px-6 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
                 Import {parsedGiftCards.length} Gift Card(s)
               </button>

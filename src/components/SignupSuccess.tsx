@@ -36,7 +36,7 @@ export function SignupSuccess() {
             clearInterval(checkInterval);
 
             setTimeout(() => {
-              window.location.href = `/${foundBusiness.permalink}/admin`;
+              window.location.href = '/admin';
             }, 2000);
           } else if (attempts >= maxAttempts) {
             setStatus('error');

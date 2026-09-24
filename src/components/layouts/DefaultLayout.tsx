@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { PoweredByBuuk } from '../PoweredByBuuk';
+import { PoweredByZenno } from '../PoweredByZenno';
 import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../lib/themeContext';
@@ -21,8 +21,8 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Theme colors with fallbacks
-  const primaryColor = colors.primary || '#008374';
-  const secondaryColor = colors.secondary || '#89BA16';
+  const primaryColor = colors.primary || '#1A1714';
+  const secondaryColor = colors.secondary || '#A09990';
 
   useEffect(() => {
     async function fetchBusinessInfo() {
@@ -128,7 +128,7 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
           {children}
         </div>
       </div>
-      <PoweredByBuuk />
+      <PoweredByZenno />
     </div>
   );
 }

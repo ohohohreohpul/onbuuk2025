@@ -95,16 +95,16 @@ const ColorPicker = ({ label, description, value, onChange, previewType, preview
 };
 
 const DEFAULT_COLORS = {
-  primary: '#008374',
-  primary_hover: '#006b5e',
-  secondary: '#89BA16',
-  secondary_hover: '#72970f',
-  text_primary: '#171717',
-  text_secondary: '#737373',
-  background: '#ffffff',
-  background_secondary: '#f5f5f5',
-  border: '#e5e5e5',
-  accent: '#89BA16',
+  primary: '#1A1714',
+  primary_hover: '#2E2926',
+  secondary: '#A09990',
+  secondary_hover: '#6B6560',
+  text_primary: '#1A1714',
+  text_secondary: '#6B6560',
+  background: '#FDFCFA',
+  background_secondary: '#F9F7F4',
+  border: '#EEEBE6',
+  accent: '#A09990',
 };
 
 export default function ColorCustomization() {

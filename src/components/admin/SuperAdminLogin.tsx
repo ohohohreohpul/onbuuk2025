@@ -47,7 +47,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: SuperAdminLoginProps
             Super Admin Portal
           </h2>
           <p className="text-center text-slate-600 mb-8">
-            Buuk Team Access Only
+            Zenno Team Access Only
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -67,7 +67,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: SuperAdminLoginProps
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-slate-300 focus:border-red-600 focus:outline-none"
-                placeholder="admin@buuk.com"
+                placeholder="admin@zennohq.studio"
                 required
                 disabled={isLoading}
               />
@@ -100,7 +100,7 @@ export default function SuperAdminLogin({ onLoginSuccess }: SuperAdminLoginProps
 
           <div className="mt-8 pt-6 border-t border-slate-200">
             <p className="text-xs text-center text-slate-500">
-              This portal is restricted to authorized Buuk team members only.
+              This portal is restricted to authorized Zenno team members only.
               All access is logged and monitored.
             </p>
           </div>

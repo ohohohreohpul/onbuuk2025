@@ -158,6 +158,23 @@ Deno.serve(async (req: Request) => {
         }
         
         console.log("Gift card metadata:", metadata);
+
+        const cardType = metadata.gc_card_type === "service_pass" ? "service_pass" : "value";
+        const purchasePriceCents = parseInt(metadata.gc_amount) || 0;
+        const capturedValue = Number(purchaseUnit?.payments?.captures?.[0]?.amount?.value || 0);
+        if (purchasePriceCents <= 0 || Math.round(capturedValue * 100) !== purchasePriceCents) {
+          throw new Error("Captured amount does not match the gift-card purchase");
+        }
+
+        if (cardType === "service_pass" && (
+          !metadata.gc_service_pass_offer_id
+          || !metadata.gc_service_pass_name
+          || !metadata.gc_service_id
+          || !metadata.gc_duration_id
+          || !metadata.gc_visit_count
+        )) {
+          throw new Error("Missing required service-pass data");
+        }
         
         // Check if gift card already exists
         const { data: existingGiftCard } = await supabase
@@ -185,8 +202,16 @@ Deno.serve(async (req: Request) => {
             .insert({
               business_id: metadata.business_id || businessId,
               code: gcCode,
-              original_value_cents: parseInt(metadata.gc_amount) || 0,
-              current_balance_cents: parseInt(metadata.gc_amount) || 0,
+              card_type: cardType,
+              purchase_price_cents: purchasePriceCents,
+              original_value_cents: cardType === "service_pass" ? 0 : purchasePriceCents,
+              current_balance_cents: cardType === "service_pass" ? 0 : purchasePriceCents,
+              service_pass_offer_id: cardType === "service_pass" ? metadata.gc_service_pass_offer_id : null,
+              service_pass_name: cardType === "service_pass" ? metadata.gc_service_pass_name : null,
+              service_id: cardType === "service_pass" ? metadata.gc_service_id : null,
+              duration_id: cardType === "service_pass" ? metadata.gc_duration_id : null,
+              original_visits: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : null,
+              remaining_visits: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : null,
               status: "active",
               paypal_order_id: orderId,
               purchased_for_email: metadata.gc_recipient_email || null,
@@ -205,9 +230,10 @@ Deno.serve(async (req: Request) => {
             // Record transaction
             await supabase.from("gift_card_transactions").insert({
               gift_card_id: newGiftCard.id,
-              amount_cents: parseInt(metadata.gc_amount) || 0,
+              amount_cents: purchasePriceCents,
+              visit_count: cardType === "service_pass" ? parseInt(metadata.gc_visit_count) : 0,
               transaction_type: "purchase",
-              description: `Purchased by ${metadata.customer_name || 'Customer'} via PayPal`,
+              description: `${cardType === "service_pass" ? "Service pass" : "Gift card"} purchased by ${metadata.customer_name || 'Customer'} via PayPal`,
             });
 
             // Send email to recipient if provided
@@ -362,7 +388,9 @@ async function sendGiftCardEmail(supabase: any, metadata: any, giftCardId: strin
         variables: {
           recipient_email: metadata.gc_recipient_email,
           gift_card_code: metadata.gc_code,
-          amount: `€${(parseInt(metadata.gc_amount) / 100).toFixed(2)}`,
+          amount: metadata.gc_card_type === "service_pass"
+            ? `${metadata.gc_service_pass_name} · ${metadata.gc_visit_count} ${metadata.gc_visit_count === "1" ? "visit" : "visits"}`
+            : new Intl.NumberFormat("en", { style: "currency", currency: metadata.currency_code || "EUR" }).format((parseInt(metadata.gc_amount) || 0) / 100),
           message: metadata.gc_message || "",
           sender_name: metadata.customer_name,
           business_name: business?.name || "Our Business",

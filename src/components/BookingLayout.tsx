@@ -81,7 +81,7 @@ export default function BookingLayout({ children, imageUrl, imageMobile, imageTa
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 relative">
         <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
         <div className="text-center relative z-10">
-          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-auto mb-4"></div>
+          <div className="w-10 h-10 border-3 border-[#1A1714]/20 border-t-[#1A1714] rounded-full animate-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>

@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  authorizationErrorResponse,
+  requireActiveAdmin,
+} from "../_shared/adminAuthorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +11,6 @@ const corsHeaders = {
 };
 
 interface ConnectAccountRequest {
-  businessId: string;
   country: string;
   accountType?: string;
 }
@@ -22,15 +24,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const { businessId, supabaseAdmin: supabase } = await requireActiveAdmin(req, {
+      roles: ["owner"],
+    });
+    const { country, accountType = "standard" }: ConnectAccountRequest = await req.json();
 
-    const { businessId, country, accountType = "standard" }: ConnectAccountRequest = await req.json();
-
-    if (!businessId || !country) {
-      throw new Error("businessId and country are required");
+    if (!country) {
+      throw new Error("country is required");
     }
 
     const { data: business, error: businessError } = await supabase
@@ -43,34 +43,16 @@ Deno.serve(async (req: Request) => {
       throw new Error("Business not found");
     }
 
-    const { data: settings } = await supabase
-      .from("site_settings")
-      .select("key, value")
-      .eq("business_id", businessId)
-      .eq("key", "stripe_secret_key")
-      .maybeSingle();
-
-    let stripeSecretKey = "";
-    if (settings?.value) {
-      try {
-        stripeSecretKey = JSON.parse(settings.value);
-      } catch {
-        stripeSecretKey = settings.value;
-      }
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Stripe is not configured for the Zenno platform");
     }
 
-    if (!stripeSecretKey || stripeSecretKey === "") {
-      const platformKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (platformKey) {
-        stripeSecretKey = platformKey;
-      } else {
-        throw new Error("Stripe secret key not configured");
-      }
-    }
-
-    const origin = req.headers.get("origin") || "";
-    const refreshUrl = `${origin}/admin?connect_refresh=true`;
-    const returnUrl = `${origin}/admin?connect_return=true`;
+    const requestOrigin = req.headers.get("origin") || "";
+    const configuredOrigin = Deno.env.get("APP_URL") || requestOrigin;
+    const appOrigin = new URL(configuredOrigin).origin;
+    const refreshUrl = `${appOrigin}/admin?view=settings&tab=payment&connect_refresh=true`;
+    const returnUrl = `${appOrigin}/admin?view=settings&tab=payment&connect_return=true`;
 
     let accountId = business.stripe_connect_account_id;
 
@@ -156,6 +138,9 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
+
     console.error("Error creating Connect account link:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Failed to create Connect account link" }),

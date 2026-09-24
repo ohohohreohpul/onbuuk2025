@@ -1,0 +1,5 @@
+{
+  "taken_at": "2026-09-25",
+  "note": "Row counts before the Zenno relaunch. Compare after deploy; counts should only grow.",
+  "counts": { "businesses": 79, "customers": 23, "bookings": 29, "no_show_fees": 1, "gift_cards": 384, "services": 39, "admin_users": 80, "booking_form_colors": 778, "site_settings": 905, "storage_files": 31 }
+}

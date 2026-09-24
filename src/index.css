@@ -5,28 +5,28 @@
 @layer base {
   :root {
     /* Semantic Color Tokens (HSL format for Tailwind compatibility) */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --background: 40 33% 99%;
+    --foreground: 30 13% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 30 13% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 30 13% 9%;
 
     /* Primary Brand Colors */
-    --primary: 174 100% 25.7%;
+    --primary: 30 13% 9%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 174 100% 21%;
+    --primary-hover: 23 10% 16%;
 
     /* Secondary Brand Colors */
-    --secondary: 72 79% 40.4%;
+    --secondary: 30 8% 60%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 72 79% 35%;
+    --secondary-hover: 27 6% 40%;
 
     /* Neutral Colors */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --muted: 35 15% 95%;
+    --muted-foreground: 25 6% 40%;
+    --accent: 35 15% 93%;
+    --accent-foreground: 30 13% 9%;
 
     /* Status Colors */
     --destructive: 0 84% 60%;
@@ -39,9 +39,9 @@
     --info-foreground: 0 0% 100%;
 
     /* Border & Input Colors */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 174 100% 25.7%;
+    --border: 35 19% 92%;
+    --input: 35 19% 92%;
+    --ring: 30 13% 9%;
 
     /* Border Radius Scale */
     --radius-sm: 0.5rem;
@@ -80,22 +80,22 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-glow: 0 0 20px rgb(0 131 116 / 0.3);
-    --shadow-glow-lg: 0 0 40px rgb(0 131 116 / 0.4);
+    --shadow-glow: 0 0 20px rgb(26 23 20 / 0.18);
+    --shadow-glow-lg: 0 0 40px rgb(26 23 20 / 0.24);
 
     /* Customizable Brand Colors (HEX format for easy user customization) */
-    --color-primary: #008374;
-    --color-primary-hover: #006b5e;
-    --color-primary-light: rgba(0, 131, 116, 0.1);
-    --color-primary-glow: rgba(0, 131, 116, 0.3);
-    --color-secondary: #89BA16;
-    --color-secondary-hover: #72970f;
-    --color-text-primary: #171717;
-    --color-text-secondary: #737373;
-    --color-background: #ffffff;
-    --color-background-secondary: #f8fafc;
-    --color-border: #e2e8f0;
-    --color-accent: #89BA16;
+    --color-primary: #1A1714;
+    --color-primary-hover: #2E2926;
+    --color-primary-light: rgba(26, 23, 20, 0.08);
+    --color-primary-glow: rgba(26, 23, 20, 0.18);
+    --color-secondary: #A09990;
+    --color-secondary-hover: #6B6560;
+    --color-text-primary: #1A1714;
+    --color-text-secondary: #6B6560;
+    --color-background: #FDFCFA;
+    --color-background-secondary: #F9F7F4;
+    --color-border: #EEEBE6;
+    --color-accent: #A09990;
 
     /* Glassmorphism */
     --glass-bg: rgba(255, 255, 255, 0.7);
@@ -111,12 +111,12 @@
     --card-foreground: 0 0% 98%;
     --popover: 222 47% 13%;
     --popover-foreground: 0 0% 98%;
-    --primary: 174 100% 35%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 174 100% 30%;
-    --secondary: 72 79% 45%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 72 79% 40%;
+    --primary: 35 19% 92%;
+    --primary-foreground: 30 13% 9%;
+    --primary-hover: 32 13% 82%;
+    --secondary: 30 8% 60%;
+    --secondary-foreground: 30 13% 9%;
+    --secondary-hover: 32 13% 72%;
     --muted: 222 47% 18%;
     --muted-foreground: 0 0% 60%;
     --accent: 222 47% 18%;
@@ -131,7 +131,7 @@
     --info-foreground: 0 0% 100%;
     --border: 222 47% 20%;
     --input: 222 47% 20%;
-    --ring: 174 100% 35%;
+    --ring: 35 19% 92%;
     --glass-bg: rgba(30, 41, 59, 0.7);
     --glass-bg-dark: rgba(30, 41, 59, 0.85);
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -187,20 +187,20 @@
 
   /* Gradient backgrounds */
   .gradient-primary {
-    background: linear-gradient(135deg, #008374 0%, #00a894 100%);
+    background: linear-gradient(135deg, #1A1714 0%, #3D3833 100%);
   }
 
   .gradient-mesh {
-    background: 
-      radial-gradient(at 40% 20%, rgba(0, 131, 116, 0.15) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(137, 186, 22, 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(0, 131, 116, 0.1) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(137, 186, 22, 0.08) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(0, 131, 116, 0.12) 0px, transparent 50%);
+    background:
+      radial-gradient(at 40% 20%, rgba(26, 23, 20, 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(160, 153, 144, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(26, 23, 20, 0.06) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(160, 153, 144, 0.08) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(26, 23, 20, 0.08) 0px, transparent 50%);
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    background: linear-gradient(180deg, #F9F7F4 0%, #FDFCFA 100%);
   }
 
   /* Glow effects */
@@ -340,7 +340,7 @@
     @apply transition-shadow duration-300;
   }
   .hover-glow:hover {
-    box-shadow: 0 0 30px rgba(0, 131, 116, 0.25);
+    box-shadow: 0 0 30px rgba(26, 23, 20, 0.2);
   }
 
   /* Legacy Support (deprecated - use theme-* variants) */
@@ -461,22 +461,49 @@
   }
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling: thin, trackless, warm-neutral */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 23, 20, 0.18) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: rgba(26, 23, 20, 0.18);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background-color: rgba(26, 23, 20, 0.32);
+}
+
+/* Dark surfaces (sidebar): invisible until hovered */
+.scrollbar-dark {
+  scrollbar-color: transparent transparent;
+}
+
+.scrollbar-dark:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+.scrollbar-dark:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.scrollbar-dark:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.28);
 }

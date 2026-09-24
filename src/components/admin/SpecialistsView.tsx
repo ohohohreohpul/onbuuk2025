@@ -223,12 +223,12 @@ export default function SpecialistsView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Specialists</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Specialists</h1>
           <p className="text-gray-600">Manage massage therapists</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all shadow-sm hover:shadow-md"
+          className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
         >
           <Plus className="w-5 h-5" />
           <span className="font-medium">Add Specialist</span>
@@ -237,10 +237,10 @@ export default function SpecialistsView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {specialists.map((specialist) => (
-          <div key={specialist.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all">
+          <div key={specialist.id} className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">
                   {specialist.name}
                   {!specialist.is_active && (
                     <span className="ml-2 text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded-full font-medium">
@@ -262,14 +262,14 @@ export default function SpecialistsView() {
                 </button>
                 <button
                   onClick={() => setTimeBlocksModal({ id: specialist.id, name: specialist.name })}
-                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-[#008374] hover:bg-opacity-10 rounded-lg transition-all"
+                  className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-[#1A1714] hover:bg-opacity-10 rounded-lg transition-all"
                   title="Time Blocks"
                 >
                   <Calendar className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => openEditModal(specialist)}
-                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded-lg transition-all"
+                  className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
                   title="Edit"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -290,7 +290,7 @@ export default function SpecialistsView() {
                 {specialistServices[specialist.id]?.map(serviceId => {
                   const service = services.find(s => s.id === serviceId);
                   return service ? (
-                    <span key={serviceId} className="text-xs px-3 py-1.5 bg-[#008374] bg-opacity-10 text-[#008374] rounded-full font-medium">
+                    <span key={serviceId} className="text-xs px-3 py-1.5 bg-[#1A1714] bg-opacity-10 text-[#1A1714] rounded-full font-medium">
                       {service.name}
                     </span>
                   ) : null;
@@ -339,7 +339,7 @@ export default function SpecialistsView() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1714] focus:border-transparent transition-all"
                   required
                 />
               </div>

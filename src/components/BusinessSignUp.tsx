@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { BRAND_LOGO } from '@/lib/brand';
 
 export function BusinessSignUp() {
   const [mode, setMode] = useState<'choice' | 'email'>('choice');
@@ -85,7 +86,7 @@ export function BusinessSignUp() {
           plan_type: 'free',
           is_active: true,
           owner_id: authData.user.id,
-          custom_logo_url: '/defbuuklogo.png',
+          custom_logo_url: BRAND_LOGO,
           profile_completed: false,
         })
         .select()
@@ -109,15 +110,15 @@ export function BusinessSignUp() {
       if (adminError) throw new Error(`Failed to create admin user: ${adminError.message}`);
 
       await supabase.from('booking_form_colors').insert([
-        { business_id: business.id, color_key: 'primary', color_value: '#008374' },
-        { business_id: business.id, color_key: 'primary_hover', color_value: '#006b5e' },
-        { business_id: business.id, color_key: 'secondary', color_value: '#89BA16' },
+        { business_id: business.id, color_key: 'primary', color_value: '#1A1714' },
+        { business_id: business.id, color_key: 'primary_hover', color_value: '#2E2926' },
+        { business_id: business.id, color_key: 'secondary', color_value: '#A09990' },
         { business_id: business.id, color_key: 'text_primary', color_value: '#171717' },
         { business_id: business.id, color_key: 'text_secondary', color_value: '#737373' },
         { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
         { business_id: business.id, color_key: 'background_secondary', color_value: '#f8fafc' },
         { business_id: business.id, color_key: 'border', color_value: '#e2e8f0' },
-        { business_id: business.id, color_key: 'accent', color_value: '#89BA16' },
+        { business_id: business.id, color_key: 'accent', color_value: '#A09990' },
       ]);
 
       const { data: adminUser } = await supabase
@@ -157,14 +158,14 @@ export function BusinessSignUp() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
-        <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+        <div className="absolute top-20 right-20 w-72 h-72 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#A09990]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
         
         <Card glass className={`max-w-md w-full shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
           <CardHeader className="text-center space-y-4 pb-2">
             <div className="relative mx-auto">
-              <div className="absolute inset-0 bg-[#008374]/30 blur-2xl rounded-full scale-150" />
-              <div className="w-20 h-20 bg-gradient-to-br from-[#008374] to-[#00a894] rounded-2xl flex items-center justify-center relative shadow-lg shadow-[#008374]/30">
+              <div className="absolute inset-0 bg-[#1A1714]/30 blur-2xl rounded-full scale-150" />
+              <div className="w-20 h-20 bg-gradient-to-br from-[#1A1714] to-[#3D3833] rounded-2xl flex items-center justify-center relative shadow-lg shadow-[#1A1714]/30">
                 <Building2 className="w-10 h-10 text-white" />
               </div>
             </div>
@@ -208,7 +209,7 @@ export function BusinessSignUp() {
 
             <Button
               onClick={() => setMode('email')}
-              className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300"
+              className="w-full h-12 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300"
               size="lg"
             >
               <Mail className="w-5 h-5 mr-2" />
@@ -217,7 +218,7 @@ export function BusinessSignUp() {
 
             <p className="text-center text-sm text-muted-foreground pt-2">
               Already have an account?{' '}
-              <a href="/login" className="text-[#008374] font-semibold hover:text-[#006b5e] hover:underline transition-colors">
+              <a href="/login" className="text-[#1A1714] font-semibold hover:text-[#2E2926] hover:underline transition-colors">
                 Sign in
               </a>
             </p>
@@ -231,8 +232,8 @@ export function BusinessSignUp() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
-      <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+      <div className="absolute top-20 right-20 w-72 h-72 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#A09990]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
 
       <div className="max-w-md w-full relative z-10">
         <Button
@@ -247,8 +248,8 @@ export function BusinessSignUp() {
         <Card glass className={`shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
           <CardHeader className="text-center space-y-3 pb-2">
             <div className="relative mx-auto">
-              <div className="absolute inset-0 bg-[#008374]/30 blur-2xl rounded-full scale-150" />
-              <div className="w-16 h-16 bg-gradient-to-br from-[#008374] to-[#00a894] rounded-2xl flex items-center justify-center relative shadow-lg shadow-[#008374]/30">
+              <div className="absolute inset-0 bg-[#1A1714]/30 blur-2xl rounded-full scale-150" />
+              <div className="w-16 h-16 bg-gradient-to-br from-[#1A1714] to-[#3D3833] rounded-2xl flex items-center justify-center relative shadow-lg shadow-[#1A1714]/30">
                 <Building2 className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -267,7 +268,7 @@ export function BusinessSignUp() {
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="fullName"
                     type="text"
@@ -284,7 +285,7 @@ export function BusinessSignUp() {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="email"
                     type="email"
@@ -301,7 +302,7 @@ export function BusinessSignUp() {
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -326,7 +327,7 @@ export function BusinessSignUp() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300"
+                className="w-full h-12 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300"
                 size="lg"
               >
                 {isSubmitting ? (
@@ -345,7 +346,7 @@ export function BusinessSignUp() {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <a href="/login" className="text-[#008374] font-semibold hover:text-[#006b5e] hover:underline transition-colors">
+              <a href="/login" className="text-[#1A1714] font-semibold hover:text-[#2E2926] hover:underline transition-colors">
                 Sign in
               </a>
             </p>

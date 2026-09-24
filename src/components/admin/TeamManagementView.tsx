@@ -1,9 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Mail, Clock, X, Trash2, RefreshCw, Shield } from 'lucide-react';
+import { Users, Plus, Mail, Clock, X, Trash2, RefreshCw, Shield, LockKeyhole } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { adminAuth } from '../../lib/adminAuth';
 import { usePermissions } from '../../hooks/usePermissions';
+import {
+  ADMIN_INPUT,
+  ADMIN_MODAL,
+  ADMIN_MODAL_BACKDROP,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_SECONDARY_BUTTON,
+  ADMIN_SEGMENT_ACTIVE,
+  ADMIN_SEGMENT_INACTIVE,
+  ADMIN_SEGMENTED_CONTROL,
+  ADMIN_SELECT,
+  ADMIN_STATUS_PILL,
+  ADMIN_SURFACE,
+  ADMIN_TERTIARY_BUTTON,
+} from './adminUi';
 
 interface StaffMember {
   id: string;
@@ -72,6 +86,7 @@ export default function TeamManagementView() {
   });
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
   const canAssignRoles = hasPermission('assign_roles');
 
@@ -157,7 +172,7 @@ export default function TeamManagementView() {
 
     const role = roles.find(r => r.id === selectedRole);
     if (role?.is_system_role) {
-      alert('System roles cannot be modified');
+      setFeedback({ tone: 'error', text: 'System roles cannot be modified.' });
       return;
     }
 
@@ -240,7 +255,7 @@ export default function TeamManagementView() {
       setInviteForm({ email: '', full_name: '', role: 'staff' });
       await fetchData();
 
-      alert('Invitation sent successfully!');
+      setFeedback({ tone: 'success', text: `Invitation sent to ${inviteForm.email}.` });
     } catch (err: any) {
       console.error('Error sending invitation:', err);
       setInviteError(err.message || 'Failed to send invitation');
@@ -307,10 +322,10 @@ export default function TeamManagementView() {
   const handleResendInvitation = async (invitation: Invitation) => {
     try {
       await sendInvitationEmail(invitation.email, invitation.full_name, invitation.invite_token);
-      alert(`Invitation resent to ${invitation.email}`);
+      setFeedback({ tone: 'success', text: `Invitation resent to ${invitation.email}.` });
     } catch (err) {
       console.error('Error resending invitation:', err);
-      alert('Failed to resend invitation');
+      setFeedback({ tone: 'error', text: 'The invitation could not be resent.' });
     }
   };
 
@@ -326,10 +341,10 @@ export default function TeamManagementView() {
       if (error) throw error;
 
       await fetchData();
-      alert('Invitation cancelled');
+      setFeedback({ tone: 'success', text: 'Invitation cancelled.' });
     } catch (err) {
       console.error('Error cancelling invitation:', err);
-      alert('Failed to cancel invitation');
+      setFeedback({ tone: 'error', text: 'The invitation could not be cancelled.' });
     }
   };
 
@@ -343,21 +358,22 @@ export default function TeamManagementView() {
       if (error) throw error;
 
       await fetchData();
+      setFeedback({ tone: 'success', text: currentStatus ? 'Team member deactivated.' : 'Team member activated.' });
     } catch (err) {
       console.error('Error updating staff status:', err);
-      alert('Failed to update staff status');
+      setFeedback({ tone: 'error', text: 'The team member status could not be updated.' });
     }
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'owner':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[#F0EDE8] text-stone-700';
       case 'admin':
       case 'manager':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-50 text-emerald-700';
       case 'receptionist':
-        return 'bg-amber-100 text-amber-800';
+        return 'bg-amber-50 text-amber-700';
       case 'cashier':
         return 'bg-orange-100 text-orange-800';
       default:
@@ -385,374 +401,362 @@ export default function TeamManagementView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-stone-600">Loading team...</div>
+      <div className="space-y-5 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-52 rounded-lg bg-stone-900/[0.06]" />
+            <div className="h-4 w-80 rounded bg-stone-900/[0.04]" />
+          </div>
+          <div className="h-11 w-44 rounded-xl bg-stone-900/[0.06]" />
+        </div>
+        <div className={`${ADMIN_SURFACE} h-64 bg-stone-900/[0.025]`} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl">
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 mb-2">Team & Permissions</h1>
-          <p className="text-stone-600">Manage your team members, invitations, and role-based permissions</p>
+          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[#1A1714]">Team & Permissions</h1>
+          <p className="text-sm text-stone-500">Manage your team members, invitations, and role-based permissions</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
+          className={ADMIN_PRIMARY_BUTTON}
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="h-4 w-4" />
           Invite Team Member
         </button>
       </div>
 
-      <div className="bg-white shadow">
-        <div className="border-b border-stone-200">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('team')}
-              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === 'team'
-                  ? 'border-stone-900 text-stone-900'
-                  : 'border-transparent text-stone-500 hover:text-stone-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Team Members ({staff.length})
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('invitations')}
-              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === 'invitations'
-                  ? 'border-stone-900 text-stone-900'
-                  : 'border-transparent text-stone-500 hover:text-stone-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                Invitations ({invitations.filter(inv => !inv.is_used).length})
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('roles')}
-              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === 'roles'
-                  ? 'border-stone-900 text-stone-900'
-                  : 'border-transparent text-stone-500 hover:text-stone-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Roles & Permissions ({roles.length})
-              </div>
-            </button>
-          </div>
+      {feedback && (
+        <div
+          role="status"
+          className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm ${
+            feedback.tone === 'success'
+              ? 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800'
+              : 'border-red-200/80 bg-red-50/70 text-red-800'
+          }`}
+        >
+          <span>{feedback.text}</span>
+          <button type="button" onClick={() => setFeedback(null)} className="rounded-lg p-1 transition hover:bg-black/5" aria-label="Dismiss message">
+            <X className="h-4 w-4" />
+          </button>
         </div>
+      )}
 
-        <div className="p-6">
-          {activeTab === 'team' && (
-            <div className="space-y-4">
-              {staff.length === 0 ? (
-                <div className="text-center py-12 text-stone-500">
-                  <Users className="w-16 h-16 mx-auto mb-4 text-stone-300" />
-                  <p>No team members yet. Invite your first team member!</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-stone-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Name</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Email</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Role</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Advanced Roles</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Last Login</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Status</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-stone-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {staff.map((member) => {
-                        const userWithRoles = users.find(u => u.id === member.id);
-                        return (
-                          <tr key={member.id} className="border-b border-stone-100 hover:bg-stone-50">
-                            <td className="py-4 px-4">
-                              <div className="font-medium text-stone-900">{member.full_name}</div>
-                            </td>
-                            <td className="py-4 px-4 text-stone-600">{member.email}</td>
-                            <td className="py-4 px-4">
-                              <span className={`px-3 py-1 text-xs font-semibold uppercase ${getRoleBadgeColor(member.role)}`}>
-                                {member.role}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex flex-wrap gap-2">
-                                {userWithRoles?.roles.map(role => (
-                                  <span
-                                    key={role.id}
-                                    className="inline-flex items-center space-x-1 bg-stone-100 text-stone-700 px-2 py-1 text-xs"
-                                  >
-                                    <span>{role.display_name}</span>
-                                    {canAssignRoles && member.id !== currentUser?.id && (
-                                      <button
-                                        onClick={() => removeRoleFromUser(member.id, role.id)}
-                                        className="ml-1 hover:text-red-600"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    )}
-                                  </span>
-                                ))}
-                                {canAssignRoles && member.id !== currentUser?.id && (
-                                  <select
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        assignRoleToUser(member.id, e.target.value);
-                                        e.target.value = '';
-                                      }
-                                    }}
-                                    className="text-xs border border-stone-300 px-2 py-1"
-                                    defaultValue=""
-                                  >
-                                    <option value="" disabled>+ Add role</option>
-                                    {roles
-                                      .filter(role => !userWithRoles?.roles.some(ur => ur.id === role.id))
-                                      .map(role => (
-                                        <option key={role.id} value={role.id}>
-                                          {role.display_name}
-                                        </option>
-                                      ))}
-                                  </select>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-4 px-4 text-sm text-stone-600">
-                              {member.last_login ? formatDate(member.last_login) : 'Never'}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span
-                                className={`px-3 py-1 text-xs font-semibold ${
-                                  member.is_active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
-                              >
-                                {member.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 text-right">
-                              {member.id !== currentUser?.id && (
-                                <button
-                                  onClick={() => handleToggleStaffStatus(member.id, member.is_active)}
-                                  className="text-sm text-stone-600 hover:text-stone-900"
-                                >
-                                  {member.is_active ? 'Deactivate' : 'Activate'}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'invitations' && (
-            <div className="space-y-4">
-              {invitations.filter(inv => !inv.is_used).length === 0 ? (
-                <div className="text-center py-12 text-stone-500">
-                  <Mail className="w-16 h-16 mx-auto mb-4 text-stone-300" />
-                  <p>No pending invitations</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {invitations
-                    .filter(inv => !inv.is_used)
-                    .map((invitation) => (
-                      <div
-                        key={invitation.id}
-                        className="border border-stone-200 p-4 flex items-center justify-between hover:bg-stone-50"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-stone-900">{invitation.full_name}</h3>
-                            <span className={`px-3 py-1 text-xs font-semibold uppercase ${getRoleBadgeColor(invitation.role)}`}>
-                              {invitation.role}
-                            </span>
-                            {isExpired(invitation.expires_at) && (
-                              <span className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-800">
-                                Expired
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-stone-600 mb-1">{invitation.email}</p>
-                          <div className="flex items-center gap-4 text-xs text-stone-500">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Sent {formatDate(invitation.created_at)}
-                            </span>
-                            <span>Expires {formatDate(invitation.expires_at)}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleResendInvitation(invitation)}
-                            className="p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
-                            title="Resend invitation"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleCancelInvitation(invitation.id)}
-                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-                            title="Cancel invitation"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'roles' && (
-            <div>
-              {!canAssignRoles ? (
-                <div className="bg-amber-50 border border-amber-200 p-4 text-amber-800 text-sm">
-                  You do not have permission to manage roles and permissions.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="col-span-1 bg-stone-50 p-4">
-                    <h3 className="text-lg font-medium text-stone-900 mb-4">Roles</h3>
-                    <div className="space-y-2">
-                      {roles.map(role => (
-                        <button
-                          key={role.id}
-                          onClick={() => handleRoleSelect(role.id)}
-                          className={`w-full text-left px-4 py-3 transition-colors ${
-                            selectedRole === role.id
-                              ? 'bg-stone-900 text-white'
-                              : 'bg-white text-stone-900 hover:bg-stone-100 border border-stone-200'
-                          }`}
-                        >
-                          <div className="font-medium">{role.display_name}</div>
-                          <div className="text-xs opacity-75 mt-1">{role.description}</div>
-                          {role.is_system_role && (
-                            <div className="text-xs mt-1 opacity-60">System Role</div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="col-span-2 bg-white border border-stone-200 p-6">
-                    {selectedRole ? (
-                      <>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-medium text-stone-900">Permissions</h3>
-                          {roles.find(r => r.id === selectedRole)?.is_system_role && (
-                            <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1">
-                              System roles cannot be modified
-                            </span>
-                          )}
-                        </div>
-                        <div className="space-y-6">
-                          {Object.entries(permissionsByCategory).map(([category, perms]) => (
-                            <div key={category}>
-                              <h4 className="text-sm font-medium text-stone-700 uppercase tracking-wide mb-3">
-                                {category}
-                              </h4>
-                              <div className="space-y-2">
-                                {perms.map(perm => (
-                                  <label
-                                    key={perm.id}
-                                    className="flex items-start space-x-3 p-3 hover:bg-stone-50 cursor-pointer"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={rolePermissions.includes(perm.id)}
-                                      onChange={() => togglePermission(perm.id)}
-                                      disabled={roles.find(r => r.id === selectedRole)?.is_system_role}
-                                      className="mt-1"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="text-sm font-medium text-stone-900">{perm.name}</div>
-                                      <div className="text-xs text-stone-500 mt-1">{perm.description}</div>
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center text-stone-500 py-12">
-                        Select a role to view and manage permissions
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+      <div className="overflow-x-auto pb-1">
+        <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
+          {[
+            { id: 'team' as const, label: 'Team members', count: staff.length, icon: Users },
+            { id: 'invitations' as const, label: 'Invitations', count: invitations.filter(inv => !inv.is_used).length, icon: Mail },
+            { id: 'roles' as const, label: 'Roles & permissions', count: roles.length, icon: Shield },
+          ].map((tab) => (
+            <button
+              type="button"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === tab.id ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
+              }`}
+            >
+              <tab.icon className="h-4 w-4" strokeWidth={1.75} />
+              {tab.label}
+              <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${activeTab === tab.id ? 'bg-white/15' : 'bg-stone-900/[0.05]'}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
+      {activeTab === 'team' && (
+        <div className={`${ADMIN_SURFACE} overflow-hidden`}>
+          {staff.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-900/[0.05]">
+                <Users className="h-5 w-5 text-stone-500" strokeWidth={1.75} />
+              </div>
+              <h3 className="font-semibold text-[#1A1714]">Build your team</h3>
+              <p className="mt-1 max-w-sm text-sm text-stone-500">Invite the people who manage bookings, customers, and daily operations.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[960px]">
+                <thead className="border-b border-stone-200/70 bg-stone-900/[0.025]">
+                  <tr>
+                    {['Member', 'Primary role', 'Additional roles', 'Last login', 'Status', ''].map((heading) => (
+                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200/60">
+                  {staff.map((member) => {
+                    const userWithRoles = users.find(user => user.id === member.id);
+                    const initials = (member.full_name || member.email)
+                      .split(/\s+/)
+                      .map(part => part[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase();
+
+                    return (
+                      <tr key={member.id} className="transition-colors hover:bg-white/60">
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A1714] text-xs font-semibold text-white">
+                              {initials}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[#1A1714]">{member.full_name}</p>
+                              <p className="mt-0.5 text-xs text-stone-400">{member.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`${ADMIN_STATUS_PILL} ${getRoleBadgeColor(member.role)}`}>
+                            {member.role.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex max-w-xs flex-wrap items-center gap-1.5">
+                            {userWithRoles?.roles.map(role => (
+                              <span key={role.id} className={`${ADMIN_STATUS_PILL} bg-stone-900/[0.05] text-stone-600`}>
+                                {role.display_name}
+                                {canAssignRoles && member.id !== currentUser?.id && (
+                                  <button type="button" onClick={() => removeRoleFromUser(member.id, role.id)} className="rounded-full p-0.5 hover:bg-stone-900/10" aria-label={`Remove ${role.display_name}`}>
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </span>
+                            ))}
+                            {canAssignRoles && member.id !== currentUser?.id && (
+                              <select
+                                onChange={(event) => {
+                                  if (event.target.value) {
+                                    void assignRoleToUser(member.id, event.target.value);
+                                    event.target.value = '';
+                                  }
+                                }}
+                                className="rounded-lg border border-stone-200/80 bg-white/70 px-2 py-1 text-xs text-stone-600 outline-none focus:border-stone-400"
+                                defaultValue=""
+                              >
+                                <option value="" disabled>+ Add role</option>
+                                {roles
+                                  .filter(role => !userWithRoles?.roles.some(userRole => userRole.id === role.id))
+                                  .map(role => <option key={role.id} value={role.id}>{role.display_name}</option>)}
+                              </select>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-stone-500">
+                          {member.last_login ? formatDate(member.last_login) : 'Never'}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`${ADMIN_STATUS_PILL} ${member.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${member.is_active ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            {member.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {member.id !== currentUser?.id && (
+                            <button type="button" onClick={() => handleToggleStaffStatus(member.id, member.is_active)} className={ADMIN_TERTIARY_BUTTON}>
+                              {member.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'invitations' && (
+        <div className={`${ADMIN_SURFACE} p-5`}>
+          {invitations.filter(invitation => !invitation.is_used).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-900/[0.05]">
+                <Mail className="h-5 w-5 text-stone-500" strokeWidth={1.75} />
+              </div>
+              <h3 className="font-semibold text-[#1A1714]">No pending invitations</h3>
+              <p className="mt-1 text-sm text-stone-500">New invitations will appear here until they are accepted.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-stone-200/60">
+              {invitations.filter(invitation => !invitation.is_used).map((invitation) => (
+                <div key={invitation.id} className="flex flex-col justify-between gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-[#1A1714]">{invitation.full_name}</h3>
+                      <span className={`${ADMIN_STATUS_PILL} ${getRoleBadgeColor(invitation.role)}`}>{invitation.role}</span>
+                      {isExpired(invitation.expires_at) && (
+                        <span className={`${ADMIN_STATUS_PILL} bg-red-50 text-red-700`}>Expired</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-stone-500">{invitation.email}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-stone-400">
+                      <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Sent {formatDate(invitation.created_at)}</span>
+                      <span>Expires {formatDate(invitation.expires_at)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => handleResendInvitation(invitation)} className={ADMIN_SECONDARY_BUTTON}>
+                      <RefreshCw className="h-4 w-4" /> Resend
+                    </button>
+                    <button type="button" onClick={() => handleCancelInvitation(invitation.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-600 transition hover:bg-red-50" aria-label="Cancel invitation">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'roles' && (
+        !canAssignRoles ? (
+          <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-sm text-amber-800">
+            You do not have permission to manage roles and permissions.
+          </div>
+        ) : (
+          <div className={`${ADMIN_SURFACE} grid overflow-hidden lg:grid-cols-[300px_1fr]`}>
+            <aside className="border-b border-stone-200/70 bg-stone-900/[0.025] p-4 lg:border-b-0 lg:border-r">
+              <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Roles</p>
+              <div className="space-y-1.5">
+                {roles.map(role => (
+                  <button
+                    type="button"
+                    key={role.id}
+                    onClick={() => handleRoleSelect(role.id)}
+                    className={`w-full rounded-xl px-3.5 py-3 text-left transition ${
+                      selectedRole === role.id
+                        ? 'bg-[#1A1714] text-white shadow-[0_3px_14px_rgba(26,23,20,0.16)]'
+                        : 'text-[#1A1714] hover:bg-white/80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{role.display_name}</span>
+                      {role.is_system_role && <LockKeyhole className="h-3.5 w-3.5 opacity-55" />}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-60">{role.description}</p>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <section className="min-w-0 p-5 sm:p-6">
+              {selectedRole ? (
+                <>
+                  <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <h3 className="text-base font-semibold tracking-tight text-[#1A1714]">
+                        {roles.find(role => role.id === selectedRole)?.display_name} permissions
+                      </h3>
+                      <p className="mt-1 text-sm text-stone-500">Choose what this role can see and change.</p>
+                    </div>
+                    {roles.find(role => role.id === selectedRole)?.is_system_role && (
+                      <span className={`${ADMIN_STATUS_PILL} bg-amber-50 text-amber-700`}>
+                        <LockKeyhole className="h-3.5 w-3.5" /> System role
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-7">
+                    {Object.entries(permissionsByCategory).map(([category, perms]) => (
+                      <div key={category}>
+                        <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{category}</h4>
+                        <div className="divide-y divide-stone-200/60 rounded-xl bg-stone-900/[0.025] px-3">
+                          {perms.map(permission => (
+                            <label key={permission.id} className="flex cursor-pointer items-start gap-3 px-1 py-3.5">
+                              <input
+                                type="checkbox"
+                                checked={rolePermissions.includes(permission.id)}
+                                onChange={() => togglePermission(permission.id)}
+                                disabled={roles.find(role => role.id === selectedRole)?.is_system_role}
+                                className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-[#1A1714] disabled:opacity-40"
+                              />
+                              <span className="min-w-0">
+                                <span className="block text-sm font-medium text-[#1A1714]">{permission.name}</span>
+                                <span className="mt-0.5 block text-xs leading-5 text-stone-400">{permission.description}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex min-h-64 flex-col items-center justify-center text-center">
+                  <Shield className="mb-3 h-6 w-6 text-stone-300" strokeWidth={1.5} />
+                  <p className="text-sm font-medium text-[#1A1714]">Select a role</p>
+                  <p className="mt-1 text-xs text-stone-400">Its permissions will appear here.</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )
+      )}
+
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 max-w-md w-full shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-stone-900">Invite Team Member</h2>
-              <button onClick={() => setShowInviteModal(false)} className="text-stone-500 hover:text-stone-700">
-                <X className="w-6 h-6" />
+        <div className={ADMIN_MODAL_BACKDROP}>
+          <div className={`${ADMIN_MODAL} max-w-lg p-6 sm:p-7`} role="dialog" aria-modal="true" aria-labelledby="invite-team-title">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h2 id="invite-team-title" className="text-lg font-semibold tracking-tight text-[#1A1714]">Invite a team member</h2>
+                <p className="mt-1 text-sm text-stone-500">They will receive a secure link to create their account.</p>
+              </div>
+              <button type="button" onClick={() => setShowInviteModal(false)} className="rounded-xl p-2 text-stone-500 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]" aria-label="Close">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
             {inviteError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div className="mb-4 rounded-xl border border-red-200/80 bg-red-50/70 p-3 text-sm text-red-700">
                 {inviteError}
               </div>
             )}
 
             <form onSubmit={handleInviteStaff} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Full Name</label>
+                <label htmlFor="invite-full-name" className="mb-2 block text-sm font-medium text-stone-700">Full name</label>
                 <input
+                  id="invite-full-name"
                   type="text"
                   value={inviteForm.full_name}
                   onChange={(e) => setInviteForm({ ...inviteForm, full_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-stone-300 focus:ring-2 focus:ring-stone-500 focus:border-transparent"
+                  className={ADMIN_INPUT}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Email</label>
+                <label htmlFor="invite-email" className="mb-2 block text-sm font-medium text-stone-700">Email address</label>
                 <input
+                  id="invite-email"
                   type="email"
                   value={inviteForm.email}
                   onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-stone-300 focus:ring-2 focus:ring-stone-500 focus:border-transparent"
+                  className={ADMIN_INPUT}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Role</label>
+                <label htmlFor="invite-role" className="mb-2 block text-sm font-medium text-stone-700">Primary role</label>
                 <select
+                  id="invite-role"
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
-                  className="w-full px-4 py-2 border border-stone-300 focus:ring-2 focus:ring-stone-500 focus:border-transparent"
+                  className={ADMIN_SELECT}
                 >
                   <option value="staff">Staff</option>
                   <option value="receptionist">Receptionist</option>
@@ -766,17 +770,17 @@ export default function TeamManagementView() {
                 <button
                   type="button"
                   onClick={() => setShowInviteModal(false)}
-                  className="flex-1 px-4 py-3 border border-stone-300 text-stone-700 hover:bg-stone-50"
+                  className={`${ADMIN_SECONDARY_BUTTON} flex-1`}
                   disabled={inviting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-50"
+                  className={`${ADMIN_PRIMARY_BUTTON} flex-1`}
                   disabled={inviting}
                 >
-                  {inviting ? 'Sending...' : 'Send Invitation'}
+                  {inviting ? 'Sending…' : 'Send invitation'}
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-# Buuk - Complete Booking System User Guide
+# Zenno - Complete Booking System User Guide
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@
 
 ## Introduction
 
-Welcome to **Buuk**, a comprehensive booking and appointment management system designed for service-based businesses. Whether you run a spa, salon, clinic, or consulting practice, Buuk provides everything you need to manage bookings, customers, staff, and payments.
+Welcome to **Zenno**, a comprehensive booking and appointment management system designed for service-based businesses. Whether you run a spa, salon, clinic, or consulting practice, Zenno provides everything you need to manage bookings, customers, staff, and payments.
 
 ### Key Features
 
@@ -109,7 +109,7 @@ Navigate to **Settings > Store Profile** to configure your business details:
 - **Default Language**: Primary language for the booking system
 
 #### Social Media & Online Presence
-- **Permalink**: Your unique booking page URL (e.g., buuk.com/your-business)
+- **Permalink**: Your unique booking page URL (e.g., zenno.ai/your-business)
 - **Custom Domain**: Link your own domain (Pro feature)
 - **Social Media Links**: Connect Instagram, Facebook, Twitter, etc.
 
@@ -722,7 +722,7 @@ Use your own domain for the booking page:
 5. SSL certificate automatically provisioned
 
 **DNS Setup:**
-- Add CNAME record: `book.yourbusiness.com` → `buuk.com`
+- Add CNAME record: `book.yourbusiness.com` → `zenno.ai`
 - Wait 24-48 hours for propagation
 - System verifies and activates
 
@@ -1451,7 +1451,7 @@ Configure email sending:
 
 1. Go to **Settings > Email Settings**
 2. Choose provider:
-   - **Platform Email**: Default Buuk email service (recommended)
+   - **Platform Email**: Default Zenno email service (recommended)
    - **Custom SMTP**: Your own email server
    - **SendGrid**: Integration with SendGrid
    - **Mailgun**: Integration with Mailgun
@@ -1460,7 +1460,7 @@ Configure email sending:
 - No configuration needed
 - Reliable delivery
 - Automatic spam filtering
-- Sent from: `notifications@yourbusiness.buuk.com`
+- Sent from: `notifications@yourbusiness.zenno.ai`
 
 **Custom SMTP:**
 - Requires configuration:
@@ -1604,7 +1604,7 @@ Self-service portal for customers to manage bookings.
 
 Customers access their portal at:
 ```
-https://yourbusiness.buuk.com/account
+https://yourbusiness.zenno.ai/account
 ```
 
 ### Customer Registration
@@ -1800,13 +1800,13 @@ Build custom integrations:
 
 ### White-Label Options (Enterprise)
 
-Remove Buuk branding:
+Remove Zenno branding:
 
 1. **Custom Domain**: Your domain only
 2. **Logo Replacement**: Only your branding
 3. **Color Scheme**: Match your brand
 4. **Email Sender**: From your domain
-5. **Powered By**: Remove "Powered by Buuk"
+5. **Powered By**: Remove "Powered by Zenno"
 
 Contact sales for enterprise options.
 
@@ -1967,7 +1967,7 @@ Follow the complete [Stripe Webhook Setup Guide](STRIPE_WEBHOOK_SETUP.md):
 1. **Help Center**: In-app documentation
 2. **Video Tutorials**: YouTube channel
 3. **Community Forum**: Connect with other users
-4. **Email Support**: support@buuk.com
+4. **Email Support**: support@zenno.ai
 5. **Live Chat**: Available during business hours (Pro/Enterprise)
 6. **Phone Support**: Enterprise only
 
@@ -2106,7 +2106,7 @@ A: Yes, automatic daily backups with 99.9% uptime guarantee.
 ### Pricing & Plans
 
 **Q: What's included in the Free plan?**
-A: Basic booking, 1 specialist, 5 services, email support, Buuk branding.
+A: Basic booking, 1 specialist, 5 services, email support, Zenno branding.
 
 **Q: What are the differences between plans?**
 - **Free**: Perfect for solo practitioners starting out
@@ -2117,7 +2117,7 @@ A: Basic booking, 1 specialist, 5 services, email support, Buuk branding.
 A: Yes! Upgrade or downgrade anytime. Changes effective immediately.
 
 **Q: Are there transaction fees?**
-A: Standard Stripe processing fees apply (2.9% + $0.30). No additional Buuk fees on Pro plan.
+A: Standard Stripe processing fees apply (2.9% + $0.30). No additional Zenno fees on Pro plan.
 
 **Q: What payment methods do you accept?**
 A: Credit cards, debit cards, and PayPal for subscriptions.
@@ -2157,7 +2157,7 @@ A: Pro and Enterprise plans include setup assistance.
 
 ## Conclusion
 
-Congratulations! You now have a comprehensive understanding of the Buuk booking system. This platform will help you:
+Congratulations! You now have a comprehensive understanding of the Zenno booking system. This platform will help you:
 
 - **Save Time**: Automate booking and customer management
 - **Increase Revenue**: Reduce no-shows, sell gift cards, reward loyalty
@@ -2177,17 +2177,17 @@ Congratulations! You now have a comprehensive understanding of the Buuk booking 
 
 - **Newsletter**: Monthly tips and feature updates
 - **Blog**: Industry insights and best practices
-- **Community**: Connect with other Buuk users
+- **Community**: Connect with other Zenno users
 - **Social Media**: Follow us for news and inspiration
 
 ### Contact Us
 
-- **Email**: support@buuk.com
+- **Email**: support@zenno.ai
 - **Live Chat**: Available in admin panel (Pro+)
 - **Phone**: Enterprise customers call dedicated line
-- **Help Center**: help.buuk.com
+- **Help Center**: zenno.ai/docs
 
-Thank you for choosing Buuk for your business!
+Thank you for choosing Zenno for your business!
 
 ---
 

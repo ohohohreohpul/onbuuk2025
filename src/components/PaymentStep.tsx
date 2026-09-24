@@ -8,6 +8,8 @@ import { useTheme } from '../lib/themeContext';
 import { useCurrency } from '../lib/currencyContext';
 import { Button } from './ui/button';
 
+const CARD_GUARANTEE_POLICY_VERSION = '2026-09';
+
 interface SelectedProduct {
   product: {
     id: string;
@@ -20,8 +22,12 @@ interface SelectedProduct {
 interface AppliedGiftCard {
   id: string;
   code: string;
+  cardType: 'value' | 'service_pass';
   amountUsedCents: number;
   remainingBalanceCents: number;
+  servicePassName?: string;
+  remainingVisits?: number;
+  durationMinutes?: number;
 }
 
 interface PaymentStepProps {
@@ -47,7 +53,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const tenant = useTenant();
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
-  const { currency } = useCurrency();
+  const { currency, formatPrice } = useCurrency();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -55,6 +61,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [paypalEnabled, setPaypalEnabled] = useState<boolean>(false);
   const [paypalClientId, setPaypalClientId] = useState<string>('');
   const [allowPayInPerson, setAllowPayInPerson] = useState<boolean>(false);
+  const [noShowFeeCents, setNoShowFeeCents] = useState<number>(0);
+  const [lateCancelHours, setLateCancelHours] = useState<number>(24);
+  const [repeatOffender, setRepeatOffender] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paypal' | 'in_person'>('stripe');
   const [loading, setLoading] = useState(true);
   const [specialistName, setSpecialistName] = useState<string>('');
@@ -62,9 +71,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [paypalLoaded, setPaypalLoaded] = useState(false);
   const [paypalLoadError, setPaypalLoadError] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [cardGuaranteeConsent, setCardGuaranteeConsent] = useState(false);
 
-  const primaryColor = colors.primary || '#008374';
-  const primaryHoverColor = colors.primaryHover || '#006d5f';
+  const primaryColor = colors.primary || '#1A1714';
 
   const content = {
     title: customization?.payment_step?.title || 'Review & Pay',
@@ -77,6 +86,34 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [isValidatingGiftCard, setIsValidatingGiftCard] = useState(false);
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
   const [showGiftCardSection, setShowGiftCardSection] = useState(false);
+
+  const normalizeAppliedCards = (cards: AppliedGiftCard[]) => {
+    let remainingTotal = calculateTotalPrice();
+    const maximumServicePasses = bookingData.isPairBooking ? 2 : 1;
+    const servicePasses = cards.filter((card) => card.cardType === 'service_pass').slice(0, maximumServicePasses);
+    const valueCards = cards.filter((card) => card.cardType === 'value');
+
+    const normalizedPasses = servicePasses.map((card) => {
+      const amountUsedCents = Math.min(bookingData.duration.price_cents, remainingTotal);
+      remainingTotal = Math.max(0, remainingTotal - amountUsedCents);
+      return { ...card, amountUsedCents };
+    });
+
+    const normalizedValues = valueCards.map((card) => {
+      const availableBalance = card.amountUsedCents + card.remainingBalanceCents;
+      const amountUsedCents = Math.min(availableBalance, remainingTotal);
+      remainingTotal = Math.max(0, remainingTotal - amountUsedCents);
+      return {
+        ...card,
+        amountUsedCents,
+        remainingBalanceCents: availableBalance - amountUsedCents,
+      };
+    });
+
+    // Passes are always applied before monetary value. That guarantees a pass
+    // covers its service unit instead of accidentally being spent on add-ons.
+    return [...normalizedPasses, ...normalizedValues];
+  };
 
   useEffect(() => {
     checkPaymentStatus();
@@ -94,6 +131,29 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       .select('key, value')
       .eq('business_id', tenant.businessId)
       .in('key', ['stripe_enabled', 'allow_pay_in_person', 'paypal_enabled', 'paypal_client_id']);
+
+    // Card-guarantee config from the service + serial-offender gate (Treatwell rule set)
+    if (tenant.businessId) {
+      supabase.from('services')
+        .select('no_show_fee, late_cancel_hours, no_show_fee_enabled')
+        .eq('id', bookingData.service?.id).maybeSingle()
+        .then(({ data: svc }) => {
+          if (svc?.no_show_fee_enabled && (svc.no_show_fee ?? 0) > 0) {
+            setNoShowFeeCents(svc.no_show_fee);
+            if (svc.late_cancel_hours) setLateCancelHours(svc.late_cancel_hours);
+          }
+        });
+
+      supabase.from('bookings')
+        .select('id, no_show, status, booking_date')
+        .eq('business_id', tenant.businessId)
+        .eq('customer_email', bookingData.customerDetails.email)
+        .gte('booking_date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .then(({ data: history }) => {
+          const offences = (history || []).filter((b: any) => b.no_show === true);
+          if (offences.length >= 2) setRepeatOffender(true);
+        });
+    }
 
     if (data) {
       let stripeIsEnabled = false;
@@ -200,63 +260,56 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     try {
       const cleanCode = giftCardCode.trim().toUpperCase();
 
-      const { data: giftCard, error: fetchError } = await supabase
-        .from('gift_cards')
-        .select('*')
-        .eq('business_id', tenant.businessId)
-        .eq('code', cleanCode)
-        .maybeSingle();
-
-      if (fetchError || !giftCard) {
-        setGiftCardError('Invalid gift card code');
-        setIsValidatingGiftCard(false);
-        return;
-      }
-
-      if (giftCard.status !== 'active') {
-        setGiftCardError('This gift card is no longer active');
-        setIsValidatingGiftCard(false);
-        return;
-      }
-
-      if (giftCard.expires_at && new Date(giftCard.expires_at) < new Date()) {
-        setGiftCardError('This gift card has expired');
-        setIsValidatingGiftCard(false);
-        return;
-      }
-
-      if (giftCard.current_balance_cents <= 0) {
-        setGiftCardError('This gift card has no remaining balance');
-        setIsValidatingGiftCard(false);
-        return;
-      }
-
-      if (appliedGiftCards.some((card) => card.id === giftCard.id)) {
-        setGiftCardError('This gift card has already been applied');
-        setIsValidatingGiftCard(false);
-        return;
-      }
-
       const currentTotal = calculateTotalPrice();
       const currentDiscount = getTotalGiftCardAmount();
       const remainingToPay = Math.max(0, currentTotal - currentDiscount);
 
       if (remainingToPay <= 0) {
-        setGiftCardError('Your booking is already fully covered by gift cards');
+        setGiftCardError('Your booking is already fully covered by cards or passes');
         setIsValidatingGiftCard(false);
         return;
       }
 
-      const amountToUse = Math.min(giftCard.current_balance_cents, remainingToPay);
+      const { data: preview, error: previewError } = await supabase.rpc('preview_gift_card_for_booking', {
+        p_business_id: tenant.businessId,
+        p_code: cleanCode,
+        p_service_id: bookingData.service.id,
+        p_duration_id: bookingData.duration.id,
+        p_remaining_total_cents: remainingToPay,
+      });
+
+      if (previewError || !preview) {
+        setGiftCardError(previewError?.message || 'Invalid gift card or pass code');
+        return;
+      }
+
+      if (appliedGiftCards.some((card) => card.id === preview.id)) {
+        setGiftCardError('This gift card or pass has already been applied');
+        return;
+      }
+
+      if (
+        preview.cardType === 'service_pass' &&
+        appliedGiftCards.filter((card) => card.cardType === 'service_pass').length >= (bookingData.isPairBooking ? 2 : 1)
+      ) {
+        setGiftCardError(bookingData.isPairBooking
+          ? 'Both service units are already covered by passes'
+          : 'This booking already has a service pass applied');
+        return;
+      }
 
       const newCard: AppliedGiftCard = {
-        id: giftCard.id,
-        code: giftCard.code,
-        amountUsedCents: amountToUse,
-        remainingBalanceCents: giftCard.current_balance_cents - amountToUse,
+        id: preview.id,
+        code: preview.code,
+        cardType: preview.cardType,
+        amountUsedCents: preview.amountUsedCents,
+        remainingBalanceCents: preview.remainingBalanceCents || 0,
+        servicePassName: preview.servicePassName,
+        remainingVisits: preview.remainingVisits,
+        durationMinutes: preview.durationMinutes,
       };
 
-      setAppliedGiftCards([...appliedGiftCards, newCard]);
+      setAppliedGiftCards(normalizeAppliedCards([...appliedGiftCards, newCard]));
       setGiftCardCode('');
       setGiftCardError(null);
     } catch (err) {
@@ -268,7 +321,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   };
 
   const handleRemoveGiftCard = (cardId: string) => {
-    setAppliedGiftCards(appliedGiftCards.filter((card) => card.id !== cardId));
+    setAppliedGiftCards(normalizeAppliedCards(appliedGiftCards.filter((card) => card.id !== cardId)));
   };
 
   const handleGiftCardKeyPress = (e: React.KeyboardEvent) => {
@@ -277,9 +330,6 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     }
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -326,6 +376,39 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     return newCustomer?.id;
   };
 
+  const redeemGiftCardsForBooking = async (targetBookingId: string) => {
+    const orderedCards = [...appliedGiftCards].sort((left, right) => (
+      left.cardType === right.cardType ? 0 : left.cardType === 'service_pass' ? -1 : 1
+    ));
+
+    for (const giftCard of orderedCards) {
+      const { error } = await supabase.rpc('redeem_gift_card_for_booking', {
+        p_booking_id: targetBookingId,
+        p_code: giftCard.code,
+        p_requested_amount_cents: giftCard.cardType === 'value' ? giftCard.amountUsedCents : null,
+      });
+
+      if (error) {
+        throw new Error(`Could not redeem ${giftCard.code}: ${error.message}`);
+      }
+    }
+
+    const { data: updatedBooking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('gift_card_amount_cents, final_amount_cents')
+      .eq('id', targetBookingId)
+      .single();
+
+    if (bookingError || !updatedBooking) {
+      throw new Error('The booking total could not be verified after redemption');
+    }
+
+    return {
+      giftCardAmountCents: Number(updatedBooking.gift_card_amount_cents || 0),
+      finalAmountCents: Number(updatedBooking.final_amount_cents || 0),
+    };
+  };
+
   const handlePayment = async () => {
     setIsProcessing(true);
 
@@ -346,7 +429,6 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
       await createOrUpdateCustomer();
 
-      const isFullyCoveredByGiftCards = finalPrice === 0;
       const shouldUseStripe = selectedPaymentMethod === 'stripe' && stripeEnabled && finalPrice > 0;
       const shouldUsePayPal = selectedPaymentMethod === 'paypal' && paypalEnabled && finalPrice > 0;
 
@@ -369,8 +451,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             notes: bookingData.customerDetails.notes || null,
             payment_status: 'pending',
             status: 'pending',
-            gift_card_amount_cents: giftCardDiscount,
-            final_amount_cents: finalPrice,
+            gift_card_amount_cents: 0,
+            final_amount_cents: totalPrice,
           })
           .select()
           .single();
@@ -380,19 +462,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           throw new Error(`Failed to create booking: ${bookingError.message}`);
         }
 
-        // Apply gift cards
         if (appliedGiftCards.length > 0) {
-          for (const giftCard of appliedGiftCards) {
-            try {
-              await supabase.rpc('apply_gift_card_to_booking', {
-                p_booking_id: createdBooking.id,
-                p_gift_card_id: giftCard.id,
-                p_amount_cents: giftCard.amountUsedCents,
-              });
-            } catch (err) {
-              console.error('Error applying gift card:', err);
-            }
-          }
+          await redeemGiftCardsForBooking(createdBooking.id);
         }
 
         // Add products
@@ -430,8 +501,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             notes: bookingData.customerDetails.notes || null,
             payment_status: 'pending',
             status: 'pending',
-            gift_card_amount_cents: giftCardDiscount,
-            final_amount_cents: finalPrice,
+            gift_card_amount_cents: 0,
+            final_amount_cents: totalPrice,
           })
           .select()
           .single();
@@ -445,21 +516,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (appliedGiftCards.length > 0) {
           console.log('Applying gift cards to booking...');
-          for (const giftCard of appliedGiftCards) {
-            try {
-              const { error: giftCardError } = await supabase.rpc('apply_gift_card_to_booking', {
-                p_booking_id: createdBooking.id,
-                p_gift_card_id: giftCard.id,
-                p_amount_cents: giftCard.amountUsedCents,
-              });
-
-              if (giftCardError) {
-                console.error('Error applying gift card:', giftCardError);
-              }
-            } catch (err) {
-              console.error('Error applying gift card:', err);
-            }
-          }
+          await redeemGiftCardsForBooking(createdBooking.id);
         }
 
         if (bookingData.selectedProducts.length > 0) {
@@ -532,10 +589,10 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             customer_phone: bookingData.customerDetails.phone,
             is_pair_booking: bookingData.isPairBooking,
             notes: bookingData.customerDetails.notes || null,
-            payment_status: isFullyCoveredByGiftCards ? 'completed' : (isPayingInPerson ? 'pending' : 'completed'),
-            status: isFullyCoveredByGiftCards ? 'confirmed' : (isPayingInPerson ? 'pending' : 'confirmed'),
-            gift_card_amount_cents: giftCardDiscount,
-            final_amount_cents: finalPrice,
+            payment_status: 'pending',
+            status: 'pending',
+            gift_card_amount_cents: 0,
+            final_amount_cents: totalPrice,
           })
           .select()
           .single();
@@ -547,25 +604,23 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         console.log('Booking created successfully:', data);
 
-        if (appliedGiftCards.length > 0) {
-          console.log('Applying gift cards to booking...');
-          for (const giftCard of appliedGiftCards) {
-            try {
-              const { error: giftCardError } = await supabase.rpc('apply_gift_card_to_booking', {
-                p_booking_id: data.id,
-                p_gift_card_id: giftCard.id,
-                p_amount_cents: giftCard.amountUsedCents,
-              });
+        const redeemedTotals = appliedGiftCards.length > 0
+          ? await redeemGiftCardsForBooking(data.id)
+          : { giftCardAmountCents: 0, finalAmountCents: totalPrice };
+        const actualFinalPrice = redeemedTotals.finalAmountCents;
+        const actualFullyCovered = actualFinalPrice === 0;
 
-              if (giftCardError) {
-                console.error('Error applying gift card:', giftCardError);
-              }
-            } catch (err) {
-              console.error('Error applying gift card:', err);
-            }
-          }
-        }
+        await supabase
+          .from('bookings')
+          .update({
+            payment_status: actualFullyCovered ? 'completed' : (isPayingInPerson ? 'pending' : 'completed'),
+            status: actualFullyCovered ? 'confirmed' : (isPayingInPerson ? 'pending' : 'confirmed'),
+          })
+          .eq('id', data.id);
 
+        // Persist add-ons before any card-guarantee redirect. The service pass
+        // covers only the matching service unit, so add-ons must remain on the
+        // booking and in the amount still due at the venue.
         if (bookingData.selectedProducts.length > 0) {
           console.log('Adding products to booking...');
           const productInserts = bookingData.selectedProducts.map((sp) => ({
@@ -579,6 +634,43 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           if (productsError) {
             console.error('Error adding products:', productsError);
           }
+        }
+
+        // Card guarantee (Treatwell model): collect card without charging, used when the service
+        // has a no-show fee configured and Stripe is connected.
+        if (isPayingInPerson && noShowFeeCents > 0 && stripeEnabled && actualFinalPrice > 0) {
+          const guaranteeRes = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                bookingId: data.id,
+                cardOnly: true,
+                cardGuaranteeConsent,
+                cardGuaranteePolicyVersion: CARD_GUARANTEE_POLICY_VERSION,
+                customerEmail: bookingData.customerDetails.email,
+                customerName: bookingData.customerDetails.name,
+                amount: 0,
+                serviceName: bookingData.service.name,
+                specialistName: specialistName || 'Any Available Specialist',
+                dateTime: `${formatDate(bookingData.date)} at ${bookingData.time}`,
+                businessId: tenant.businessId!,
+              }),
+            }
+          );
+
+          if (guaranteeRes.ok) {
+            const { url } = await guaranteeRes.json();
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+          }
+          console.warn('Card guarantee checkout unavailable; continuing with unpaid booking.');
         }
 
         console.log('Sending confirmation email...');
@@ -611,7 +703,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 customer_email: bookingData.customerDetails.email,
                 service_name: bookingData.service.name,
                 service_duration: `${bookingData.duration.duration_minutes} minutes`,
-                service_price: `€${(bookingData.duration.price_cents / 100).toFixed(2)}`,
+                service_price: formatPrice(bookingData.duration.price_cents),
                 booking_date: formatDate(bookingData.date),
                 booking_time: bookingData.time,
                 booking_end_time: endTime,
@@ -655,7 +747,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-light text-custom-primary mb-3">{content.title}</h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-3">{content.title}</h2>
           <p className="text-custom-secondary leading-relaxed">
             Your appointment has been successfully scheduled. We've sent a confirmation email to{' '}
             <span className="font-medium">{bookingData.customerDetails.email}</span>
@@ -742,8 +834,13 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   };
 
   const totalPrice = calculateTotalPrice();
-  const giftCardDiscount = getTotalGiftCardAmount();
   const finalPrice = calculateFinalPrice();
+  const requiresCardGuaranteeConsent =
+    selectedPaymentMethod === 'in_person' &&
+    allowPayInPerson &&
+    stripeEnabled &&
+    noShowFeeCents > 0 &&
+    finalPrice > 0;
 
   return (
     <div className="h-full flex flex-col">
@@ -760,12 +857,12 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
-        <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
+        <h2 className="text-3xl font-semibold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-6 pb-6">
-        <div className="border border-stone-200 p-6 space-y-4">
+        <div className="space-y-4 rounded-[24px] border border-white/80 bg-white/[0.72] p-6 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
         <h3 className="text-sm font-medium text-stone-700 uppercase tracking-wider mb-4">
           Booking Summary
         </h3>
@@ -830,7 +927,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 </div>
                 {appliedGiftCards.map((card) => (
                   <div key={card.id} className="flex justify-between text-green-600 text-sm">
-                    <span>Gift Card ({card.code}):</span>
+                    <span>{card.cardType === 'service_pass' ? card.servicePassName || 'Service pass' : 'Value card'} ({card.code}):</span>
                     <span>-{formatPrice(card.amountUsedCents)}</span>
                   </div>
                 ))}
@@ -849,7 +946,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         </div>
       </div>
 
-        <div className="border border-stone-200 bg-stone-50">
+        <div className="overflow-hidden rounded-[24px] border border-white/80 bg-white/[0.68] shadow-[0_18px_45px_-34px_rgba(28,25,23,0.4)] backdrop-blur-xl">
           <button
             type="button"
             onClick={() => setShowGiftCardSection(!showGiftCardSection)}
@@ -858,8 +955,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             <div className="flex items-center space-x-3">
               <Gift className="w-5 h-5 text-stone-600" />
               <div className="text-left">
-                <h3 className="text-sm font-medium text-stone-700">Have a Gift Card?</h3>
-                <p className="text-xs text-stone-500">Optional: Apply a gift card to reduce your total</p>
+                <h3 className="text-sm font-medium text-stone-700">Have a gift card or service pass?</h3>
+                <p className="text-xs text-stone-500">Apply value or redeem one eligible visit</p>
               </div>
             </div>
             {showGiftCardSection ? (
@@ -874,7 +971,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
               <div className="space-y-3 pt-4">
                 <div>
                   <label htmlFor="giftCardCode" className="block text-sm text-stone-600 mb-2">
-                    Gift Card Code
+                    Gift card or pass code
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -907,7 +1004,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 {appliedGiftCards.length > 0 && (
                   <div className="space-y-3 pt-2">
                     <h4 className="text-xs font-medium text-stone-700 uppercase tracking-wider">
-                      Applied Gift Cards
+                      Applied cards and passes
                     </h4>
                     {appliedGiftCards.map((card) => (
                       <div
@@ -921,9 +1018,10 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                           <div>
                             <p className="text-sm font-medium text-stone-800">{card.code}</p>
                             <p className="text-xs text-stone-600">
-                              Applied: {formatPrice(card.amountUsedCents)}
-                              {card.remainingBalanceCents > 0 && (
-                                <> · Remaining: {formatPrice(card.remainingBalanceCents)}</>
+                              {card.cardType === 'service_pass' ? (
+                                <>{card.servicePassName || 'Service pass'} · 1 visit applied{card.remainingVisits !== undefined ? ` · ${card.remainingVisits} left` : ''}</>
+                              ) : (
+                                <>Applied: {formatPrice(card.amountUsedCents)}{card.remainingBalanceCents > 0 ? ` · Remaining: ${formatPrice(card.remainingBalanceCents)}` : ''}</>
                               )}
                             </p>
                           </div>
@@ -940,9 +1038,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                   </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                <div className="rounded-xl border border-stone-200/80 bg-stone-100/70 p-3">
                   <p className="text-xs text-stone-600 leading-relaxed">
-                    Gift cards can cover part or all of your booking. You can apply multiple gift cards to one booking.
+                    Value cards reduce the total. A service pass uses one visit and covers one matching service unit; add-ons and a second guest remain payable.
                   </p>
                 </div>
               </div>
@@ -950,11 +1048,17 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           )}
         </div>
 
-        <div className="border border-stone-200 p-6 bg-stone-50">
+        <div className="rounded-[24px] border border-white/80 bg-white/[0.72] p-6 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
           <div className="flex items-center space-x-3 mb-4">
             <CreditCard className="w-5 h-5 text-stone-600" />
             <h3 className="text-sm font-medium text-stone-700">Payment Method</h3>
           </div>
+
+          {noShowFeeCents > 0 && (
+            <div className="mb-4 rounded-2xl border border-stone-200/80 bg-stone-100/70 p-4 text-xs leading-relaxed text-stone-600">
+              <span className="font-semibold text-stone-800">No-show & late-cancel policy.</span> Leaving your card details secures your booking — you won't be charged during booking. Your card may be charged {formatPrice(noShowFeeCents)} if you cancel less than {lateCancelHours} hours before your appointment or don't show up.
+            </div>
+          )}
 
           {(stripeEnabled || paypalEnabled || allowPayInPerson) && finalPrice > 0 ? (
             <div className="space-y-3">
@@ -962,10 +1066,10 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 <button
                   onClick={() => setSelectedPaymentMethod('stripe')}
                   disabled={createdBookingId !== null}
-                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                  className={`w-full rounded-2xl border p-4 text-left transition-all ${
                     selectedPaymentMethod === 'stripe'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-stone-300 hover:border-stone-400'
+                      ? 'border-stone-900 bg-stone-900/[0.04] shadow-sm'
+                      : 'border-stone-200/90 bg-white/60 hover:border-stone-400'
                   } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
@@ -977,7 +1081,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                       </div>
                     </div>
                     {selectedPaymentMethod === 'stripe' && (
-                      <Check className="w-5 h-5 text-blue-600" />
+                      <Check className="h-5 w-5 text-stone-900" />
                     )}
                   </div>
                 </button>
@@ -987,35 +1091,69 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                 <button
                   onClick={() => setSelectedPaymentMethod('paypal')}
                   disabled={createdBookingId !== null}
-                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                  className={`w-full rounded-2xl border p-4 text-left transition-all ${
                     selectedPaymentMethod === 'paypal'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-stone-300 hover:border-stone-400'
+                      ? 'border-stone-900 bg-stone-900/[0.04] shadow-sm'
+                      : 'border-stone-200/90 bg-white/60 hover:border-stone-400'
                   } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Wallet className="w-5 h-5 text-blue-600" />
+                      <Wallet className="h-5 w-5 text-stone-700" />
                       <div>
                         <p className="font-medium text-stone-800">Pay with PayPal</p>
                         <p className="text-xs text-stone-600">PayPal, Credit/Debit Card, Pay Later</p>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'paypal' && (
-                      <Check className="w-5 h-5 text-blue-600" />
+                      <Check className="h-5 w-5 text-stone-900" />
                     )}
                   </div>
                 </button>
               )}
 
-              {allowPayInPerson && (
+              {repeatOffender && (
+                <div className="w-full p-4 mb-3 border border-amber-200 bg-amber-50 rounded-lg text-left">
+                  <p className="text-sm font-semibold text-amber-900">Prepayment required</p>
+                  <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                    You've missed or cancelled several appointments, so we ask that you prepay this one.
+                  </p>
+                </div>
+              )}
+
+              {allowPayInPerson && !repeatOffender && noShowFeeCents > 0 && stripeEnabled && (
                 <button
                   onClick={() => setSelectedPaymentMethod('in_person')}
                   disabled={createdBookingId !== null}
-                  className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                  className={`w-full rounded-2xl border p-4 text-left transition-all ${
                     selectedPaymentMethod === 'in_person'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-stone-300 hover:border-stone-400'
+                      ? 'border-stone-900 bg-stone-900/[0.04] shadow-sm'
+                      : 'border-stone-200/90 bg-white/60 hover:border-stone-400'
+                  } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 text-stone-600">💳</div>
+                      <div>
+                        <p className="font-medium text-stone-800">Pay in Person — Secure with Card</p>
+                        <p className="text-xs text-stone-600">Leave your card details; no charge now. Charged {formatPrice(noShowFeeCents)} only if you no-show or cancel within {lateCancelHours}h</p>
+                      </div>
+                    </div>
+                    {selectedPaymentMethod === 'in_person' && (
+                      <Check className="h-5 w-5 text-stone-900" />
+                    )}
+                  </div>
+                </button>
+              )}
+
+              {allowPayInPerson && !repeatOffender && (noShowFeeCents === 0 || !stripeEnabled) && (
+                <button
+                  onClick={() => setSelectedPaymentMethod('in_person')}
+                  disabled={createdBookingId !== null}
+                  className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                    selectedPaymentMethod === 'in_person'
+                      ? 'border-stone-900 bg-stone-900/[0.04] shadow-sm'
+                      : 'border-stone-200/90 bg-white/60 hover:border-stone-400'
                   } ${createdBookingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex items-center justify-between">
@@ -1027,7 +1165,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
                       </div>
                     </div>
                     {selectedPaymentMethod === 'in_person' && (
-                      <Check className="w-5 h-5 text-blue-600" />
+                      <Check className="h-5 w-5 text-stone-900" />
                     )}
                   </div>
                 </button>
@@ -1036,9 +1174,23 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           ) : (
             <p className="text-sm text-stone-600 leading-relaxed">
               {finalPrice === 0
-                ? 'Your booking is fully covered by gift cards. No payment is required.'
+                ? 'Your booking is fully covered by cards or passes. No payment is required.'
                 : 'Payment will be processed securely. Click "Confirm Booking" to proceed.'}
             </p>
+          )}
+
+          {requiresCardGuaranteeConsent && (
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-300/80 bg-white/70 p-4 text-sm leading-6 text-stone-600">
+              <input
+                type="checkbox"
+                checked={cardGuaranteeConsent}
+                onChange={(event) => setCardGuaranteeConsent(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-stone-300 accent-stone-900"
+              />
+              <span>
+                I authorize this business to save my card and charge up to <strong className="font-semibold text-stone-900">{formatPrice(noShowFeeCents)}</strong> if I do not attend or cancel less than {lateCancelHours} hours before the appointment. No appointment payment is taken now.
+              </span>
+            </label>
           )}
 
           {/* PayPal Buttons - Show when PayPal is selected and booking is created */}
@@ -1116,14 +1268,14 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         {!(selectedPaymentMethod === 'paypal' && createdBookingId) && (
         <Button
           onClick={handlePayment}
-          disabled={isProcessing}
+          disabled={isProcessing || (requiresCardGuaranteeConsent && !cardGuaranteeConsent)}
           className="w-full h-14 text-base transition-all duration-300 group text-white disabled:opacity-50"
           size="lg"
           style={{
-            background: !isProcessing 
+            background: !isProcessing && (!requiresCardGuaranteeConsent || cardGuaranteeConsent)
               ? primaryColor
               : '#9ca3af',
-            boxShadow: !isProcessing ? `0 4px 14px -3px ${primaryColor}50` : 'none',
+            boxShadow: !isProcessing && (!requiresCardGuaranteeConsent || cardGuaranteeConsent) ? `0 4px 14px -3px ${primaryColor}50` : 'none',
           }}
         >
           {isProcessing ? (

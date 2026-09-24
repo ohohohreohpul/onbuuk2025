@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
+import { BRAND_LOGO, BRAND_LOGO_LIGHT } from '@/lib/brand';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -55,8 +56,8 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 gradient-mesh opacity-70 pointer-events-none" />
-      <div className="absolute top-20 left-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+      <div className="absolute top-20 left-20 w-72 h-72 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#A09990]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
       
       {/* Left Panel - Image Carousel */}
       <div className="hidden lg:block lg:w-[45%] relative overflow-hidden">
@@ -82,8 +83,8 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
             <div className="flex items-center gap-3 text-white">
               <span className="text-4xl font-light tracking-tight">Get booked, on</span>
               <img
-                src="/blbuuklogo.png"
-                alt="buuk"
+                src={BRAND_LOGO_LIGHT}
+                alt="Zenno"
                 className="h-12 object-contain brightness-0 invert"
               />
             </div>
@@ -116,10 +117,10 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
             {/* Logo and heading */}
             <div className={`text-center transform transition-all duration-700 delay-100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               <div className="relative inline-block mb-6">
-                <div className="absolute inset-0 bg-[#008374]/20 blur-2xl rounded-full scale-150" />
+                <div className="absolute inset-0 bg-[#1A1714]/20 blur-2xl rounded-full scale-150" />
                 <img
-                  src="/buuklogo copy copy.png"
-                  alt="Buuk"
+                  src={BRAND_LOGO}
+                  alt="Zenno"
                   className="h-14 object-contain mx-auto relative"
                 />
               </div>
@@ -136,13 +137,13 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               {/* Sign In Card */}
               <Card 
                 glass
-                className="group cursor-pointer border-2 border-transparent hover:border-[#008374]/30 hover:shadow-xl hover:shadow-[#008374]/10 hover-lift" 
+                className="group cursor-pointer border-2 border-transparent hover:border-[#1A1714]/30 hover:shadow-xl hover:shadow-[#1A1714]/10 hover-lift" 
                 onClick={onSignIn}
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-[#008374]/10 rounded-xl flex items-center justify-center group-hover:bg-[#008374]/20 group-hover:scale-110 transition-all duration-300">
-                      <LogIn className="w-5 h-5 text-[#008374]" />
+                    <div className="w-12 h-12 bg-[#1A1714]/10 rounded-xl flex items-center justify-center group-hover:bg-[#1A1714]/20 group-hover:scale-110 transition-all duration-300">
+                      <LogIn className="w-5 h-5 text-[#1A1714]" />
                     </div>
                     <Badge variant="outline" className="text-xs rounded-full px-3 border-gray-200">
                       Existing User
@@ -163,7 +164,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
 
               {/* Sign Up Card */}
               <Card 
-                className="group cursor-pointer border-2 border-[#008374] bg-gradient-to-br from-[#008374] to-[#006b5e] text-white hover:shadow-2xl hover:shadow-[#008374]/30 hover-lift overflow-hidden relative" 
+                className="group cursor-pointer border-2 border-[#1A1714] bg-gradient-to-br from-[#1A1714] to-[#2E2926] text-white hover:shadow-2xl hover:shadow-[#1A1714]/30 hover-lift overflow-hidden relative" 
                 onClick={onSignUp}
               >
                 {/* Animated background effect */}
@@ -185,7 +186,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pb-5 relative">
-                  <Button className="w-full bg-white text-[#008374] hover:bg-white/90 hover:shadow-lg group/btn">
+                  <Button className="w-full bg-white text-[#1A1714] hover:bg-white/90 hover:shadow-lg group/btn">
                     Get Started Free
                     <ArrowRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
                   </Button>
@@ -200,7 +201,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                   key={feature.title}
                   className={`p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-100 hover:bg-white hover:shadow-md transition-all duration-300 animation-delay-${(index + 1) * 100}`}
                 >
-                  <feature.icon className="w-5 h-5 text-[#008374] mb-2" />
+                  <feature.icon className="w-5 h-5 text-[#1A1714] mb-2" />
                   <h4 className="text-sm font-medium text-foreground">{feature.title}</h4>
                   <p className="text-xs text-muted-foreground mt-1">{feature.description}</p>
                 </div>

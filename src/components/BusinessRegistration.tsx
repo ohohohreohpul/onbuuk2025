@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { shopUrl, appUrl } from '../lib/tenantHost';
 import { supabase } from '../lib/supabase';
 import { Building2, ArrowRight } from 'lucide-react';
+import { BRAND_LOGO } from '../lib/brand';
 
 export function BusinessRegistration() {
   const [formData, setFormData] = useState({
@@ -54,7 +56,7 @@ export function BusinessRegistration() {
           plan_type: 'free',
           is_active: true,
           owner_id: authData.user.id,
-          custom_logo_url: '/defbuuklogo.png',
+          custom_logo_url: BRAND_LOGO,
         })
         .select()
         .single();
@@ -119,8 +121,8 @@ export function BusinessRegistration() {
             business_name: formData.businessName,
             owner_name: formData.adminFullName,
             owner_email: formData.adminEmail,
-            permalink: `${window.location.origin}/${business.permalink}`,
-            dashboard_url: `${window.location.origin}/${business.permalink}/admin`,
+            permalink: shopUrl(business.permalink),
+            dashboard_url: appUrl('/admin'),
             setup_guide_url: '#',
           },
           business_id: business.id,
@@ -129,7 +131,7 @@ export function BusinessRegistration() {
 
       setSuccess(true);
       setTimeout(() => {
-        window.location.href = `/${business.permalink}/admin`;
+        window.location.href = '/admin';
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create business');

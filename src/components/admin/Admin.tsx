@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import WhatsNewModal from './whatsNew/WhatsNewModal';
 import AdminLayout from './AdminLayout';
 import DashboardView from './DashboardView';
 import BookingsView from './BookingsView';
@@ -10,10 +11,12 @@ import SettingsView from './SettingsView';
 import CalendarView from './CalendarView';
 import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
+import TaxReportsView from './TaxReportsView';
 import ProductsView from './ProductsView';
 import { adminAuth } from '../../lib/adminAuth';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
+import { BRAND_LOGO } from '../../lib/brand';
 
 const AUTH_CHECK_TIMEOUT = 15000;
 const OAUTH_PROCESSING_TIMEOUT = 60000;
@@ -22,7 +25,29 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading...');
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedView = params.get('view');
+    const validViews = new Set([
+      'dashboard',
+      'calendar',
+      'bookings',
+      'customers',
+      'services',
+      'specialists',
+      'staff',
+      'loyalty',
+      'tax',
+      'fees',
+      'products',
+      'settings',
+      'gift-cards',
+    ]);
+
+    if (requestedView && validViews.has(requestedView)) return requestedView;
+    if (params.has('connect_return') || params.has('connect_refresh')) return 'settings';
+    return 'dashboard';
+  });
   const processingOAuthRef = useRef(false);
   const authCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
@@ -143,7 +168,7 @@ export default function Admin() {
                 plan_type: 'free',
                 is_active: true,
                 owner_id: session.user.id,
-                custom_logo_url: '/defbuuklogo.png',
+                custom_logo_url: BRAND_LOGO,
                 profile_completed: false,
               })
               .select()
@@ -330,7 +355,7 @@ export default function Admin() {
       case 'calendar':
         return <CalendarView />;
       case 'bookings':
-        return <BookingsView />;
+        return <BookingsView onNavigate={setCurrentView} />;
       case 'customers':
         return <CustomersView />;
       case 'services':
@@ -341,6 +366,8 @@ export default function Admin() {
         return <TeamManagementView />;
       case 'loyalty':
         return <LoyaltyRewardsView />;
+      case 'tax':
+        return <TaxReportsView />;
       case 'fees':
         return <NoShowFeesView />;
       case 'products':
@@ -361,6 +388,7 @@ export default function Admin() {
       onLogout={handleLogout}
     >
       {renderView()}
+      <WhatsNewModal />
     </AdminLayout>
   );
 }

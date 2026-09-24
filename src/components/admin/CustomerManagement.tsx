@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { User, Calendar, DollarSign, FileText, Search, X } from 'lucide-react';
+import { useCurrency } from '../../lib/currencyContext';
+import { EMPTY_CUSTOMER_STATS, fetchCustomerStats, formatCalendarDate, type CustomerStats } from '../../lib/customerStats';
 
 interface Customer {
   id: string;
   name: string;
   email: string;
   phone: string;
-  total_bookings: number;
-  total_spent_cents: number;
-  first_visit_date: string | null;
-  last_visit_date: string | null;
+  business_id: string;
   created_at: string;
 }
 
@@ -30,6 +29,7 @@ interface NoShowFee {
   reason: string;
   charged_at: string;
   paid: boolean;
+  resolution_status: 'unpaid' | 'paid' | 'waived';
   notes: string | null;
 }
 
@@ -48,8 +48,10 @@ interface CustomerManagementProps {
 }
 
 export default function CustomerManagement({ customerId, onClose }: CustomerManagementProps) {
+  const { formatPrice } = useCurrency();
   const [activeTab, setActiveTab] = useState<SidebarTab>('info');
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [stats, setStats] = useState<CustomerStats>({ customer_id: customerId, ...EMPTY_CUSTOMER_STATS });
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [fees, setFees] = useState<NoShowFee[]>([]);
   const [notes, setNotes] = useState<CustomerNote[]>([]);
@@ -63,39 +65,57 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
   const fetchCustomerData = async () => {
     setLoading(true);
 
-    const { data: customerData } = await supabase
+    const { data: customerData, error: customerError } = await supabase
       .from('customers')
       .select('*')
       .eq('id', customerId)
       .single();
 
-    if (customerData) {
-      setCustomer(customerData);
+    if (customerError || !customerData) {
+      console.error('Error loading customer:', customerError);
+      setLoading(false);
+      return;
+    }
+    setCustomer(customerData);
+
+    try {
+      setStats(await fetchCustomerStats(customerId));
+    } catch (err) {
+      console.error(err);
     }
 
-    const { data: bookingsData } = await supabase
+    // Same matching rule as the customer_stats view: this business, case-insensitive email.
+    const escapedEmail = customerData.email.trim().replace(/[\\%_]/g, (ch: string) => `\\${ch}`);
+    const { data: bookingsData, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
         *,
         service:services(name),
         duration:service_durations(duration_minutes, price_cents)
       `)
-      .eq('customer_email', customerData?.email)
+      .eq('business_id', customerData.business_id)
+      .ilike('customer_email', escapedEmail)
       .order('booking_date', { ascending: false });
 
-    if (bookingsData) {
-      setBookings(bookingsData as any);
+    if (bookingsError) {
+      console.error('Error loading customer bookings:', bookingsError);
     }
+    const customerBookings = (bookingsData || []) as unknown as Booking[];
+    setBookings(customerBookings);
 
-    const { data: feesData } = await supabase
-      .from('no_show_fees')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('charged_at', { ascending: false });
+    const bookingIds = customerBookings.map((booking) => booking.id);
+    const { data: feesData, error: feesError } = bookingIds.length
+      ? await supabase
+          .from('no_show_fees')
+          .select('*')
+          .in('booking_id', bookingIds)
+          .order('charged_at', { ascending: false })
+      : { data: [], error: null };
 
-    if (feesData) {
-      setFees(feesData);
+    if (feesError) {
+      console.error('Error loading customer fees:', feesError);
     }
+    setFees((feesData || []) as NoShowFee[]);
 
     const { data: notesData } = await supabase
       .from('customer_notes')
@@ -125,9 +145,7 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
     }
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -210,9 +228,9 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
               <DollarSign className="w-5 h-5" />
               <div className="flex items-center justify-between flex-1">
                 <span>Fees</span>
-                {fees.length > 0 && (
+                {fees.some((f) => f.resolution_status === 'unpaid') && (
                   <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full">
-                    {fees.filter((f) => !f.paid).length}
+                    {fees.filter((f) => f.resolution_status === 'unpaid').length} unpaid
                   </span>
                 )}
               </div>
@@ -255,28 +273,34 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
 
                 <div className="border-t border-stone-200 pt-6">
                   <h3 className="text-lg font-medium text-stone-800 mb-4">Statistics</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-stone-50 border border-stone-200">
-                      <p className="text-sm text-stone-600 mb-1">Total Bookings</p>
-                      <p className="text-2xl font-light text-stone-800">{customer.total_bookings}</p>
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    {[
+                      { label: 'Visits', value: stats.visits_count },
+                      { label: 'No-shows', value: stats.no_show_count },
+                      { label: 'Cancelled', value: stats.cancelled_count },
+                      { label: 'Upcoming', value: stats.upcoming_count },
+                    ].map((item) => (
+                      <div key={item.label} className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                        <p className="text-sm text-stone-600 mb-1">{item.label}</p>
+                        <p className="text-2xl font-light text-stone-800 tabular-nums">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-stone-400">
+                    {stats.total_count} booking{stats.total_count === 1 ? '' : 's'} in total, matching the Bookings tab.
+                  </p>
+                  <div className="mt-4 grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                      <p className="text-sm text-stone-600 mb-1">Spent on visits</p>
+                      <p className="text-2xl font-light text-stone-800">{formatPrice(stats.spent_cents)}</p>
                     </div>
-                    <div className="p-4 bg-stone-50 border border-stone-200">
-                      <p className="text-sm text-stone-600 mb-1">Total Spent</p>
-                      <p className="text-2xl font-light text-stone-800">
-                        {formatPrice(customer.total_spent_cents)}
-                      </p>
+                    <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                      <p className="text-sm text-stone-600 mb-1">First visit</p>
+                      <p className="text-sm text-stone-800">{formatCalendarDate(stats.first_visit_date)}</p>
                     </div>
-                    <div className="p-4 bg-stone-50 border border-stone-200">
-                      <p className="text-sm text-stone-600 mb-1">First Visit</p>
-                      <p className="text-sm text-stone-800">
-                        {customer.first_visit_date ? formatDate(customer.first_visit_date) : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-stone-50 border border-stone-200">
-                      <p className="text-sm text-stone-600 mb-1">Last Visit</p>
-                      <p className="text-sm text-stone-800">
-                        {customer.last_visit_date ? formatDate(customer.last_visit_date) : 'N/A'}
-                      </p>
+                    <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
+                      <p className="text-sm text-stone-600 mb-1">Last visit</p>
+                      <p className="text-sm text-stone-800">{formatCalendarDate(stats.last_visit_date)}</p>
                     </div>
                   </div>
                 </div>
@@ -323,7 +347,7 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
                         </div>
                         <div className="flex items-center justify-between text-sm text-stone-600">
                           <span>
-                            {formatDate(booking.booking_date)} at {booking.start_time}
+                            {formatCalendarDate(booking.booking_date)} at {booking.start_time.slice(0, 5)}
                           </span>
                           {booking.no_show && (
                             <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">
@@ -369,12 +393,14 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
                             <p className="font-medium text-stone-800">{formatPrice(fee.amount)}</p>
                             <span
                               className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${
-                                fee.paid
+                                fee.resolution_status === 'paid'
                                   ? 'bg-green-100 text-green-800'
-                                  : 'bg-orange-100 text-orange-800'
+                                  : fee.resolution_status === 'waived'
+                                    ? 'bg-stone-100 text-stone-600'
+                                    : 'bg-orange-100 text-orange-800'
                               }`}
                             >
-                              {fee.paid ? 'Paid' : 'Unpaid'}
+                              {fee.resolution_status === 'paid' ? 'Paid' : fee.resolution_status === 'waived' ? 'Waived' : 'Unpaid'}
                             </span>
                           </div>
                         </div>

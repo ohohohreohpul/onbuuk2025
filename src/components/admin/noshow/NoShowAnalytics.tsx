@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingDown, Users, Coins } from 'lucide-react';
+import { AlertTriangle, BarChart3, Coins, TrendingDown, Users } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { useCurrency } from '../../../lib/currencyContext';
+import {
+  ADMIN_ICON_TILE,
+  ADMIN_STATUS_PILL,
+  ADMIN_SURFACE,
+  ADMIN_SURFACE_INTERACTIVE,
+} from '../adminUi';
 
 interface NoShowBookingRow {
   id: string;
@@ -91,11 +98,8 @@ function buildDayOfWeekBreakdown(rows: NoShowBookingRow[]): DayBucket[] {
   return counts;
 }
 
-function formatPrice(cents: number): string {
-  return `€${(cents / 100).toFixed(2)}`;
-}
-
 export default function NoShowAnalytics({ businessId }: NoShowAnalyticsProps) {
+  const { formatPrice } = useCurrency();
   const [bookings, setBookings] = useState<NoShowBookingRow[]>([]);
   const [feesCollectedCents, setFeesCollectedCents] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -136,8 +140,16 @@ export default function NoShowAnalytics({ businessId }: NoShowAnalyticsProps) {
 
   if (loading) {
     return (
-      <div className="bg-white border border-stone-200 p-6 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-800 rounded-full animate-spin"></div>
+      <div className="space-y-4 animate-pulse">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className={`${ADMIN_SURFACE} h-36 bg-stone-900/[0.035]`} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className={`${ADMIN_SURFACE} h-56 bg-stone-900/[0.035]`} />
+          <div className={`${ADMIN_SURFACE} h-56 bg-stone-900/[0.035]`} />
+        </div>
       </div>
     );
   }
@@ -155,66 +167,103 @@ export default function NoShowAnalytics({ businessId }: NoShowAnalyticsProps) {
   const maxDayCount = Math.max(1, ...dayOfWeekBreakdown.map((d) => d.count));
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-stone-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-stone-600">No-Show Rate</span>
-            <AlertTriangle className="w-5 h-5 text-orange-600" />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
+          <div className="mb-4 flex items-start justify-between">
+            <div className={ADMIN_ICON_TILE}>
+              <AlertTriangle className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <span className={`${ADMIN_STATUS_PILL} bg-amber-50 text-amber-700`}>
+              {noShowBookings.length} missed
+            </span>
           </div>
-          <div className="text-2xl font-light text-stone-800">{noShowRate.toFixed(1)}%</div>
-          <div className="text-xs text-stone-500 mt-1">
+          <p className="mb-1 text-[13px] font-medium text-stone-500">No-show rate</p>
+          <div className="text-3xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{noShowRate.toFixed(1)}%</div>
+          <div className="mt-1 text-xs text-stone-400">
             {noShowBookings.length} of {bookings.length} bookings
           </div>
         </div>
 
-        <div className="bg-white border border-stone-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-stone-600">Revenue Lost</span>
-            <TrendingDown className="w-5 h-5 text-red-600" />
+        <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
+          <div className="mb-4 flex items-start justify-between">
+            <div className={ADMIN_ICON_TILE}>
+              <TrendingDown className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <span className={`${ADMIN_STATUS_PILL} bg-stone-900/[0.05] text-stone-500`}>
+              missed value
+            </span>
           </div>
-          <div className="text-2xl font-light text-stone-800">{formatPrice(lostRevenueCents)}</div>
-          <div className="text-xs text-stone-500 mt-1">From no-show bookings</div>
+          <p className="mb-1 text-[13px] font-medium text-stone-500">Revenue lost</p>
+          <div className="text-3xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{formatPrice(lostRevenueCents)}</div>
+          <div className="mt-1 text-xs text-stone-400">From no-show bookings</div>
         </div>
 
-        <div className="bg-white border border-stone-200 p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-stone-600">Fees Recovered</span>
-            <Coins className="w-5 h-5 text-green-600" />
+        <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
+          <div className="mb-4 flex items-start justify-between">
+            <div className={ADMIN_ICON_TILE}>
+              <Coins className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <span className={`${ADMIN_STATUS_PILL} bg-emerald-50 text-emerald-700`}>
+              collected
+            </span>
           </div>
-          <div className="text-2xl font-light text-stone-800">{formatPrice(feesCollectedCents)}</div>
-          <div className="text-xs text-stone-500 mt-1">Paid no-show fees</div>
+          <p className="mb-1 text-[13px] font-medium text-stone-500">Fees recovered</p>
+          <div className="text-3xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{formatPrice(feesCollectedCents)}</div>
+          <div className="mt-1 text-xs text-stone-400">Paid no-show fees</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-stone-200 p-6">
-          <h3 className="text-sm font-medium text-stone-700 mb-4">No-Shows Over Last {WEEKS_TO_SHOW} Weeks</h3>
-          <div className="flex items-end justify-between gap-2 h-32">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={`${ADMIN_SURFACE} p-5`}>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900/[0.05]">
+              <BarChart3 className="h-4 w-4 text-stone-600" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#1A1714]">Eight-week trend</h3>
+              <p className="text-xs text-stone-400">No-shows by week</p>
+            </div>
+          </div>
+          <div className="flex h-36 items-end justify-between gap-2">
             {weeklyTrend.map((week) => (
-              <div key={week.weekLabel} className="flex-1 flex flex-col items-center gap-2">
+              <div key={week.weekLabel} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                <span className={`text-[10px] font-medium tabular-nums ${week.count ? 'text-stone-600' : 'text-stone-300'}`}>
+                  {week.count || ''}
+                </span>
                 <div
-                  className="w-full bg-orange-200 hover:bg-orange-300 transition-colors rounded-t"
-                  style={{ height: `${(week.count / maxWeeklyCount) * 100}%`, minHeight: week.count > 0 ? '4px' : '0' }}
+                  className="w-full rounded-md bg-[#1A1714] transition-all duration-500 hover:bg-[#2E2926]"
+                  style={{ height: `${Math.max((week.count / maxWeeklyCount) * 100, week.count > 0 ? 10 : 3)}%` }}
                   title={`${week.count} no-shows`}
-                ></div>
-                <span className="text-[10px] text-stone-500 -rotate-45 whitespace-nowrap">{week.weekLabel}</span>
+                />
+                <span className="whitespace-nowrap text-[10px] text-stone-400">{week.weekLabel}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white border border-stone-200 p-6">
-          <h3 className="text-sm font-medium text-stone-700 mb-4">No-Shows by Day of Week</h3>
-          <div className="flex items-end justify-between gap-2 h-32">
+        <div className={`${ADMIN_SURFACE} p-5`}>
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900/[0.05]">
+              <BarChart3 className="h-4 w-4 text-stone-600" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#1A1714]">Day pattern</h3>
+              <p className="text-xs text-stone-400">No-shows by weekday</p>
+            </div>
+          </div>
+          <div className="flex h-36 items-end justify-between gap-2">
             {dayOfWeekBreakdown.map((day) => (
-              <div key={day.dayLabel} className="flex-1 flex flex-col items-center gap-2">
+              <div key={day.dayLabel} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                <span className={`text-[10px] font-medium tabular-nums ${day.count ? 'text-stone-600' : 'text-stone-300'}`}>
+                  {day.count || ''}
+                </span>
                 <div
-                  className="w-full bg-stone-300 hover:bg-stone-400 transition-colors rounded-t"
-                  style={{ height: `${(day.count / maxDayCount) * 100}%`, minHeight: day.count > 0 ? '4px' : '0' }}
+                  className="w-full rounded-md bg-stone-900/[0.14] transition-all duration-500 hover:bg-stone-900/25"
+                  style={{ height: `${Math.max((day.count / maxDayCount) * 100, day.count > 0 ? 10 : 3)}%` }}
                   title={`${day.count} no-shows`}
-                ></div>
-                <span className="text-xs text-stone-500">{day.dayLabel}</span>
+                />
+                <span className="text-[10px] text-stone-400">{day.dayLabel}</span>
               </div>
             ))}
           </div>
@@ -222,22 +271,27 @@ export default function NoShowAnalytics({ businessId }: NoShowAnalyticsProps) {
       </div>
 
       {repeatOffenders.length > 0 && (
-        <div className="bg-white border border-stone-200 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-4 h-4 text-stone-600" />
-            <h3 className="text-sm font-medium text-stone-700">Repeat No-Show Customers</h3>
+        <div className={`${ADMIN_SURFACE} p-5`}>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-900/[0.05]">
+              <Users className="h-4 w-4 text-stone-600" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#1A1714]">Repeat no-shows</h3>
+              <p className="text-xs text-stone-400">Customers with more than one missed booking</p>
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="divide-y divide-stone-200/60 overflow-hidden rounded-xl bg-stone-900/[0.025] px-3">
             {repeatOffenders.map((offender) => (
               <div
                 key={offender.customerEmail}
-                className="flex items-center justify-between py-2 border-b border-stone-100 last:border-0"
+                className="flex items-center justify-between gap-4 px-1 py-3"
               >
                 <div>
-                  <div className="text-sm text-stone-800 font-medium">{offender.customerName}</div>
-                  <div className="text-xs text-stone-500">{offender.customerEmail}</div>
+                  <div className="text-sm font-medium text-[#1A1714]">{offender.customerName}</div>
+                  <div className="mt-0.5 text-xs text-stone-400">{offender.customerEmail}</div>
                 </div>
-                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">
+                <span className={`${ADMIN_STATUS_PILL} bg-amber-50 text-amber-700`}>
                   {offender.count} no-shows
                 </span>
               </div>

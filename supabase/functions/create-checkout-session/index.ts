@@ -10,6 +10,8 @@ const corsHeaders = {
 interface CheckoutRequest {
   bookingId?: string;
   giftCardId?: string;
+  /** Pay-at-venue guarantee: collect card details only, charge later if no-show (Treatwell model) */
+  cardOnly?: boolean;
   customerEmail: string;
   customerName: string;
   amount: number;
@@ -18,8 +20,12 @@ interface CheckoutRequest {
   dateTime: string;
   isGiftCard?: boolean;
   businessId?: string;
+  cardGuaranteeConsent?: boolean;
+  cardGuaranteePolicyVersion?: string;
   giftCardData?: {
     code: string;
+    cardType?: "value" | "service_pass";
+    servicePassOfferId?: string | null;
     originalValueCents: number;
     purchasedForEmail: string | null;
     expiresAt: string | null;
@@ -44,17 +50,28 @@ Deno.serve(async (req: Request) => {
     const requestData: CheckoutRequest = await req.json();
     const { bookingId, giftCardId, customerEmail, customerName, amount, serviceName, specialistName, dateTime, isGiftCard, giftCardData } = requestData;
     let businessId = requestData.businessId;
+    let bookingAmountCents: number | null = null;
+    let bookingServiceId: string | null = null;
+    let giftCardAmountCents: number | null = null;
 
-    if (!businessId && bookingId) {
-      const { data: booking } = await supabase
+    if (bookingId) {
+      const { data: booking, error: bookingError } = await supabase
         .from("bookings")
-        .select("business_id")
+        .select("business_id, customer_email, final_amount_cents, service_id")
         .eq("id", bookingId)
         .maybeSingle();
 
-      if (booking) {
-        businessId = booking.business_id;
+      if (bookingError || !booking) {
+        throw new Error("Booking not found");
       }
+
+      if (booking.customer_email?.trim().toLowerCase() !== customerEmail.trim().toLowerCase()) {
+        throw new Error("Booking details do not match");
+      }
+
+      businessId = booking.business_id;
+      bookingAmountCents = booking.final_amount_cents;
+      bookingServiceId = booking.service_id;
     }
 
     if (!businessId && giftCardId) {
@@ -83,7 +100,7 @@ Deno.serve(async (req: Request) => {
       .from("site_settings")
       .select("key, value")
       .eq("business_id", businessId)
-      .in("key", ["stripe_enabled", "stripe_secret_key"]);
+      .in("key", ["stripe_enabled", "currency"]);
 
     const settingsMap: { [key: string]: string } = {};
     if (settings) {
@@ -114,37 +131,29 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    let stripeSecretKey = settingsMap.stripe_secret_key || "";
-    
-    // Clean up the key - remove any whitespace and validate format
-    stripeSecretKey = stripeSecretKey.trim();
-    
-    // Log key format for debugging (only first/last chars for security)
-    if (stripeSecretKey) {
-      const keyPreview = stripeSecretKey.length > 10 
-        ? `${stripeSecretKey.substring(0, 7)}...${stripeSecretKey.substring(stripeSecretKey.length - 4)}`
-        : "too_short";
-      console.log(`Stripe key format check: ${keyPreview}, length: ${stripeSecretKey.length}`);
-      
-      // Validate key format
-      if (!stripeSecretKey.startsWith('sk_live_') && !stripeSecretKey.startsWith('sk_test_')) {
-        console.error(`Invalid Stripe key format. Key starts with: ${stripeSecretKey.substring(0, 10)}`);
-        throw new Error(
-          "Invalid Stripe secret key format. The key should start with 'sk_live_' or 'sk_test_'. " +
-          "Please check your Payment Settings and re-enter the key without any extra characters."
-        );
-      }
+    if (settingsMap.stripe_enabled !== "true") {
+      throw new Error("Card payments are not enabled for this business");
     }
-    
-    if (!stripeSecretKey || stripeSecretKey === "") {
-      const platformKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (platformKey) {
-        stripeSecretKey = platformKey;
-        console.log("Using platform Stripe key");
-      } else {
-        throw new Error("Stripe secret key not configured");
-      }
+
+    const currency = (settingsMap.currency || "").trim().toLowerCase();
+    if (!/^[a-z]{3}$/.test(currency)) {
+      throw new Error("The business owner must choose a valid currency in Settings before accepting payments");
     }
+
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Stripe is not configured for the Zenno platform");
+    }
+
+    if (
+      !business ||
+      !business.stripe_connect_account_id ||
+      !business.stripe_connect_onboarding_complete ||
+      !business.stripe_connect_charges_enabled
+    ) {
+      throw new Error("The business owner must finish Stripe onboarding before accepting card payments");
+    }
+    const connectedAccountId = business.stripe_connect_account_id;
 
     const origin = req.headers.get("origin") || "";
 
@@ -154,6 +163,7 @@ Deno.serve(async (req: Request) => {
     let productDescription: string;
     const metadata: { [key: string]: string } = {
       "customer_name": customerName,
+      "customer_email": customerEmail,
       "business_id": businessId,
     };
 
@@ -179,16 +189,76 @@ Deno.serve(async (req: Request) => {
         // New flow: gift card data passed, will be created after payment
         successUrl = `${origin}/gift-card-success?session_id={CHECKOUT_SESSION_ID}&business_id=${businessId}`;
         cancelUrl = `${origin}/payment-cancelled${cancelUrlParams}`;
-        productName = serviceName;
-        productDescription = dateTime;
+        const cardType = giftCardData.cardType || "value";
+        const { data: giftSettings } = await supabase
+          .from("gift_card_settings")
+          .select("enabled, preset_amounts_cents, allow_custom_amount, min_custom_amount_cents, max_custom_amount_cents, expiry_days")
+          .eq("business_id", businessId)
+          .maybeSingle();
+
+        if (!giftSettings?.enabled) {
+          throw new Error("Gift cards and passes are not enabled for this business");
+        }
+
+        let expiresAt = giftCardData.expiresAt;
+        if (cardType === "service_pass") {
+          if (!giftCardData.servicePassOfferId) {
+            throw new Error("A service-pass offer is required");
+          }
+
+          const { data: offer } = await supabase
+            .from("service_pass_offers")
+            .select("id, name, service_id, duration_id, visit_count, price_cents, expiry_days, is_active")
+            .eq("id", giftCardData.servicePassOfferId)
+            .eq("business_id", businessId)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (!offer) {
+            throw new Error("This service pass is no longer available");
+          }
+
+          giftCardAmountCents = offer.price_cents;
+          const expiryDays = offer.expiry_days ?? giftSettings.expiry_days;
+          expiresAt = expiryDays
+            ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
+            : null;
+          productName = offer.name;
+          productDescription = `${offer.visit_count} ${offer.visit_count === 1 ? "visit" : "visits"} · ${dateTime}`;
+          metadata["gc_card_type"] = "service_pass";
+          metadata["gc_service_pass_offer_id"] = offer.id;
+          metadata["gc_service_pass_name"] = offer.name;
+          metadata["gc_service_id"] = offer.service_id;
+          metadata["gc_duration_id"] = offer.duration_id;
+          metadata["gc_visit_count"] = offer.visit_count.toString();
+        } else {
+          const valueCents = Math.round(giftCardData.originalValueCents);
+          const isPreset = (giftSettings.preset_amounts_cents || []).includes(valueCents);
+          const isAllowedCustom = giftSettings.allow_custom_amount
+            && valueCents >= giftSettings.min_custom_amount_cents
+            && valueCents <= giftSettings.max_custom_amount_cents;
+
+          if (valueCents <= 0 || (!isPreset && !isAllowedCustom)) {
+            throw new Error("The selected gift-card value is not available");
+          }
+
+          giftCardAmountCents = valueCents;
+          expiresAt = giftSettings.expiry_days
+            ? new Date(Date.now() + giftSettings.expiry_days * 24 * 60 * 60 * 1000).toISOString()
+            : null;
+          productName = serviceName;
+          productDescription = dateTime;
+          metadata["gc_card_type"] = "value";
+        }
+
         metadata["type"] = "gift_card_new";
         metadata["gc_code"] = giftCardData.code;
-        metadata["gc_amount"] = giftCardData.originalValueCents.toString();
+        metadata["gc_amount"] = giftCardAmountCents.toString();
         if (giftCardData.purchasedForEmail) {
           metadata["gc_recipient_email"] = giftCardData.purchasedForEmail;
         }
-        if (giftCardData.expiresAt) {
-          metadata["gc_expires_at"] = giftCardData.expiresAt;
+        if (expiresAt) {
+          metadata["gc_expires_at"] = expiresAt;
         }
         if (giftCardData.message) {
           metadata["gc_message"] = giftCardData.message;
@@ -207,40 +277,121 @@ Deno.serve(async (req: Request) => {
       throw new Error("Either bookingId or giftCardId must be provided");
     }
 
-    const amountInCents = Math.round(amount * 100);
+    const amountInCents = bookingId && bookingAmountCents !== null
+      ? Math.max(0, bookingAmountCents)
+      : giftCardAmountCents !== null
+        ? giftCardAmountCents
+        : Math.round(amount * 100);
+    const cardOnly = requestData.cardOnly === true;
+
+    // Card guarantee mode (Treatwell): SetupIntent-only checkout — no charge now,
+    // card saved for off-session no-show / late-cancel charges.
+    if (cardOnly && bookingId) {
+      if (requestData.cardGuaranteeConsent !== true) {
+        throw new Error("Card-guarantee consent is required");
+      }
+
+      if (!bookingServiceId) {
+        throw new Error("Booking service not found");
+      }
+
+      const { data: service } = await supabase
+        .from("services")
+        .select("no_show_fee, no_show_fee_enabled, late_cancel_hours")
+        .eq("id", bookingServiceId)
+        .eq("business_id", businessId)
+        .maybeSingle();
+
+      const guaranteeFeeCents = Number(service?.no_show_fee ?? 0);
+      if (!service?.no_show_fee_enabled || guaranteeFeeCents <= 0) {
+        throw new Error("This service does not have an active card guarantee");
+      }
+
+      const policyVersion = requestData.cardGuaranteePolicyVersion || "2026-09";
+      const consentedAt = new Date().toISOString();
+      const lateCancelHours = Number(service.late_cancel_hours ?? 24);
+
+      const { error: consentError } = await supabase
+        .from("bookings")
+        .update({
+          card_guarantee_consent_at: consentedAt,
+          card_guarantee_policy_version: policyVersion,
+          card_guarantee_fee_cents: guaranteeFeeCents,
+          card_guarantee_late_cancel_hours: lateCancelHours,
+          card_guarantee_currency: currency.toUpperCase(),
+        })
+        .eq("id", bookingId)
+        .eq("business_id", businessId);
+
+      if (consentError) {
+        throw new Error("Card-guarantee consent could not be recorded");
+      }
+
+      metadata["connected_account_id"] = connectedAccountId;
+      metadata["guarantee_fee_cents"] = guaranteeFeeCents.toString();
+      metadata["late_cancel_hours"] = lateCancelHours.toString();
+      metadata["policy_version"] = policyVersion;
+      metadata["consented_at"] = consentedAt;
+
+      const setupParams: { [key: string]: string } = {
+        "mode": "setup",
+        "currency": currency,
+        "payment_method_types[0]": "card",
+        "success_url": successUrl,
+        "cancel_url": cancelUrl,
+        "customer_email": customerEmail,
+        "customer_creation": "always",
+        "setup_intent_data[on_behalf_of]": connectedAccountId,
+      };
+      Object.keys(metadata).forEach((key) => {
+        setupParams[`metadata[${key}]`] = metadata[key];
+        setupParams[`setup_intent_data[metadata][${key}]`] = metadata[key];
+      });
+      setupParams["metadata[type]"] = "booking_card_guarantee";
+      setupParams["setup_intent_data[metadata][type]"] = "booking_card_guarantee";
+
+      const setupRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${stripeSecretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(setupParams),
+      });
+      if (!setupRes.ok) {
+        const errText = await setupRes.text();
+        console.error("Stripe setup-mode session error:", errText);
+        throw new Error(`Unable to start card guarantee checkout: ${errText}`);
+      }
+      const session = await setupRes.json();
+      return new Response(JSON.stringify({ sessionId: session.id, url: session.url, mode: "setup" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const stripeParams: { [key: string]: string } = {
       "mode": "payment",
       "success_url": successUrl,
       "cancel_url": cancelUrl,
       "customer_email": customerEmail,
       "allow_promotion_codes": "true",
-      "line_items[0][price_data][currency]": "eur",
+      // Card-on-file: attach the payment method to a Stripe customer so the
+      // business can charge late-cancel / no-show fees off-session.
+      "customer_creation": "always",
+      "payment_intent_data[setup_future_usage]": "off_session",
+      "line_items[0][price_data][currency]": currency,
       "line_items[0][price_data][product_data][name]": productName,
       "line_items[0][price_data][product_data][description]": productDescription,
       "line_items[0][price_data][unit_amount]": amountInCents.toString(),
       "line_items[0][quantity]": "1",
     };
 
-    if (
-      business?.stripe_connect_account_id &&
-      business?.stripe_connect_onboarding_complete &&
-      business?.stripe_connect_charges_enabled
-    ) {
-      const platformFeePercentage = business.platform_fee_percentage || 2.5;
-      const applicationFee = Math.round(amountInCents * (platformFeePercentage / 100));
+    const platformFeePercentage = business.platform_fee_percentage || 2.5;
+    const applicationFee = Math.round(amountInCents * (platformFeePercentage / 100));
 
-      stripeParams["payment_intent_data[application_fee_amount]"] = applicationFee.toString();
-      stripeParams["payment_intent_data[on_behalf_of]"] = business.stripe_connect_account_id;
-      stripeParams["payment_intent_data[transfer_data][destination]"] = business.stripe_connect_account_id;
-      
-      metadata["connected_account_id"] = business.stripe_connect_account_id;
-      metadata["platform_fee"] = applicationFee.toString();
-      metadata["platform_fee_percentage"] = platformFeePercentage.toString();
+    stripeParams["payment_intent_data[application_fee_amount]"] = applicationFee.toString();
+    stripeParams["payment_intent_data[on_behalf_of]"] = connectedAccountId;
+    stripeParams["payment_intent_data[transfer_data][destination]"] = connectedAccountId;
 
-      console.log(`Using Stripe Connect for business ${businessId}, account ${business.stripe_connect_account_id}, fee: ${platformFeePercentage}%`);
-    } else {
-      console.log(`Using legacy Stripe integration for business ${businessId}`);
-    }
+    metadata["connected_account_id"] = connectedAccountId;
+    metadata["platform_fee"] = applicationFee.toString();
+    metadata["platform_fee_percentage"] = platformFeePercentage.toString();
 
     Object.keys(metadata).forEach((key) => {
       stripeParams[`metadata[${key}]`] = metadata[key];
@@ -262,12 +413,6 @@ Deno.serve(async (req: Request) => {
       // Parse and provide more helpful error messages
       try {
         const errorJson = JSON.parse(errorData);
-        if (errorJson.error?.message?.includes("Invalid API Key")) {
-          throw new Error(
-            "Invalid Stripe API key. Please check that your secret key is correct and doesn't have extra spaces or quotes. " +
-            "Go to Payment Settings and re-enter your Stripe secret key."
-          );
-        }
         throw new Error(`Stripe error: ${errorJson.error?.message || errorData}`);
       } catch (parseError) {
         throw new Error(`Stripe API error: ${errorData}`);

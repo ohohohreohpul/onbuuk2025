@@ -20,8 +20,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const primaryColor = colors.primary || '#008374';
-  const primaryHoverColor = colors.primaryHover || '#006d5f';
+  const primaryColor = colors.primary || '#1A1714';
+  const primaryHoverColor = colors.primaryHover || '#2E2926';
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
@@ -82,7 +82,7 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
-        <h2 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
+        <h2 className="text-3xl font-semibold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
       </div>
 
@@ -193,9 +193,9 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
             <div className="flex items-center space-x-2">
               <div 
                 className="p-1.5 rounded-lg"
-                style={{ backgroundColor: `${colors.secondary || '#89BA16'}15` }}
+                style={{ backgroundColor: `${colors.secondary || '#A09990'}15` }}
               >
-                <FileText className="w-4 h-4" style={{ color: colors.secondary || '#89BA16' }} />
+                <FileText className="w-4 h-4" style={{ color: colors.secondary || '#A09990' }} />
               </div>
               <span>{content.labels.notes}</span>
             </div>

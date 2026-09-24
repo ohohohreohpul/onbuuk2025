@@ -4,6 +4,7 @@ import { useTenant } from '../../lib/tenantContext';
 import { Plus, Edit2, Trash2, X, LayoutList, LayoutGrid, GripVertical, Upload } from 'lucide-react';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
 import { ImportServicesModal } from './ImportServicesModal';
+import { useCurrency } from '../../lib/currencyContext';
 
 interface Service {
   id: string;
@@ -28,6 +29,7 @@ interface ServiceDuration {
 }
 
 export default function ServicesView() {
+  const { formatPrice, currencySymbol } = useCurrency();
   const tenant = useTenant();
   const premiumFeatures = usePremiumFeatures();
   const [services, setServices] = useState<Service[]>([]);
@@ -311,9 +313,7 @@ export default function ServicesView() {
     setServiceDurations(updated);
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   if (loading) {
     return (
@@ -412,14 +412,14 @@ export default function ServicesView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Services</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Services</h1>
           <p className="text-gray-600">Manage massage services and pricing</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1714] focus:border-transparent transition-all"
           >
             <option value="all">All Categories</option>
             {existingCategories.map((cat) => (
@@ -454,7 +454,7 @@ export default function ServicesView() {
           </button>
           <button
             onClick={openCreateModal}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all shadow-sm hover:shadow-md"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
             <span className="font-medium">Add Service</span>
@@ -468,10 +468,10 @@ export default function ServicesView() {
             <div key={category} className="space-y-4">
               <button
                 onClick={() => toggleCategory(category)}
-                className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all border-l-4 border-[#008374] rounded-r-lg shadow-sm"
+                className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all border-l-4 border-[#1A1714] rounded-r-lg shadow-sm"
               >
                 <div className="flex items-center space-x-3">
-                  <h2 className="text-xl font-semibold text-gray-900">{category}</h2>
+                  <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{category}</h2>
                   <span className="text-sm px-3 py-1 bg-white rounded-full text-gray-600 font-medium shadow-sm">
                     {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
                   </span>
@@ -496,7 +496,7 @@ export default function ServicesView() {
                           draggedService?.id === service.id
                             ? 'opacity-50 scale-95'
                             : dragOverService?.id === service.id
-                            ? 'border-[#008374] border-2 shadow-xl scale-105'
+                            ? 'border-[#1A1714] border-2 shadow-xl scale-105'
                             : 'border-gray-200 hover:border-gray-300 hover:shadow-lg'
                         }`}
                       >
@@ -507,10 +507,10 @@ export default function ServicesView() {
                   {service.category && (
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">{service.category}</p>
                   )}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  <h3 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">
                     {service.name}
                     {service.is_pair_massage && (
-                      <span className="ml-2 text-xs px-3 py-1 bg-[#008374] bg-opacity-10 text-[#008374] rounded-full font-medium">
+                      <span className="ml-2 text-xs px-3 py-1 bg-[#1A1714] bg-opacity-10 text-[#1A1714] rounded-full font-medium">
                         Couples Available
                       </span>
                     )}
@@ -521,7 +521,7 @@ export default function ServicesView() {
               <div className="flex space-x-2 ml-4">
                 <button
                   onClick={() => openEditModal(service)}
-                  className="p-2 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded-lg transition-all"
+                  className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -768,7 +768,7 @@ export default function ServicesView() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-stone-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-2xl font-light text-stone-800">
+              <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">
                 {editingService ? 'Edit Service' : 'New Service'}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-stone-400 hover:text-stone-600">
@@ -940,7 +940,7 @@ export default function ServicesView() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-stone-700 mb-2">
-                      No-Show Fee (€)
+                      No-Show Fee ({currencySymbol})
                     </label>
                     <input
                       type="number"
@@ -954,7 +954,7 @@ export default function ServicesView() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-stone-700 mb-2">
-                      Late Cancel Fee (€)
+                      Late Cancel Fee ({currencySymbol})
                     </label>
                     <input
                       type="number"
@@ -1012,7 +1012,7 @@ export default function ServicesView() {
                         value={duration.price_cents / 100}
                         onChange={(e) => updateDuration(index, 'price_cents', Math.round(parseFloat(e.target.value) * 100))}
                         className="flex-1 px-4 py-2 border border-stone-200 focus:outline-none focus:border-stone-800"
-                        placeholder="Price (€)"
+                        placeholder={`Price (${currencySymbol})`}
                         min="0"
                         step="0.01"
                         required

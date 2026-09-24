@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronRight, Gift, X, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
+import { useCurrency } from '../lib/currencyContext';
 
 interface AppliedGiftCard {
   id: string;
@@ -21,15 +22,14 @@ export default function GiftCardRedemptionStep({
   onNext,
   onBack,
 }: GiftCardRedemptionStepProps) {
+  const { formatPrice } = useCurrency();
   const { businessId } = useTenant();
   const [giftCardCode, setGiftCardCode] = useState('');
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   const getTotalGiftCardAmount = () => {
     return appliedGiftCards.reduce((sum, card) => sum + card.amountUsedCents, 0);

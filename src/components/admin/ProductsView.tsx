@@ -349,7 +349,7 @@ export default function ProductsView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-gray-300 border-t-[#008374] rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-gray-300 border-t-[#1A1714] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -359,14 +359,14 @@ export default function ProductsView() {
       {/* Header - Matches ServicesView */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Add-On Products</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Add-On Products</h1>
           <p className="text-gray-600">Manage products that can be added to bookings</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008374] focus:border-transparent transition-all"
+            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1714] focus:border-transparent transition-all"
           >
             <option value="all">All Categories</option>
             {existingCategories.map((cat) => (
@@ -393,7 +393,7 @@ export default function ProductsView() {
           </div>
           <button
             onClick={openCreateModal}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all shadow-sm hover:shadow-md"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
             <span className="font-medium">Add Product</span>
@@ -409,10 +409,10 @@ export default function ProductsView() {
               {/* Category Header - Matches ServicesView */}
               <button
                 onClick={() => toggleCategoryCollapse(category)}
-                className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all border-l-4 border-[#008374] rounded-r-lg shadow-sm"
+                className="flex items-center justify-between w-full p-5 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all border-l-4 border-[#1A1714] rounded-r-lg shadow-sm"
               >
                 <div className="flex items-center space-x-3">
-                  <h2 className="text-xl font-semibold text-gray-900">{category}</h2>
+                  <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{category}</h2>
                   <span className="text-sm px-3 py-1 bg-white rounded-full text-gray-600 font-medium shadow-sm">
                     {categoryProducts.length} {categoryProducts.length === 1 ? 'product' : 'products'}
                   </span>
@@ -458,13 +458,13 @@ export default function ProductsView() {
           ))}
 
           {products.length === 0 && (
-            <div className="text-center py-16 bg-white border border-gray-200 rounded-xl">
+            <div className="text-center py-16 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-xl font-medium text-gray-700 mb-2">No products yet</p>
               <p className="text-gray-500 mb-6">Create your first add-on product!</p>
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#008374] text-white rounded-lg hover:bg-[#006d5f] transition-all"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all"
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Product</span>
@@ -501,7 +501,7 @@ export default function ProductsView() {
           )}
 
           {filteredProducts.length === 0 && (
-            <div className="text-center py-16 bg-white border border-gray-200 rounded-xl">
+            <div className="text-center py-16 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-xl font-medium text-gray-700">No products in this category</p>
             </div>
@@ -514,7 +514,7 @@ export default function ProductsView() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-2xl font-light text-gray-900">
+              <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">
                 {editingProduct ? 'Edit Product' : 'New Product'}
               </h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -530,7 +530,7 @@ export default function ProductsView() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374]"
+                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                   placeholder="e.g., Aromatherapy Oil"
                   required
                 />
@@ -543,7 +543,7 @@ export default function ProductsView() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374] resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714] resize-none"
                   placeholder="Describe your product..."
                   required
                 />
@@ -565,7 +565,7 @@ export default function ProductsView() {
                             setFormData({ ...formData, category: e.target.value });
                           }
                         }}
-                        className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374]"
+                        className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                       >
                         <option value="">Select a category...</option>
                         {existingCategories.map((cat) => (
@@ -580,7 +580,7 @@ export default function ProductsView() {
                         type="text"
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374]"
+                        className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                         placeholder="Enter new category name"
                         autoFocus
                       />
@@ -609,7 +609,7 @@ export default function ProductsView() {
                     onChange={(e) =>
                       setFormData({ ...formData, price_cents: Math.round(parseFloat(e.target.value) * 100) || 0 })
                     }
-                    className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374]"
+                    className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                     required
                   />
                 </div>
@@ -694,7 +694,7 @@ export default function ProductsView() {
                       max_quantity_per_booking: parseInt(e.target.value) || 1,
                     })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#008374] focus:ring-1 focus:ring-[#008374]"
+                  className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                   placeholder="Leave empty for unlimited"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -715,7 +715,7 @@ export default function ProductsView() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#008374]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#008374]"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#1A1714]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1A1714]"></div>
                 </label>
               </div>
 
@@ -728,7 +728,7 @@ export default function ProductsView() {
                       type="radio"
                       checked={isAvailableForAll}
                       onChange={() => setIsAvailableForAll(true)}
-                      className="w-4 h-4 text-[#008374] focus:ring-[#008374]"
+                      className="w-4 h-4 text-[#1A1714] focus:ring-[#1A1714]"
                     />
                     <div>
                       <p className="font-medium text-gray-700">All Services</p>
@@ -740,7 +740,7 @@ export default function ProductsView() {
                       type="radio"
                       checked={!isAvailableForAll}
                       onChange={() => setIsAvailableForAll(false)}
-                      className="w-4 h-4 text-[#008374] focus:ring-[#008374]"
+                      className="w-4 h-4 text-[#1A1714] focus:ring-[#1A1714]"
                     />
                     <div>
                       <p className="font-medium text-gray-700">Specific Services</p>
@@ -756,7 +756,7 @@ export default function ProductsView() {
                             type="checkbox"
                             checked={selectedServices.includes(service.id)}
                             onChange={() => toggleServiceSelection(service.id)}
-                            className="w-4 h-4 text-[#008374] rounded focus:ring-[#008374]"
+                            className="w-4 h-4 text-[#1A1714] rounded focus:ring-[#1A1714]"
                           />
                           <span className="text-sm text-gray-700">{service.name}</span>
                         </label>
@@ -773,7 +773,7 @@ export default function ProductsView() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-[#008374] text-white hover:bg-[#006d5f] transition-colors font-medium"
+                  className="flex-1 px-6 py-3 bg-[#1A1714] text-white hover:bg-[#2E2926] transition-colors font-medium"
                 >
                   {editingProduct ? 'Update Product' : 'Create Product'}
                 </button>
@@ -806,7 +806,7 @@ function ProductCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-lg transition-all">
+    <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl p-6 hover:border-gray-300 hover:shadow-lg transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3 flex-1">
           {product.image_url && (
@@ -818,7 +818,7 @@ function ProductCard({
             {product.category && (
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">{product.category}</p>
             )}
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">
               {product.name}
               {!product.is_active && (
                 <span className="ml-2 text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded-full font-medium">
@@ -837,7 +837,7 @@ function ProductCard({
         <div className="flex space-x-2 ml-4">
           <button
             onClick={onEdit}
-            className="p-2 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded-lg transition-all"
+            className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -878,14 +878,14 @@ function ProductGridCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white border border-gray-200 overflow-hidden transition-all group hover:border-gray-300 hover:shadow-lg rounded-xl">
+    <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl overflow-hidden transition-all group hover:border-gray-300 hover:shadow-lg rounded-xl">
       {product.image_url ? (
         <div className="relative aspect-[4/3] bg-gray-100">
           <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
             <button
               onClick={onEdit}
-              className="p-2 bg-white rounded-lg shadow-lg text-gray-600 hover:text-[#008374]"
+              className="p-2 bg-white rounded-lg shadow-lg text-gray-600 hover:text-[#1A1714]"
             >
               <Edit2 className="w-4 h-4" />
             </button>
@@ -919,7 +919,7 @@ function ProductGridCard({
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={onEdit}
-                className="p-1.5 text-gray-500 hover:text-[#008374] hover:bg-gray-100 rounded"
+                className="p-1.5 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
@@ -952,7 +952,7 @@ function ProductGridCard({
         )}
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <span className="text-lg font-semibold text-gray-900">{formatAmount(product.price_cents / 100)}</span>
+          <span className="text-lg font-semibold tracking-tight text-[#1A1714]">{formatAmount(product.price_cents / 100)}</span>
           {product.max_quantity_per_booking && (
             <span className="text-xs text-gray-500">Max: {product.max_quantity_per_booking}</span>
           )}

@@ -1,324 +1,182 @@
-import { useState, useEffect, useRef } from 'react';
-import { TenantContext, TenantInfo, extractSubdomain, extractCustomDomain } from '../lib/tenantContext';
+import { useEffect, useState } from 'react';
+import { TenantContext, TenantInfo } from '../lib/tenantContext';
 import { supabase } from '../lib/supabase';
-import { executeWithTimeout } from '../lib/queryUtils';
+import {
+  ARE_SHOP_SUBDOMAINS_LIVE,
+  classifyHost,
+  hostUrl,
+  isAppOnlyPath,
+  isDevHost,
+  shopUrl,
+  type HostKind,
+} from '../lib/tenantHost';
 
-const RESERVED_ROUTES = [
-  'admin',
-  'staff',
-  'superadmin',
-  'login',
-  'register',
-  'signup',
-  'signup-success',
-  'forgot-password',
-  'reset-password',
-  'cancel',
-  'account',
-  'accept-invite',
-  'booking-success',
-  'gift-card-success',
-  'payment-cancelled',
-];
+/**
+ * Resolves the current business from the hostname only.
+ *
+ * - Shop hosts (salon-a.zennohq.studio, salon-a.de) ask the server via
+ *   resolve_tenant(host). Nothing else can select a business on a shop host:
+ *   no path segment, no localStorage.
+ * - The app host serves admin/login/sign-up. Admin screens get their business
+ *   from the signed-in account (get_admin_business_id), never from the URL.
+ * - Old links on the app host (/salon-a/...) redirect to the shop's own host.
+ */
 
-const TENANT_FETCH_TIMEOUT = 15000; // Increased timeout
-const MAX_RETRIES = 3; // Increased retries
+/** Paths on the app host that are platform pages, not old shop links. */
+const APP_HOST_SYSTEM_PATHS = new Set([
+  'admin', 'staff', 'superadmin', 'login', 'register', 'signup', 'signup-success',
+  'forgot-password', 'reset-password', 'cancel', 'account', 'accept-invite',
+  'booking-success', 'gift-card-success', 'payment-cancelled',
+]);
+
+const ADMIN_PATH = /(^|\/)(admin|staff|superadmin)(\/|$)/;
+
+interface BusinessRow {
+  id: string;
+  name: string;
+  permalink: string;
+  plan_type: TenantInfo['planType'];
+}
+
+interface ResolvedTenantRow {
+  business_id: string;
+  business_name: string;
+  permalink: string;
+  plan_type: TenantInfo['planType'];
+  match_type: 'custom_domain' | 'platform_subdomain';
+  primary_host: string;
+  is_primary_host: boolean;
+}
+
+type Resolution =
+  | { kind: 'tenant'; business: BusinessRow; customDomain: string | null }
+  | { kind: 'none' }
+  | { kind: 'redirecting' };
+
+const EMPTY_TENANT = {
+  businessId: null,
+  businessName: null,
+  subdomain: null,
+  customDomain: null,
+  planType: 'starter' as const,
+};
+
+const currentPathWithQuery = () =>
+  `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+async function resolveShopHost(): Promise<Resolution> {
+  const { data, error } = await supabase.rpc('resolve_tenant', { p_host: window.location.host });
+  if (error) {
+    console.error('Could not resolve shop for this address:', error);
+    throw new Error('We could not load this shop right now.');
+  }
+
+  const row = (data as ResolvedTenantRow[] | null)?.[0];
+  if (!row) return { kind: 'none' };
+
+  // One canonical address per shop (e.g. its custom domain). Skipped locally.
+  if (!row.is_primary_host && !isDevHost(window.location.hostname)) {
+    window.location.replace(hostUrl(row.primary_host, currentPathWithQuery()));
+    return { kind: 'redirecting' };
+  }
+
+  return {
+    kind: 'tenant',
+    business: { id: row.business_id, name: row.business_name, permalink: row.permalink, plan_type: row.plan_type },
+    customDomain: row.match_type === 'custom_domain' ? window.location.hostname : null,
+  };
+}
+
+async function fetchBusiness(column: 'id' | 'permalink', value: string): Promise<BusinessRow | null> {
+  const { data, error } = await supabase
+    .from('businesses')
+    .select('id, name, permalink, plan_type')
+    .eq(column, value)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Could not load business:', error);
+    throw new Error('We could not load this business right now.');
+  }
+  return data as BusinessRow | null;
+}
+
+async function resolveAdminBusiness(): Promise<Resolution> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) return { kind: 'none' };
+
+  const { data: businessId, error } = await supabase.rpc('get_admin_business_id');
+  if (error) {
+    console.error('Could not determine your business:', error);
+    throw new Error('We could not determine your business.');
+  }
+  if (!businessId) return { kind: 'none' };
+
+  const business = await fetchBusiness('id', businessId as string);
+  return business ? { kind: 'tenant', business, customDomain: null } : { kind: 'none' };
+}
+
+async function resolveAppHost(): Promise<Resolution> {
+  const { pathname, search, hash } = window.location;
+
+  if (ADMIN_PATH.test(pathname)) return resolveAdminBusiness();
+
+  const [firstSegment, ...rest] = pathname.split('/').filter(Boolean);
+  if (!firstSegment || APP_HOST_SYSTEM_PATHS.has(firstSegment) || isAppOnlyPath(pathname)) {
+    return { kind: 'none' };
+  }
+
+  // An old shop link: /salon-a/... on the app host.
+  const business = await fetchBusiness('permalink', firstSegment.toLowerCase());
+  if (!business) return { kind: 'none' };
+
+  if (ARE_SHOP_SUBDOMAINS_LIVE || isDevHost(window.location.hostname)) {
+    window.location.replace(shopUrl(business.permalink, `/${rest.join('/')}${search}${hash}`));
+    return { kind: 'redirecting' };
+  }
+
+  // Transitional: serve the old link in place until shop subdomains are live.
+  return { kind: 'tenant', business, customDomain: null };
+}
+
+async function resolve(hostKind: HostKind): Promise<Resolution> {
+  return hostKind === 'shop' ? resolveShopHost() : resolveAppHost();
+}
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [tenantInfo, setTenantInfo] = useState<TenantInfo>({
-    businessId: null,
-    businessName: null,
-    subdomain: null,
-    customDomain: null,
-    planType: 'starter',
-    isLoading: true,
-  });
-
-  const mountedRef = useRef(true);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const retryCountRef = useRef(0);
+  const [hostKind] = useState<HostKind>(() => classifyHost(window.location.hostname));
+  const [tenantInfo, setTenantInfo] = useState<TenantInfo>({ ...EMPTY_TENANT, hostKind, isLoading: true });
 
   useEffect(() => {
-    mountedRef.current = true;
+    let isCancelled = false;
 
-    async function fetchTenantInfo() {
-      const abortController = new AbortController();
-
-      fetchTimeoutRef.current = setTimeout(() => {
-        abortController.abort();
-        if (mountedRef.current) {
-          console.error('Tenant fetch timeout - loading without business context');
-          // Try to use cached data as fallback
-          const cachedBusinessId = localStorage.getItem('current_business_id');
-          const cachedPermalink = localStorage.getItem('business_permalink');
-          
-          if (cachedBusinessId && cachedPermalink) {
-            // Verify the cached data matches the current URL
-            const currentPath = window.location.pathname;
-            const pathParts = currentPath.split('/').filter(p => p);
-            const firstSegment = pathParts[0];
-            
-            if (firstSegment === cachedPermalink || RESERVED_ROUTES.includes(firstSegment || '')) {
-              setTenantInfo({
-                businessId: cachedBusinessId,
-                businessName: null,
-                subdomain: cachedPermalink,
-                customDomain: null,
-                planType: 'starter',
-                isLoading: false,
-              });
-              return;
-            }
-          }
-          
-          setTenantInfo({
-            businessId: null,
-            businessName: null,
-            subdomain: null,
-            customDomain: null,
-            planType: 'starter',
-            isLoading: false,
-          });
+    resolve(hostKind)
+      .then((result) => {
+        if (isCancelled || result.kind === 'redirecting') return;
+        if (result.kind === 'none') {
+          setTenantInfo({ ...EMPTY_TENANT, hostKind, isLoading: false });
+          return;
         }
-      }, TENANT_FETCH_TIMEOUT);
-
-      try {
-        let business = null;
-        const currentPath = window.location.pathname;
-        const hostname = window.location.hostname;
-        const isAdminRoute = currentPath === '/admin' || currentPath.includes('/admin');
-
-        if (isAdminRoute) {
-          try {
-            const { data: { user } } = await Promise.race([
-              supabase.auth.getUser(),
-              new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Auth timeout')), 5000)
-              )
-            ]);
-
-            if (user) {
-              const adminUserResult = await executeWithTimeout(
-                supabase
-                  .from('admin_users')
-                  .select('business_id')
-                  .eq('email', user.email)
-                  .eq('is_active', true)
-                  .maybeSingle(),
-                { timeout: 5000, retries: 2 }
-              );
-
-              if (adminUserResult.data?.business_id) {
-                const businessResult = await executeWithTimeout(
-                  supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('id', adminUserResult.data.business_id)
-                    .eq('is_active', true)
-                    .maybeSingle(),
-                  { timeout: 5000, retries: 2 }
-                );
-
-                business = businessResult.data;
-              }
-            }
-          } catch (authError) {
-            console.warn('Auth check failed in TenantProvider:', authError);
-          }
-
-          if (!business) {
-            const storedBusinessId = localStorage.getItem('current_business_id');
-            if (storedBusinessId) {
-              const businessResult = await executeWithTimeout(
-                supabase
-                  .from('businesses')
-                  .select('*')
-                  .eq('id', storedBusinessId)
-                  .eq('is_active', true)
-                  .maybeSingle(),
-                { timeout: 5000, retries: 2 }
-              );
-
-              business = businessResult.data;
-            }
-          }
-        } else if (!business) {
-          // First try to lookup by custom domain
-          const customDomain = extractCustomDomain(hostname);
-          if (customDomain && customDomain !== 'onbuuk.com') {
-            const businessResult = await executeWithTimeout(
-              supabase
-                .from('businesses')
-                .select('*')
-                .eq('custom_domain', customDomain)
-                .eq('is_active', true)
-                .maybeSingle(),
-              { timeout: 5000, retries: 2 }
-            );
-
-            business = businessResult.data;
-          }
-
-          // If not found by custom domain, try permalink from URL
-          if (!business) {
-            const pathParts = currentPath.split('/').filter(p => p);
-            const firstSegment = pathParts[0];
-
-            const isReservedRoute = firstSegment && RESERVED_ROUTES.includes(firstSegment);
-            const permalinkFromUrl = firstSegment && !isReservedRoute ? firstSegment : null;
-
-            if (permalinkFromUrl) {
-              // Try multiple times with increasing delays for permalink lookup
-              let businessResult = await executeWithTimeout(
-                supabase
-                  .from('businesses')
-                  .select('*')
-                  .eq('permalink', permalinkFromUrl)
-                  .eq('is_active', true)
-                  .maybeSingle(),
-                { timeout: 5000, retries: MAX_RETRIES, retryDelay: 1000 }
-              );
-
-              business = businessResult.data;
-              
-              // If still not found, try one more time with a fresh query
-              if (!business && retryCountRef.current < 2) {
-                retryCountRef.current++;
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                businessResult = await executeWithTimeout(
-                  supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('permalink', permalinkFromUrl)
-                    .eq('is_active', true)
-                    .maybeSingle(),
-                  { timeout: 8000, retries: 2, retryDelay: 1500 }
-                );
-                
-                business = businessResult.data;
-              }
-            }
-          }
-        }
-
-        if (mountedRef.current) {
-          if (business) {
-            localStorage.setItem('current_business_id', business.id);
-            localStorage.setItem('business_permalink', business.permalink);
-            setTenantInfo({
-              businessId: business.id,
-              businessName: business.name,
-              subdomain: business.subdomain,
-              customDomain: business.custom_domain,
-              planType: business.plan_type,
-              isLoading: false,
-            });
-          } else {
-            // Before showing 404, check if we have valid cached data
-            const cachedBusinessId = localStorage.getItem('current_business_id');
-            const cachedPermalink = localStorage.getItem('business_permalink');
-            const pathParts = currentPath.split('/').filter(p => p);
-            const firstSegment = pathParts[0];
-            
-            // If cached permalink matches URL, use cached data and retry in background
-            if (cachedBusinessId && cachedPermalink && firstSegment === cachedPermalink) {
-              console.log('Using cached business data while retrying...');
-              setTenantInfo({
-                businessId: cachedBusinessId,
-                businessName: null,
-                subdomain: cachedPermalink,
-                customDomain: null,
-                planType: 'starter',
-                isLoading: false,
-              });
-              
-              // Retry fetching in background
-              setTimeout(async () => {
-                const retryResult = await executeWithTimeout(
-                  supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('permalink', firstSegment)
-                    .eq('is_active', true)
-                    .maybeSingle(),
-                  { timeout: 10000, retries: 3 }
-                );
-                
-                if (retryResult.data && mountedRef.current) {
-                  setTenantInfo({
-                    businessId: retryResult.data.id,
-                    businessName: retryResult.data.name,
-                    subdomain: retryResult.data.subdomain,
-                    customDomain: retryResult.data.custom_domain,
-                    planType: retryResult.data.plan_type,
-                    isLoading: false,
-                  });
-                }
-              }, 2000);
-            } else {
-              setTenantInfo({
-                businessId: null,
-                businessName: null,
-                subdomain: null,
-                customDomain: null,
-                planType: 'starter',
-                isLoading: false,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching tenant info:', error);
-        if (mountedRef.current) {
-          // Try cached data on error
-          const cachedBusinessId = localStorage.getItem('current_business_id');
-          const cachedPermalink = localStorage.getItem('business_permalink');
-          const currentPath = window.location.pathname;
-          const pathParts = currentPath.split('/').filter(p => p);
-          const firstSegment = pathParts[0];
-          
-          if (cachedBusinessId && cachedPermalink && firstSegment === cachedPermalink) {
-            setTenantInfo({
-              businessId: cachedBusinessId,
-              businessName: null,
-              subdomain: cachedPermalink,
-              customDomain: null,
-              planType: 'starter',
-              isLoading: false,
-            });
-          } else {
-            setTenantInfo({
-              businessId: null,
-              businessName: null,
-              subdomain: null,
-              customDomain: null,
-              planType: 'starter',
-              isLoading: false,
-            });
-          }
-        }
-      } finally {
-        if (fetchTimeoutRef.current) {
-          clearTimeout(fetchTimeoutRef.current);
-          fetchTimeoutRef.current = null;
-        }
-      }
-    }
-
-    fetchTenantInfo();
+        setTenantInfo({
+          businessId: result.business.id,
+          businessName: result.business.name,
+          subdomain: result.business.permalink,
+          customDomain: result.customDomain,
+          planType: result.business.plan_type,
+          hostKind,
+          isLoading: false,
+        });
+      })
+      .catch((error) => {
+        console.error('Tenant resolution failed:', error);
+        if (!isCancelled) setTenantInfo({ ...EMPTY_TENANT, hostKind, isLoading: false });
+      });
 
     return () => {
-      mountedRef.current = false;
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
+      isCancelled = true;
     };
-  }, []);
+  }, [hostKind]);
 
-  return (
-    <TenantContext.Provider value={tenantInfo}>
-      {children}
-    </TenantContext.Provider>
-  );
+  return <TenantContext.Provider value={tenantInfo}>{children}</TenantContext.Provider>;
 }

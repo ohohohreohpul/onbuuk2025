@@ -4,6 +4,10 @@ import QRCode from 'qrcode';
 interface GiftCardData {
   code: string;
   amount: number;
+  cardType?: 'value' | 'service_pass';
+  servicePassName?: string | null;
+  visits?: number | null;
+  durationMinutes?: number | null;
   designUrl: string | null;
   termsAndConditions: string | null;
   businessName: string;
@@ -12,6 +16,7 @@ interface GiftCardData {
 }
 
 export async function generateGiftCardPDF(giftCard: GiftCardData): Promise<Blob> {
+  const isServicePass = giftCard.cardType === 'service_pass';
   const pdf = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
@@ -54,7 +59,7 @@ export async function generateGiftCardPDF(giftCard: GiftCardData): Promise<Blob>
     pdf.setTextColor(60, 60, 60);
     pdf.text(giftCard.businessName, halfWidth / 2, pageHeight / 2 - 10, { align: 'center' });
     pdf.setFontSize(16);
-    pdf.text('Gift Card', halfWidth / 2, pageHeight / 2 + 5, { align: 'center' });
+    pdf.text(isServicePass ? 'Service Pass' : 'Gift Card', halfWidth / 2, pageHeight / 2 + 5, { align: 'center' });
   }
 
   pdf.setDrawColor(200, 200, 200);
@@ -65,15 +70,30 @@ export async function generateGiftCardPDF(giftCard: GiftCardData): Promise<Blob>
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(40, 40, 40);
-  pdf.text('Gift Card', halfWidth + 10, yPosition);
+  pdf.text(isServicePass ? 'Service Pass' : 'Gift Card', halfWidth + 10, yPosition);
   yPosition += 10;
 
-  pdf.setFontSize(24);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(0, 128, 0);
-  const symbol = giftCard.currencySymbol || '$';
-  pdf.text(`${symbol}${giftCard.amount.toFixed(2)}`, halfWidth + 10, yPosition);
-  yPosition += 12;
+  if (isServicePass) {
+    pdf.setFontSize(15);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(40, 40, 40);
+    const passNameLines = pdf.splitTextToSize(giftCard.servicePassName || 'Service pass', halfWidth - 20);
+    pdf.text(passNameLines, halfWidth + 10, yPosition);
+    yPosition += passNameLines.length * 6 + 2;
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(80, 80, 80);
+    const entitlement = `${giftCard.visits || 0} ${(giftCard.visits || 0) === 1 ? 'visit' : 'visits'}${giftCard.durationMinutes ? ` · ${giftCard.durationMinutes} minutes each` : ''}`;
+    pdf.text(entitlement, halfWidth + 10, yPosition);
+    yPosition += 9;
+  } else {
+    pdf.setFontSize(24);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(0, 128, 0);
+    const symbol = giftCard.currencySymbol || '$';
+    pdf.text(`${symbol}${giftCard.amount.toFixed(2)}`, halfWidth + 10, yPosition);
+    yPosition += 12;
+  }
 
   try {
     const qrCodeDataUrl = await QRCode.toDataURL(giftCard.code, {
@@ -152,7 +172,7 @@ export async function downloadGiftCardPDF(giftCard: GiftCardData): Promise<void>
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `GiftCard-${giftCard.code}.pdf`;
+  link.download = `${giftCard.cardType === 'service_pass' ? 'ServicePass' : 'GiftCard'}-${giftCard.code}.pdf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

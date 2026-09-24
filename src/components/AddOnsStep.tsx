@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { ChevronRight, Plus, Minus, Package, Check } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
+import { useCurrency } from '../lib/currencyContext';
 
 interface Product {
   id: string;
@@ -27,6 +28,7 @@ interface AddOnsStepProps {
 }
 
 export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProps) {
+  const { formatPrice } = useCurrency();
   const { businessId } = useTenant();
   const { customization } = useBookingCustomization();
   const [products, setProducts] = useState<Product[]>([]);
@@ -174,9 +176,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
     return total;
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   // Group products by category for exclusive handling
   const groupedProducts = products.reduce((acc, product) => {
@@ -196,7 +196,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-[#008374] animate-spin"></div>
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-[#1A1714] animate-spin"></div>
       </div>
     );
   }
@@ -211,7 +211,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-custom-primary mb-2">{content.title}</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-2">{content.title}</h2>
         <p className="text-custom-secondary">{content.subtitle}</p>
       </div>
 
@@ -260,7 +260,7 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                       <div 
                         key={product.id} 
                         className={`bg-white border p-5 transition-all ${
-                          isSelected ? 'border-[#008374] bg-[#008374]/5' : 'border-gray-200'
+                          isSelected ? 'border-[#1A1714] bg-[#1A1714]/5' : 'border-gray-200'
                         }`}
                       >
                         <div className="flex items-start space-x-4">
@@ -297,8 +297,8 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
                                   onClick={() => toggleExclusiveProduct(product.id)}
                                   className={`flex items-center space-x-2 px-4 py-2 border transition-colors ${
                                     isSelected 
-                                      ? 'border-[#008374] bg-[#008374] text-white' 
-                                      : 'border-gray-300 hover:border-[#008374] text-gray-700'
+                                      ? 'border-[#1A1714] bg-[#1A1714] text-white' 
+                                      : 'border-gray-300 hover:border-[#1A1714] text-gray-700'
                                   }`}
                                 >
                                   {isSelected && <Check className="w-4 h-4" />}

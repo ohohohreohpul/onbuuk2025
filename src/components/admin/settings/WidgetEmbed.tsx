@@ -3,6 +3,8 @@ import { Code, Copy, Check, ExternalLink, Monitor, MessageSquare, Layout, Palett
 import { useTenant } from '../../../lib/tenantContext';
 import { supabase } from '../../../lib/supabase';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
+import { BRAND_NAME } from '../../../lib/brand';
+import { shopUrl } from '../../../lib/tenantHost';
 
 type WidgetType = 'full-page' | 'floating-button' | 'inline';
 type ButtonPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
@@ -27,7 +29,7 @@ export default function WidgetEmbed() {
     type: 'floating-button',
     buttonText: 'Book Now',
     buttonPosition: 'bottom-right',
-    buttonColor: '#008374',
+    buttonColor: '#1A1714',
     buttonTextColor: '#ffffff',
     width: '100%',
     height: '700px',
@@ -51,13 +53,8 @@ export default function WidgetEmbed() {
         .single();
 
       if (!error && data && data.permalink) {
-        // Always use permalink as path
-        // With custom domain: https://customdomain.com/permalink
-        // Without custom domain: https://app.onbuuk.com/permalink
-        const baseDomain = data.custom_domain 
-          ? `https://${data.custom_domain}` 
-          : 'https://app.onbuuk.com';
-        setBookingUrl(`${baseDomain}/${data.permalink}`);
+        // Each shop lives on its own host: <permalink>.<shop base domain>.
+        setBookingUrl(shopUrl(data.permalink));
       }
     } catch (err) {
       console.error('Error fetching business domain:', err);
@@ -71,7 +68,7 @@ export default function WidgetEmbed() {
   };
 
   const generateFullPageEmbed = () => {
-    return `<!-- Buuk Booking Widget - Full Page -->
+    return `<!-- ${BRAND_NAME} Booking Widget - Full Page -->
 <iframe 
   src="${getBookingUrl()}"
   style="width: ${config.width}; height: ${config.height}; border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
@@ -81,8 +78,8 @@ export default function WidgetEmbed() {
   };
 
   const generateInlineEmbed = () => {
-    return `<!-- Buuk Booking Widget - Inline -->
-<div id="buuk-booking-widget" style="width: 100%; max-width: 600px; margin: 0 auto;">
+    return `<!-- ${BRAND_NAME} Booking Widget - Inline -->
+<div id="zenno-booking-widget" style="width: 100%; max-width: 600px; margin: 0 auto;">
   <iframe 
     src="${getBookingUrl()}"
     style="width: 100%; height: ${config.height}; border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
@@ -100,9 +97,9 @@ export default function WidgetEmbed() {
       'top-left': 'top: 24px; left: 24px;',
     };
 
-    return `<!-- Buuk Booking Widget - Floating Button -->
+    return `<!-- ${BRAND_NAME} Booking Widget - Floating Button -->
 <style>
-  #buuk-floating-btn {
+  #zenno-floating-btn {
     position: fixed;
     ${positionStyles[config.buttonPosition]}
     z-index: 9999;
@@ -118,11 +115,11 @@ export default function WidgetEmbed() {
     transition: all 0.3s ease;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
-  #buuk-floating-btn:hover {
+  #zenno-floating-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
   }
-  #buuk-modal-overlay {
+  #zenno-modal-overlay {
     display: none;
     position: fixed;
     top: 0;
@@ -133,7 +130,7 @@ export default function WidgetEmbed() {
     z-index: 10000;
     backdrop-filter: blur(4px);
   }
-  #buuk-modal-content {
+  #zenno-modal-content {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -147,7 +144,7 @@ export default function WidgetEmbed() {
     overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
   }
-  #buuk-modal-close {
+  #zenno-modal-close {
     position: absolute;
     top: 12px;
     right: 12px;
@@ -164,31 +161,31 @@ export default function WidgetEmbed() {
     z-index: 10001;
     transition: background 0.2s;
   }
-  #buuk-modal-close:hover {
+  #zenno-modal-close:hover {
     background: rgba(0,0,0,0.2);
   }
-  #buuk-modal-iframe {
+  #zenno-modal-iframe {
     width: 100%;
     height: 100%;
     border: none;
   }
 </style>
 
-<button id="buuk-floating-btn">${config.buttonText}</button>
+<button id="zenno-floating-btn">${config.buttonText}</button>
 
-<div id="buuk-modal-overlay">
-  <div id="buuk-modal-content">
-    <button id="buuk-modal-close">×</button>
-    <iframe id="buuk-modal-iframe" src="" title="Book an Appointment" loading="lazy"></iframe>
+<div id="zenno-modal-overlay">
+  <div id="zenno-modal-content">
+    <button id="zenno-modal-close">×</button>
+    <iframe id="zenno-modal-iframe" src="" title="Book an Appointment" loading="lazy"></iframe>
   </div>
 </div>
 
 <script>
 (function() {
-  const btn = document.getElementById('buuk-floating-btn');
-  const overlay = document.getElementById('buuk-modal-overlay');
-  const closeBtn = document.getElementById('buuk-modal-close');
-  const iframe = document.getElementById('buuk-modal-iframe');
+  const btn = document.getElementById('zenno-floating-btn');
+  const overlay = document.getElementById('zenno-modal-overlay');
+  const closeBtn = document.getElementById('zenno-modal-close');
+  const iframe = document.getElementById('zenno-modal-iframe');
   const bookingUrl = '${getBookingUrl()}';
 
   btn.addEventListener('click', function() {
@@ -319,14 +316,14 @@ export default function WidgetEmbed() {
           <div className="flex gap-2">
             <input
               type="url"
-              placeholder="https://yourbusiness.onbuuk.com"
+              placeholder={shopUrl('your-business')}
               value={bookingUrl}
               onChange={(e) => setBookingUrl(e.target.value)}
               className="flex-1 px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-800"
             />
           </div>
           <p className="text-xs text-stone-500 mt-2">
-            Enter your full booking page URL (e.g., https://mybusiness.onbuuk.com)
+            Enter your full booking page URL (e.g., {shopUrl('my-business')})
           </p>
         </div>
       </div>

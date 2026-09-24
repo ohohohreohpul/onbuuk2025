@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { PoweredByBuuk } from '../PoweredByBuuk';
+import { PoweredByZenno } from '../PoweredByZenno';
 import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
 
@@ -70,12 +70,12 @@ export default function VerticalLayout({ children, imageUrl, imageMobile, imageT
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
         ) : (
-          <div className="w-full h-56 sm:h-72 bg-gradient-to-br from-[#008374]/10 to-[#89BA16]/10 flex items-center justify-center">
+          <div className="w-full h-56 sm:h-72 bg-gradient-to-br from-[#1A1714]/10 to-[#A09990]/10 flex items-center justify-center">
             <div className="text-center px-4">
               <div className="relative mb-4">
-                <div className="absolute inset-0 bg-[#008374]/20 rounded-full blur-xl scale-150 animate-pulse-slow" />
-                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#008374]/20 to-[#89BA16]/20 backdrop-blur-sm border border-white/50 flex items-center justify-center relative">
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-[#008374]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-[#1A1714]/20 rounded-full blur-xl scale-150 animate-pulse-slow" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#1A1714]/20 to-[#A09990]/20 backdrop-blur-sm border border-white/50 flex items-center justify-center relative">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-[#1A1714]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </div>
@@ -98,7 +98,7 @@ export default function VerticalLayout({ children, imageUrl, imageMobile, imageT
         </div>
       </div>
 
-      <PoweredByBuuk />
+      <PoweredByZenno />
     </div>
   );
 }

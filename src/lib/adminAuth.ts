@@ -4,7 +4,7 @@ export interface AdminUser {
   id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'staff';
+  role: 'owner' | 'admin' | 'manager' | 'receptionist' | 'cashier' | 'staff' | 'super_admin';
   is_active: boolean;
   business_id: string;
   specialist_id?: string;

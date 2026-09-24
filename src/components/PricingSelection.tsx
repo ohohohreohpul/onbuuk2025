@@ -51,7 +51,7 @@ export function PricingSelection({ onSelectPlan, onBack }: PricingSelectionProps
         'Unlimited staff members',
         'Unlimited services',
         'Everything in Standard',
-        'Remove "Powered by Buuk" badge',
+        'Remove "Powered by Zenno" badge',
         'Custom branding & logos',
         'Calendar integrations',
         'Priority support',

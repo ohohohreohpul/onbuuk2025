@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useCustomerAuth } from '../../hooks/useCustomerAuth';
 import { supabase } from '../../lib/supabase';
-import { Calendar, User, LogOut, Mail, Phone, Lock, X, Award, Gift } from 'lucide-react';
+import { Calendar, User, LogOut, Mail, Phone, Lock, Award, Gift } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
+import { useCurrency } from '../../lib/currencyContext';
+import { EMPTY_CUSTOMER_STATS, fetchCustomerStats, type CustomerStats } from '../../lib/customerStats';
 
 interface Booking {
   id: string;
@@ -42,6 +44,10 @@ interface GiftCard {
   code: string;
   original_value_cents: number;
   current_balance_cents: number;
+  card_type?: 'value' | 'service_pass';
+  service_pass_name?: string | null;
+  original_visits?: number | null;
+  remaining_visits?: number | null;
   status: string;
   expires_at: string | null;
 }
@@ -49,6 +55,7 @@ interface GiftCard {
 export function CustomerPortal() {
   const { customer, loading, signOut, updateProfile, updatePassword } = useCustomerAuth();
   const { businessId } = useTenant();
+  const { formatPrice } = useCurrency();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [activeTab, setActiveTab] = useState<'bookings' | 'rewards' | 'giftcards' | 'profile'>('bookings');
   const [loadingBookings, setLoadingBookings] = useState(true);
@@ -73,12 +80,14 @@ export function CustomerPortal() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [stats, setStats] = useState<Omit<CustomerStats, 'customer_id'>>(EMPTY_CUSTOMER_STATS);
 
   useEffect(() => {
     if (customer) {
       setName(customer.name);
       setPhone(customer.phone || '');
       loadBookings();
+      fetchCustomerStats(customer.id).then(setStats).catch((err) => console.error(err));
       loadLoyaltyPoints();
       loadGiftCards();
       checkLoyaltyEnabled();
@@ -143,6 +152,10 @@ export function CustomerPortal() {
           code,
           original_value_cents,
           current_balance_cents,
+          card_type,
+          service_pass_name,
+          original_visits,
+          remaining_visits,
           status,
           expires_at
         )
@@ -431,7 +444,7 @@ export function CustomerPortal() {
                           </div>
                           <p className="text-lg font-semibold text-gray-900">{booking.service.name}</p>
                           <p className="text-sm text-gray-600 mt-1">
-                            {booking.start_time} • {booking.duration.duration_minutes} minutes • ${(booking.duration.price_cents / 100).toFixed(2)}
+                            {booking.start_time} • {booking.duration.duration_minutes} minutes • {formatPrice(booking.duration.price_cents)}
                           </p>
                           <p className="text-sm text-gray-600">with {booking.specialist.name}</p>
                         </div>
@@ -481,12 +494,12 @@ export function CustomerPortal() {
               <h2 className="text-lg font-semibold mb-4">Your Stats</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-3xl font-bold text-blue-600">{customer.total_bookings}</p>
+                  <p className="text-3xl font-bold text-blue-600">{stats.visits_count}</p>
                   <p className="text-sm text-gray-600 mt-1">Total Visits</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <p className="text-3xl font-bold text-green-600">
-                    ${(customer.total_spent_cents / 100).toFixed(0)}
+                    {formatPrice(stats.spent_cents)}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">Total Spent</p>
                 </div>
@@ -567,11 +580,11 @@ export function CustomerPortal() {
           <div className="space-y-6">
             {/* Claim Gift Card */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Claim Gift Card</h2>
+              <h2 className="text-lg font-semibold mb-4">Claim a Card or Pass</h2>
               <form onSubmit={handleClaimGiftCard} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter Gift Card Code
+                    Enter gift card or pass code
                   </label>
                   <input
                     type="text"
@@ -587,16 +600,16 @@ export function CustomerPortal() {
                   disabled={claimingCard}
                   className="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
-                  {claimingCard ? 'Claiming...' : 'Claim Gift Card'}
+                  {claimingCard ? 'Claiming...' : 'Claim Code'}
                 </button>
               </form>
             </div>
 
             {/* My Gift Cards */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">My Gift Cards</h2>
+              <h2 className="text-lg font-semibold mb-4">My Cards & Passes</h2>
               {giftCards.length === 0 ? (
-                <p className="text-gray-600 text-center py-4">No gift cards yet</p>
+                <p className="text-gray-600 text-center py-4">No gift cards or service passes yet</p>
               ) : (
                 <div className="space-y-3">
                   {giftCards.map((card) => (
@@ -614,10 +627,14 @@ export function CustomerPortal() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-2xl font-bold text-gray-900">
-                            ${(card.current_balance_cents / 100).toFixed(2)}
+                            {card.card_type === 'service_pass'
+                              ? `${card.remaining_visits || 0} ${(card.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left`
+                              : formatPrice(card.current_balance_cents)}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Original: ${(card.original_value_cents / 100).toFixed(2)}
+                            {card.card_type === 'service_pass'
+                              ? `${card.service_pass_name || 'Service pass'} · ${card.original_visits || 0} originally`
+                              : `Original: ${formatPrice(card.original_value_cents)}`}
                           </p>
                         </div>
                         {card.expires_at && (

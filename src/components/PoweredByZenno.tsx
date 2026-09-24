@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
+import { BRAND_LOGO, BRAND_SITE_URL } from '../lib/brand';
 
-export function PoweredByBuuk() {
+export function PoweredByZenno() {
   const tenant = useTenant();
   const [shouldShow, setShouldShow] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,21 +45,17 @@ export function PoweredByBuuk() {
 
   return (
     <a
-      href="https://onbuuk.com"
+      href={BRAND_SITE_URL}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="Powered by Zenno"
       className="fixed bottom-4 left-4 z-50 group"
-      style={{ maxWidth: '140px' }}
     >
-      <div className="relative">
-        {/* Badge container - fully white background */}
-        <div className="relative bg-white rounded-xl px-3 py-2 shadow-lg border border-gray-100 transition-all duration-300 group-hover:shadow-xl group-hover:scale-105">
-          <img
-            src="/Powered by buuk.png"
-            alt="Powered by buuk"
-            className="w-full h-auto"
-          />
-        </div>
+      <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-xl">
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-stone-400">
+          Powered by
+        </span>
+        <img src={BRAND_LOGO} alt="Zenno" className="h-4 w-auto" />
       </div>
     </a>
   );

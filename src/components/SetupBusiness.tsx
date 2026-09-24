@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { shopUrl, appUrl } from '../lib/tenantHost';
 import { supabase } from '../lib/supabase';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { BRAND_LOGO } from '../lib/brand';
 
 export function SetupBusiness() {
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export function SetupBusiness() {
           localStorage.setItem('current_business_id', existingAdmin.business_id);
           if (permalink) {
             localStorage.setItem('business_permalink', permalink);
-            window.location.href = `/${permalink}/admin`;
+            window.location.href = '/admin';
           } else {
             window.location.href = '/admin';
           }
@@ -49,7 +51,7 @@ export function SetupBusiness() {
             plan_type: 'free',
             is_active: true,
             owner_id: session.user.id,
-            custom_logo_url: '/defbuuklogo.png',
+            custom_logo_url: BRAND_LOGO,
             profile_completed: false,
           })
           .select()
@@ -115,8 +117,8 @@ export function SetupBusiness() {
               business_name: 'Your Business',
               owner_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'there',
               owner_email: session.user.email,
-              permalink: `${window.location.origin}/${business.permalink}`,
-              dashboard_url: `${window.location.origin}/${business.permalink}/admin`,
+              permalink: shopUrl(business.permalink),
+              dashboard_url: appUrl('/admin'),
               setup_guide_url: '#',
             },
             business_id: business.id,

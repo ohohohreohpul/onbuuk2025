@@ -10,6 +10,11 @@ interface GiftCard {
   code: string;
   original_value_cents: number;
   current_balance_cents: number;
+  purchase_price_cents?: number;
+  card_type?: 'value' | 'service_pass';
+  service_pass_name?: string | null;
+  original_visits?: number | null;
+  remaining_visits?: number | null;
   status: string;
   purchased_at: string;
   expires_at: string | null;
@@ -25,6 +30,7 @@ interface Transaction {
   description: string;
   created_at: string;
   created_by: string | null;
+  visit_count?: number;
 }
 
 interface GiftCardDetailModalProps {
@@ -60,6 +66,10 @@ export function GiftCardDetailModal({
   const [recipientEmail, setRecipientEmail] = useState(giftCard.purchased_for_email || '');
   const [savingEmails, setSavingEmails] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<'buyer' | 'recipient' | 'both' | null>(null);
+  const isServicePass = giftCard.card_type === 'service_pass';
+  const entitlementLabel = isServicePass
+    ? `${giftCard.service_pass_name || 'Service pass'} · ${giftCard.original_visits || 0} ${(giftCard.original_visits || 0) === 1 ? 'visit' : 'visits'}`
+    : formatAmount(giftCard.original_value_cents / 100);
 
   useEffect(() => {
     loadTransactions();
@@ -111,8 +121,6 @@ export function GiftCardDetailModal({
   };
 
   const handleSendEmail = async (target: 'buyer' | 'recipient' | 'both') => {
-    const targetEmail = target === 'buyer' ? buyerEmail : target === 'recipient' ? recipientEmail : null;
-    
     if (target === 'buyer' && !buyerEmail) {
       alert('Please add a buyer email first');
       return;
@@ -136,6 +144,9 @@ export function GiftCardDetailModal({
         const pdfBase64 = await getGiftCardPDFBase64({
           code: giftCard.code,
           amount: giftCard.original_value_cents / 100,
+          cardType: giftCard.card_type || 'value',
+          servicePassName: giftCard.service_pass_name,
+          visits: giftCard.original_visits,
           designUrl: designUrl,
           termsAndConditions: termsAndConditions,
           businessName: businessName,
@@ -168,7 +179,7 @@ export function GiftCardDetailModal({
                 customer_name: buyerName || 'Valued Customer',
                 customer_email: buyerEmail,
                 gift_card_code: giftCard.code,
-                amount: formatAmount(giftCard.original_value_cents / 100),
+                amount: entitlementLabel,
                 recipient_email: recipientEmail || 'N/A',
                 message: '',
                 business_name: businessName,
@@ -202,7 +213,7 @@ export function GiftCardDetailModal({
               variables: {
                 recipient_email: recipientEmail,
                 gift_card_code: giftCard.code,
-                amount: formatAmount(giftCard.original_value_cents / 100),
+                amount: entitlementLabel,
                 message: '',
                 sender_name: buyerName || 'Someone special',
                 business_name: businessName,
@@ -317,6 +328,9 @@ export function GiftCardDetailModal({
       await downloadGiftCardPDF({
         code: giftCard.code,
         amount: giftCard.original_value_cents / 100,
+        cardType: giftCard.card_type || 'value',
+        servicePassName: giftCard.service_pass_name,
+        visits: giftCard.original_visits,
         designUrl: designUrl,
         termsAndConditions: termsAndConditions,
         businessName: businessName,
@@ -330,13 +344,15 @@ export function GiftCardDetailModal({
   };
 
   const isExpired = giftCard.expires_at && new Date(giftCard.expires_at) < new Date();
-  const balancePercentage = (giftCard.current_balance_cents / giftCard.original_value_cents) * 100;
+  const balancePercentage = isServicePass
+    ? ((giftCard.remaining_visits || 0) / Math.max(1, giftCard.original_visits || 1)) * 100
+    : (giftCard.current_balance_cents / Math.max(1, giftCard.original_value_cents)) * 100;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">Gift Card Details</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{isServicePass ? 'Service Pass' : 'Gift Card'} Details</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -351,7 +367,7 @@ export function GiftCardDetailModal({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <CreditCard className="w-6 h-6" />
-                  <span className="text-sm opacity-90">Gift Card</span>
+                  <span className="text-sm opacity-90">{isServicePass ? 'Service Pass' : 'Value Card'}</span>
                 </div>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -367,10 +383,14 @@ export function GiftCardDetailModal({
               </div>
               <div className="space-y-2">
                 <div className="text-3xl font-bold">
-                  {formatAmount(giftCard.current_balance_cents / 100)}
+                  {isServicePass
+                    ? `${giftCard.remaining_visits || 0} ${(giftCard.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left`
+                    : formatAmount(giftCard.current_balance_cents / 100)}
                 </div>
                 <div className="text-sm opacity-90">
-                  Original Value: {formatAmount(giftCard.original_value_cents / 100)}
+                  {isServicePass
+                    ? `${giftCard.service_pass_name || 'Service pass'} · ${giftCard.original_visits || 0} originally`
+                    : `Original value: ${formatAmount(giftCard.original_value_cents / 100)}`}
                 </div>
                 <div className="w-full bg-blue-400 rounded-full h-2 mt-3">
                   <div
@@ -561,7 +581,7 @@ export function GiftCardDetailModal({
             </button>
           </div>
 
-          {giftCard.status === 'active' && !isExpired && (
+          {giftCard.status === 'active' && !isExpired && !isServicePass && (
             <div className="border border-gray-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
                 <DollarSign className="w-5 h-5" />
@@ -605,6 +625,15 @@ export function GiftCardDetailModal({
             </div>
           )}
 
+          {giftCard.status === 'active' && !isExpired && isServicePass && (
+            <div className="rounded-lg border border-violet-200 bg-violet-50/70 p-4">
+              <h3 className="font-semibold text-violet-950">Visit redemption</h3>
+              <p className="mt-1 text-sm leading-6 text-violet-800">
+                This pass is visit-based, so it is redeemed through checkout when the customer books the matching service. It is never deducted as a cash amount.
+              </p>
+            </div>
+          )}
+
           <div className="border border-gray-200 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
               <Calendar className="w-5 h-5" />
@@ -635,8 +664,9 @@ export function GiftCardDetailModal({
                             : 'text-green-600'
                         }`}
                       >
-                        {txn.transaction_type === 'redemption' ? '-' : '+'}
-                        {formatAmount(Math.abs(txn.amount_cents / 100))}
+                        {isServicePass && (txn.visit_count || 0) > 0
+                          ? `${txn.transaction_type === 'redemption' ? '-' : '+'}${txn.visit_count} ${txn.visit_count === 1 ? 'visit' : 'visits'}`
+                          : <>{txn.transaction_type === 'redemption' ? '-' : '+'}{formatAmount(Math.abs(txn.amount_cents / 100))}</>}
                       </div>
                       <div className="text-xs text-gray-500 capitalize">
                         {txn.transaction_type}

@@ -3,6 +3,7 @@ import { Lock, Mail } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
+import { BRAND_LOGO, BRAND_NAME } from '../../lib/brand';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -19,7 +20,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   useEffect(() => {
     async function fetchLogo() {
       if (!tenant.businessId) {
-        setLogoUrl('/blbuuklogo.png');
+        setLogoUrl(BRAND_LOGO);
         return;
       }
 
@@ -32,7 +33,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       if (data?.login_page_logo_url) {
         setLogoUrl(data.login_page_logo_url);
       } else {
-        setLogoUrl('/blbuuklogo.png');
+        setLogoUrl(BRAND_LOGO);
       }
     }
 
@@ -74,7 +75,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="text-4xl font-bold text-stone-800">
-                {tenant.businessName || 'Buuk'}
+                {tenant.businessName || BRAND_NAME}
               </div>
             </div>
             <p className="text-stone-600 text-sm">Admin Portal</p>

@@ -25,16 +25,16 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const defaultColors: ThemeColors = {
-  primary: '#008374',
-  primaryHover: '#006b5e',
-  secondary: '#89BA16',
-  secondaryHover: '#72970f',
-  textPrimary: '#171717',
-  textSecondary: '#737373',
-  background: '#ffffff',
-  backgroundSecondary: '#f5f5f5',
-  border: '#e5e5e5',
-  accent: '#89BA16',
+  primary: '#1A1714',
+  primaryHover: '#2E2926',
+  secondary: '#A09990',
+  secondaryHover: '#6B6560',
+  textPrimary: '#1A1714',
+  textSecondary: '#6B6560',
+  background: '#FDFCFA',
+  backgroundSecondary: '#F9F7F4',
+  border: '#EEEBE6',
+  accent: '#A09990',
 };
 
 const colorKeyMap: Record<string, keyof ThemeColors> = {

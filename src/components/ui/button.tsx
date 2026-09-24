@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/25 rounded-xl",
-        theme: "bg-theme-primary text-white hover:bg-theme-primary-hover hover:shadow-lg hover:shadow-[#008374]/25 rounded-xl",
+        theme: "bg-theme-primary text-white hover:bg-theme-primary-hover hover:shadow-lg hover:shadow-[#1A1714]/25 rounded-xl",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:shadow-destructive/25 rounded-xl",
         success:
@@ -22,13 +22,13 @@ const buttonVariants = cva(
         outline:
           "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground hover:border-primary/50 rounded-xl",
         "outline-theme":
-          "border-2 border-[#008374] bg-transparent text-[#008374] hover:bg-[#008374] hover:text-white hover:shadow-lg hover:shadow-[#008374]/25 rounded-xl",
+          "border-2 border-[#1A1714] bg-transparent text-[#1A1714] hover:bg-[#1A1714] hover:text-white hover:shadow-lg hover:shadow-[#1A1714]/25 rounded-xl",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary-hover hover:shadow-lg rounded-xl",
         ghost: "hover:bg-accent hover:text-accent-foreground rounded-xl",
         link: "text-primary underline-offset-4 hover:underline",
         glass: "bg-white/70 backdrop-blur-md border border-white/50 text-foreground hover:bg-white/90 hover:shadow-lg rounded-xl",
-        "glass-primary": "bg-[#008374]/90 backdrop-blur-md border border-[#008374]/50 text-white hover:bg-[#008374] hover:shadow-lg hover:shadow-[#008374]/25 rounded-xl",
+        "glass-primary": "bg-[#1A1714]/90 backdrop-blur-md border border-[#1A1714]/50 text-white hover:bg-[#1A1714] hover:shadow-lg hover:shadow-[#1A1714]/25 rounded-xl",
       },
       size: {
         default: "h-11 px-5 py-2.5",

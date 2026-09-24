@@ -33,8 +33,8 @@ async function sendWithResend(settings: EmailSettings, toEmail: string) {
     body: JSON.stringify({
       from: `${settings.from_name} <${settings.from_email}>`,
       to: [toEmail],
-      subject: 'Test Email from Buuk',
-      html: `<h1>Email Configuration Test</h1><p>This is a test email from your Buuk booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>`,
+      subject: 'Test Email from Zenno',
+      html: `<h1>Email Configuration Test</h1><p>This is a test email from your Zenno booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>`,
     }),
   });
 
@@ -56,10 +56,10 @@ async function sendWithSendGrid(settings: EmailSettings, toEmail: string) {
     body: JSON.stringify({
       personalizations: [{ to: [{ email: toEmail }] }],
       from: { email: settings.from_email, name: settings.from_name },
-      subject: 'Test Email from Buuk',
+      subject: 'Test Email from Zenno',
       content: [{ 
         type: 'text/html', 
-        value: `<h1>Email Configuration Test</h1><p>This is a test email from your Buuk booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>` 
+        value: `<h1>Email Configuration Test</h1><p>This is a test email from your Zenno booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>` 
       }],
     }),
   });
@@ -82,8 +82,8 @@ async function sendWithMailgun(settings: EmailSettings, toEmail: string) {
   const formData = new FormData();
   formData.append('from', `${settings.from_name} <${settings.from_email}>`);
   formData.append('to', toEmail);
-  formData.append('subject', 'Test Email from Buuk');
-  formData.append('html', `<h1>Email Configuration Test</h1><p>This is a test email from your Buuk booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>`);
+  formData.append('subject', 'Test Email from Zenno');
+  formData.append('html', `<h1>Email Configuration Test</h1><p>This is a test email from your Zenno booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${settings.from_name} &lt;${settings.from_email}&gt;</p>`);
 
   const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
     method: 'POST',

@@ -60,7 +60,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
         </button>
 
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-[#008374] to-[#00a894] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#008374]/30">
+          <div className="w-14 h-14 bg-gradient-to-br from-[#1A1714] to-[#3D3833] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#1A1714]/30">
             <User className="w-7 h-7 text-white" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">
@@ -83,7 +83,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="name"
                     type="text"
@@ -100,7 +100,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
                 <div className="relative group">
-                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="phone"
                     type="tel"
@@ -119,7 +119,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
               <Input
                 id="email"
                 type="email"
@@ -136,7 +136,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -161,7 +161,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300 group"
+            className="w-full h-12 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300 group"
             size="lg"
           >
             {loading ? (
@@ -181,7 +181,7 @@ export function CustomerAuth({ onClose, initialMode = 'login' }: CustomerAuthPro
         <div className="mt-6 text-center">
           <button
             onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            className="text-[#008374] hover:text-[#006b5e] text-sm font-medium hover:underline transition-colors"
+            className="text-[#1A1714] hover:text-[#2E2926] text-sm font-medium hover:underline transition-colors"
           >
             {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>

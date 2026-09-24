@@ -1,15 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  authorizationErrorResponse,
+  requireActiveAdmin,
+} from "../_shared/adminAuthorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
-
-interface VerifyAccountRequest {
-  businessId: string;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -20,16 +19,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    const { businessId }: VerifyAccountRequest = await req.json();
-
-    if (!businessId) {
-      throw new Error("businessId is required");
-    }
+    const { businessId, supabaseAdmin: supabase } = await requireActiveAdmin(req, {
+      roles: ["owner"],
+    });
 
     const { data: business, error: businessError } = await supabase
       .from("businesses")
@@ -45,29 +37,9 @@ Deno.serve(async (req: Request) => {
       throw new Error("No Stripe Connect account found for this business");
     }
 
-    const { data: settings } = await supabase
-      .from("site_settings")
-      .select("key, value")
-      .eq("business_id", businessId)
-      .eq("key", "stripe_secret_key")
-      .maybeSingle();
-
-    let stripeSecretKey = "";
-    if (settings?.value) {
-      try {
-        stripeSecretKey = JSON.parse(settings.value);
-      } catch {
-        stripeSecretKey = settings.value;
-      }
-    }
-
-    if (!stripeSecretKey || stripeSecretKey === "") {
-      const platformKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (platformKey) {
-        stripeSecretKey = platformKey;
-      } else {
-        throw new Error("Stripe secret key not configured");
-      }
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Stripe is not configured for the Zenno platform");
     }
 
     const accountResponse = await fetch(
@@ -104,6 +76,22 @@ Deno.serve(async (req: Request) => {
       throw new Error("Failed to update business status");
     }
 
+    if (account.details_submitted && account.charges_enabled) {
+      const { error: settingError } = await supabase.from("site_settings").upsert(
+        {
+          business_id: businessId,
+          key: "stripe_enabled",
+          value: "true",
+          category: "payment",
+        },
+        { onConflict: "business_id,key" },
+      );
+
+      if (settingError) {
+        console.error("Failed to enable Stripe payments:", settingError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         accountId: account.id,
@@ -122,6 +110,9 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
+
     console.error("Error verifying Connect account:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Failed to verify Connect account" }),

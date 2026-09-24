@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
+import {
+  BRAND_FAVICON,
+  BRAND_NAME,
+  BRAND_OG_IMAGE,
+  BRAND_TAGLINE,
+} from '../lib/brand';
 
 interface BrandingSettings {
   custom_page_title: string | null;
@@ -12,10 +18,10 @@ interface BrandingSettings {
   hide_powered_by_badge: boolean;
 }
 
-const DEFAULT_TITLE = 'Welcome to Buuk!';
-const DEFAULT_DESCRIPTION = 'The all-in-one booking system for your business. Schedule appointments, manage clients, and grow your business with Buuk.';
-const DEFAULT_FAVICON = '/iconobrowser.png';
-const DEFAULT_OG_IMAGE = 'https://app.onbuuk.com/buukgc.png';
+const DEFAULT_TITLE = `${BRAND_NAME} — Booking and revenue management`;
+const DEFAULT_DESCRIPTION = BRAND_TAGLINE;
+const DEFAULT_FAVICON = BRAND_FAVICON;
+const DEFAULT_OG_IMAGE = BRAND_OG_IMAGE;
 
 export function DynamicBranding() {
   const { businessId, isLoading } = useTenant();
@@ -28,7 +34,7 @@ export function DynamicBranding() {
     }
 
     if (!businessId) {
-      // No business context - apply Buuk defaults
+      // No business context - apply Zenno defaults
       updateDocumentHead({
         title: DEFAULT_TITLE,
         description: DEFAULT_DESCRIPTION,
@@ -65,7 +71,7 @@ export function DynamicBranding() {
             businessName: business.name,
           });
         } else {
-          // Non-premium users get default Buuk branding
+          // Non-premium users get default Zenno branding
           updateDocumentHead({
             title: DEFAULT_TITLE,
             description: DEFAULT_DESCRIPTION,

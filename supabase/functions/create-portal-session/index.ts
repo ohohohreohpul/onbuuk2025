@@ -16,7 +16,7 @@ const supabase = createClient(
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripe = new Stripe(stripeSecret, {
   appInfo: {
-    name: 'Buuk Booking System',
+    name: 'Zenno Booking',
     version: '1.0.0',
   },
 });

@@ -24,9 +24,9 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Theme colors with fallbacks
-  const primaryColor = colors.primary || '#008374';
-  const primaryHoverColor = colors.primaryHover || '#006b5e';
-  const secondaryColor = colors.secondary || '#89BA16';
+  const primaryColor = colors.primary || '#1A1714';
+  const primaryHoverColor = colors.primaryHover || '#2E2926';
+  const secondaryColor = colors.secondary || '#A09990';
 
   useEffect(() => {
     if (tenant.businessId) {

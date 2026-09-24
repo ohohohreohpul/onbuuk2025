@@ -9,18 +9,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['apple-touch-icon.png', 'iconobrowser.png'],
+      includeAssets: ['apple-touch-icon.png', 'zenno-mark.svg', 'zenno-logo.svg'],
       manifest: {
-        name: 'Buuk',
-        short_name: 'Buuk',
-        description: 'Bookings, gift cards, and business management',
+        name: 'Zenno',
+        short_name: 'Zenno',
+        description: 'Bookings, customers, and revenue in one place.',
         // Owners install this to run bookings, QR gift-card redemption, etc.
         // as a full-screen app, so launch straight into the admin console.
         start_url: '/admin',
         scope: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#008374',
+        theme_color: '#1A1714',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -42,8 +42,12 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
+    // Pre-bundle Radix menus up front: discovering them mid-session re-optimizes
+    // deps and can load two copies of React ("reading 'useState' of null").
+    include: ['@radix-ui/react-dropdown-menu'],
   },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },

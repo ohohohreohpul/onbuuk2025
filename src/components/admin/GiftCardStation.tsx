@@ -15,8 +15,14 @@ interface FoundGiftCard {
   id: string;
   code: string;
   current_balance_cents: number;
+  card_type?: 'value' | 'service_pass';
+  service_pass_name?: string | null;
+  original_visits?: number | null;
+  remaining_visits?: number | null;
   status: string;
   expires_at: string | null;
+  service?: { name: string } | null;
+  duration?: { duration_minutes: number } | null;
 }
 
 type Mode = 'type' | 'scan';
@@ -48,7 +54,7 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
 
     const { data, error } = await supabase
       .from('gift_cards')
-      .select('id, code, current_balance_cents, status, expires_at')
+      .select('id, code, current_balance_cents, card_type, service_pass_name, original_visits, remaining_visits, status, expires_at, service:services(name), duration:service_durations(duration_minutes)')
       .eq('business_id', businessId)
       .eq('code', cleanCode)
       .maybeSingle();
@@ -63,8 +69,10 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
     } else if (data.status === 'expired' || (data.expires_at && new Date(data.expires_at) < new Date())) {
       setLookupError('This gift card has expired');
     } else {
-      setCard(data);
-      setRedeemAmount((data.current_balance_cents / 100).toFixed(2));
+      const service = Array.isArray(data.service) ? data.service[0] : data.service;
+      const duration = Array.isArray(data.duration) ? data.duration[0] : data.duration;
+      setCard({ ...data, service: service || null, duration: duration || null });
+      setRedeemAmount(data.card_type === 'service_pass' ? '' : (data.current_balance_cents / 100).toFixed(2));
     }
 
     setLooking(false);
@@ -92,6 +100,22 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
 
   const handleRedeem = async () => {
     if (!card) return;
+
+    if (card.card_type === 'service_pass') {
+      setRedeeming(true);
+      setRedeemError(null);
+      setRedeemSuccess(null);
+      const { data, error } = await supabase.rpc('redeem_service_pass_at_pos', { p_code: card.code });
+      if (error) {
+        setRedeemError(error.message || 'Failed to redeem service pass');
+      } else {
+        const remainingVisits = Number(data?.remainingVisits || 0);
+        setCard({ ...card, remaining_visits: remainingVisits, status: remainingVisits === 0 ? 'fully_redeemed' : card.status });
+        setRedeemSuccess(`One visit redeemed. ${remainingVisits} ${remainingVisits === 1 ? 'visit remains' : 'visits remain'}.`);
+      }
+      setRedeeming(false);
+      return;
+    }
 
     const amountCents = Math.round(parseFloat(redeemAmount) * 100);
     if (!amountCents || amountCents <= 0) {
@@ -141,12 +165,12 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#008374] to-[#00a894]">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#1A1714] to-[#3D3833]">
               <Gift className="h-5 w-5 text-white" />
             </div>
             <div>
               <CardTitle className="text-lg">Gift Card Station</CardTitle>
-              <p className="text-sm text-muted-foreground">Scan or enter a code to check balance and redeem in person</p>
+              <p className="text-sm text-muted-foreground">Check value balances or redeem a service-pass visit in person</p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => onNavigate('gift-cards')}>
@@ -182,13 +206,13 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && lookupCode(code)}
               placeholder="Enter gift card code"
-              className="flex-1 px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008374]/20 focus:border-[#008374] transition-all uppercase placeholder:normal-case"
+              className="flex-1 px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1714]/20 focus:border-[#1A1714] transition-all uppercase placeholder:normal-case"
             />
             <div className="flex gap-3">
               <Button
                 onClick={() => lookupCode(code)}
                 disabled={looking || !code.trim()}
-                className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 px-6"
+                className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 px-6"
               >
                 {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
@@ -216,7 +240,11 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
               <div className="flex-1">
                 <p className="text-sm font-semibold text-green-900">{card.code}</p>
                 <p className="text-sm text-green-700 mt-0.5">
-                  Balance: <span className="font-bold text-lg">{formatPrice(card.current_balance_cents)}</span>
+                  {card.card_type === 'service_pass' ? (
+                    <><span className="font-bold text-lg">{card.remaining_visits || 0} {(card.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left</span><span className="block text-xs">{card.service_pass_name} · {card.service?.name} · {card.duration?.duration_minutes} min</span></>
+                  ) : (
+                    <>Balance: <span className="font-bold text-lg">{formatPrice(card.current_balance_cents)}</span></>
+                  )}
                 </p>
               </div>
               <button onClick={resetStation} className="text-green-700 hover:text-green-900" title="Start over">
@@ -224,7 +252,14 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
               </button>
             </div>
 
-            {card.current_balance_cents > 0 && (
+            {card.card_type === 'service_pass' && (card.remaining_visits || 0) > 0 ? (
+              <div className="space-y-3 rounded-xl border border-gray-200 bg-white/70 p-4">
+                <p className="text-sm leading-6 text-gray-600">Redeem one visit for the service shown above. The pass keeps its own visit count and is never converted into a cash balance.</p>
+                <Button onClick={handleRedeem} disabled={redeeming} className="w-full bg-gradient-to-r from-[#1A1714] to-[#3D3833] px-6">
+                  {redeeming ? 'Redeeming...' : 'Redeem one visit'}
+                </Button>
+              </div>
+            ) : card.current_balance_cents > 0 && (
               <div className="p-4 bg-white/70 border border-gray-200 rounded-xl space-y-3">
                 <label className="block text-sm font-medium text-gray-700">Redeem Amount</label>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -235,12 +270,12 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
                     max={card.current_balance_cents / 100}
                     value={redeemAmount}
                     onChange={(e) => setRedeemAmount(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#008374]/20 focus:border-[#008374]"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1A1714]/20 focus:border-[#1A1714]"
                   />
                   <Button
                     onClick={handleRedeem}
                     disabled={redeeming}
-                    className="bg-gradient-to-r from-[#008374] to-[#00a894] px-6"
+                    className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] px-6"
                   >
                     {redeeming ? 'Redeeming...' : 'Redeem'}
                   </Button>

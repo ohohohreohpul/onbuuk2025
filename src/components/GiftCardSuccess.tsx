@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Check, Gift, Mail, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { downloadGiftCardPDF } from '../lib/giftCardPdfGenerator';
+import { BRAND_SUPPORT_URL } from '../lib/brand';
+import { CURRENCY_SYMBOLS, formatCurrency } from '../lib/currency';
 
 export default function GiftCardSuccess() {
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function GiftCardSuccess() {
         // Legacy flow: fetch by gift card ID
         const { data, error } = await supabase
           .from('gift_cards')
-          .select('*')
+          .select('*, service_durations(duration_minutes)')
           .eq('id', giftCardId)
           .maybeSingle();
 
@@ -51,7 +53,7 @@ export default function GiftCardSuccess() {
 
         const { data, error } = await supabase
           .from('gift_cards')
-          .select('*')
+          .select('*, service_durations(duration_minutes)')
           .eq('stripe_session_id', currentSessionId)
           .maybeSingle();
 
@@ -62,7 +64,7 @@ export default function GiftCardSuccess() {
 
           const { data: retryData, error: retryError } = await supabase
             .from('gift_cards')
-            .select('*')
+            .select('*, service_durations(duration_minutes)')
             .eq('stripe_session_id', currentSessionId)
             .maybeSingle();
 
@@ -97,7 +99,7 @@ export default function GiftCardSuccess() {
 
                   const { data: duplicateCheckData, error: duplicateCheckError } = await supabase
                     .from('gift_cards')
-                    .select('*')
+                    .select('*, service_durations(duration_minutes)')
                     .eq('stripe_session_id', currentSessionId)
                     .maybeSingle();
 
@@ -117,7 +119,7 @@ export default function GiftCardSuccess() {
                 // Try fetching the gift card one more time
                 const { data: finalData, error: finalError } = await supabase
                   .from('gift_cards')
-                  .select('*')
+                  .select('*, service_durations(duration_minutes)')
                   .eq('stripe_session_id', currentSessionId)
                   .maybeSingle();
 
@@ -169,20 +171,36 @@ export default function GiftCardSuccess() {
       // Fetch currency settings
       const { data: currencySettings } = await supabase
         .from('site_settings')
-        .select('currency')
+        .select('value')
         .eq('business_id', giftCardData.business_id)
         .eq('key', 'currency')
         .maybeSingle();
 
-      // Parse currency to get symbol
-      let currencySymbol = '€';
-      let currencyCode = 'EUR';
+      let currencyCode = 'USD';
 
-      if (currencySettings?.currency) {
-        const currency = currencySettings.currency.toUpperCase();
-        currencyCode = currency;
-        currencySymbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€';
+      if (currencySettings?.value) {
+        let configuredCurrency = currencySettings.value;
+        try {
+          const parsed = JSON.parse(configuredCurrency);
+          if (typeof parsed === 'string') configuredCurrency = parsed;
+        } catch {
+          // Stored as a plain ISO currency code.
+        }
+        currencyCode = configuredCurrency.toUpperCase();
+      } else {
+        const { data: legacyCurrency } = await supabase
+          .from('site_settings')
+          .select('currency')
+          .eq('business_id', giftCardData.business_id)
+          .not('currency', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (legacyCurrency?.currency) currencyCode = legacyCurrency.currency.toUpperCase();
       }
+
+      const currencySymbol = CURRENCY_SYMBOLS[currencyCode] || currencyCode;
 
       // Combine business data with currency
       const fullBusinessData = {
@@ -214,8 +232,7 @@ export default function GiftCardSuccess() {
   };
 
   const formatPrice = (cents: number) => {
-    const symbol = business?.currency_symbol || '€';
-    return `${symbol}${(cents / 100).toFixed(2)}`;
+    return formatCurrency(cents, business?.currency_code || 'USD');
   };
 
   const formatDate = (dateString: string) => {
@@ -254,11 +271,15 @@ export default function GiftCardSuccess() {
       await downloadGiftCardPDF({
         code: giftCard.code,
         amount: giftCard.original_value_cents / 100,
+        cardType: giftCard.card_type || 'value',
+        servicePassName: giftCard.service_pass_name,
+        visits: giftCard.original_visits,
+        durationMinutes: giftCard.service_durations?.duration_minutes,
         designUrl: giftCardSettings?.design_url || null,
         termsAndConditions: giftCardSettings?.terms_and_conditions || null,
         businessName: business.name,
         expiresAt: giftCard.expires_at,
-        currencySymbol: business.currency_symbol || '€',
+        currencySymbol: business.currency_symbol || CURRENCY_SYMBOLS[business.currency_code] || business.currency_code || CURRENCY_SYMBOLS.USD,
       });
 
       console.log('PDF download initiated successfully');
@@ -324,7 +345,7 @@ export default function GiftCardSuccess() {
                   Your payment was successful. If you continue to see this error, please check your email for gift card details or contact support.
                 </p>
                 <a
-                  href="https://support.onbuuk.com"
+                  href={BRAND_SUPPORT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-stone-700 hover:underline inline-flex items-center gap-1"
@@ -347,13 +368,13 @@ export default function GiftCardSuccess() {
             <Check className="w-10 h-10 text-green-600" />
           </div>
           <h1 className="text-3xl md:text-4xl font-light text-stone-800 mb-3">
-            Gift Card Purchased!
+            {giftCard.card_type === 'service_pass' ? 'Service Pass Purchased!' : 'Gift Card Purchased!'}
           </h1>
           <p className="text-stone-600 leading-relaxed">
             Your payment has been processed successfully.
             {giftCard.purchased_for_email && (
               <>
-                {' '}We've sent the gift card details to{' '}
+                {' '}We've sent the {giftCard.card_type === 'service_pass' ? 'pass' : 'gift card'} details to{' '}
                 <span className="font-medium">{giftCard.purchased_for_email}</span>
               </>
             )}
@@ -366,26 +387,44 @@ export default function GiftCardSuccess() {
           </div>
 
           <h2 className="text-center text-2xl font-light text-stone-800 mb-2">
-            Gift Card
+            {giftCard.card_type === 'service_pass' ? 'Service Pass' : 'Gift Card'}
           </h2>
           <p className="text-center text-3xl font-medium text-stone-900 mb-6">
-            {formatPrice(giftCard.original_value_cents)}
+            {giftCard.card_type === 'service_pass'
+              ? giftCard.service_pass_name || 'Service pass'
+              : formatPrice(giftCard.original_value_cents)}
           </p>
+
+          {giftCard.card_type === 'service_pass' && (
+            <p className="-mt-3 mb-6 text-center text-sm text-stone-500">
+              {giftCard.original_visits} {giftCard.original_visits === 1 ? 'visit' : 'visits'}
+              {giftCard.service_durations?.duration_minutes ? ` · ${giftCard.service_durations.duration_minutes} minutes each` : ''}
+            </p>
+          )}
 
           <div className="space-y-4 bg-white p-6 rounded-lg border border-stone-200">
             <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-              <span className="text-sm text-stone-600">Gift Card Code:</span>
+              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? 'Pass' : 'Gift Card'} Code:</span>
               <span className="text-lg font-mono font-medium text-stone-900">
                 {giftCard.code}
               </span>
             </div>
 
             <div className="flex justify-between items-center pb-3 border-b border-stone-200">
-              <span className="text-sm text-stone-600">Balance:</span>
+              <span className="text-sm text-stone-600">{giftCard.card_type === 'service_pass' ? 'Visits remaining:' : 'Balance:'}</span>
               <span className="text-stone-900 font-medium">
-                {formatPrice(giftCard.current_balance_cents)}
+                {giftCard.card_type === 'service_pass'
+                  ? `${giftCard.remaining_visits} of ${giftCard.original_visits}`
+                  : formatPrice(giftCard.current_balance_cents)}
               </span>
             </div>
+
+            {giftCard.card_type === 'service_pass' && (
+              <div className="flex justify-between items-center pb-3 border-b border-stone-200">
+                <span className="text-sm text-stone-600">Purchased for:</span>
+                <span className="text-stone-900 font-medium">{formatPrice(giftCard.purchase_price_cents)}</span>
+              </div>
+            )}
 
             {giftCard.purchased_for_email && (
               <div className="flex justify-between items-center pb-3 border-b border-stone-200">
@@ -421,7 +460,7 @@ export default function GiftCardSuccess() {
               <div>
                 <h3 className="font-medium text-stone-800 mb-1">Email Notification</h3>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  The recipient will receive an email with the gift card details and redemption instructions.
+                  The recipient will receive an email with the {giftCard.card_type === 'service_pass' ? 'service-pass' : 'gift-card'} details and redemption instructions.
                 </p>
               </div>
             </div>
@@ -435,7 +474,7 @@ export default function GiftCardSuccess() {
             className="w-full px-6 py-4 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
           >
             <Download className="w-5 h-5" />
-            {downloadingPdf ? 'Generating PDF...' : 'Download Gift Card PDF'}
+            {downloadingPdf ? 'Generating PDF...' : `Download ${giftCard.card_type === 'service_pass' ? 'Service Pass' : 'Gift Card'} PDF`}
           </button>
           <p className="text-xs text-stone-500 text-center mt-2">
             Download a printable PDF version of the gift card
@@ -446,7 +485,7 @@ export default function GiftCardSuccess() {
           <p className="text-sm text-stone-500">
             Need help?{' '}
             <a
-              href="https://support.onbuuk.com"
+              href={BRAND_SUPPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-stone-700 hover:underline"

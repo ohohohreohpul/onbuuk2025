@@ -81,14 +81,14 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Back
         </button>
-        <h2 className="text-3xl font-light text-theme-primary mb-2">{content.title}</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-theme-primary mb-2">{content.title}</h2>
         <p className="text-theme-secondary">{content.subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-4">
         <button
           onClick={() => setSelectedSpecialistId(null)}
-          className={`w-full text-left p-5 border transition-all duration-200 rounded-lg ${
+          className={`w-full text-left p-5 border transition-all duration-200 rounded-2xl ${
             selectedSpecialistId === null
               ? 'border-theme-primary bg-theme-secondary-bg'
               : 'border-border hover:border-theme-primary bg-card'
@@ -96,7 +96,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-theme-primary flex items-center justify-center flex-shrink-0 rounded-lg">
+              <div className="w-12 h-12 bg-theme-primary flex items-center justify-center flex-shrink-0 rounded-xl">
                 <User className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -135,7 +135,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           <button
             key={specialist.id}
             onClick={() => setSelectedSpecialistId(specialist.id)}
-            className={`w-full text-left p-5 border transition-all duration-200 rounded-lg ${
+            className={`w-full text-left p-5 border transition-all duration-200 rounded-2xl ${
               selectedSpecialistId === specialist.id
                 ? 'border-theme-primary bg-theme-secondary-bg'
                 : 'border-border hover:border-theme-primary bg-card'
@@ -143,7 +143,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden rounded-lg">
+                <div className="w-12 h-12 bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden rounded-xl">
                   {specialist.image_url ? (
                     <img
                       src={specialist.image_url}
@@ -188,7 +188,7 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
       <div className="flex-shrink-0">
         <button
           onClick={handleContinue}
-          className="w-full px-8 py-4 bg-theme-primary text-white text-sm tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 rounded-lg"
+          className="w-full px-8 py-4 bg-theme-primary text-white text-sm font-medium tracking-wide hover:bg-theme-primary-hover transition-colors duration-200 rounded-xl shadow-[0_2px_12px_rgba(26,23,20,0.16)]"
         >
           {content.buttonText}
         </button>

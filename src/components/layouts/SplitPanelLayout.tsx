@@ -1,7 +1,8 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { PoweredByBuuk } from '../PoweredByBuuk';
+import { PoweredByZenno } from '../PoweredByZenno';
 import { Check, Clock, User, Calendar, Package, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../lib/themeContext';
+import { useCurrency } from '../../lib/currencyContext';
 
 interface SelectedProduct {
   product: {
@@ -33,6 +34,7 @@ interface SplitPanelLayoutProps {
 
 export default function SplitPanelLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt, bookingSummary }: SplitPanelLayoutProps) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   // Initialize isMobile correctly on first render
@@ -44,8 +46,8 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
   });
 
   // Theme colors with fallbacks
-  const primaryColor = colors.primary || '#008374';
-  const secondaryColor = colors.secondary || '#89BA16';
+  const primaryColor = colors.primary || '#1A1714';
+  const secondaryColor = colors.secondary || '#A09990';
 
   // Determine which image to show based on screen size
   const displayImage = imageDesktop || imageTablet || imageMobile || imageUrl;
@@ -205,7 +207,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
                                 {item.product.name} {item.quantity > 1 && `×${item.quantity}`}
                               </span>
                               <span className="font-medium" style={{ color: colors.textPrimary }}>
-                                €{((item.product.price_cents * item.quantity) / 100).toFixed(2)}
+                                {formatPrice(item.product.price_cents * item.quantity)}
                               </span>
                             </div>
                           ))}
@@ -319,7 +321,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
                               {item.product.name} {item.quantity > 1 && `×${item.quantity}`}
                             </span>
                             <span className="font-medium" style={{ color: colors.textPrimary }}>
-                              €{((item.product.price_cents * item.quantity) / 100).toFixed(2)}
+                              {formatPrice(item.product.price_cents * item.quantity)}
                             </span>
                           </div>
                         ))}
@@ -359,7 +361,7 @@ export default function SplitPanelLayout({ children, imageUrl, imageMobile, imag
       </aside>
       )}
 
-      <PoweredByBuuk />
+      <PoweredByZenno />
     </div>
   );
 }

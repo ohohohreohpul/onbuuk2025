@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { X, Calendar, DollarSign, Mail, Phone, FileText, Plus, Trash2 } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
+import { useCurrency } from '../../lib/currencyContext';
 
 interface Customer {
   id: string;
@@ -37,8 +38,9 @@ interface Props {
   onUpdate: () => void;
 }
 
-export default function CustomerDetailModal({ customer, onClose, onUpdate }: Props) {
-  const { user } = useAdminAuth();
+export default function CustomerDetailModal({ customer, onClose }: Props) {
+  const { formatPrice } = useCurrency();
+  const user = useAdminAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
@@ -129,10 +131,6 @@ export default function CustomerDetailModal({ customer, onClose, onUpdate }: Pro
     }
   };
 
-  const formatCurrency = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`;
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -197,7 +195,7 @@ export default function CustomerDetailModal({ customer, onClose, onUpdate }: Pro
                 <span className="text-xs uppercase">Total Spent</span>
               </div>
               <div className="text-2xl font-light text-stone-800">
-                {formatCurrency(customer.total_spent_cents)}
+                {formatPrice(customer.total_spent_cents)}
               </div>
             </div>
             <div className="p-4 bg-stone-50 border border-stone-200 rounded">
@@ -342,7 +340,7 @@ export default function CustomerDetailModal({ customer, onClose, onUpdate }: Pro
                           {booking.duration.duration_minutes} min
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-stone-800">
-                          {formatCurrency(booking.duration.price_cents)}
+                          {formatPrice(booking.duration.price_cents)}
                         </td>
                         <td className="px-4 py-3">
                           <span

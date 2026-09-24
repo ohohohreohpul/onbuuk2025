@@ -2,21 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Save, Store, AlertCircle, CheckCircle, Link as LinkIcon } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
+import { RESERVED_SUBDOMAINS, shopUrl, toSubdomainLabel } from '../../../lib/tenantHost';
 
-const RESERVED_ROUTES = [
-  'admin',
-  'staff',
-  'superadmin',
-  'login',
-  'register',
-  'signup',
-  'signup-success',
-  'forgot-password',
-  'reset-password',
-  'cancel',
-  'account',
-  'accept-invite',
-];
+const RESERVED_ROUTES = RESERVED_SUBDOMAINS;
 
 interface Business {
   id: string;
@@ -96,11 +84,7 @@ export default function StoreProfile() {
   };
 
   const handlePermalinkChange = (value: string) => {
-    const sanitized = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+    const sanitized = toSubdomainLabel(value);
 
     const isReserved = RESERVED_ROUTES.includes(sanitized);
     setIsReservedRoute(isReserved);
@@ -167,7 +151,7 @@ export default function StoreProfile() {
     return Math.round((completed / fields.length) * 100);
   };
 
-  const bookingUrl = `${window.location.origin}/${formData.permalink}`;
+  const bookingUrl = shopUrl(formData.permalink);
 
   if (loading) {
     return (

@@ -1,5 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Gift, Award, CreditCard, DollarSign, Save, Download, Mail, Eye, Upload, Trash2, CheckSquare, Square, AlertTriangle } from 'lucide-react';
+import {
+  Gift,
+  Award,
+  CreditCard,
+  DollarSign,
+  Save,
+  Download,
+  Mail,
+  Eye,
+  Upload,
+  Trash2,
+  CheckSquare,
+  Square,
+  AlertTriangle,
+  Plus,
+  Image as ImageIcon,
+  Package,
+  Clock,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
@@ -7,6 +25,19 @@ import { POSView } from './POSView';
 import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 import { GiftCardDetailModal } from './GiftCardDetailModal';
 import { ImportGiftCardsModal } from './ImportGiftCardsModal';
+import {
+  ADMIN_INPUT,
+  ADMIN_MODAL,
+  ADMIN_MODAL_BACKDROP,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_SECONDARY_BUTTON,
+  ADMIN_SEGMENT_ACTIVE,
+  ADMIN_SEGMENT_INACTIVE,
+  ADMIN_SEGMENTED_CONTROL,
+  ADMIN_STATUS_PILL,
+  ADMIN_SURFACE,
+  ADMIN_TERTIARY_BUTTON,
+} from './adminUi';
 
 interface LoyaltySettings {
   enabled: boolean;
@@ -43,16 +74,50 @@ interface GiftCard {
   code: string;
   original_value_cents: number;
   current_balance_cents: number;
+  purchase_price_cents?: number;
+  card_type?: 'value' | 'service_pass';
+  service_pass_offer_id?: string | null;
+  service_pass_name?: string | null;
+  service_id?: string | null;
+  duration_id?: string | null;
+  original_visits?: number | null;
+  remaining_visits?: number | null;
   status: string;
   purchased_at: string;
   expires_at: string | null;
   purchased_for_email: string | null;
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+}
+
+interface DurationOption {
+  id: string;
+  service_id: string;
+  duration_minutes: number;
+  price_cents: number;
+}
+
+interface ServicePassOffer {
+  id: string;
+  business_id: string;
+  name: string;
+  description: string | null;
+  service_id: string;
+  duration_id: string;
+  visit_count: number;
+  price_cents: number;
+  expiry_days: number | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export function LoyaltyRewardsView() {
   const { businessId } = useTenant();
   const { currencySymbol, formatAmount } = useCurrency();
-  const [activeTab, setActiveTab] = useState<'giftcards' | 'manage' | 'pos'>('giftcards');
+  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'pos'>('loyalty');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -87,8 +152,25 @@ export function LoyaltyRewardsView() {
   const [creatingGiftCard, setCreatingGiftCard] = useState(false);
   const [newGiftCardAmount, setNewGiftCardAmount] = useState('50');
   const [newGiftCardEmail, setNewGiftCardEmail] = useState('');
+  const [newGiftCardType, setNewGiftCardType] = useState<'value' | 'service_pass'>('value');
+  const [newServicePassOfferId, setNewServicePassOfferId] = useState('');
   const [selectedGiftCard, setSelectedGiftCard] = useState<GiftCard | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // Service-pass catalogue
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [durations, setDurations] = useState<DurationOption[]>([]);
+  const [servicePassOffers, setServicePassOffers] = useState<ServicePassOffer[]>([]);
+  const [savingServicePass, setSavingServicePass] = useState(false);
+  const [newServicePass, setNewServicePass] = useState({
+    name: '',
+    description: '',
+    service_id: '',
+    duration_id: '',
+    visit_count: '5',
+    price: '',
+    expiry_days: '',
+  });
   
   // Bulk selection state
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
@@ -98,7 +180,119 @@ export function LoyaltyRewardsView() {
   useEffect(() => {
     loadSettings();
     loadGiftCards();
+    loadServicePassData();
   }, [businessId]);
+
+  const loadServicePassData = async () => {
+    if (!businessId) return;
+
+    const [servicesResult, durationsResult, offersResult] = await Promise.all([
+      supabase
+        .from('services')
+        .select('id, name')
+        .eq('business_id', businessId)
+        .order('display_order', { ascending: true }),
+      supabase
+        .from('service_durations')
+        .select('id, service_id, duration_minutes, price_cents')
+        .eq('business_id', businessId)
+        .order('duration_minutes', { ascending: true }),
+      supabase
+        .from('service_pass_offers')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('created_at', { ascending: false }),
+    ]);
+
+    if (servicesResult.data) setServices(servicesResult.data);
+    if (durationsResult.data) setDurations(durationsResult.data);
+    if (offersResult.data) {
+      setServicePassOffers(offersResult.data);
+      setNewServicePassOfferId((current) => current || offersResult.data.find((offer) => offer.is_active)?.id || '');
+    }
+  };
+
+  const createServicePassOffer = async () => {
+    const visitCount = Number(newServicePass.visit_count);
+    const priceCents = Math.round(Number(newServicePass.price) * 100);
+    const expiryDays = newServicePass.expiry_days ? Number(newServicePass.expiry_days) : null;
+
+    if (!newServicePass.name.trim() || !newServicePass.service_id || !newServicePass.duration_id) {
+      setMessage('Name, service, and duration are required');
+      return;
+    }
+    if (!Number.isInteger(visitCount) || visitCount < 1 || visitCount > 100) {
+      setMessage('Visits must be a whole number between 1 and 100');
+      return;
+    }
+    if (!priceCents || priceCents <= 0) {
+      setMessage('Enter a valid package sale price');
+      return;
+    }
+
+    setSavingServicePass(true);
+    setMessage('');
+    const { error } = await supabase.from('service_pass_offers').insert({
+      business_id: businessId,
+      name: newServicePass.name.trim(),
+      description: newServicePass.description.trim() || null,
+      service_id: newServicePass.service_id,
+      duration_id: newServicePass.duration_id,
+      visit_count: visitCount,
+      price_cents: priceCents,
+      expiry_days: expiryDays,
+      is_active: true,
+    });
+
+    if (error) {
+      console.error('Error creating service pass:', error);
+      setMessage(`Error creating service pass: ${error.message}`);
+    } else {
+      setMessage('Service pass added to the customer shop');
+      setNewServicePass({
+        name: '',
+        description: '',
+        service_id: '',
+        duration_id: '',
+        visit_count: '5',
+        price: '',
+        expiry_days: '',
+      });
+      await loadServicePassData();
+      setTimeout(() => setMessage(''), 3000);
+    }
+    setSavingServicePass(false);
+  };
+
+  const toggleServicePassOffer = async (offer: ServicePassOffer) => {
+    const { error } = await supabase
+      .from('service_pass_offers')
+      .update({ is_active: !offer.is_active, updated_at: new Date().toISOString() })
+      .eq('id', offer.id)
+      .eq('business_id', businessId);
+
+    if (error) {
+      setMessage(`Error updating service pass: ${error.message}`);
+      return;
+    }
+    await loadServicePassData();
+  };
+
+  const deleteServicePassOffer = async (offerId: string) => {
+    const { error } = await supabase
+      .from('service_pass_offers')
+      .delete()
+      .eq('id', offerId)
+      .eq('business_id', businessId);
+
+    if (error) {
+      setMessage(error.code === '23503'
+        ? 'This pass has already been sold. Pause it instead of deleting it.'
+        : `Error deleting service pass: ${error.message}`);
+      return;
+    }
+    await loadServicePassData();
+  };
 
   const loadSettings = async () => {
     setLoading(true);
@@ -221,7 +415,22 @@ export function LoyaltyRewardsView() {
     setCreatingGiftCard(true);
     setMessage('');
 
-    const amountCents = Math.round(parseFloat(newGiftCardAmount) * 100);
+    const selectedOffer = servicePassOffers.find((offer) => offer.id === newServicePassOfferId);
+    const amountCents = newGiftCardType === 'service_pass'
+      ? selectedOffer?.price_cents || 0
+      : Math.round(parseFloat(newGiftCardAmount) * 100);
+
+    if (newGiftCardType === 'service_pass' && !selectedOffer) {
+      setMessage('Choose a service pass to issue');
+      setCreatingGiftCard(false);
+      return;
+    }
+
+    if (newGiftCardType === 'value' && (!amountCents || amountCents <= 0)) {
+      setMessage('Enter a valid gift-card value');
+      setCreatingGiftCard(false);
+      return;
+    }
 
     // Generate code using the database function
     const { data: codeData, error: codeError } = await supabase
@@ -237,28 +446,65 @@ export function LoyaltyRewardsView() {
 
     // Calculate expiry date
     let expiresAt = null;
-    if (giftCardSettings.expiry_days) {
+    const expiryDays = newGiftCardType === 'service_pass'
+      ? selectedOffer?.expiry_days ?? giftCardSettings.expiry_days
+      : giftCardSettings.expiry_days;
+    if (expiryDays) {
       const expiry = new Date();
-      expiry.setDate(expiry.getDate() + giftCardSettings.expiry_days);
+      expiry.setDate(expiry.getDate() + expiryDays);
       expiresAt = expiry.toISOString();
     }
 
-    const { error } = await supabase
+    const cardPayload = newGiftCardType === 'service_pass' && selectedOffer
+      ? {
+          business_id: businessId,
+          code,
+          card_type: 'service_pass',
+          service_pass_offer_id: selectedOffer.id,
+          service_pass_name: selectedOffer.name,
+          service_id: selectedOffer.service_id,
+          duration_id: selectedOffer.duration_id,
+          original_visits: selectedOffer.visit_count,
+          remaining_visits: selectedOffer.visit_count,
+          purchase_price_cents: selectedOffer.price_cents,
+          original_value_cents: 0,
+          current_balance_cents: 0,
+          purchased_for_email: trimmedEmail,
+          expires_at: expiresAt,
+        }
+      : {
+          business_id: businessId,
+          code,
+          card_type: 'value',
+          purchase_price_cents: amountCents,
+          original_value_cents: amountCents,
+          current_balance_cents: amountCents,
+          purchased_for_email: trimmedEmail,
+          expires_at: expiresAt,
+        };
+
+    const { data: createdCard, error } = await supabase
       .from('gift_cards')
-      .insert({
-        business_id: businessId,
-        code,
-        original_value_cents: amountCents,
-        current_balance_cents: amountCents,
-        purchased_for_email: trimmedEmail,
-        expires_at: expiresAt,
-      });
+      .insert(cardPayload)
+      .select('id')
+      .single();
 
     if (error) {
       setMessage('Error creating gift card');
       console.error(error);
     } else {
-      setMessage(`Gift card created: ${code}`);
+      if (createdCard) {
+        await supabase.from('gift_card_transactions').insert({
+          gift_card_id: createdCard.id,
+          amount_cents: amountCents,
+          visit_count: newGiftCardType === 'service_pass' ? selectedOffer?.visit_count || 0 : 0,
+          transaction_type: 'purchase',
+          description: newGiftCardType === 'service_pass'
+            ? `Service pass issued manually: ${selectedOffer?.name}`
+            : 'Value gift card issued manually',
+        });
+      }
+      setMessage(`${newGiftCardType === 'service_pass' ? 'Service pass' : 'Gift card'} created: ${code}`);
       setNewGiftCardAmount('50');
       setNewGiftCardEmail('');
       loadGiftCards();
@@ -270,9 +516,14 @@ export function LoyaltyRewardsView() {
 
   const handleDownloadGiftCard = async (card: GiftCard) => {
     try {
+      const passDuration = durations.find((duration) => duration.id === card.duration_id);
       await downloadGiftCardPDF({
         code: card.code,
         amount: card.original_value_cents / 100,
+        cardType: card.card_type || 'value',
+        servicePassName: card.service_pass_name,
+        visits: card.original_visits,
+        durationMinutes: passDuration?.duration_minutes,
         designUrl: giftCardSettings.design_url,
         termsAndConditions: giftCardSettings.terms_and_conditions,
         businessName: businessName,
@@ -307,7 +558,9 @@ export function LoyaltyRewardsView() {
           variables: {
             recipient_email: card.purchased_for_email,
             gift_card_code: card.code,
-            amount: formatAmount(card.original_value_cents / 100),
+            amount: card.card_type === 'service_pass'
+              ? `${card.service_pass_name || 'Service pass'} · ${card.original_visits || 0} visits`
+              : formatAmount(card.original_value_cents / 100),
             message: '',
             sender_name: (card as any).purchased_by_name || 'Someone special',
             business_name: businessName,
@@ -389,266 +642,566 @@ export function LoyaltyRewardsView() {
     }
   };
 
+  const activeGiftCards = giftCards.filter((card) => card.status === 'active').length;
+  const outstandingBalance = giftCards
+    .filter((card) => (card.card_type || 'value') === 'value')
+    .reduce((sum, card) => sum + card.current_balance_cents, 0);
+  const outstandingVisits = giftCards
+    .filter((card) => card.card_type === 'service_pass' && card.status === 'active')
+    .reduce((sum, card) => sum + (card.remaining_visits || 0), 0);
+  const issuedValue = giftCards.reduce(
+    (sum, card) => sum + (card.purchase_price_cents ?? card.original_value_cents),
+    0,
+  );
+  const messageIsError = /error|required|valid|failed/i.test(message);
+
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="animate-pulse space-y-5">
+        <div className="space-y-2">
+          <div className="h-7 w-56 rounded-lg bg-stone-900/[0.06]" />
+          <div className="h-4 w-80 rounded bg-stone-900/[0.04]" />
+        </div>
+        <div className="h-12 w-[36rem] max-w-full rounded-xl bg-stone-900/[0.05]" />
+        <div className={`${ADMIN_SURFACE} h-80 bg-stone-900/[0.025]`} />
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Gift Cards & Rewards</h2>
-        <p className="text-gray-600 mt-1">
-          Manage your gift card system and POS transactions
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[#1A1714]">Loyalty & Rewards</h1>
+          <p className="text-sm text-stone-500">Turn repeat visits into lasting relationships and manage cards and service passes.</p>
+        </div>
+        <span className={`${ADMIN_STATUS_PILL} w-fit ${loyaltySettings.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-900/[0.05] text-stone-500'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${loyaltySettings.enabled ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+          Loyalty {loyaltySettings.enabled ? 'active' : 'paused'}
+        </span>
       </div>
 
       {message && (
-        <div className={`p-4 rounded-lg ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div
+          role="status"
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            messageIsError
+              ? 'border-red-200/80 bg-red-50/70 text-red-700'
+              : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-800'
+          }`}
+        >
           {message}
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="border-b">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('giftcards')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'giftcards'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Gift className="w-5 h-5" />
-              Gift Card Settings
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('manage')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'manage'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Manage Gift Cards
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('pos')}
-            className={`pb-3 px-1 font-medium transition-colors border-b-2 ${
-              activeTab === 'pos'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              POS System
-            </div>
-          </button>
+      <div className="overflow-x-auto pb-1">
+        <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
+          {[
+            { id: 'loyalty' as const, label: 'Loyalty program', icon: Award },
+            { id: 'giftcards' as const, label: 'Gift-card setup', icon: Gift },
+            { id: 'manage' as const, label: 'Gift cards', icon: CreditCard },
+            { id: 'pos' as const, label: 'Point of sale', icon: DollarSign },
+          ].map((tab) => (
+            <button
+              type="button"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === tab.id ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
+              }`}
+            >
+              <tab.icon className="h-4 w-4" strokeWidth={1.75} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Gift Card Settings */}
+      {activeTab === 'loyalty' && (
+        <div className={`${ADMIN_SURFACE} overflow-hidden`}>
+          <div className="flex flex-col justify-between gap-5 border-b border-stone-200/70 p-6 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900/[0.06] text-[#1A1714]">
+                <Award className="h-5 w-5" strokeWidth={1.75} />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[#1A1714]">Points program</h2>
+                <p className="mt-1 max-w-xl text-sm text-stone-500">Reward completed bookings automatically and let customers redeem points on future visits.</p>
+              </div>
+            </div>
+            <label className="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
+              <span className="text-sm font-medium text-stone-600">{loyaltySettings.enabled ? 'Enabled' : 'Disabled'}</span>
+              <input
+                type="checkbox"
+                checked={loyaltySettings.enabled}
+                onChange={(event) => setLoyaltySettings({ ...loyaltySettings, enabled: event.target.checked })}
+                className="peer sr-only"
+                aria-label="Enable loyalty points"
+              />
+              <span className="relative h-6 w-11 rounded-full bg-stone-200 ring-1 ring-stone-900/[0.06] transition peer-focus-visible:ring-4 peer-focus-visible:ring-stone-900/10 peer-checked:bg-[#1A1714] peer-checked:after:translate-x-5 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition" />
+            </label>
+          </div>
+
+          <div className="grid gap-6 p-6 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-stone-700">Points per {currencySymbol}1 spent</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.points_per_dollar_spent}
+                  onChange={(event) => setLoyaltySettings({ ...loyaltySettings, points_per_dollar_spent: Number(event.target.value) || 0 })}
+                  className={ADMIN_INPUT}
+                />
+                <span className="mt-1.5 block text-xs leading-5 text-stone-400">Awarded after a booking is completed.</span>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-stone-700">Points for {currencySymbol}1 reward</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={loyaltySettings.points_redemption_value}
+                  onChange={(event) => setLoyaltySettings({ ...loyaltySettings, points_redemption_value: Math.max(1, Number(event.target.value) || 1) })}
+                  className={ADMIN_INPUT}
+                />
+                <span className="mt-1.5 block text-xs leading-5 text-stone-400">Sets the redemption value of each point.</span>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-stone-700">Welcome bonus</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.welcome_bonus_points}
+                  onChange={(event) => setLoyaltySettings({ ...loyaltySettings, welcome_bonus_points: Number(event.target.value) || 0 })}
+                  className={ADMIN_INPUT}
+                />
+                <span className="mt-1.5 block text-xs leading-5 text-stone-400">Points granted when a customer joins.</span>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-stone-700">Points expire after</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    value={loyaltySettings.points_expiry_days || ''}
+                    onChange={(event) => setLoyaltySettings({ ...loyaltySettings, points_expiry_days: event.target.value ? Number(event.target.value) : null })}
+                    placeholder="Never"
+                    className={`${ADMIN_INPUT} pr-16`}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-xs text-stone-400">days</span>
+                </div>
+                <span className="mt-1.5 block text-xs leading-5 text-stone-400">Leave empty for no expiry.</span>
+              </label>
+            </div>
+
+            <aside className="rounded-2xl bg-[#1A1714] p-5 text-white shadow-[0_12px_36px_rgba(26,23,20,0.16)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Customer example</p>
+              <p className="mt-5 text-3xl font-semibold tracking-tight">
+                {100 * loyaltySettings.points_per_dollar_spent} points
+              </p>
+              <p className="mt-1 text-sm leading-6 text-white/60">earned on a {currencySymbol}100 completed visit</p>
+              <div className="my-5 h-px bg-white/10" />
+              <p className="text-sm text-white/70">
+                {loyaltySettings.points_redemption_value} points unlock {formatAmount(1)} off.
+              </p>
+              {loyaltySettings.welcome_bonus_points > 0 && (
+                <p className="mt-2 text-sm text-white/70">New members start with {loyaltySettings.welcome_bonus_points} points.</p>
+              )}
+            </aside>
+          </div>
+
+          <div className="flex justify-end border-t border-stone-200/70 bg-white/30 px-6 py-4">
+            <button type="button" onClick={saveLoyaltySettings} disabled={saving} className={ADMIN_PRIMARY_BUTTON}>
+              <Save className="h-4 w-4" />
+              {saving ? 'Saving…' : 'Save loyalty program'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'giftcards' && (
         <div className="space-y-6">
-          <div className="bg-white border rounded-lg p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Enable Gift Cards</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Allow customers to purchase and redeem gift cards
-                </p>
+          <section className={`${ADMIN_SURFACE} overflow-hidden`}>
+            <div className="flex flex-col justify-between gap-5 border-b border-stone-200/70 p-6 sm:flex-row sm:items-center">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900/[0.06] text-[#1A1714]">
+                  <Gift className="h-5 w-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[#1A1714]">Gift-card rules</h2>
+                  <p className="mt-1 text-sm text-stone-500">Choose values, expiry, and how new gift-card codes are generated.</p>
+                </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
+                <span className="text-sm font-medium text-stone-600">{giftCardSettings.enabled ? 'Enabled' : 'Disabled'}</span>
                 <input
                   type="checkbox"
                   checked={giftCardSettings.enabled}
                   onChange={(e) => setGiftCardSettings({ ...giftCardSettings, enabled: e.target.checked })}
-                  className="sr-only peer"
+                  className="peer sr-only"
+                  aria-label="Enable gift cards"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <span className="relative h-6 w-11 rounded-full bg-stone-200 ring-1 ring-stone-900/[0.06] transition peer-focus-visible:ring-4 peer-focus-visible:ring-stone-900/10 peer-checked:bg-[#1A1714] peer-checked:after:translate-x-5 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition" />
               </label>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preset Amounts ({currencySymbol})
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {giftCardSettings.preset_amounts_cents.map((amount, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={amount / 100}
-                      onChange={(e) => {
-                        const newAmounts = [...giftCardSettings.preset_amounts_cents];
-                        newAmounts[index] = Math.round(parseFloat(e.target.value) * 100);
-                        setGiftCardSettings({ ...giftCardSettings, preset_amounts_cents: newAmounts });
-                      }}
-                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      min="1"
-                    />
-                    <button
-                      onClick={() => {
-                        const newAmounts = giftCardSettings.preset_amounts_cents.filter((_, i) => i !== index);
-                        setGiftCardSettings({ ...giftCardSettings, preset_amounts_cents: newAmounts });
-                      }}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
+            <div className="space-y-8 p-6">
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700">Suggested values</label>
+                    <p className="mt-1 text-xs text-stone-400">Customers can choose these values at checkout.</p>
                   </div>
-                ))}
-                <button
-                  onClick={() => {
-                    setGiftCardSettings({
+                  <button
+                    type="button"
+                    onClick={() => setGiftCardSettings({
                       ...giftCardSettings,
                       preset_amounts_cents: [...giftCardSettings.preset_amounts_cents, 2500],
-                    });
-                  }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  + Add Amount
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={giftCardSettings.allow_custom_amount}
-                onChange={(e) => setGiftCardSettings({ ...giftCardSettings, allow_custom_amount: e.target.checked })}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <label className="text-sm font-medium text-gray-700">
-                Allow custom amounts
-              </label>
-            </div>
-
-            {giftCardSettings.allow_custom_amount && (
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Minimum Amount ({currencySymbol})
-                  </label>
-                  <input
-                    type="number"
-                    value={giftCardSettings.min_custom_amount_cents / 100}
-                    onChange={(e) => setGiftCardSettings({ ...giftCardSettings, min_custom_amount_cents: Math.round(parseFloat(e.target.value) * 100) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Maximum Amount ({currencySymbol})
-                  </label>
-                  <input
-                    type="number"
-                    value={giftCardSettings.max_custom_amount_cents / 100}
-                    onChange={(e) => setGiftCardSettings({ ...giftCardSettings, max_custom_amount_cents: Math.round(parseFloat(e.target.value) * 100) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min="1"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gift Card Expiry (days)
-              </label>
-              <input
-                type="number"
-                value={giftCardSettings.expiry_days || ''}
-                onChange={(e) => setGiftCardSettings({ ...giftCardSettings, expiry_days: e.target.value ? parseInt(e.target.value) : null })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Never expires"
-                min="1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for no expiry
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gift Card Code Format
-              </label>
-              <p className="text-xs text-gray-500 mb-3">
-                Applies to newly generated codes only — existing gift cards keep their current code.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {CODE_FORMAT_OPTIONS.map((option) => (
-                  <label
-                    key={option.value}
-                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      giftCardSettings.code_format === option.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:bg-gray-50'
-                    }`}
+                    })}
+                    className={ADMIN_SECONDARY_BUTTON}
                   >
-                    <input
-                      type="radio"
-                      name="code_format"
-                      value={option.value}
-                      checked={giftCardSettings.code_format === option.value}
-                      onChange={() => setGiftCardSettings({ ...giftCardSettings, code_format: option.value })}
-                      className="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-gray-800">{option.label}</div>
-                      <div className="text-xs text-gray-500 font-mono">{option.example}</div>
+                    <Plus className="h-4 w-4" /> Add value
+                  </button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {giftCardSettings.preset_amounts_cents.map((amount, index) => (
+                    <div key={`${amount}-${index}`} className="flex items-center gap-2 rounded-xl bg-stone-900/[0.035] p-2">
+                      <span className="pl-2 text-sm text-stone-400">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        value={amount / 100}
+                        onChange={(event) => {
+                          const newAmounts = [...giftCardSettings.preset_amounts_cents];
+                          newAmounts[index] = Math.round((Number(event.target.value) || 0) * 100);
+                          setGiftCardSettings({ ...giftCardSettings, preset_amounts_cents: newAmounts });
+                        }}
+                        className="min-w-0 flex-1 bg-transparent py-2 text-sm font-medium text-[#1A1714] outline-none"
+                        min="1"
+                        aria-label={`Suggested gift-card value ${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setGiftCardSettings({
+                          ...giftCardSettings,
+                          preset_amounts_cents: giftCardSettings.preset_amounts_cents.filter((_, itemIndex) => itemIndex !== index),
+                        })}
+                        className="rounded-lg p-2 text-stone-400 transition hover:bg-red-50 hover:text-red-600"
+                        aria-label={`Remove ${formatAmount(amount / 100)} value`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                  </label>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              {giftCardSettings.code_format === 'prefix_numeric' && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Code Prefix
+              <div className="rounded-2xl bg-stone-900/[0.025] p-5">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#1A1714]">Let customers choose a custom value</h3>
+                    <p className="mt-1 text-xs text-stone-400">Set a safe minimum and maximum for checkout.</p>
+                  </div>
+                  <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={giftCardSettings.allow_custom_amount}
+                      onChange={(event) => setGiftCardSettings({ ...giftCardSettings, allow_custom_amount: event.target.checked })}
+                      className="peer sr-only"
+                      aria-label="Allow custom gift-card values"
+                    />
+                    <span className="relative h-6 w-11 rounded-full bg-stone-200 ring-1 ring-stone-900/[0.06] transition peer-checked:bg-[#1A1714] peer-checked:after:translate-x-5 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition" />
                   </label>
+                </div>
+
+                {giftCardSettings.allow_custom_amount && (
+                  <div className="mt-5 grid gap-4 border-t border-stone-200/70 pt-5 sm:grid-cols-2">
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Minimum ({currencySymbol})</span>
+                      <input
+                        type="number"
+                        value={giftCardSettings.min_custom_amount_cents / 100}
+                        onChange={(event) => setGiftCardSettings({ ...giftCardSettings, min_custom_amount_cents: Math.round((Number(event.target.value) || 0) * 100) })}
+                        className={ADMIN_INPUT}
+                        min="1"
+                      />
+                    </label>
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Maximum ({currencySymbol})</span>
+                      <input
+                        type="number"
+                        value={giftCardSettings.max_custom_amount_cents / 100}
+                        onChange={(event) => setGiftCardSettings({ ...giftCardSettings, max_custom_amount_cents: Math.round((Number(event.target.value) || 0) * 100) })}
+                        className={ADMIN_INPUT}
+                        min="1"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+                <label>
+                  <span className="mb-2 block text-sm font-medium text-stone-700">Expiry</span>
                   <input
-                    type="text"
-                    value={giftCardSettings.code_prefix || ''}
-                    onChange={(e) =>
-                      setGiftCardSettings({ ...giftCardSettings, code_prefix: e.target.value.toUpperCase().slice(0, 10) })
-                    }
-                    placeholder="SPA"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    type="number"
+                    value={giftCardSettings.expiry_days || ''}
+                    onChange={(event) => setGiftCardSettings({ ...giftCardSettings, expiry_days: event.target.value ? Number(event.target.value) : null })}
+                    className={ADMIN_INPUT}
+                    placeholder="Never expires"
+                    min="1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Codes will look like: {(giftCardSettings.code_prefix || 'GC').toUpperCase()}-483921
+                  <span className="mt-1.5 block text-xs text-stone-400">Days until expiry; leave empty for no expiry.</span>
+                </label>
+                <div>
+                  <span className="mb-2 block text-sm font-medium text-stone-700">Code format</span>
+                  <p className="mb-3 text-xs text-stone-400">Only new cards use the selected format.</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {CODE_FORMAT_OPTIONS.map((option) => (
+                      <label
+                        key={option.value}
+                        className={`cursor-pointer rounded-xl border p-3 transition ${
+                          giftCardSettings.code_format === option.value
+                            ? 'border-[#1A1714] bg-[#1A1714] text-white shadow-[0_4px_16px_rgba(26,23,20,0.14)]'
+                            : 'border-stone-200/80 bg-white/55 text-stone-600 hover:border-stone-300 hover:bg-white/80'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="code_format"
+                          value={option.value}
+                          checked={giftCardSettings.code_format === option.value}
+                          onChange={() => setGiftCardSettings({ ...giftCardSettings, code_format: option.value })}
+                          className="sr-only"
+                        />
+                        <span className="block text-sm font-medium">{option.label}</span>
+                        <span className={`mt-1 block font-mono text-xs ${giftCardSettings.code_format === option.value ? 'text-white/55' : 'text-stone-400'}`}>{option.example}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {giftCardSettings.code_format === 'prefix_numeric' && (
+                    <label className="mt-4 block">
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Code prefix</span>
+                      <input
+                        type="text"
+                        value={giftCardSettings.code_prefix || ''}
+                        onChange={(event) => setGiftCardSettings({ ...giftCardSettings, code_prefix: event.target.value.toUpperCase().slice(0, 10) })}
+                        placeholder="SPA"
+                        className={ADMIN_INPUT}
+                      />
+                      <span className="mt-1.5 block text-xs text-stone-400">Preview: {(giftCardSettings.code_prefix || 'GC').toUpperCase()}-483921</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t border-stone-200/70 bg-white/30 px-6 py-4">
+              <button type="button" onClick={saveGiftCardSettings} disabled={saving} className={ADMIN_PRIMARY_BUTTON}>
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving…' : 'Save gift-card rules'}
+              </button>
+            </div>
+          </section>
+
+          <section className={`${ADMIN_SURFACE} overflow-hidden`}>
+            <div className="flex flex-col justify-between gap-5 border-b border-stone-200/70 p-6 lg:flex-row lg:items-center">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100/70 text-violet-700">
+                  <Package className="h-5 w-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-semibold text-[#1A1714]">Service passes</h2>
+                    <span className={`${ADMIN_STATUS_PILL} bg-violet-50 text-violet-700`}>Visit based</span>
+                  </div>
+                  <p className="mt-1 max-w-2xl text-sm text-stone-500">
+                    Sell one visit or a multi-visit package for an exact service and duration. The sale price can be different from the service's current price.
                   </p>
                 </div>
-              )}
+              </div>
+              <div className="rounded-xl border border-stone-200/70 bg-white/55 px-4 py-3 text-xs leading-5 text-stone-500">
+                One redemption covers one service unit.<br />Add-ons and a second guest remain payable.
+              </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-base font-semibold text-gray-800 mb-4">Gift Card Design & PDF Settings</h4>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Gift Card Design (1:1 ratio)
-                  </label>
+            <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]">
+              <div>
+                <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Customer shop</p>
+                {servicePassOffers.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-stone-300/80 bg-white/35 px-6 py-10 text-center">
+                    <Package className="mx-auto h-7 w-7 text-stone-300" strokeWidth={1.5} />
+                    <p className="mt-3 text-sm font-medium text-stone-700">No service passes yet</p>
+                    <p className="mt-1 text-xs text-stone-400">Create the first offer with the form beside this panel.</p>
+                  </div>
+                ) : (
                   <div className="space-y-3">
+                    {servicePassOffers.map((offer) => {
+                      const service = services.find((item) => item.id === offer.service_id);
+                      const duration = durations.find((item) => item.id === offer.duration_id);
+                      return (
+                        <article key={offer.id} className={`rounded-2xl border p-4 transition ${offer.is_active ? 'border-stone-200/80 bg-white/55' : 'border-stone-200/60 bg-stone-900/[0.025] opacity-70'}`}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-medium text-[#1A1714]">{offer.name}</h3>
+                                <span className={`${ADMIN_STATUS_PILL} ${offer.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-200/70 text-stone-500'}`}>
+                                  {offer.is_active ? 'For sale' : 'Paused'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-stone-500">
+                                {service?.name || 'Service'} · {duration?.duration_minutes || '—'} min
+                              </p>
+                              {offer.description && <p className="mt-2 text-xs leading-5 text-stone-400">{offer.description}</p>}
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-lg font-semibold tracking-tight text-[#1A1714]">{formatAmount(offer.price_cents / 100)}</p>
+                              <p className="text-xs text-stone-400">{offer.visit_count} {offer.visit_count === 1 ? 'visit' : 'visits'}</p>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200/60 pt-3">
+                            <div className="flex items-center gap-1.5 text-xs text-stone-400">
+                              <Clock className="h-3.5 w-3.5" />
+                              {offer.expiry_days ? `Expires ${offer.expiry_days} days after purchase` : 'Uses the default gift-card expiry'}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button type="button" onClick={() => toggleServicePassOffer(offer)} className={ADMIN_TERTIARY_BUTTON}>
+                                {offer.is_active ? 'Pause' : 'Resume'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteServicePassOffer(offer.id)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-stone-400 transition hover:bg-red-50 hover:text-red-600"
+                                aria-label={`Delete ${offer.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl bg-stone-900/[0.035] p-5">
+                <div className="mb-5">
+                  <h3 className="font-semibold text-[#1A1714]">Create a service pass</h3>
+                  <p className="mt-1 text-xs leading-5 text-stone-400">This becomes a purchasable option next to value gift cards.</p>
+                </div>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-stone-700">Pass name</span>
+                    <input
+                      type="text"
+                      value={newServicePass.name}
+                      onChange={(event) => setNewServicePass({ ...newServicePass, name: event.target.value })}
+                      className={ADMIN_INPUT}
+                      placeholder="5 × Thai Massage · 60 min"
+                    />
+                  </label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Service</span>
+                      <select
+                        value={newServicePass.service_id}
+                        onChange={(event) => setNewServicePass({ ...newServicePass, service_id: event.target.value, duration_id: '' })}
+                        className={ADMIN_INPUT}
+                      >
+                        <option value="">Choose service</option>
+                        {services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Duration</span>
+                      <select
+                        value={newServicePass.duration_id}
+                        onChange={(event) => setNewServicePass({ ...newServicePass, duration_id: event.target.value })}
+                        className={ADMIN_INPUT}
+                        disabled={!newServicePass.service_id}
+                      >
+                        <option value="">Choose duration</option>
+                        {durations
+                          .filter((duration) => duration.service_id === newServicePass.service_id)
+                          .map((duration) => (
+                            <option key={duration.id} value={duration.id}>
+                              {duration.duration_minutes} min · {formatAmount(duration.price_cents / 100)} standard
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Visits</span>
+                      <input type="number" min="1" max="100" step="1" value={newServicePass.visit_count} onChange={(event) => setNewServicePass({ ...newServicePass, visit_count: event.target.value })} className={ADMIN_INPUT} />
+                    </label>
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Sale price ({currencySymbol})</span>
+                      <input type="number" min="0.01" step="0.01" value={newServicePass.price} onChange={(event) => setNewServicePass({ ...newServicePass, price: event.target.value })} className={ADMIN_INPUT} placeholder="250.00" />
+                    </label>
+                    <label>
+                      <span className="mb-2 block text-sm font-medium text-stone-700">Expiry days</span>
+                      <input type="number" min="1" step="1" value={newServicePass.expiry_days} onChange={(event) => setNewServicePass({ ...newServicePass, expiry_days: event.target.value })} className={ADMIN_INPUT} placeholder="Default" />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-stone-700">Customer description <span className="font-normal text-stone-400">(optional)</span></span>
+                    <textarea value={newServicePass.description} onChange={(event) => setNewServicePass({ ...newServicePass, description: event.target.value })} rows={2} className={`${ADMIN_INPUT} resize-y`} placeholder="A simple note shown before purchase." />
+                  </label>
+                  <button type="button" onClick={createServicePassOffer} disabled={savingServicePass} className={`${ADMIN_PRIMARY_BUTTON} w-full`}>
+                    <Plus className="h-4 w-4" />
+                    {savingServicePass ? 'Creating…' : 'Add service pass'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={`${ADMIN_SURFACE} p-6`}>
+            <div className="mb-6 flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900/[0.06] text-[#1A1714]">
+                <ImageIcon className="h-5 w-5" strokeWidth={1.75} />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[#1A1714]">PDF design</h2>
+                <p className="mt-1 text-sm text-stone-500">Add branded artwork and the terms printed beside each gift-card QR code.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Gift-card artwork</label>
+                <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-900/[0.025]">
+                  {giftCardSettings.design_url ? (
+                    <img src={giftCardSettings.design_url} alt="Gift-card design" className="aspect-[3/4] w-full object-cover" />
+                  ) : (
+                    <div className="flex aspect-[3/4] flex-col items-center justify-center px-6 text-center">
+                      <ImageIcon className="h-7 w-7 text-stone-300" strokeWidth={1.5} />
+                      <p className="mt-3 text-sm font-medium text-stone-600">No artwork uploaded</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">Portrait 3:4 works best.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <label className={`${ADMIN_SECONDARY_BUTTON} flex-1 cursor-pointer`}>
+                    <Upload className="h-4 w-4" />
+                    {uploadingDesign ? 'Reading…' : 'Choose image'}
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
+                      className="sr-only"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
                         if (!file) return;
 
                         if (file.size > 5 * 1024 * 1024) {
-                          alert('File size must be less than 5MB');
+                          setMessage('Error: artwork must be smaller than 5 MB');
                           return;
                         }
 
@@ -661,229 +1214,269 @@ export function LoyaltyRewardsView() {
                             setUploadingDesign(false);
                           };
                           reader.onerror = () => {
-                            alert('Failed to upload design');
+                            setMessage('Error: failed to read artwork');
                             setUploadingDesign(false);
                           };
                           reader.readAsDataURL(file);
                         } catch (error) {
                           console.error('Error uploading design:', error);
-                          alert('Failed to upload design');
+                          setMessage('Error: failed to read artwork');
                           setUploadingDesign(false);
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700"
                     />
-                    {uploadingDesign && (
-                      <p className="text-sm text-gray-600">Uploading design...</p>
-                    )}
-                    {giftCardSettings.design_url && (
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={giftCardSettings.design_url}
-                          alt="Gift card design"
-                          className="h-32 w-32 object-cover border border-gray-200 rounded"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setGiftCardSettings({ ...giftCardSettings, design_url: null })}
-                          className="text-sm text-red-600 hover:text-red-800"
-                        >
-                          Remove Design
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Portrait image with 3:4 aspect ratio (1200x1656px recommended, min 800x1104px). This will appear on the left side of the gift card PDF.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Terms and Conditions
                   </label>
-                  <textarea
-                    value={giftCardSettings.terms_and_conditions || ''}
-                    onChange={(e) => setGiftCardSettings({ ...giftCardSettings, terms_and_conditions: e.target.value })}
-                    rows={8}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter terms and conditions for gift cards..."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    These terms will appear on the right side of the gift card PDF along with the QR code.
-                  </p>
+                  {giftCardSettings.design_url && (
+                    <button
+                      type="button"
+                      onClick={() => setGiftCardSettings({ ...giftCardSettings, design_url: null })}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-600 transition hover:bg-red-50"
+                      aria-label="Remove artwork"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-stone-700">Terms and conditions</span>
+                <textarea
+                  value={giftCardSettings.terms_and_conditions || ''}
+                  onChange={(event) => setGiftCardSettings({ ...giftCardSettings, terms_and_conditions: event.target.value })}
+                  rows={11}
+                  className={`${ADMIN_INPUT} resize-y leading-6`}
+                  placeholder="Enter the terms printed on gift-card PDFs…"
+                />
+                <span className="mt-1.5 block text-xs text-stone-400">These appear beside the QR code on the generated PDF.</span>
+              </label>
             </div>
 
-            <button
-              onClick={saveGiftCardSettings}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Gift Card Settings'}
-            </button>
-          </div>
+            <div className="mt-6 flex justify-end border-t border-stone-200/70 pt-5">
+              <button type="button" onClick={saveGiftCardSettings} disabled={saving} className={ADMIN_PRIMARY_BUTTON}>
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving…' : 'Save PDF design'}
+              </button>
+            </div>
+          </section>
         </div>
       )}
 
-      {/* Manage Gift Cards */}
       {activeTab === 'manage' && (
         <div className="space-y-6">
-          {/* Create Gift Card */}
-          <div className="bg-white border rounded-lg p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Create Gift Card</h3>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Active codes', value: activeGiftCards.toString(), note: `${giftCards.length} total issued` },
+              { label: 'Outstanding balance', value: formatAmount(outstandingBalance / 100), note: 'Value customers can redeem' },
+              { label: 'Pass visits remaining', value: outstandingVisits.toString(), note: 'Service visits still owed' },
+              { label: 'Lifetime sales value', value: formatAmount(issuedValue / 100), note: 'Cards and passes issued' },
+            ].map((metric) => (
+              <div key={metric.label} className={`${ADMIN_SURFACE} p-5`}>
+                <p className="text-xs font-medium text-stone-500">{metric.label}</p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-[#1A1714]">{metric.value}</p>
+                <p className="mt-1 text-xs text-stone-400">{metric.note}</p>
+              </div>
+            ))}
+          </div>
+
+          <section className={`${ADMIN_SURFACE} p-6`}>
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-semibold text-[#1A1714]">Issue a card or pass</h2>
+                <p className="mt-1 text-sm text-stone-500">Create one manually or import existing value cards.</p>
+              </div>
               <button
+                type="button"
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+                className={ADMIN_SECONDARY_BUTTON}
               >
-                <Upload className="w-4 h-4" />
-                <span>Import CSV</span>
+                <Upload className="h-4 w-4" /> Import CSV
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount ({currencySymbol})
+
+            <div className="mt-5 flex w-fit rounded-xl bg-stone-900/[0.045] p-1">
+              {([
+                ['value', 'Value card'],
+                ['service_pass', 'Service pass'],
+              ] as const).map(([type, label]) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setNewGiftCardType(type)}
+                  className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${newGiftCardType === type ? 'bg-white text-[#1A1714] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(220px,0.75fr)_minmax(280px,1fr)_auto] lg:items-end">
+              {newGiftCardType === 'value' ? (
+                <label>
+                  <span className="mb-2 block text-sm font-medium text-stone-700">Amount ({currencySymbol})</span>
+                  <input
+                    type="number"
+                    value={newGiftCardAmount}
+                    onChange={(event) => setNewGiftCardAmount(event.target.value)}
+                    className={ADMIN_INPUT}
+                    min="1"
+                    step="0.01"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={newGiftCardAmount}
-                  onChange={(e) => setNewGiftCardAmount(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="1"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipient Email <span className="text-red-500">*</span>
+              ) : (
+                <label>
+                  <span className="mb-2 block text-sm font-medium text-stone-700">Pass offer</span>
+                  <select value={newServicePassOfferId} onChange={(event) => setNewServicePassOfferId(event.target.value)} className={ADMIN_INPUT}>
+                    <option value="">Choose a pass</option>
+                    {servicePassOffers.filter((offer) => offer.is_active).map((offer) => (
+                      <option key={offer.id} value={offer.id}>{offer.name} · {formatAmount(offer.price_cents / 100)}</option>
+                    ))}
+                  </select>
                 </label>
+              )}
+              <label>
+                <span className="mb-2 block text-sm font-medium text-stone-700">Recipient email</span>
                 <input
                   type="email"
                   required
                   value={newGiftCardEmail}
-                  onChange={(e) => setNewGiftCardEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(event) => setNewGiftCardEmail(event.target.value)}
+                  className={ADMIN_INPUT}
                   placeholder="recipient@example.com"
                 />
-              </div>
+              </label>
+              <button
+                type="button"
+                onClick={createGiftCard}
+                disabled={creatingGiftCard || !newGiftCardEmail.trim() || (newGiftCardType === 'service_pass' && !newServicePassOfferId)}
+                className={`${ADMIN_PRIMARY_BUTTON} min-h-10`}
+              >
+                <Gift className="h-4 w-4" />
+                {creatingGiftCard ? 'Creating…' : newGiftCardType === 'service_pass' ? 'Issue pass' : 'Create card'}
+              </button>
             </div>
-            <button
-              onClick={createGiftCard}
-              disabled={creatingGiftCard || !newGiftCardEmail.trim()}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Gift className="w-4 h-4" />
-              {creatingGiftCard ? 'Creating...' : 'Create Gift Card'}
-            </button>
-          </div>
+          </section>
 
-          {/* Gift Cards List */}
-          <div className="bg-white border rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">All Gift Cards</h3>
+          <section className={`${ADMIN_SURFACE} overflow-hidden`}>
+            <div className="flex flex-col justify-between gap-4 border-b border-stone-200/70 px-5 py-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-semibold text-[#1A1714]">All cards and passes</h2>
+                <p className="mt-1 text-xs text-stone-400">Money balances and visit entitlements in one place.</p>
+              </div>
               {selectedCardIds.size > 0 && (
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete Selected ({selectedCardIds.size})</span>
+                  <Trash2 className="h-4 w-4" /> Delete selected ({selectedCardIds.size})
                 </button>
               )}
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700 w-10">
+              <table className="w-full min-w-[980px]">
+                <thead className="bg-stone-900/[0.025]">
+                  <tr>
+                    <th className="w-12 px-4 py-3 text-left">
                       <button
+                        type="button"
                         onClick={toggleSelectAll}
-                        className="p-1 hover:bg-gray-100 rounded transition-colors"
-                        title={selectedCardIds.size === giftCards.length ? "Deselect all" : "Select all"}
+                        className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]"
+                        aria-label={selectedCardIds.size === giftCards.length && giftCards.length > 0 ? 'Deselect all gift cards' : 'Select all gift cards'}
                       >
                         {selectedCardIds.size === giftCards.length && giftCards.length > 0 ? (
-                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                          <CheckSquare className="h-4 w-4 text-[#1A1714]" />
                         ) : (
-                          <Square className="w-5 h-5 text-gray-400" />
+                          <Square className="h-4 w-4" />
                         )}
                       </button>
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Code</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Original Value ({currencySymbol})</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Balance ({currencySymbol})</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Purchased</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Recipient</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                    {['Code', 'Product', 'Sold for', 'Remaining', 'Status', 'Purchased', 'Recipient', ''].map((heading) => (
+                      <th key={heading} className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">{heading}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-stone-200/60">
                   {giftCards.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-500">
-                        No gift cards yet
+                      <td colSpan={9} className="px-6 py-14 text-center">
+                        <Gift className="mx-auto h-6 w-6 text-stone-300" strokeWidth={1.5} />
+                        <p className="mt-3 text-sm font-medium text-stone-600">No cards or passes yet</p>
+                        <p className="mt-1 text-xs text-stone-400">Create the first one above or import value cards from CSV.</p>
                       </td>
                     </tr>
                   ) : (
                     giftCards.map((card) => (
-                      <tr key={card.id} className={`border-b hover:bg-gray-50 ${selectedCardIds.has(card.id) ? 'bg-blue-50' : ''}`}>
-                        <td className="py-3 px-4">
+                      <tr key={card.id} className={`transition-colors hover:bg-white/60 ${selectedCardIds.has(card.id) ? 'bg-stone-900/[0.035]' : ''}`}>
+                        <td className="px-4 py-3.5">
                           <button
+                            type="button"
                             onClick={() => toggleSelectCard(card.id)}
-                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]"
+                            aria-label={`${selectedCardIds.has(card.id) ? 'Deselect' : 'Select'} ${card.code}`}
                           >
                             {selectedCardIds.has(card.id) ? (
-                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                              <CheckSquare className="h-4 w-4 text-[#1A1714]" />
                             ) : (
-                              <Square className="w-5 h-5 text-gray-400" />
+                              <Square className="h-4 w-4" />
                             )}
                           </button>
                         </td>
-                        <td className="py-3 px-4 font-mono text-sm">{card.code}</td>
-                        <td className="py-3 px-4">{formatAmount(card.original_value_cents / 100)}</td>
-                        <td className="py-3 px-4">{formatAmount(card.current_balance_cents / 100)}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            card.status === 'active' ? 'bg-green-100 text-green-700' :
-                            card.status === 'fully_redeemed' ? 'bg-gray-100 text-gray-700' :
-                            'bg-red-100 text-red-700'
+                        <td className="px-4 py-3.5 font-mono text-sm font-medium text-[#1A1714]">{card.code}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="text-sm font-medium text-[#1A1714]">{card.card_type === 'service_pass' ? card.service_pass_name || 'Service pass' : 'Value card'}</span>
+                          {card.card_type === 'service_pass' && <span className="mt-0.5 block text-xs text-stone-400">{card.original_visits} {card.original_visits === 1 ? 'visit' : 'visits'}</span>}
+                        </td>
+                        <td className="px-4 py-3.5 text-sm text-stone-600">{formatAmount((card.purchase_price_cents ?? card.original_value_cents) / 100)}</td>
+                        <td className="px-4 py-3.5 text-sm font-medium text-[#1A1714]">
+                          {card.card_type === 'service_pass'
+                            ? `${card.remaining_visits || 0} ${card.remaining_visits === 1 ? 'visit' : 'visits'}`
+                            : formatAmount(card.current_balance_cents / 100)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`${ADMIN_STATUS_PILL} ${
+                            card.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                            card.status === 'fully_redeemed' ? 'bg-stone-900/[0.05] text-stone-600' :
+                            'bg-red-50 text-red-700'
                           }`}>
-                            {card.status}
+                            {card.status.replace(/_/g, ' ')}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="px-4 py-3.5 text-sm text-stone-500">
                           {new Date(card.purchased_at).toLocaleDateString()}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="max-w-[220px] truncate px-4 py-3.5 text-sm text-stone-500">
                           {card.purchased_for_email || '-'}
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
                             <button
+                              type="button"
                               onClick={() => setSelectedGiftCard(card)}
-                              className="p-2 text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                              className={ADMIN_TERTIARY_BUTTON}
                               title="View Details"
+                              aria-label={`View ${card.code}`}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="h-4 w-4" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDownloadGiftCard(card)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              className={ADMIN_TERTIARY_BUTTON}
                               title="Download PDF"
+                              aria-label={`Download ${card.code}`}
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="h-4 w-4" />
                             </button>
                             {card.purchased_for_email && (
                               <button
+                                type="button"
                                 onClick={() => handleEmailGiftCard(card)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                className={ADMIN_TERTIARY_BUTTON}
                                 title="Email to recipient"
+                                aria-label={`Email ${card.code}`}
                               >
-                                <Mail className="w-4 h-4" />
+                                <Mail className="h-4 w-4" />
                               </button>
                             )}
                           </div>
@@ -894,11 +1487,10 @@ export function LoyaltyRewardsView() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         </div>
       )}
 
-      {/* POS System */}
       {activeTab === 'pos' && (
         <POSView />
       )}
@@ -929,42 +1521,43 @@ export function LoyaltyRewardsView() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white max-w-md w-full rounded-xl shadow-xl p-6">
-            <div className="flex items-center space-x-3 text-red-600 mb-4">
-              <AlertTriangle className="w-8 h-8" />
-              <h3 className="text-xl font-semibold">Confirm Delete</h3>
+        <div className={ADMIN_MODAL_BACKDROP}>
+          <div className={`${ADMIN_MODAL} max-w-md p-6 sm:p-7`} role="dialog" aria-modal="true" aria-labelledby="delete-gift-cards-title">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 id="delete-gift-cards-title" className="font-semibold text-[#1A1714]">Delete selected gift cards?</h3>
+                <p className="mt-1 text-sm text-stone-500">{selectedCardIds.size} card{selectedCardIds.size === 1 ? '' : 's'} and their transaction history will be removed.</p>
+              </div>
             </div>
-            <p className="text-gray-600 mb-2">
-              Are you sure you want to delete <strong>{selectedCardIds.size}</strong> gift card(s)?
-            </p>
-            <p className="text-sm text-red-600 mb-6">
-              This action cannot be undone. All selected gift cards and their transaction history will be permanently removed.
-            </p>
-            <div className="flex justify-end space-x-3">
+            <div className="rounded-xl border border-red-200/80 bg-red-50/70 p-3 text-sm text-red-700">This cannot be undone.</div>
+            <div className="mt-6 flex justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className={ADMIN_SECONDARY_BUTTON}
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleBulkDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isDeleting ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>Deleting...</span>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Deleting…
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete {selectedCardIds.size} Card(s)</span>
+                    <Trash2 className="h-4 w-4" />
+                    Delete {selectedCardIds.size}
                   </>
                 )}
               </button>

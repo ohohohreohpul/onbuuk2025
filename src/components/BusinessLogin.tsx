@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { BRAND_LOGO } from '@/lib/brand';
 
 interface BusinessLoginProps {
   onBack: () => void;
@@ -160,8 +161,8 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
-        <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+        <div className="absolute top-20 right-20 w-72 h-72 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#A09990]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
         
         <Card glass className="max-w-md w-full animate-scale-in relative z-10">
           <CardContent className="pt-8 pb-8">
@@ -184,7 +185,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
                   setMagicLinkSent(false);
                   setShowMagicLink(false);
                 }}
-                className="hover:bg-[#008374]/10"
+                className="hover:bg-[#1A1714]/10"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to sign in
@@ -200,8 +201,8 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 gradient-mesh opacity-50 pointer-events-none" />
-      <div className="absolute top-20 right-20 w-72 h-72 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#89BA16]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+      <div className="absolute top-20 right-20 w-72 h-72 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#A09990]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
 
       <div className="max-w-md w-full relative z-10">
         <Button
@@ -216,10 +217,10 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
         <Card glass className={`shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
           <CardHeader className="text-center space-y-3 pb-2">
             <div className="relative inline-block mx-auto mb-2">
-              <div className="absolute inset-0 bg-[#008374]/20 blur-2xl rounded-full scale-150" />
+              <div className="absolute inset-0 bg-[#1A1714]/20 blur-2xl rounded-full scale-150" />
               <img
-                src="/buuklogo copy copy.png"
-                alt="Buuk"
+                src={BRAND_LOGO}
+                alt="Zenno"
                 className="h-12 object-contain mx-auto relative"
               />
             </div>
@@ -278,7 +279,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                   <Input
                     id="email"
                     type="email"
@@ -296,7 +297,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#008374] transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 group-focus-within:text-[#1A1714] transition-colors" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -318,7 +319,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
                   <div className="text-right">
                     <a
                       href="/forgot-password"
-                      className="text-sm text-[#008374] hover:text-[#006b5e] hover:underline transition-colors"
+                      className="text-sm text-[#1A1714] hover:text-[#2E2926] hover:underline transition-colors"
                     >
                       Forgot password?
                     </a>
@@ -329,7 +330,7 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300"
+                className="w-full h-12 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300"
                 size="lg"
               >
                 {loading ? (
@@ -350,13 +351,13 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
               <Button
                 variant="link"
                 onClick={() => setShowMagicLink(!showMagicLink)}
-                className="text-sm text-[#008374] hover:text-[#006b5e]"
+                className="text-sm text-[#1A1714] hover:text-[#2E2926]"
               >
                 {showMagicLink ? 'Sign in with password instead' : 'Sign in with magic link instead'}
               </Button>
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <a href="/signup" className="text-[#008374] font-semibold hover:text-[#006b5e] hover:underline transition-colors">
+                <a href="/signup" className="text-[#1A1714] font-semibold hover:text-[#2E2926] hover:underline transition-colors">
                   Sign up
                 </a>
               </p>

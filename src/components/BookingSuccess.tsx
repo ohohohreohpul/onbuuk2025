@@ -5,8 +5,10 @@ import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useCurrency } from '../lib/currencyContext';
 
 export default function BookingSuccess() {
+  const { formatPrice } = useCurrency();
   const tenant = useTenant();
   const [loading, setLoading] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -113,16 +115,14 @@ export default function BookingSuccess() {
     });
   };
 
-  const formatPrice = (cents: number) => {
-    return `€${(cents / 100).toFixed(2)}`;
-  };
+
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center relative">
         <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
         <div className="text-center relative z-10">
-          <div className="w-10 h-10 border-3 border-[#008374]/20 border-t-[#008374] rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-10 h-10 border-3 border-[#1A1714]/20 border-t-[#1A1714] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading booking details...</p>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function BookingSuccess() {
             <p className="text-muted-foreground mb-6">{error || 'Something went wrong'}</p>
             <Button
               onClick={() => (window.location.href = '/')}
-              className="bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25"
+              className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25"
             >
               Return to Home
             </Button>
@@ -159,7 +159,7 @@ export default function BookingSuccess() {
       {/* Background decorations */}
       <div className="absolute inset-0 gradient-mesh opacity-30 pointer-events-none" />
       <div className="absolute top-20 right-20 w-72 h-72 bg-green-500/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#008374]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-[#1A1714]/10 rounded-full blur-3xl animate-pulse-slow animation-delay-300" />
 
       <Card glass className={`max-w-2xl w-full relative z-10 shadow-2xl shadow-black/5 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         <CardContent className="p-8 md:p-12">
@@ -183,7 +183,7 @@ export default function BookingSuccess() {
           {/* Booking Details Card */}
           <div className="bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-100 p-6 md:p-8 mb-8">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#008374]" />
+              <Sparkles className="w-4 h-4 text-[#1A1714]" />
               Booking Details
             </h2>
 
@@ -204,39 +204,39 @@ export default function BookingSuccess() {
 
               {specialist && (
                 <DetailRow
-                  icon={<User className="w-5 h-5 text-[#008374]" />}
+                  icon={<User className="w-5 h-5 text-[#1A1714]" />}
                   label="Specialist"
                   value={specialist.name}
                 />
               )}
 
               <DetailRow
-                icon={<Calendar className="w-5 h-5 text-[#008374]" />}
+                icon={<Calendar className="w-5 h-5 text-[#1A1714]" />}
                 label="Date"
                 value={formatDate(booking.booking_date)}
               />
 
               <DetailRow
-                icon={<Clock className="w-5 h-5 text-[#008374]" />}
+                icon={<Clock className="w-5 h-5 text-[#1A1714]" />}
                 label="Time"
                 value={booking.start_time}
               />
 
               <DetailRow
-                icon={<User className="w-5 h-5 text-[#008374]" />}
+                icon={<User className="w-5 h-5 text-[#1A1714]" />}
                 label="Customer Name"
                 value={booking.customer_name}
               />
 
               <DetailRow
-                icon={<Mail className="w-5 h-5 text-[#008374]" />}
+                icon={<Mail className="w-5 h-5 text-[#1A1714]" />}
                 label="Email"
                 value={booking.customer_email}
               />
 
               {booking.customer_phone && (
                 <DetailRow
-                  icon={<Phone className="w-5 h-5 text-[#008374]" />}
+                  icon={<Phone className="w-5 h-5 text-[#1A1714]" />}
                   label="Phone"
                   value={booking.customer_phone}
                 />
@@ -247,7 +247,7 @@ export default function BookingSuccess() {
                 <div className="pt-4 mt-4 border-t border-gray-100">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
-                      <Package className="w-5 h-5 text-[#008374]" />
+                      <Package className="w-5 h-5 text-[#1A1714]" />
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
@@ -279,22 +279,22 @@ export default function BookingSuccess() {
           />
 
           {/* What's Next Card */}
-          <div className="mt-8 p-6 bg-[#008374]/5 backdrop-blur-sm border border-[#008374]/20 rounded-2xl">
+          <div className="mt-8 p-6 bg-[#1A1714]/5 backdrop-blur-sm border border-[#1A1714]/20 rounded-2xl">
             <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-[#008374]" />
+              <CheckCircle className="w-5 h-5 text-[#1A1714]" />
               What's Next?
             </h3>
             <ul className="text-sm text-muted-foreground space-y-2 leading-relaxed">
               <li className="flex items-start gap-2">
-                <span className="text-[#008374]">•</span>
+                <span className="text-[#1A1714]">•</span>
                 Please arrive 10 minutes before your appointment
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#008374]">•</span>
+                <span className="text-[#1A1714]">•</span>
                 You'll receive a reminder email 24 hours before your booking
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-[#008374]">•</span>
+                <span className="text-[#1A1714]">•</span>
                 To reschedule or cancel, please contact us at least 24 hours in advance
               </li>
             </ul>
@@ -304,7 +304,7 @@ export default function BookingSuccess() {
           <div className="mt-8 text-center">
             <Button
               onClick={() => (window.location.href = '/')}
-              className="h-12 px-8 bg-gradient-to-r from-[#008374] to-[#00a894] hover:shadow-lg hover:shadow-[#008374]/25 transition-all duration-300 group"
+              className="h-12 px-8 bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 transition-all duration-300 group"
               size="lg"
             >
               Return to Home

@@ -11,11 +11,30 @@ import CustomerEmails from './settings/CustomerEmails';
 import { GiftCardCustomization } from './settings/GiftCardCustomization';
 import AccountSettings from './settings/AccountSettings';
 import WidgetEmbed from './settings/WidgetEmbed';
+import { adminAuth } from '../../lib/adminAuth';
+import {
+  ADMIN_SEGMENT_ACTIVE,
+  ADMIN_SEGMENT_INACTIVE,
+  ADMIN_SEGMENTED_CONTROL,
+  ADMIN_SURFACE,
+} from './adminUi';
 
 type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget';
 
 export default function SettingsView() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const currentUser = adminAuth.getCurrentUser();
+  const isOwner = currentUser?.role === 'owner';
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab') as SettingsTab | null;
+    const validTabs: SettingsTab[] = [
+      'account', 'profile', 'general', 'appearance', 'welcome-features', 'colors',
+      'payment', 'subscription', 'emails', 'gift-cards', 'widget',
+    ];
+    if (requestedTab && validTabs.includes(requestedTab)) {
+      return requestedTab === 'payment' && !isOwner ? 'account' : requestedTab;
+    }
+    return 'account';
+  });
 
   const tabs = [
     { id: 'account' as SettingsTab, name: 'Account', icon: User },
@@ -27,29 +46,29 @@ export default function SettingsView() {
     { id: 'gift-cards' as SettingsTab, name: 'Gift Cards', icon: Gift },
     { id: 'widget' as SettingsTab, name: 'Widget & Embed', icon: Code },
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
-    { id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard },
+    ...(isOwner ? [{ id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard }] : []),
     { id: 'emails' as SettingsTab, name: 'Emails', icon: Mail },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-light text-stone-800 mb-2">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-2">Settings</h1>
         <p className="text-stone-600">Manage your business settings and preferences</p>
       </div>
 
-      <div className="border-b border-stone-200 overflow-x-auto">
-        <div className="flex space-x-1">
+      <div className="overflow-x-auto pb-1">
+        <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
+                className={`flex items-center space-x-2 rounded-lg px-3.5 py-2.5 text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-stone-800 text-stone-900'
-                    : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
+                    ? ADMIN_SEGMENT_ACTIVE
+                    : ADMIN_SEGMENT_INACTIVE
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -60,7 +79,7 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="bg-white border border-stone-200 p-6">
+      <div className={`${ADMIN_SURFACE} p-6 sm:p-7`}>
         {activeTab === 'account' && <AccountSettings />}
         {activeTab === 'profile' && <StoreProfile />}
         {activeTab === 'general' && <GeneralSettings />}

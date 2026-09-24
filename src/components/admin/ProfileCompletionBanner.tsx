@@ -48,7 +48,7 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
   }
 
   return (
-    <div className="bg-gradient-to-r from-[#008374] via-[#00a894] to-[#008374] text-white shadow-lg shadow-[#008374]/20 relative overflow-hidden">
+    <div className="bg-gradient-to-r from-[#1A1714] via-[#3D3833] to-[#1A1714] text-white shadow-lg shadow-[#1A1714]/20 relative overflow-hidden">
       {/* Animated background effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 animate-shimmer" />
       
@@ -72,7 +72,7 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
                 e.preventDefault();
                 onSetupClick();
               }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#008374] rounded-xl font-semibold hover:bg-white/90 hover:shadow-lg transition-all duration-200 group"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#1A1714] rounded-xl font-semibold hover:bg-white/90 hover:shadow-lg transition-all duration-200 group"
             >
               Complete Setup
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

@@ -16,7 +16,7 @@ const supabase = createClient(
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripe = new Stripe(stripeSecret, {
   appInfo: {
-    name: 'Buuk Booking System',
+    name: 'Zenno Booking',
     version: '1.0.0',
   },
 });
@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
 
-    const ownerEmail = adminUser?.email || 'noreply@onbuuk.com';
+    const ownerEmail = adminUser?.email || 'noreply@zennohq.studio';
 
     const priceIds: Record<string, string> = {
       standard: Deno.env.get('STRIPE_STANDARD_PRICE_ID') || '',

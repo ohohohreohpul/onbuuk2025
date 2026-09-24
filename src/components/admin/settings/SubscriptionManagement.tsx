@@ -57,7 +57,7 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
       'Advanced gift cards',
       'Advanced loyalty program',
       'Full custom branding',
-      'Remove "Powered by Buuk" badge',
+      'Remove "Powered by Zenno" badge',
       'Email notifications',
       'Priority support',
     ],
