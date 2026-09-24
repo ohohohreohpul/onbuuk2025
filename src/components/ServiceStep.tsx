@@ -41,8 +41,10 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
       .from('services')
       .select('*')
       .eq('business_id', tenant.businessId)
-      .order('category')
+      // Categories appear in the order of their first service, so the owner's
+      // display order decides which section comes first (ties: alphabetical).
       .order('display_order')
+      .order('category')
       .order('name');
 
     if (error) {
