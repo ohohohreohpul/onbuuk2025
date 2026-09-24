@@ -14,7 +14,7 @@ import {
 /**
  * Resolves the current business from the hostname only.
  *
- * - Shop hosts (salon-a.zennohq.studio, salon-a.de) ask the server via
+ * - Shop hosts (salon-a.zennohq.com, salon-a.de) ask the server via
  *   resolve_tenant(host). Nothing else can select a business on a shop host:
  *   no path segment, no localStorage.
  * - The app host serves admin/login/sign-up. Admin screens get their business

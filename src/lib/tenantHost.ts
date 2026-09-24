@@ -1,8 +1,9 @@
 /**
  * Host-based tenancy: the hostname alone decides what this page is.
  *
- *   book.zennohq.studio        -> 'app'        admin, login, sign-up (no tenant)
- *   salon-a.zennohq.studio     -> 'shop'       tenant resolved by the server
+ *   book.zennohq.com           -> 'app'        admin, login, sign-up (no tenant)
+ *   salon-a.zennohq.com        -> 'shop'       tenant resolved by the server
+ *   (zennohq.studio works the same way as a secondary domain)
  *   salon-a.de                 -> 'shop'       verified custom domain
  *   onbuuk.com / app.onbuuk.com -> 'legacy-app' old path links (/salon-a) are redirected
  *
@@ -14,11 +15,22 @@ import { BRAND_APP_URL } from './brand';
 
 const stripDot = (value: string) => value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
 
-export const APP_HOST = stripDot(import.meta.env.VITE_APP_HOST || 'book.zennohq.studio');
-export const SHOP_BASE_DOMAIN = stripDot(import.meta.env.VITE_SHOP_BASE_DOMAIN || 'zennohq.studio');
+/**
+ * Hosts that serve the platform app (admin, login, sign-up). VITE_APP_HOST may
+ * list several, comma-separated; the first is canonical. The host of
+ * VITE_PUBLIC_APP_URL is always included.
+ */
+const APP_HOSTS: string[] = [
+  ...(import.meta.env.VITE_APP_HOST || 'book.zennohq.com,book.zennohq.studio').split(','),
+  new URL(BRAND_APP_URL).hostname,
+].map(stripDot).filter(Boolean);
+
+export const APP_HOST = APP_HOSTS[0];
+const APP_HOST_SET = new Set(APP_HOSTS);
+export const SHOP_BASE_DOMAIN = stripDot(import.meta.env.VITE_SHOP_BASE_DOMAIN || 'zennohq.com');
 
 /**
- * Turn on once *.zennohq.studio and book.zennohq.studio point at this deployment.
+ * Turn on once *.zennohq.com and book.zennohq.com point at this deployment.
  * Before that, shop links stay on the current app host (app.onbuuk.com/<permalink>)
  * so nothing links to an address that does not resolve yet.
  * After: shop links use subdomains and old /<permalink> links redirect there.
@@ -44,7 +56,7 @@ export const isDevHost = (hostname: string): boolean => {
 
 export function classifyHost(hostname: string): HostKind {
   const host = stripDot(hostname);
-  if (host === APP_HOST || host === DEV_APP_HOST || IPV4.test(host)) return 'app';
+  if (APP_HOST_SET.has(host) || host === DEV_APP_HOST || IPV4.test(host)) return 'app';
   if (LEGACY_APP_HOSTS.has(host)) return 'legacy-app';
   // Preview deployments (e.g. *.vercel.app) behave like the app host.
   if (host.endsWith('.vercel.app')) return 'app';

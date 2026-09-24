@@ -7,8 +7,8 @@ export const BRAND_TAGLINE = 'Bookings, customers, and revenue in one place.';
 export const BRAND_SITE_URL = stripTrailingSlash(
   import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zennohq.studio'
 );
-// The live app address. Stays on app.onbuuk.com until book.zennohq.studio is
-// pointed at the deployment; then set VITE_PUBLIC_APP_URL=https://book.zennohq.studio.
+// The live app address. Stays on app.onbuuk.com until book.zennohq.com is
+// pointed at the deployment; then set VITE_PUBLIC_APP_URL=https://book.zennohq.com.
 export const BRAND_APP_URL = stripTrailingSlash(
   import.meta.env.VITE_PUBLIC_APP_URL || 'https://app.onbuuk.com'
 );
@@ -28,6 +28,8 @@ export const BRAND_OG_IMAGE = `${BRAND_APP_URL}/zenno-og.png`;
 const PLATFORM_DOMAINS = new Set([
   'zennohq.studio',
   'book.zennohq.studio',
+  'zennohq.com',
+  'book.zennohq.com',
   // Keep the former Buuk domains recognised during the transition so
   // existing merchant links continue resolving instead of being treated as
   // customer-owned custom domains.
