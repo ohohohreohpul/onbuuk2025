@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronRight, Calendar, Clock, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +16,10 @@ const TEXT: Translations<{
   selectDate: string;
   today: string;
   selectTime: string;
+  loading: string;
+  noSlots: string;
+  loadFailed: string;
+  retry: string;
 }> = {
   en: {
     title: 'Choose Date & Time',
@@ -23,6 +29,10 @@ const TEXT: Translations<{
     selectDate: 'Select Date',
     today: '(Today)',
     selectTime: 'Select Time',
+    loading: 'Checking availability…',
+    noSlots: 'No free appointments in the next weeks. Please contact us directly.',
+    loadFailed: 'Availability could not be loaded.',
+    retry: 'Try again',
   },
   de: {
     title: 'Datum & Uhrzeit wählen',
@@ -32,21 +42,42 @@ const TEXT: Translations<{
     selectDate: 'Datum wählen',
     today: '(Heute)',
     selectTime: 'Uhrzeit wählen',
+    loading: 'Freie Termine werden geladen …',
+    noSlots: 'In den nächsten Wochen sind keine Termine frei. Bitte kontaktieren Sie uns direkt.',
+    loadFailed: 'Freie Termine konnten nicht geladen werden.',
+    retry: 'Erneut versuchen',
   },
 };
 
 interface DateTimeStepProps {
+  /** Chosen duration: decides treatment length and which specialists qualify. */
+  durationId: string | null;
+  /** Chosen specialist, or null for "anyone". */
+  specialistId: string | null;
   onNext: (date: string, time: string) => void;
   onBack: () => void;
 }
 
-export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
+interface SlotRow {
+  slot_date: string;
+  slot_time: string;
+}
+
+/** How far ahead the booking page looks (the business's booking window may be shorter). */
+const DAYS_AHEAD = 28;
+
+export default function DateTimeStep({ durationId, specialistId, onNext, onBack }: DateTimeStepProps) {
+  const { businessId } = useTenant();
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
   const { t, locale } = useBookingText(TEXT);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [slotsByDate, setSlotsByDate] = useState<Map<string, string[]>>(new Map());
+  const [isLoadingSlots, setIsLoadingSlots] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Theme colors with fallbacks
   const primaryColor = colors.primary || '#1A1714';
@@ -57,37 +88,59 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
     setTimeout(() => setIsLoaded(true), 100);
   }, []);
 
+  // Free start times come from the server: working hours, treatment length,
+  // existing bookings, time off and the booking window are all applied there.
+  useEffect(() => {
+    if (!businessId || !durationId) return;
+    let isCancelled = false;
+    setIsLoadingSlots(true);
+    setLoadError(false);
+
+    supabase
+      .rpc('get_available_slots', {
+        p_business_id: businessId,
+        p_duration_id: durationId,
+        p_specialist_id: specialistId,
+        p_days: DAYS_AHEAD,
+      })
+      .then(({ data, error }) => {
+        if (isCancelled) return;
+        if (error) {
+          console.error('Could not load availability:', error);
+          setLoadError(true);
+          setIsLoadingSlots(false);
+          return;
+        }
+        const grouped = new Map<string, string[]>();
+        ((data || []) as SlotRow[]).forEach((row) => {
+          const times = grouped.get(row.slot_date) ?? [];
+          times.push(row.slot_time.slice(0, 5));
+          grouped.set(row.slot_date, times);
+        });
+        setSlotsByDate(grouped);
+        setIsLoadingSlots(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [businessId, durationId, specialistId, reloadKey]);
+
   const content = {
     title: customization?.datetime_step?.title || t.title,
     subtitle: customization?.datetime_step?.subtitle || t.subtitle,
     buttonText: customization?.datetime_step?.buttonText || t.buttonText
   };
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour <= 19; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(timeString);
-      }
-    }
-    return slots;
-  };
+  const availableDays = useMemo(
+    () => [...slotsByDate.keys()].sort().map((value) => {
+      const [year, month, day] = value.split('-').map(Number);
+      return { value, date: new Date(year, month - 1, day) };
+    }),
+    [slotsByDate]
+  );
 
-  const getNextDays = (count: number) => {
-    const days = [];
-    const today = new Date();
-    for (let i = 0; i < count; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      days.push(date);
-    }
-    return days;
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
+  const timeSlots = selectedDate ? slotsByDate.get(selectedDate) ?? [] : [];
 
   const formatDateDisplay = (date: Date) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -103,8 +156,6 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
     return date.toDateString() === today.toDateString();
   };
 
-  const timeSlots = generateTimeSlots();
-  const availableDays = getNextDays(14);
 
   const handleContinue = () => {
     if (selectedDate && selectedTime) {
@@ -142,16 +193,32 @@ export default function DateTimeStep({ onNext, onBack }: DateTimeStepProps) {
             </div>
             <label className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{t.selectDate}</label>
           </div>
+          {isLoadingSlots && (
+            <div className="flex items-center gap-2 py-6 text-sm" style={{ color: colors.textSecondary }}>
+              <Loader2 className="h-4 w-4 animate-spin" /> {t.loading}
+            </div>
+          )}
+          {!isLoadingSlots && loadError && (
+            <div className="py-6 text-sm" style={{ color: colors.textSecondary }}>
+              {t.loadFailed}{' '}
+              <button type="button" className="underline" onClick={() => setReloadKey((key) => key + 1)}>{t.retry}</button>
+            </div>
+          )}
+          {!isLoadingSlots && !loadError && availableDays.length === 0 && (
+            <p className="py-6 text-sm" style={{ color: colors.textSecondary }}>{t.noSlots}</p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {availableDays.map((day) => {
-              const dateValue = formatDate(day);
+            {!isLoadingSlots && availableDays.map(({ value: dateValue, date: day }) => {
               const today = isToday(day);
               const isSelected = selectedDate === dateValue;
               return (
                 <Card
                   key={dateValue}
                   glass
-                  onClick={() => setSelectedDate(dateValue)}
+                  onClick={() => {
+                    setSelectedDate(dateValue);
+                    setSelectedTime('');
+                  }}
                   className="cursor-pointer p-4 text-center transition-all duration-300 border-2"
                   style={{
                     borderColor: isSelected ? primaryColor : 'transparent',

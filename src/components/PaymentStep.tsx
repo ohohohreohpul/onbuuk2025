@@ -27,6 +27,7 @@ const TEXT: Translations<{
   totalNotVerified: string;
   businessNotFound: string;
   createBookingFailed: string;
+  slotTaken: string;
   checkoutFailed: string;
   unknownError: string;
   bookingFailedAlert: string;
@@ -113,6 +114,7 @@ const TEXT: Translations<{
     totalNotVerified: 'The booking total could not be verified after redemption',
     businessNotFound: 'Business not found',
     createBookingFailed: 'Failed to create booking: {message}',
+    slotTaken: 'Sorry, this time was just booked by someone else. Please go back and choose another time.',
     checkoutFailed: 'Failed to create checkout session',
     unknownError: 'Unknown error occurred',
     bookingFailedAlert: 'Failed to create booking: {message}\n\nPlease check the console for more details.',
@@ -199,6 +201,7 @@ const TEXT: Translations<{
     totalNotVerified: 'Der Buchungsbetrag konnte nach der Einlösung nicht überprüft werden',
     businessNotFound: 'Unternehmen nicht gefunden',
     createBookingFailed: 'Buchung konnte nicht erstellt werden: {message}',
+    slotTaken: 'Dieser Termin wurde soeben vergeben. Bitte gehen Sie zurück und wählen Sie eine andere Uhrzeit.',
     checkoutFailed: 'Bezahlvorgang konnte nicht gestartet werden',
     unknownError: 'Unbekannter Fehler',
     bookingFailedAlert: 'Buchung konnte nicht erstellt werden: {message}\n\nWeitere Details sind in der Browser-Konsole zu finden.',
@@ -316,6 +319,10 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const { colors } = useTheme();
   const { currency, formatPrice } = useCurrency();
   const { t, locale } = useBookingText(TEXT);
+
+  // The database rejects double bookings with SLOT_UNAVAILABLE (another customer was faster).
+  const describeBookingError = (message: string) =>
+    message.includes('SLOT_UNAVAILABLE') ? t.slotTaken : fillText(t.createBookingFailed, { message });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -721,7 +728,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
-          throw new Error(fillText(t.createBookingFailed, { message: bookingError.message }));
+          throw new Error(describeBookingError(bookingError.message));
         }
 
         if (appliedGiftCards.length > 0) {
@@ -771,7 +778,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
-          throw new Error(fillText(t.createBookingFailed, { message: bookingError.message }));
+          throw new Error(describeBookingError(bookingError.message));
         }
 
         console.log('Booking created successfully:', createdBooking);
@@ -861,7 +868,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         if (error) {
           console.error('Booking creation error (pay in person):', error);
-          throw new Error(fillText(t.createBookingFailed, { message: error.message }));
+          throw new Error(describeBookingError(error.message));
         }
 
         console.log('Booking created successfully:', data);
@@ -996,7 +1003,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     } catch (error: any) {
       console.error('Error creating booking:', error);
       const errorMessage = error?.message || t.unknownError;
-      alert(fillText(t.bookingFailedAlert, { message: errorMessage }));
+      // A slot taken in the meantime is a normal situation, not a technical error.
+      alert(errorMessage === t.slotTaken ? t.slotTaken : fillText(t.bookingFailedAlert, { message: errorMessage }));
     } finally {
       setIsProcessing(false);
     }
