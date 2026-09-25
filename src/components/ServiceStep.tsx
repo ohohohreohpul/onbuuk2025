@@ -90,7 +90,8 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
     if (error) {
       console.error('Error fetching services:', error);
     } else {
-      setServices(data || []);
+      // Hidden treatments stay bookable by the shop (and for existing vouchers) but not online.
+      setServices((data || []).filter((service: { is_hidden?: boolean }) => !service.is_hidden));
     }
     setLoading(false);
     setTimeout(() => setIsLoaded(true), 100);

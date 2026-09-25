@@ -11,6 +11,7 @@ interface Service {
   name: string;
   description: string;
   is_pair_massage: boolean;
+  is_hidden?: boolean;
   image_url: string | null;
   category: string;
   display_order: number;
@@ -41,6 +42,7 @@ export default function ServicesView() {
     name: '',
     description: '',
     is_pair_massage: false,
+    is_hidden: false,
     image_url: '',
     category: '',
     display_order: 0,
@@ -130,6 +132,7 @@ export default function ServicesView() {
       name: '',
       description: '',
       is_pair_massage: false,
+      is_hidden: false,
       image_url: '',
       category: '',
       display_order: 0,
@@ -151,6 +154,7 @@ export default function ServicesView() {
       name: service.name,
       description: service.description,
       is_pair_massage: service.is_pair_massage,
+      is_hidden: service.is_hidden ?? false,
       image_url: service.image_url || '',
       category: service.category || '',
       display_order: service.display_order || 0,
@@ -194,6 +198,7 @@ export default function ServicesView() {
             name: formData.name,
             description: formData.description,
             is_pair_massage: formData.is_pair_massage,
+            is_hidden: formData.is_hidden,
             image_url: formData.image_url || null,
             category: categoryToSave,
             display_order: formData.display_order,
@@ -242,6 +247,7 @@ export default function ServicesView() {
             name: formData.name,
             description: formData.description,
             is_pair_massage: formData.is_pair_massage,
+            is_hidden: formData.is_hidden,
             image_url: formData.image_url || null,
             category: categoryToSave,
             display_order: formData.display_order,
@@ -509,6 +515,9 @@ export default function ServicesView() {
                   )}
                   <h3 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">
                     {service.name}
+                    {service.is_hidden && (
+                      <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 align-middle text-[11px] font-medium text-stone-600">Hidden</span>
+                    )}
                     {service.is_pair_massage && (
                       <span className="ml-2 text-xs px-3 py-1 bg-[#1A1714] bg-opacity-10 text-[#1A1714] rounded-full font-medium">
                         Couples Available
@@ -600,6 +609,9 @@ export default function ServicesView() {
                 )}
                 <h3 className="text-base font-medium text-stone-800 mb-1">
                   {service.name}
+                  {service.is_hidden && (
+                    <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 align-middle text-[11px] font-medium text-stone-600">Hidden</span>
+                  )}
                   {service.is_pair_massage && (
                     <span className="ml-2 text-xs px-2 py-0.5 bg-stone-200 text-stone-700 rounded-full">
                       Couples
@@ -652,6 +664,9 @@ export default function ServicesView() {
                         <div className="flex-1">
                           <h3 className="text-lg font-medium text-stone-800 mb-1">
                             {service.name}
+                            {service.is_hidden && (
+                              <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 align-middle text-[11px] font-medium text-stone-600">Hidden</span>
+                            )}
                             {service.is_pair_massage && (
                               <span className="ml-2 text-xs px-2 py-1 bg-stone-200 text-stone-700 rounded-full">
                                 Couples Available
@@ -741,6 +756,9 @@ export default function ServicesView() {
                     <div className="p-4">
                       <h3 className="text-base font-medium text-stone-800 mb-1">
                         {service.name}
+                        {service.is_hidden && (
+                          <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 align-middle text-[11px] font-medium text-stone-600">Hidden</span>
+                        )}
                         {service.is_pair_massage && (
                           <span className="ml-2 text-xs px-2 py-0.5 bg-stone-200 text-stone-700 rounded-full">
                             Couples
@@ -903,6 +921,18 @@ export default function ServicesView() {
                     className="w-4 h-4 text-stone-800 focus:ring-stone-500"
                   />
                   <span className="text-sm text-stone-700">Available for couples</span>
+                </label>
+                <label className="mt-3 flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_hidden}
+                    onChange={(e) => setFormData({ ...formData, is_hidden: e.target.checked })}
+                    className="w-4 h-4 text-stone-800 focus:ring-stone-500"
+                  />
+                  <span className="text-sm text-stone-700">
+                    Hide from booking page
+                    <span className="block text-xs text-stone-500">Customers can't book it online. You can still book it here, and existing vouchers stay valid.</span>
+                  </span>
                 </label>
               </div>
 
