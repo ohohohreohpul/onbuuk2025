@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
-import { Plus, Edit2, Trash2, X, Clock, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Clock, Calendar, RefreshCw } from 'lucide-react';
 import WorkingHoursModal from './WorkingHoursModal';
 import TimeBlocksModal from './TimeBlocksModal';
+import CalendarSyncModal from './calendarSync/CalendarSyncModal';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
 
 interface Specialist {
@@ -37,6 +38,7 @@ export default function SpecialistsView() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [workingHoursModal, setWorkingHoursModal] = useState<{ id: string; name: string } | null>(null);
   const [timeBlocksModal, setTimeBlocksModal] = useState<{ id: string; name: string } | null>(null);
+  const [calendarSyncModal, setCalendarSyncModal] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -268,6 +270,14 @@ export default function SpecialistsView() {
                   <Calendar className="w-4 h-4" />
                 </button>
                 <button
+                  onClick={() => setCalendarSyncModal({ id: specialist.id, name: specialist.name })}
+                  className="p-2 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all"
+                  title="Calendar sync (Google, Treatwell …)"
+                  aria-label="Calendar sync"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => openEditModal(specialist)}
                   className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
                   title="Edit"
@@ -317,6 +327,14 @@ export default function SpecialistsView() {
           specialistId={timeBlocksModal.id}
           specialistName={timeBlocksModal.name}
           onClose={() => setTimeBlocksModal(null)}
+        />
+      )}
+
+      {calendarSyncModal && (
+        <CalendarSyncModal
+          specialistId={calendarSyncModal.id}
+          specialistName={calendarSyncModal.name}
+          onClose={() => setCalendarSyncModal(null)}
         />
       )}
 

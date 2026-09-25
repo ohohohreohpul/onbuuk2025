@@ -276,3 +276,11 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Called by calendar apps (token in the URL) and by pg_cron (shared secret header);
+# neither sends a Supabase JWT. Admin "Sync now" calls are checked inside the function.
+[functions.calendar-feed]
+verify_jwt = false
+
+[functions.sync-external-calendars]
+verify_jwt = false
