@@ -5,12 +5,15 @@ import DefaultLayout from './layouts/DefaultLayout';
 import VerticalLayout from './layouts/VerticalLayout';
 import MinimalLayout from './layouts/MinimalLayout';
 import SplitPanelLayout from './layouts/SplitPanelLayout';
+import GlassLayout from './layouts/GlassLayout';
 import { useBookingText, type Translations } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{ loading: string }> = {
   en: { loading: 'Loading...' },
   de: { loading: 'Wird geladen …' },
 };
+
+const PREVIEW_LAYOUTS = new Set(['default', 'vertical', 'minimal', 'split-panel', 'glass']);
 
 interface BookingLayoutProps {
   children: ReactNode;
@@ -104,7 +107,14 @@ export default function BookingLayout({ children, imageUrl, imageMobile, imageTa
     imageAlt,
   };
 
-  switch (layoutType) {
+  // `?preview_layout=glass` lets an owner (or us) preview another layout without
+  // saving it. It only affects the current visitor.
+  const previewLayout = new URLSearchParams(window.location.search).get('preview_layout');
+  const effectiveLayout = previewLayout && PREVIEW_LAYOUTS.has(previewLayout) ? previewLayout : layoutType;
+
+  switch (effectiveLayout) {
+    case 'glass':
+      return <GlassLayout {...layoutProps} />;
     case 'vertical':
       return <VerticalLayout {...layoutProps} />;
     case 'minimal':

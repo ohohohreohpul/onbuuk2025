@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Layout, Save, CheckCircle, AlertCircle, Type, Image as ImageIcon, Settings, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 
-type LayoutType = 'default' | 'vertical' | 'minimal' | 'split-panel';
+type LayoutType = 'default' | 'vertical' | 'minimal' | 'split-panel' | 'glass';
 
 interface StepContent {
   title: string;
@@ -764,6 +764,7 @@ export default function BookingFormAppearance() {
                 <option value="vertical">Vertical Banner</option>
                 <option value="minimal">Minimal</option>
                 <option value="split-panel">Split Panel</option>
+                <option value="glass">Glass (frosted panel over your photo)</option>
               </select>
             </div>
 
