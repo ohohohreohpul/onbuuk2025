@@ -276,3 +276,22 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Agent API: authenticated via x-agent-key (see _shared/agentAuth.ts), not Supabase JWT.
+[functions.agent-manifest]
+verify_jwt = false
+
+[functions.agent-availability]
+verify_jwt = false
+
+[functions.agent-hold]
+verify_jwt = false
+
+[functions.agent-book]
+verify_jwt = false
+
+[functions.agent-cancel]
+verify_jwt = false
+
+[functions.agent-reschedule]
+verify_jwt = false

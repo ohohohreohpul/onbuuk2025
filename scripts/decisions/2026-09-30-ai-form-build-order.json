@@ -1,0 +1,35 @@
+{
+  "title": "AI booking form — what to build first",
+  "state": {
+    "goal": "When AI search (ChatGPT, Perplexity, Google AI Overviews, Gemini) finds a Zenno business through normal web search, it should know the business can be booked directly and book it in the chat, instead of handing the user a link. Zenno is not a destination people or AIs search; each business's own page becomes AI-bookable.",
+    "founder": "Non-technical, wants to launch and sell fast.",
+    "already_live": "Booking engine on Supabase: business details (services, prices, staff, hours), free times, time holds, booking, cancel, Jev check that blocks unclear requests, merchant approval option, merchant emails. Booking currently needs a per-business key.",
+    "not_live_yet": "The frontend (merchant AI booking page, approve page) is built but not released to Vercel. The human booking pages are a JavaScript app, so AI crawlers see almost nothing on them.",
+    "parts": {
+      "get_found": "Structured data (schema.org LocalBusiness/HairSalon, services with prices, ReserveAction pointing to the AI booking form) plus llms.txt on every business page, served in the initial HTML so crawlers see it. Runs on Vercel.",
+      "free_times_page": "A plain, no-JavaScript page per business listing real free times that any AI can read.",
+      "one_step_booking": "A plain form (name, email, phone, service, time) that a browsing AI agent can fill in, with a JSON twin for API-calling assistants.",
+      "keyless_access": "Remove the per-business key requirement so any assistant can hold and book, with rate limits and Web Bot Auth verified-agent tier, matching the public human form."
+    }
+  },
+  "decisions": {
+    "first_part": {
+      "instructions": "Which part in `state.parts` should be built first to get the goal in `state.goal` working soonest?",
+      "criteria": {
+        "get_found": "Build the structured data and llms.txt first.",
+        "free_times_page": "Build the plain free-times page first.",
+        "one_step_booking": "Build the plain booking form first.",
+        "keyless_access": "Remove the key requirement first."
+      },
+      "fallback": "get_found"
+    },
+    "ship_as": {
+      "instructions": "Should the four parts ship together or one by one?",
+      "criteria": {
+        "together_as_one_release": "Build all four, test end to end, release once, because each part alone does not let an AI book.",
+        "one_by_one": "Release each part as soon as it is ready."
+      },
+      "fallback": "together_as_one_release"
+    }
+  }
+}

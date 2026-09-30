@@ -8,6 +8,7 @@ const Card = React.forwardRef<
 >(({ className, glass, ...props }, ref) => (
   <div
     ref={ref}
+    data-glass={glass ? '' : undefined}
     className={cn(
       "rounded-2xl border bg-card text-card-foreground transition-all duration-300",
       glass 

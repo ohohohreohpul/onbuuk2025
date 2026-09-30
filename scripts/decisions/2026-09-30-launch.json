@@ -1,0 +1,85 @@
+{
+  "title": "Agent layer launch decisions",
+  "state": {
+    "product": "Zenno — the universal booking layer that makes local appointment businesses (salons, barbers, beauty, wellness, clinics) bookable by AI assistants such as ChatGPT, Siri, Gemini and Perplexity.",
+    "founder_goal": "Sell and launch as fast as possible. Stop stalling on decisions. Hamburg is the first city.",
+    "current_state": {
+      "backend": "Agent API live on Supabase: search, manifest, availability, hold, book, cancel, reschedule, plus agent-admin. TypeSafe Jev gates book/cancel/reschedule on confidence.",
+      "auth_model_today": "Each merchant generates its own za_ API key in the dashboard and must hand it to an agent.",
+      "merchant_dashboard_today": "AI Agents page shows jargon: API key, hold TTL seconds, lead time minutes, vertical, consent policy.",
+      "frontend": "The AI Agents page exists only locally; the live Vercel site has not been redeployed.",
+      "distribution": "No AI assistant knows Zenno exists yet. Nothing is listed in any assistant's tool or app directory.",
+      "notifications": "No notification is sent to a merchant when an agent books or when a booking awaits approval."
+    },
+    "users": {
+      "merchants": "Small, often older, non-technical salon and clinic owners in Hamburg. Busy with clients, check their phone between appointments, uncomfortable with technical terms.",
+      "end_customers": "People of all ages, including older people, who ask an AI assistant in plain language to book an appointment."
+    },
+    "constraints": "Tiny team. Anything that needs a partnership approval from OpenAI, Google or Apple takes weeks and is not under our control. Existing stack: React/Vite on Vercel, Supabase Postgres and Edge Functions, Resend-style email already used for booking confirmations."
+  },
+  "decisions": {
+    "key_model": {
+      "instructions": "Which API key model should Zenno launch with, given the users and the goal in `state`?",
+      "criteria": {
+        "platform_keys": "One key per AI platform (e.g. one for OpenAI, one for Perplexity) issued and managed by Zenno in super-admin; merchants never see keys and only flip a switch to be bookable.",
+        "merchant_keys": "Keep today's model: every merchant generates and hands out its own key.",
+        "platform_keys_plus_advanced_merchant_keys": "Platform keys by default, while merchants can still optionally create their own key from a hidden advanced section for custom integrations."
+      },
+      "fallback": "platform_keys_plus_advanced_merchant_keys"
+    },
+    "merchant_ui": {
+      "instructions": "How should the merchant AI Agents page be designed for the merchants described in `state.users.merchants`?",
+      "criteria": {
+        "one_switch_two_choices": "One large switch 'Let AI assistants book appointments', two plain choices 'Approve each booking myself' or 'Accept automatically', sensible defaults prefilled, all technical settings hidden under a collapsed 'Advanced' section.",
+        "keep_detailed": "Keep all current technical settings visible on the main page.",
+        "guided_wizard": "A multi-step setup wizard that walks the merchant through every setting before enabling."
+      },
+      "fallback": "one_switch_two_choices"
+    },
+    "default_consent": {
+      "instructions": "Which confirmation policy should be the default for a merchant who just turned AI booking on?",
+      "criteria": {
+        "manual": "Agent bookings wait as pending until the merchant approves each one.",
+        "auto": "Agent bookings are confirmed immediately if the slot is free, exactly like the existing online booking form; the merchant can switch to manual approval any time."
+      },
+      "fallback": "auto"
+    },
+    "merchant_notification": {
+      "instructions": "What should notify a merchant about new or pending agent bookings at launch, given the stack and users in `state`?",
+      "criteria": {
+        "email_only": "An email to the business address for every agent booking, with a one-tap approve link when approval is needed.",
+        "email_plus_dashboard_badge": "The email above plus an unread badge and list in the admin dashboard.",
+        "sms_or_whatsapp": "Build SMS or WhatsApp messaging first.",
+        "none_yet": "Ship without notifications."
+      },
+      "fallback": "email_plus_dashboard_badge"
+    },
+    "first_distribution_channel": {
+      "instructions": "Which distribution channel should be built first so real AI assistants can actually find and book Zenno businesses soonest, respecting the constraints in `state`?",
+      "criteria": {
+        "mcp_server": "A public MCP server over the existing agent API, usable immediately by Claude, ChatGPT developer mode, Cursor and other MCP clients without partner approval.",
+        "chatgpt_app_directory": "Apply to the ChatGPT app directory first and wait for review.",
+        "google_reserve_partner": "Apply to become a Reserve with Google booking partner first.",
+        "llms_txt_only": "Only publish llms.txt and agent.json files and hope assistants crawl them."
+      },
+      "fallback": "mcp_server"
+    },
+    "e2e_test_key": {
+      "instructions": "How should the live end-to-end test of the agent API get its credential, given the founder does not want manual steps?",
+      "criteria": {
+        "internal_test_key": "Zenno seeds a dedicated internal test platform key and an internal test business, so the test runs without the founder doing anything.",
+        "merchant_generated_key": "The founder logs in, generates a key and pastes it."
+      },
+      "fallback": "internal_test_key"
+    },
+    "frontend_release": {
+      "instructions": "When should the frontend with the AI Agents page and the new landing page be released to the live Vercel site?",
+      "criteria": {
+        "after_simplification": "Release right after the simplified merchant page and platform keys are built in this same work session, so merchants never see the jargon version.",
+        "now": "Release the current jargon version immediately.",
+        "later": "Hold the release for a later date."
+      },
+      "fallback": "after_simplification"
+    }
+  }
+}

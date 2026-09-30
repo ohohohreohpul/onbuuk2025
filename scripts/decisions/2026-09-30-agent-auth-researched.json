@@ -1,0 +1,38 @@
+{
+  "title": "Agent authentication model (with research)",
+  "state": {
+    "product": "Zenno — universal booking layer making local appointment businesses bookable by AI assistants. Hamburg first. Tiny team, founder is non-technical and wants to launch fast.",
+    "problem": "Today an assistant connected to Zenno's MCP server can search every business, but can only hold and book at a business whose own key it holds. One connection cannot book everywhere.",
+    "research": {
+      "mcp_spec_2025_06_18": "MCP authorization is optional. When used, the MCP server is an OAuth 2.1 resource server; the MCP client acts on behalf of a resource owner (the end user) who signs in and consents. Tokens must be issued for this specific server (audience-bound), short-lived, never in URLs. Clients should use dynamic client registration so any assistant can connect without manual setup.",
+      "chatgpt_apps_sdk": "ChatGPT acts as the OAuth public client on behalf of the user. Authentication is only required for user-specific writes; public tools (catalog search) can run without auth. Servers may be OAuth, No Auth, or Mixed. Example: a hotel app keeps search_hotels public and requires sign-in to book.",
+      "reserve_with_google": "Google calls one partner booking server with a single HTTP basic credential that covers all of that partner's merchants, rotated every six months. This works because Google is one vetted partner under a contract, not an open marketplace of anonymous clients.",
+      "safety_mode": "The coding assistant's safety mode refused to build a single platform key able to book at every business. OAuth per customer does not create such a credential: each token only lets that signed-in customer book or cancel their own appointments."
+    },
+    "existing_assets": "Supabase Auth is already used in the app for merchants and has customer accounts support; Supabase Auth can act as an OAuth 2.1 authorization server for MCP clients.",
+    "effort_estimates": {
+      "customer_oauth_mixed_mode": "About 1-2 days: OAuth metadata endpoints, customer sign-in/consent page, token check in agent-mcp; public tools stay open. No founder approval needed.",
+      "platform_keys_with_guardrails": "About half a day of code, but blocked until the founder explicitly approves a broad credential; each AI platform must still be onboarded and given a key manually.",
+      "keep_business_keys": "No work, but no assistant can book across businesses."
+    }
+  },
+  "decisions": {
+    "agent_auth_model": {
+      "instructions": "Which authentication model should Zenno build next so real AI assistants can book at every AI-enabled business, given `state.research`, `state.existing_assets` and `state.effort_estimates`?",
+      "criteria": {
+        "customer_oauth_mixed_mode": "Standard MCP/ChatGPT approach: search and business details stay public; holding, booking, cancelling and rescheduling require the customer to sign in once with Zenno through OAuth, and each token only acts for that customer.",
+        "platform_keys_with_guardrails": "One key per AI platform that can book at every AI-enabled business, with rate limits, audit log and revocation, after founder approval.",
+        "keep_business_keys": "Keep one key per business for launch."
+      },
+      "fallback": "customer_oauth_mixed_mode"
+    },
+    "keep_business_keys_as_advanced": {
+      "instructions": "After the chosen model ships, should per-business keys remain available under the merchant's Advanced section for custom integrations?",
+      "criteria": {
+        "keep": "Keep them hidden under Advanced for developers building a custom assistant for one business.",
+        "remove": "Remove them entirely to simplify."
+      },
+      "fallback": "keep"
+    }
+  }
+}

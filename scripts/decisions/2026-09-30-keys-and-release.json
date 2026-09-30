@@ -1,0 +1,35 @@
+{
+  "title": "Key model after platform-key block, and frontend release",
+  "state": {
+    "product": "Zenno — universal booking layer making local appointment businesses bookable by AI assistants. Hamburg first.",
+    "founder_goal": "Sell and launch as fast as possible without stalling.",
+    "facts": {
+      "live_now": "Agent API, MCP server (7 tools), merchant email notifications and one-tap approval page are deployed. A live end-to-end test passed 10/10, including Jev blocking an unclear booking request.",
+      "earlier_decision": "Jev chose platform keys (one key per AI platform; merchants never see keys).",
+      "blocker": "The coding assistant's safety mode refused to implement platform keys because one key able to act on every business is a broad credential. Implementing it needs the founder's explicit approval and would need guardrails: only businesses that switched AI booking on, per-key rate limits, full audit log, instant revocation.",
+      "current_key_model": "Each business has its own key, hidden under Advanced on the merchant page. search_businesses and get_business work without any key; checking times, holding and booking need a key.",
+      "consequence_today": "An AI assistant connected to the MCP server can discover every business but can only book at a business whose key it holds, so one MCP connection cannot book across all businesses yet.",
+      "frontend": "Simplified merchant page, approval page and repositioned landing page are built and pass the build, but are not on the live Vercel site. The live site still shows the old landing page and has no AI booking page, so merchants cannot switch AI booking on themselves."
+    },
+    "constraints": "Tiny team. Every production change goes through one pasted command from the founder."
+  },
+  "decisions": {
+    "key_model_now": {
+      "instructions": "Given the blocker and facts in `state`, which key model should Zenno ship next?",
+      "criteria": {
+        "platform_keys_with_guardrails": "Ask the founder once to approve platform keys, then implement them with all guardrails listed in `state.facts.blocker`, so one MCP connection can book at every AI-enabled business.",
+        "keep_business_keys": "Keep per-business keys for launch; each connected assistant needs one key per business.",
+        "keyless_booking_with_customer_verification": "Remove keys from booking entirely; protect bookings with slot holds and an email confirmation link the customer must click."
+      },
+      "fallback": "platform_keys_with_guardrails"
+    },
+    "frontend_release": {
+      "instructions": "When should the built frontend be released to the live Vercel site?",
+      "criteria": {
+        "now": "Release immediately, since the backend is live and tested and merchants currently cannot turn AI booking on.",
+        "after_key_model": "Wait until the key model decision is implemented."
+      },
+      "fallback": "now"
+    }
+  }
+}

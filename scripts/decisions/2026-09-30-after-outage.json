@@ -1,0 +1,33 @@
+{
+  "title": "Priorities after website-booking outage fix",
+  "state": {
+    "goal": "Keep salons trusting Zenno and get AI bookings adopted fast.",
+    "facts": {
+      "outage": "Website bookings failed for all salons Sept 22–30 (8 days, zero bookings). Fixed and verified today.",
+      "customer_profiles": "Website form fails to create customer profiles (RLS), but bookings succeed. Owners' customer lists and stats miss new customers. Pre-existing since the Sept 24 lockdown.",
+      "gift_card_status": "Bookings fully paid by gift card stay 'pending' instead of 'confirmed' because the public form cannot update bookings. Pre-existing, rare.",
+      "announcement": "AI booking announcement drafted (German + English), not sent; booking-source tracking is now live so AI bookings will be attributed.",
+      "outage_message": "Owners have not been told about the 8-day outage."
+    }
+  },
+  "decisions": {
+    "first": {
+      "instructions": "What should be done first?",
+      "criteria": {
+        "fix_customer_profiles": "Fix customer profile creation from website bookings.",
+        "fix_gift_card_status": "Fix gift-card-paid bookings staying pending.",
+        "send_outage_message": "Tell owners about the outage first.",
+        "send_announcement": "Send the AI booking announcement first."
+      },
+      "fallback": "fix_customer_profiles"
+    },
+    "combine_messages": {
+      "instructions": "Should the outage note and the AI booking announcement go out as one message or two?",
+      "criteria": {
+        "one_message": "One message: a short honest note about the fixed outage, then the AI booking news.",
+        "two_messages": "Two separate messages."
+      },
+      "fallback": "one_message"
+    }
+  }
+}
