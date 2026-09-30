@@ -13,6 +13,7 @@ import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
 import TaxReportsView from './TaxReportsView';
 import ProductsView from './ProductsView';
+import AiAgentsView from './AiAgentsView';
 import { adminAuth } from '../../lib/adminAuth';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
@@ -42,6 +43,7 @@ export default function Admin() {
       'products',
       'settings',
       'gift-cards',
+      'agents',
     ]);
 
     if (requestedView && validViews.has(requestedView)) return requestedView;
@@ -376,6 +378,8 @@ export default function Admin() {
         return <SettingsView />;
       case 'gift-cards':
         return <LoyaltyRewardsView />;
+      case 'agents':
+        return <AiAgentsView />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }

@@ -1,4 +1,4 @@
-import { LogIn, UserPlus, Sparkles, Calendar, Gift, Shield, Zap, ArrowRight } from 'lucide-react';
+import { LogIn, UserPlus, Sparkles, Bot, Radio, ShieldCheck, Plug, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,26 +16,26 @@ const carouselImages = [
   '/pexels-rdne-7697677.jpg'
 ];
 
-const features = [
+const moat = [
   {
-    icon: Calendar,
-    title: 'Smart Scheduling',
-    description: 'AI-powered booking system that optimizes your calendar'
+    icon: Radio,
+    title: 'Live availability',
+    description: 'Agents see real slots, not stale calendars — the rails, not a single assistant.'
   },
   {
-    icon: Gift,
-    title: 'Gift Cards',
-    description: 'Sell digital gift cards and grow your business'
+    icon: Bot,
+    title: 'Universal agent API',
+    description: 'One interface for ChatGPT, Perplexity, Siri and every agent that comes next.'
   },
   {
-    icon: Shield,
-    title: 'Secure Payments',
-    description: 'Enterprise-grade security for all transactions'
+    icon: ShieldCheck,
+    title: 'Consent & reliability',
+    description: 'Hold-then-confirm bookings with confidence gating protect every appointment.'
   },
   {
-    icon: Zap,
-    title: 'Real-time Sync',
-    description: 'Instant updates across all your devices'
+    icon: Plug,
+    title: 'Normalized service data',
+    description: 'Your catalog mapped to a clean, agent-readable manifest any AI can reason over.'
   }
 ];
 
@@ -81,7 +81,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
         <div className={`absolute bottom-0 left-0 right-0 z-20 p-12 transform transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-white">
-              <span className="text-4xl font-light tracking-tight">Get booked, on</span>
+              <span className="text-4xl font-light tracking-tight">Bookable by every AI, on</span>
               <img
                 src={BRAND_LOGO_LIGHT}
                 alt="Zenno"
@@ -89,7 +89,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
               />
             </div>
             <p className="text-white/70 text-lg max-w-md">
-              The modern booking platform for forward-thinking businesses
+              The universal booking layer for appointment-based businesses. Hamburg first.
             </p>
           </div>
           
@@ -124,11 +124,11 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                   className="h-14 object-contain mx-auto relative"
                 />
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-2 tracking-tight">
-                Welcome Back
-              </h2>
+              <h1 className="text-[2rem] leading-[1.1] font-bold text-foreground mb-3 tracking-tight">
+                Make your business bookable by every AI agent.
+              </h1>
               <p className="text-muted-foreground">
-                Choose an option to get started
+                Become bookable through AI. Get ready before agentic bookings go mainstream.
               </p>
             </div>
 
@@ -180,14 +180,14 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                       Start Free
                     </Badge>
                   </div>
-                  <CardTitle className="text-xl text-white">Sign Up</CardTitle>
+                  <CardTitle className="text-xl text-white">Become bookable through AI</CardTitle>
                   <CardDescription className="text-white/80">
-                    Create your account and start managing bookings in minutes
+                    Create your account and go live with agent bookings in minutes
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pb-5 relative">
                   <Button className="w-full bg-white text-[#1A1714] hover:bg-white/90 hover:shadow-lg group/btn">
-                    Get Started Free
+                    Become bookable through AI
                     <ArrowRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
                   </Button>
                 </CardContent>
@@ -196,8 +196,8 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
 
             {/* Features Grid */}
             <div className={`grid grid-cols-2 gap-3 transform transition-all duration-700 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              {features.map((feature, index) => (
-                <div 
+              {moat.map((feature, index) => (
+                <div
                   key={feature.title}
                   className={`p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-gray-100 hover:bg-white hover:shadow-md transition-all duration-300 animation-delay-${(index + 1) * 100}`}
                 >
@@ -211,7 +211,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
             {/* Footer text */}
             <div className={`text-center pt-4 transform transition-all duration-700 delay-400 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               <p className="text-xs text-muted-foreground">
-                Trusted by <span className="font-semibold text-foreground">10,000+</span> businesses worldwide
+                The universal agent booking layer · <span className="font-semibold text-foreground">Hamburg</span> first
               </p>
             </div>
           </div>

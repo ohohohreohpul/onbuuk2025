@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight, Wallet } from 'lucide-react';
+import { bookingAttribution } from '../lib/attribution';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import AccountCreationPrompt from './AccountCreationPrompt';
@@ -704,10 +705,15 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       // For PayPal, we need to create the booking first and then the PayPal buttons handle the rest
       if (shouldUsePayPal) {
         console.log('Creating booking for PayPal payment...');
-        const { data: createdBooking, error: bookingError } = await supabase
+        // Public visitors may create but not read bookings (RLS), so the id is
+        // generated here instead of reading the inserted row back.
+        const createdBooking = { id: crypto.randomUUID() };
+        const { error: bookingError } = await supabase
           .from('bookings')
           .insert({
+            id: createdBooking.id,
             business_id: tenant.businessId,
+            ...bookingAttribution(),
             service_id: bookingData.service.id,
             duration_id: bookingData.duration.id,
             specialist_id: bookingData.specialistId,
@@ -722,9 +728,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             status: 'pending',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
-          })
-          .select()
-          .single();
+          });
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
@@ -754,10 +758,15 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
       if (shouldUseStripe) {
         console.log('Creating booking for Stripe payment...');
-        const { data: createdBooking, error: bookingError} = await supabase
+        // Public visitors may create but not read bookings (RLS), so the id is
+        // generated here instead of reading the inserted row back.
+        const createdBooking = { id: crypto.randomUUID() };
+        const { error: bookingError } = await supabase
           .from('bookings')
           .insert({
+            id: createdBooking.id,
             business_id: tenant.businessId,
+            ...bookingAttribution(),
             service_id: bookingData.service.id,
             duration_id: bookingData.duration.id,
             specialist_id: bookingData.specialistId,
@@ -772,9 +781,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             status: 'pending',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
-          })
-          .select()
-          .single();
+          });
 
         if (bookingError) {
           console.error('Booking creation error:', bookingError);
@@ -844,10 +851,15 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         const isPayingInPerson = selectedPaymentMethod === 'in_person' && allowPayInPerson;
 
         console.log('Creating booking without Stripe (pay in person, gift card, or no payment required)...');
-        const { data, error } = await supabase
+        // Public visitors may create but not read bookings (RLS), so the id is
+        // generated here instead of reading the inserted row back.
+        const data = { id: crypto.randomUUID() };
+        const { error: error } = await supabase
           .from('bookings')
           .insert({
+            id: data.id,
             business_id: tenant.businessId,
+            ...bookingAttribution(),
             service_id: bookingData.service.id,
             duration_id: bookingData.duration.id,
             specialist_id: bookingData.specialistId,
@@ -862,9 +874,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             status: 'pending',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
-          })
-          .select()
-          .single();
+          });
 
         if (error) {
           console.error('Booking creation error (pay in person):', error);

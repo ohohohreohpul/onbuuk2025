@@ -15,6 +15,7 @@ import {
 import CreateBookingModal from './CreateBookingModal';
 import ActionCentre from './ActionCentre';
 import GiftCardStation from './GiftCardStation';
+import BookingSourcesCard from './BookingSourcesCard';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout, getUserFriendlyErrorMessage } from '../../lib/queryUtils';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -531,6 +532,13 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         >
           <GiftCardStation businessId={adminUser?.business_id || ''} onNavigate={onNavigate} />
         </div>
+      </div>
+
+      {/* Where bookings come from (attribution) */}
+      <div
+        className={`transform transition-all duration-500 delay-150 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+      >
+        <BookingSourcesCard businessId={adminUser?.business_id || ''} />
       </div>
 
       {/* Recent Bookings */}

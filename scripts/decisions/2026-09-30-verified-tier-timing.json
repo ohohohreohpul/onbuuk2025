@@ -1,0 +1,19 @@
+{
+  "title": "Ship AI booking form now or after Web Bot Auth verification",
+  "state": {
+    "goal": "AI search finds a Zenno business and books it directly in the chat. Founder wants to launch and sell fast.",
+    "ready": "Get-found structured data + llms.txt on every shop page, the no-JavaScript AI booking form with a JSON version, and keyless booking with explicit customer confirmation, Jev intent check, per-business cap (30/hour) and per-client cap (10/hour), audit log, merchant and customer emails. 62 automated tests pass.",
+    "missing": "Web Bot Auth signature verification (proving a request really comes from ChatGPT/Google). Today the merchant sees a label guessed from the user agent (e.g. 'ChatGPT'), which is never used for access. Verified agents would get higher limits and a trusted label. Estimated extra work: about half a day, cryptographic signature checking.",
+    "risk_without_it": "Everyone gets the same conservative limits; labels could be faked but grant nothing."
+  },
+  "decisions": {
+    "release_timing": {
+      "instructions": "Should Zenno release the AI booking form now, or wait until Web Bot Auth verification is built?",
+      "criteria": {
+        "release_now_verify_next": "Release now; build verification right after as an upgrade.",
+        "wait_for_verification": "Hold the release until verification is built."
+      },
+      "fallback": "release_now_verify_next"
+    }
+  }
+}

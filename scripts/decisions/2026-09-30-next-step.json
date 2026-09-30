@@ -1,0 +1,21 @@
+{
+  "title": "Next step after AI booking form launch",
+  "state": {
+    "goal": "Sell Zenno and get AI bookings flowing for Hamburg salons as fast as possible.",
+    "live": "AI booking form on every shop page (get-found data, llms.txt, /ai-booking, keyless booking with safety caps). All live checks pass. No salon has switched AI booking on yet, so no real AI bookings can happen until owners turn it on.",
+    "options_context": {
+      "announcement": "A short message to existing salon owners: their page now shows up better in Google and AI search, and they can switch on AI booking in one tap. Directly drives adoption; without owners switching it on, the feature produces no bookings.",
+      "web_bot_auth": "Cryptographic proof that a request really comes from ChatGPT/Google, giving verified agents higher limits and a trusted 'via ChatGPT' label. About half a day. Current conservative limits (30 bookings per salon per hour) are far above what any salon will see at launch."
+    }
+  },
+  "decisions": {
+    "next_step": {
+      "instructions": "Which should be done next to serve `state.goal`?",
+      "criteria": {
+        "announcement": "Draft and send the announcement to salon owners first.",
+        "web_bot_auth": "Build Web Bot Auth verification first."
+      },
+      "fallback": "announcement"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "title": "Agent books on the customer's behalf — no customer sign-in",
+  "state": {
+    "product": "Zenno — universal booking layer making local appointment businesses bookable by AI assistants (ChatGPT, Claude, Gemini, Perplexity, Siri). Hamburg first.",
+    "founder_requirement": "Customers must NOT have to sign in or create an account. The AI chat, discovery surface or agent books the service for the customer. Zenno is invisible infrastructure, not a consumer brand the customer logs into.",
+    "facts": {
+      "public_web_form_today": "Zenno's existing public booking form on every business site already creates bookings with no login, no key and no account — only name, email and phone, pay at venue. So a keyless agent booking carries the same risk as a person using the website.",
+      "current_agent_api": "Search and business details are public. Availability, hold, book, cancel, reschedule require a per-business key, so one assistant cannot book everywhere. Slot holds expire, Jev blocks unclear booking requests, merchant can require approval, every action is audit-logged, merchant gets an email per booking.",
+      "cancel_today": "Cancel/reschedule require the booking id plus the customer's email.",
+      "rejected_options": "Customer OAuth sign-in (founder rejected: customers do not want to sign in). A single platform key able to book at every business was refused by the coding assistant's safety mode as a broad credential."
+    },
+    "research": {
+      "web_bot_auth": "Web Bot Auth (HTTP Message Signatures, RFC 9421) lets an AI agent prove its identity on each request with a public-key signature and a Signature-Agent header; the site verifies against the vendor's published key directory, no shared secret. OpenAI's ChatGPT agent signs with Signature-Agent https://chatgpt.com; Google started in June 2026; Shopify authenticates agents with it since May 2026; backed by Cloudflare, Amazon, Akamai, IETF working group chartered 2026.",
+      "mcp_and_chatgpt_apps": "MCP authorization is optional; ChatGPT apps may run with No Auth or Mixed auth. Local MCP clients such as Claude Desktop or Cursor generally do not sign requests with Web Bot Auth.",
+      "reserve_with_google": "Google books across many merchants through a partner with one contracted credential."
+    }
+  },
+  "decisions": {
+    "booking_access_model": {
+      "instructions": "Which access model should Zenno's agent booking use, honouring `state.founder_requirement` and the facts in `state`?",
+      "criteria": {
+        "open_like_web_form_with_verified_tier": "Anyone's agent can search, hold and book without keys or sign-in, exactly like the public web form, with the same protections plus: slot holds, per-IP and per-agent rate limits, Jev intent gate, merchant approval option, audit log, and a confirmation email to the customer with a cancel link. Agents that prove identity with Web Bot Auth (ChatGPT, Google, etc.) get higher rate limits and a 'booked via ChatGPT' label for the merchant.",
+        "verified_agents_only": "Only agents that prove identity with Web Bot Auth may hold and book; all unsigned clients (including Claude Desktop, Cursor, custom bots) can only search.",
+        "customer_email_confirmation_required": "No keys, but every agent booking stays unconfirmed until the customer clicks a link in an email.",
+        "keep_per_business_keys": "Keep today's per-business keys."
+      },
+      "fallback": "open_like_web_form_with_verified_tier"
+    },
+    "cancel_protection": {
+      "instructions": "Without keys or sign-in, how should an agent be allowed to cancel or reschedule a booking?",
+      "criteria": {
+        "booking_id_plus_email": "Keep today's rule: booking id plus the customer's email, which the agent already knows from the conversation. The customer gets an email for every change so mistakes are visible.",
+        "secret_manage_token": "Return a secret manage token only to the agent that made the booking and in the customer's confirmation email; cancel/reschedule require that token.",
+        "email_link_only": "Agents cannot cancel; only the customer via the email link."
+      },
+      "fallback": "secret_manage_token"
+    }
+  }
+}

@@ -1,6 +1,27 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/" }
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/api/shop-page"
+    },
+    {
+      "src": "/llms.txt",
+      "dest": "/api/llms"
+    },
+    {
+      "src": "/ai-booking",
+      "dest": "/api/ai-booking"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "title": "Booking source analytics before announcement",
+  "state": {
+    "goal": "Sell Zenno's AI booking to Hamburg salons. The strongest proof for owners is seeing how many bookings came from AI assistants and other channels.",
+    "today": "AI bookings are logged (source form, agent label guessed from user agent) but no dashboard shows them. Website bookings record nothing about origin: no UTM parameters, no referrer. The admin dashboard has no bookings-by-source view.",
+    "facts": "ChatGPT appends utm_source=chatgpt.com to links it shares; Perplexity, Gemini and Copilot send recognisable referrers. Capturing UTM/referrer on the booking page plus a 'bookings by source' card (AI booked directly / AI referral / Google / social / direct) is about half a day.",
+    "announcement_status": "Drafted, not sent. Once owners switch AI booking on, early bookings without source tracking can never be attributed later."
+  },
+  "decisions": {
+    "timing": {
+      "instructions": "Should booking source tracking be built before sending the announcement to salon owners?",
+      "criteria": {
+        "build_before_announcement": "Build source tracking and the dashboard card first, then send the announcement, so every early booking is attributed.",
+        "announce_first": "Send the announcement now and add tracking afterwards."
+      },
+      "fallback": "build_before_announcement"
+    },
+    "dashboard_placement": {
+      "instructions": "Where should owners see booking sources?",
+      "criteria": {
+        "main_dashboard_card": "A 'Where your bookings come from' card on the main admin dashboard every owner opens.",
+        "ai_booking_page_only": "Only on the AI booking page.",
+        "both": "The card on the main dashboard plus an AI-only breakdown on the AI booking page."
+      },
+      "fallback": "main_dashboard_card"
+    }
+  }
+}

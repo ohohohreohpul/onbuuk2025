@@ -14,6 +14,7 @@ import {
   Gift,
   DollarSign,
   Package,
+  Bot,
   ChevronDown,
   ChevronRight,
   Menu,
@@ -99,6 +100,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
         { id: 'products', label: 'Add-On Products', icon: Package, permissions: ['view_services', 'manage_services'] },
         { id: 'specialists', label: 'Specialists', icon: UserCircle, permissions: ['view_staff'] },
         { id: 'staff', label: 'Team & Permissions', icon: Users, permissions: ['view_staff', 'manage_staff'] },
+        { id: 'agents', label: 'AI booking', icon: Bot, permissions: ['view_settings'] },
       ]
     },
     {

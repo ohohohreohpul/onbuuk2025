@@ -11,6 +11,7 @@ import PaymentStep from './components/PaymentStep';
 import Admin from './components/admin/Admin';
 import SuperAdmin from './components/admin/SuperAdmin';
 import CancelBooking from './components/CancelBooking';
+import ApproveBooking from './components/ApproveBooking';
 import { TenantProvider } from './components/TenantProvider';
 import { BusinessRegistration } from './components/BusinessRegistration';
 import { BusinessSignUp } from './components/BusinessSignUp';
@@ -35,7 +36,7 @@ import { ThemeProvider } from './lib/themeContext';
 import { supabase, Service, ServiceDuration } from './lib/supabase';
 
 type Step = 'welcome' | 'service' | 'duration' | 'addons' | 'specialist' | 'datetime' | 'details' | 'payment' | 'giftcard';
-type AppMode = 'landing' | 'login' | 'booking' | 'admin' | 'staff' | 'superadmin' | 'register' | 'signup' | 'signup-success' | 'cancel' | 'customer' | 'accept-invite' | 'forgot-password' | 'reset-password' | 'booking-success' | 'gift-card-success' | 'payment-cancelled';
+type AppMode = 'landing' | 'login' | 'booking' | 'admin' | 'staff' | 'superadmin' | 'register' | 'signup' | 'signup-success' | 'cancel' | 'customer' | 'accept-invite' | 'forgot-password' | 'reset-password' | 'booking-success' | 'gift-card-success' | 'payment-cancelled' | 'approve-booking';
 
 interface SelectedProduct {
   product: {
@@ -87,6 +88,7 @@ function AppContent() {
       return 'booking';
     }
 
+    if (path === '/approve-booking') return 'approve-booking';
     if (path === '/superadmin' || path.endsWith('/superadmin')) return 'superadmin';
     if (path === '/admin' || path.endsWith('/admin')) return 'admin';
     if (path === '/staff' || path.endsWith('/staff')) return 'staff';
@@ -280,6 +282,11 @@ function AppContent() {
         <div className="text-stone-600">Redirecting to login...</div>
       </div>
     );
+  }
+
+  // Merchant approval links carry their own token; no tenant is needed.
+  if (appMode === 'approve-booking') {
+    return <ApproveBooking />;
   }
 
   if (!tenant.businessId && appMode !== 'register' && appMode !== 'signup' && appMode !== 'landing' && appMode !== 'login') {

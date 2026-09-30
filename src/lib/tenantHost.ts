@@ -46,7 +46,7 @@ export type HostKind = 'app' | 'legacy-app' | 'shop';
 /** Paths that only exist on the app host. On a shop host they redirect there. */
 export const APP_ONLY_PATHS = [
   '/admin', '/staff', '/superadmin', '/login', '/signup', '/register',
-  '/signup-success', '/accept-invite', '/forgot-password',
+  '/signup-success', '/accept-invite', '/forgot-password', '/approve-booking',
 ];
 
 export const isDevHost = (hostname: string): boolean => {

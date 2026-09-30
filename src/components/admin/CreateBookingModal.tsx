@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { ADMIN_ATTRIBUTION } from '../../lib/attribution';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
@@ -212,6 +213,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
       const duration = durations.find(d => d.id === formData.durationId);
 
       const { error: bookingError } = await supabase.from('bookings').insert({
+        ...ADMIN_ATTRIBUTION,
         business_id: businessId,
         service_id: formData.serviceId,
         duration_id: formData.durationId,

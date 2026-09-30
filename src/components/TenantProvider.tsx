@@ -26,7 +26,7 @@ import {
 const APP_HOST_SYSTEM_PATHS = new Set([
   'admin', 'staff', 'superadmin', 'login', 'register', 'signup', 'signup-success',
   'forgot-password', 'reset-password', 'cancel', 'account', 'accept-invite',
-  'booking-success', 'gift-card-success', 'payment-cancelled',
+  'booking-success', 'gift-card-success', 'payment-cancelled', 'approve-booking',
 ]);
 
 const ADMIN_PATH = /(^|\/)(admin|staff|superadmin)(\/|$)/;
