@@ -199,9 +199,9 @@ const TEXT: Translations<{
     defaultYourEmailLabel: 'E-Mail-Adresse',
     defaultContinuePaymentButton: 'Weiter zur Zahlung',
     defaultCompletePurchaseButton: 'Kauf abschließen',
-    valueTab: 'Wertgutschein',
+    valueTab: 'Wert\u00adgutschein',
     valueTabHint: 'Betrag wählen, frei einlösbar',
-    passTab: 'Behandlungsgutschein',
+    passTab: 'Behandlungs\u00adgutschein',
     passTabHint: 'Eine Behandlung oder ein Paket verschenken',
     choosePassTitle: 'Behandlungsgutschein wählen',
     choosePassHint: 'Jeder Besuch ist nur für die angegebene Behandlung und Dauer einlösbar.',
@@ -249,7 +249,7 @@ const TEXT: Translations<{
     errPaymentCapture: 'Die Zahlung konnte nicht abgeschlossen werden',
     errPaymentComplete: 'Die Zahlung ist fehlgeschlagen',
     errPaypalGeneric: 'Bei PayPal ist ein Fehler aufgetreten. Bitte erneut versuchen.',
-    packageTab: 'Gutscheinsets',
+    packageTab: 'Gutschein\u00adsets',
     packageTabHint: 'Exklusive Angebote',
     errChoosePackage: 'Bitte ein Gutscheinset wählen',
     phoneLabel: 'Telefon',
@@ -737,33 +737,33 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       <PromoBanner settings={settings} />
 
       {(servicePassOffers.length > 0 || packages.length > 0) && (
-        <div className={`grid ${packages.length > 0 && servicePassOffers.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 rounded-2xl border border-white/80 bg-white/60 p-1.5 shadow-[0_16px_45px_-36px_rgba(28,25,23,0.6)] backdrop-blur-xl`}>
+        <div className={`grid ${packages.length > 0 && servicePassOffers.length > 0 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-1 rounded-2xl border border-white/80 bg-white/60 p-1.5 shadow-[0_16px_45px_-36px_rgba(28,25,23,0.6)] backdrop-blur-xl`}>
           {packages.length > 0 && (
             <button
               type="button"
               onClick={() => setPurchaseType('package')}
-              className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'package' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+              className={`min-w-0 rounded-xl px-4 py-3 text-left transition sm:px-3 ${purchaseType === 'package' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4" /> {t.packageTab}</span>
-              <span className={`mt-1 block text-xs ${purchaseType === 'package' ? 'text-white/55' : 'text-stone-400'}`}>{t.packageTabHint}</span>
+              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold [hyphens:manual]"><Sparkles className="h-4 w-4" /> {t.packageTab}</span>
+              <span className={`hidden text-xs sm:mt-1 sm:block ${purchaseType === 'package' ? 'text-white/55' : 'text-stone-400'}`}>{t.packageTabHint}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setPurchaseType('value')}
-            className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'value' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+            className={`min-w-0 rounded-xl px-4 py-3 text-left transition sm:px-3 ${purchaseType === 'value' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
           >
-            <span className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4" /> {t.valueTab}</span>
-            <span className={`mt-1 block text-xs ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>{t.valueTabHint}</span>
+            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold [hyphens:manual]"><Gift className="h-4 w-4" /> {t.valueTab}</span>
+            <span className={`hidden text-xs sm:mt-1 sm:block ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>{t.valueTabHint}</span>
           </button>
           {servicePassOffers.length > 0 && (
           <button
             type="button"
             onClick={() => setPurchaseType('service_pass')}
-            className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'service_pass' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+            className={`min-w-0 rounded-xl px-4 py-3 text-left transition sm:px-3 ${purchaseType === 'service_pass' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
           >
-            <span className="flex items-center gap-2 text-sm font-semibold"><Package className="h-4 w-4" /> {t.passTab}</span>
-            <span className={`mt-1 block text-xs ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>{t.passTabHint}</span>
+            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold [hyphens:manual]"><Package className="h-4 w-4" /> {t.passTab}</span>
+            <span className={`hidden text-xs sm:mt-1 sm:block ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>{t.passTabHint}</span>
           </button>
           )}
         </div>
