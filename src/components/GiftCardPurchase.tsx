@@ -1,10 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Gift, ArrowLeft, Check, CreditCard, Wallet, Package, Clock } from 'lucide-react';
+import { Gift, ArrowLeft, Check, CreditCard, Wallet, Package, Clock, Sparkles, Store } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
 import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+import PackagePicker from './giftCards/PackagePicker';
+import OrderPlaced from './giftCards/OrderPlaced';
+import PromoBanner from './giftCards/PromoBanner';
+import {
+  loadActivePackages,
+  orderErrorKind,
+  placeGiftCardOrder,
+  type GiftCardPackage,
+  type PlacedOrder,
+  type PromoSettings,
+} from './giftCards/giftCardOrders';
 
 const TEXT: Translations<{
   back: string;
@@ -74,6 +85,19 @@ const TEXT: Translations<{
   errPaymentCapture: string;
   errPaymentComplete: string;
   errPaypalGeneric: string;
+  packageTab: string;
+  packageTabHint: string;
+  errChoosePackage: string;
+  phoneLabel: string;
+  phonePlaceholder: string;
+  payInStoreTitle: string;
+  payInStoreHint: string;
+  orderButton: string;
+  orderSoldOut: string;
+  orderUnavailable: string;
+  orderLimit: string;
+  orderInvalid: string;
+  recipientOptionalHelper: string;
 }> = {
   en: {
     back: 'Back',
@@ -143,6 +167,19 @@ const TEXT: Translations<{
     errPaymentCapture: 'Payment capture failed',
     errPaymentComplete: 'Failed to complete payment',
     errPaypalGeneric: 'PayPal encountered an error. Please try again.',
+    packageTab: 'Voucher sets',
+    packageTabHint: 'Special offers',
+    errChoosePackage: 'Please choose a voucher set',
+    phoneLabel: 'Phone',
+    phonePlaceholder: 'For questions about your order',
+    payInStoreTitle: 'Order now, pay in the shop',
+    payInStoreHint: 'Your vouchers are reserved and become valid as soon as you pay in the shop. You receive them there with their codes.',
+    orderButton: 'Place order – pay in the shop',
+    orderSoldOut: 'Sorry, this set is sold out.',
+    orderUnavailable: 'This offer is no longer available.',
+    orderLimit: 'You have several open orders already. Please contact the shop.',
+    orderInvalid: 'Please check your details.',
+    recipientOptionalHelper: 'Optional: who the vouchers are for.',
   },
   de: {
     back: 'Zurück',
@@ -212,11 +249,25 @@ const TEXT: Translations<{
     errPaymentCapture: 'Die Zahlung konnte nicht abgeschlossen werden',
     errPaymentComplete: 'Die Zahlung ist fehlgeschlagen',
     errPaypalGeneric: 'Bei PayPal ist ein Fehler aufgetreten. Bitte erneut versuchen.',
+    packageTab: 'Gutscheinsets',
+    packageTabHint: 'Exklusive Angebote',
+    errChoosePackage: 'Bitte ein Gutscheinset wählen',
+    phoneLabel: 'Telefon',
+    phonePlaceholder: 'Für Rückfragen zu Ihrer Bestellung',
+    payInStoreTitle: 'Jetzt bestellen, im Laden bezahlen',
+    payInStoreHint: 'Ihre Gutscheine werden für Sie reserviert und mit der Zahlung im Laden gültig. Dort erhalten Sie sie mit den Codes.',
+    orderButton: 'Verbindlich bestellen – im Laden bezahlen',
+    orderSoldOut: 'Dieses Set ist leider ausverkauft.',
+    orderUnavailable: 'Dieses Angebot ist nicht mehr verfügbar.',
+    orderLimit: 'Sie haben bereits mehrere offene Bestellungen. Bitte wenden Sie sich an uns.',
+    orderInvalid: 'Bitte prüfen Sie Ihre Angaben.',
+    recipientOptionalHelper: 'Optional: für wen die Gutscheine sind.',
   },
 };
 
-interface GiftCardSettings {
+interface GiftCardSettings extends PromoSettings {
   enabled: boolean;
+  pay_in_store_enabled?: boolean;
   preset_amounts_cents: number[];
   allow_custom_amount: boolean;
   min_custom_amount_cents: number;
@@ -267,7 +318,11 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       };
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<GiftCardSettings | null>(null);
-  const [purchaseType, setPurchaseType] = useState<'value' | 'service_pass'>('value');
+  const [purchaseType, setPurchaseType] = useState<'value' | 'service_pass' | 'package'>('value');
+  const [packages, setPackages] = useState<GiftCardPackage[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [servicePassOffers, setServicePassOffers] = useState<ServicePassOffer[]>([]);
   const [selectedServicePassId, setSelectedServicePassId] = useState('');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -294,7 +349,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   }, [businessId]);
 
   const loadSettings = async () => {
-    const [settingsResult, passesResult] = await Promise.all([
+    if (!businessId) return;
+    const [settingsResult, passesResult, activePackages] = await Promise.all([
       supabase
         .from('gift_card_settings')
         .select('*')
@@ -306,7 +362,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         .eq('business_id', businessId)
         .eq('is_active', true)
         .order('created_at', { ascending: true }),
+      loadActivePackages(businessId),
     ]);
+
+    if (activePackages.length > 0) {
+      setPackages(activePackages);
+      setSelectedPackageId(activePackages.find((pkg) => pkg.stock_limit === null || pkg.sold_count < pkg.stock_limit)?.id ?? '');
+      setPurchaseType('package');
+    }
 
     const data = settingsResult.data;
 
@@ -395,8 +458,66 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     document.body.appendChild(script);
   };
 
+  // Without online payment (and always for sets) the customer orders now and pays in the shop.
+  const isPayInStore = purchaseType === 'package' || (!stripeEnabled && !paypalEnabled);
+
+  const handleOrder = async (finalAmount: number, servicePassOfferId: string | undefined) => {
+    if (!businessId) return;
+    setProcessing(true);
+    try {
+      const order = await placeGiftCardOrder({
+        businessId,
+        buyerName: buyerName.trim(),
+        buyerEmail: buyerEmail.trim(),
+        buyerPhone: buyerPhone.trim(),
+        recipientEmail: recipientEmail.trim(),
+        message: message.trim(),
+        packageId: purchaseType === 'package' ? selectedPackageId : undefined,
+        servicePassOfferId: purchaseType === 'service_pass' ? servicePassOfferId : undefined,
+        valueCents: purchaseType === 'value' ? finalAmount : undefined,
+      });
+      setPlacedOrder(order);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      console.error('Error placing gift card order:', err);
+      const kind = orderErrorKind(err);
+      setError(
+        kind === 'sold_out' ? t.orderSoldOut
+          : kind === 'unavailable' ? t.orderUnavailable
+          : kind === 'limit' ? t.orderLimit
+          : kind === 'invalid' ? t.orderInvalid
+          : t.errPurchase,
+      );
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handlePurchase = async () => {
     setError('');
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (purchaseType === 'package') {
+      const pkg = packages.find((candidate) => candidate.id === selectedPackageId);
+      if (!pkg) {
+        setError(t.errChoosePackage);
+        return;
+      }
+      if (recipientEmail && !emailPattern.test(recipientEmail)) {
+        setError(t.errRecipientInvalid);
+        return;
+      }
+      if (!buyerName.trim()) {
+        setError(t.errName);
+        return;
+      }
+      if (!emailPattern.test(buyerEmail)) {
+        setError(buyerEmail ? t.errEmailInvalid : t.errEmail);
+        return;
+      }
+      await handleOrder(pkg.price_cents, undefined);
+      return;
+    }
 
     const selectedServicePass = servicePassOffers.find((offer) => offer.id === selectedServicePassId);
 
@@ -427,14 +548,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       }
     }
 
-    if (!recipientEmail) {
+    if (!recipientEmail && !isPayInStore) {
       setError(t.errRecipientRequired);
       return;
     }
 
     // Validate recipient email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(recipientEmail)) {
+    if (recipientEmail && !emailRegex.test(recipientEmail)) {
       setError(t.errRecipientInvalid);
       return;
     }
@@ -452,6 +573,11 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     // Validate buyer email format
     if (!emailRegex.test(buyerEmail)) {
       setError(t.errEmailInvalid);
+      return;
+    }
+
+    if (isPayInStore) {
+      await handleOrder(finalAmount, selectedServicePass?.id);
       return;
     }
 
@@ -527,65 +653,6 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
         const { url } = await checkoutResponse.json();
         window.location.href = url;
-      } else {
-        // Create gift card directly (no online payment)
-        const directCardPayload = purchaseType === 'service_pass' && selectedServicePass
-          ? {
-              business_id: businessId,
-              code,
-              card_type: 'service_pass',
-              service_pass_offer_id: selectedServicePass.id,
-              service_pass_name: selectedServicePass.name,
-              service_id: selectedServicePass.service_id,
-              duration_id: selectedServicePass.duration_id,
-              original_visits: selectedServicePass.visit_count,
-              remaining_visits: selectedServicePass.visit_count,
-              purchase_price_cents: selectedServicePass.price_cents,
-              original_value_cents: 0,
-              current_balance_cents: 0,
-              purchased_for_email: recipientEmail || null,
-              purchased_by_email: buyerEmail || null,
-              purchased_by_name: buyerName || null,
-              expires_at: calculatedExpiresAt,
-              status: 'active',
-            }
-          : {
-              business_id: businessId,
-              code,
-              card_type: 'value',
-              purchase_price_cents: finalAmount,
-              original_value_cents: finalAmount,
-              current_balance_cents: finalAmount,
-              purchased_for_email: recipientEmail || null,
-              purchased_by_email: buyerEmail || null,
-              purchased_by_name: buyerName || null,
-              expires_at: calculatedExpiresAt,
-              status: 'active',
-            };
-
-        const { data: giftCard, error: giftCardError } = await supabase
-          .from('gift_cards')
-          .insert(directCardPayload)
-          .select()
-          .single();
-
-        if (giftCardError) throw giftCardError;
-
-        // Record transaction
-        await supabase
-          .from('gift_card_transactions')
-          .insert({
-            gift_card_id: giftCard.id,
-            amount_cents: finalAmount,
-            visit_count: purchaseType === 'service_pass' ? selectedServicePass?.visit_count || 0 : 0,
-            transaction_type: 'purchase',
-            description: `${purchaseType === 'service_pass' ? 'Service pass' : 'Gift card'} purchased by ${buyerName} (${buyerEmail})`,
-          });
-
-        // Show success with code
-        const purchasedProduct = purchaseType === 'service_pass' ? t.productPass : t.productValue;
-        alert(fillText(t.purchaseSuccessAlert, { product: purchasedProduct, code }));
-        onBack();
       }
     } catch (err: any) {
       console.error('Error purchasing gift card:', err);
@@ -596,6 +663,9 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   };
 
   const getFinalAmount = () => {
+    if (purchaseType === 'package') {
+      return packages.find((pkg) => pkg.id === selectedPackageId)?.price_cents || 0;
+    }
     if (purchaseType === 'service_pass') {
       return servicePassOffers.find((offer) => offer.id === selectedServicePassId)?.price_cents || 0;
     }
@@ -614,7 +684,13 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     );
   }
 
-  if (!settings || !settings.enabled) {
+  if (placedOrder) {
+    return <OrderPlaced order={placedOrder} onDone={onBack} />;
+  }
+
+  const canSell = Boolean(settings?.enabled) && (stripeEnabled || paypalEnabled || Boolean(settings?.pay_in_store_enabled));
+
+  if (!settings || !canSell) {
     return (
       <div className="space-y-6">
         <button
@@ -658,8 +734,20 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         </div>
       )}
 
-      {servicePassOffers.length > 0 && (
-        <div className="grid grid-cols-2 gap-1 rounded-2xl border border-white/80 bg-white/60 p-1.5 shadow-[0_16px_45px_-36px_rgba(28,25,23,0.6)] backdrop-blur-xl">
+      <PromoBanner settings={settings} />
+
+      {(servicePassOffers.length > 0 || packages.length > 0) && (
+        <div className={`grid ${packages.length > 0 && servicePassOffers.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 rounded-2xl border border-white/80 bg-white/60 p-1.5 shadow-[0_16px_45px_-36px_rgba(28,25,23,0.6)] backdrop-blur-xl`}>
+          {packages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setPurchaseType('package')}
+              className={`rounded-xl px-4 py-3 text-left transition ${purchaseType === 'package' ? 'bg-[#1A1714] text-white shadow-lg' : 'text-stone-500 hover:bg-white/70 hover:text-stone-800'}`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4" /> {t.packageTab}</span>
+              <span className={`mt-1 block text-xs ${purchaseType === 'package' ? 'text-white/55' : 'text-stone-400'}`}>{t.packageTabHint}</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setPurchaseType('value')}
@@ -668,6 +756,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             <span className="flex items-center gap-2 text-sm font-semibold"><Gift className="h-4 w-4" /> {t.valueTab}</span>
             <span className={`mt-1 block text-xs ${purchaseType === 'value' ? 'text-white/55' : 'text-stone-400'}`}>{t.valueTabHint}</span>
           </button>
+          {servicePassOffers.length > 0 && (
           <button
             type="button"
             onClick={() => setPurchaseType('service_pass')}
@@ -676,11 +765,16 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             <span className="flex items-center gap-2 text-sm font-semibold"><Package className="h-4 w-4" /> {t.passTab}</span>
             <span className={`mt-1 block text-xs ${purchaseType === 'service_pass' ? 'text-white/55' : 'text-stone-400'}`}>{t.passTabHint}</span>
           </button>
+          )}
         </div>
       )}
 
+      {purchaseType === 'package' && (
+        <PackagePicker packages={packages} selectedId={selectedPackageId} onSelect={setSelectedPackageId} />
+      )}
+
       {/* Select Amount */}
-      {purchaseType === 'value' ? (
+      {purchaseType === 'package' ? null : purchaseType === 'value' ? (
       <div className="space-y-3 rounded-[24px] border border-white/80 bg-white/[0.68] p-5 shadow-[0_18px_45px_-34px_rgba(28,25,23,0.45)] backdrop-blur-xl">
         <label className="block text-sm font-medium text-gray-700">
           {customization.select_amount_label}
@@ -779,7 +873,8 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Recipient Email */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.recipient_email_label} <span className="text-red-500">*</span>
+          {customization.recipient_email_label}{' '}
+          {isPayInStore ? <span className="text-gray-400 text-xs font-normal">{t.optional}</span> : <span className="text-red-500">*</span>}
         </label>
         <input
           type="email"
@@ -787,10 +882,10 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           onChange={(e) => setRecipientEmail(e.target.value)}
           placeholder={t.recipientPlaceholder}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
+          required={!isPayInStore}
         />
         <p className="text-xs text-gray-500">
-          {customization.recipient_email_helper}
+          {isPayInStore ? t.recipientOptionalHelper : customization.recipient_email_helper}
         </p>
       </div>
 
@@ -837,15 +932,42 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
-              {t.confirmationHint}
-            </p>
+            {!isPayInStore && (
+              <p className="text-xs text-gray-500 mt-1">
+                {t.confirmationHint}
+              </p>
+            )}
           </div>
+          {isPayInStore && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.phoneLabel} <span className="text-gray-400 text-xs font-normal">{t.optional}</span>
+              </label>
+              <input
+                type="tel"
+                value={buyerPhone}
+                onChange={(e) => setBuyerPhone(e.target.value)}
+                placeholder={t.phonePlaceholder}
+                autoComplete="tel"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
         </div>
       </div>
 
+      {isPayInStore && (
+        <div className="flex gap-3 rounded-2xl border border-stone-200/80 bg-white/70 p-4">
+          <Store className="mt-0.5 h-5 w-5 shrink-0 text-[#9C7650]" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-semibold text-stone-800">{t.payInStoreTitle}</p>
+            <p className="mt-1 text-xs leading-5 text-stone-500">{t.payInStoreHint}</p>
+          </div>
+        </div>
+      )}
+
       {/* Payment Method Selection */}
-      {(stripeEnabled || paypalEnabled) && !showPayPalButtons && (
+      {(stripeEnabled || paypalEnabled) && !isPayInStore && !showPayPalButtons && (
         <div className="space-y-3 pt-4 border-t">
           <h3 className="font-medium text-gray-900">{t.paymentMethod}</h3>
           <div className="space-y-2">
@@ -912,7 +1034,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             serviceName={purchaseType === 'service_pass' ? selectedServicePass?.name || 'Service Pass' : 'Gift Card'}
             giftCardData={{
               code: giftCardCode,
-              cardType: purchaseType,
+              cardType: purchaseType === 'service_pass' ? 'service_pass' : 'value',
               servicePassOfferId: purchaseType === 'service_pass' ? selectedServicePass?.id || null : null,
               originalValueCents: getFinalAmount(),
               purchasedForEmail: recipientEmail || null,
@@ -949,12 +1071,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
             t.processing
           ) : (
             <>
-              {selectedPaymentMethod === 'paypal' ? (
+              {isPayInStore ? (
+                <Store className="w-5 h-5" />
+              ) : selectedPaymentMethod === 'paypal' ? (
                 <Wallet className="w-5 h-5" />
               ) : (
                 <CreditCard className="w-5 h-5" />
               )}
-              {stripeEnabled || paypalEnabled ? customization.continue_payment_button : customization.complete_purchase_button}
+              {isPayInStore ? t.orderButton : customization.continue_payment_button}
             </>
           )}
         </button>

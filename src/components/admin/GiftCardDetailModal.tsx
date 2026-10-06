@@ -50,8 +50,8 @@ export function GiftCardDetailModal({
   onClose,
   onUpdate,
 }: GiftCardDetailModalProps) {
-  const { currencySymbol, formatAmount } = useCurrency();
-  const { businessId } = useTenant();
+  const { currency, currencySymbol, formatAmount } = useCurrency();
+  const { businessId, language } = useTenant();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
@@ -152,6 +152,8 @@ export function GiftCardDetailModal({
           businessName: businessName,
           expiresAt: giftCard.expires_at,
           currencySymbol: currencySymbol,
+        currencyCode: currency,
+        language: language === 'de' ? 'de' : 'en',
         });
 
         pdfAttachment = {
@@ -336,6 +338,8 @@ export function GiftCardDetailModal({
         businessName: businessName,
         expiresAt: giftCard.expires_at,
         currencySymbol: currencySymbol,
+        currencyCode: currency,
+        language: language === 'de' ? 'de' : 'en',
       });
     } catch (error) {
       console.error('Error downloading gift card:', error);

@@ -178,12 +178,11 @@ export function CustomerPortal() {
     setError('');
     setMessage('');
 
-    const { data: card, error: cardError } = await supabase
-      .from('gift_cards')
-      .select('*')
-      .eq('code', claimCode.toUpperCase().trim())
-      .eq('business_id', businessId)
-      .maybeSingle();
+    const { data: matches, error: cardError } = await supabase.rpc('find_gift_card_for_claim', {
+      p_business_id: businessId,
+      p_code: claimCode.trim(),
+    });
+    const card = (matches as { id: string; status: string }[] | null)?.[0] ?? null;
 
     if (cardError || !card) {
       setError('Gift card not found');

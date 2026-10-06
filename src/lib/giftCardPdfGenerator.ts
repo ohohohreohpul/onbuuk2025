@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 
-interface GiftCardData {
+export interface GiftCardData {
   code: string;
   amount: number;
   cardType?: 'value' | 'service_pass';
@@ -13,171 +13,249 @@ interface GiftCardData {
   businessName: string;
   expiresAt: string | null;
   currencySymbol?: string;
+  /** ISO currency (e.g. EUR); when set, amounts use the language's number format. */
+  currencyCode?: string;
+  language?: 'en' | 'de';
+  /** Shown under the amount, e.g. "Gutscheinset Premium · 1 von 4". */
+  note?: string | null;
 }
 
-export async function generateGiftCardPDF(giftCard: GiftCardData): Promise<Blob> {
-  const isServicePass = giftCard.cardType === 'service_pass';
-  const pdf = new jsPDF({
-    orientation: 'landscape',
-    unit: 'mm',
-    format: 'a5',
-  });
+type Rgb = [number, number, number];
 
+// Warm, quiet palette that sits well next to most brand covers.
+const INK: Rgb = [58, 51, 43];
+const MUTED: Rgb = [120, 108, 95];
+const ACCENT: Rgb = [156, 118, 80];
+const PAPER: Rgb = [246, 243, 237];
+const RULE: Rgb = [217, 206, 194];
+
+const TEXT = {
+  en: {
+    value: 'Gift Card',
+    pass: 'Treatment Voucher',
+    code: 'Voucher code',
+    validUntil: 'Valid until {date}',
+    visitOne: '{count} visit',
+    visitMany: '{count} visits',
+    minutesEach: '{minutes} minutes each',
+    terms: 'Terms & conditions',
+    designMissing: 'Gift Card',
+  },
+  de: {
+    value: 'Wertgutschein',
+    pass: 'Behandlungsgutschein',
+    code: 'Gutscheincode',
+    validUntil: 'Gültig bis {date}',
+    visitOne: '{count} Anwendung',
+    visitMany: '{count} Anwendungen',
+    minutesEach: 'je {minutes} Minuten',
+    terms: 'Bedingungen',
+    designMissing: 'Gutschein',
+  },
+} as const;
+
+const fill = (text: string, values: Record<string, string | number>) =>
+  text.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
+
+/** jsPDF's built-in fonts have no narrow no-break space; plain spaces render reliably. */
+const pdfSafe = (text: string) => text.replace(/[  ]/g, ' ');
+
+function formatMoney(card: GiftCardData): string {
+  const locale = card.language === 'de' ? 'de-DE' : 'en-US';
+  if (card.currencyCode) {
+    return pdfSafe(new Intl.NumberFormat(locale, { style: 'currency', currency: card.currencyCode }).format(card.amount));
+  }
+  const symbol = card.currencySymbol || '€';
+  return `${symbol}${card.amount.toFixed(2)}`;
+}
+
+/** Remote images are fetched once and embedded; data URLs pass straight through. */
+async function loadImage(url: string): Promise<{ data: string; format: 'JPEG' | 'PNG' } | null> {
+  try {
+    let dataUrl = url;
+    if (!url.startsWith('data:')) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Image request failed (${response.status})`);
+      const blob = await response.blob();
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+    return { data: dataUrl, format: dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG' };
+  } catch (error) {
+    console.error('Gift card design could not be loaded:', error);
+    return null;
+  }
+}
+
+async function drawCard(pdf: jsPDF, card: GiftCardData, design: Awaited<ReturnType<typeof loadImage>>) {
+  const t = TEXT[card.language === 'de' ? 'de' : 'en'];
+  const isServicePass = card.cardType === 'service_pass';
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const halfWidth = pageWidth / 2;
+  const half = pageWidth / 2;
+  const left = half + 12;
+  const textWidth = half - 24;
 
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-  if (giftCard.designUrl) {
-    try {
-      pdf.addImage(
-        giftCard.designUrl,
-        'JPEG',
-        5,
-        5,
-        halfWidth - 10,
-        pageHeight - 10,
-        undefined,
-        'FAST'
-      );
-    } catch (error) {
-      console.error('Error adding design image:', error);
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(5, 5, halfWidth - 10, pageHeight - 10, 'F');
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Gift Card Design', halfWidth / 2, pageHeight / 2, { align: 'center' });
-    }
+  // Left: the cover design, full bleed.
+  if (design) {
+    pdf.addImage(design.data, design.format, 0, 0, half, pageHeight, undefined, 'FAST');
   } else {
-    pdf.setFillColor(240, 240, 240);
-    pdf.rect(5, 5, halfWidth - 10, pageHeight - 10, 'F');
-
-    pdf.setFontSize(20);
-    pdf.setTextColor(60, 60, 60);
-    pdf.text(giftCard.businessName, halfWidth / 2, pageHeight / 2 - 10, { align: 'center' });
+    pdf.setFillColor(...PAPER);
+    pdf.rect(0, 0, half, pageHeight, 'F');
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(22);
+    pdf.setTextColor(...INK);
+    pdf.text(pdfSafe(card.businessName), half / 2, pageHeight / 2 - 6, { align: 'center' });
+    pdf.setFont('times', 'italic');
     pdf.setFontSize(16);
-    pdf.text(isServicePass ? 'Service Pass' : 'Gift Card', halfWidth / 2, pageHeight / 2 + 5, { align: 'center' });
+    pdf.setTextColor(...ACCENT);
+    pdf.text(t.designMissing, half / 2, pageHeight / 2 + 6, { align: 'center' });
   }
 
-  pdf.setDrawColor(200, 200, 200);
-  pdf.line(halfWidth, 10, halfWidth, pageHeight - 10);
+  // Right: details.
+  let y = 20;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(...MUTED);
+  pdf.text(pdfSafe(card.businessName).toUpperCase(), left, y, { charSpace: 1.2 });
+  y += 11;
 
-  let yPosition = 15;
-
-  pdf.setFontSize(16);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(40, 40, 40);
-  pdf.text(isServicePass ? 'Service Pass' : 'Gift Card', halfWidth + 10, yPosition);
-  yPosition += 10;
+  pdf.setFont('times', 'italic');
+  pdf.setFontSize(20);
+  pdf.setTextColor(...ACCENT);
+  pdf.text(isServicePass ? t.pass : t.value, left, y);
+  y += 4;
+  pdf.setDrawColor(...RULE);
+  pdf.setLineWidth(0.3);
+  pdf.line(left, y, left + 40, y);
+  y += 10;
 
   if (isServicePass) {
-    pdf.setFontSize(15);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(40, 40, 40);
-    const passNameLines = pdf.splitTextToSize(giftCard.servicePassName || 'Service pass', halfWidth - 20);
-    pdf.text(passNameLines, halfWidth + 10, yPosition);
-    yPosition += passNameLines.length * 6 + 2;
-    pdf.setFontSize(11);
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(17);
+    pdf.setTextColor(...INK);
+    const nameLines = pdf.splitTextToSize(pdfSafe(card.servicePassName || t.pass), textWidth);
+    pdf.text(nameLines, left, y);
+    y += nameLines.length * 7;
+    const visits = card.visits || 1;
+    const entitlement = [
+      fill(visits === 1 ? t.visitOne : t.visitMany, { count: visits }),
+      card.durationMinutes ? fill(t.minutesEach, { minutes: card.durationMinutes }) : null,
+    ].filter(Boolean).join(' · ');
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(80, 80, 80);
-    const entitlement = `${giftCard.visits || 0} ${(giftCard.visits || 0) === 1 ? 'visit' : 'visits'}${giftCard.durationMinutes ? ` · ${giftCard.durationMinutes} minutes each` : ''}`;
-    pdf.text(entitlement, halfWidth + 10, yPosition);
-    yPosition += 9;
+    pdf.setFontSize(10);
+    pdf.setTextColor(...MUTED);
+    pdf.text(entitlement, left, y);
+    y += 8;
   } else {
-    pdf.setFontSize(24);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(0, 128, 0);
-    const symbol = giftCard.currencySymbol || '$';
-    pdf.text(`${symbol}${giftCard.amount.toFixed(2)}`, halfWidth + 10, yPosition);
-    yPosition += 12;
+    pdf.setFont('times', 'normal');
+    pdf.setFontSize(30);
+    pdf.setTextColor(...INK);
+    pdf.text(formatMoney(card), left, y + 4);
+    y += 13;
+  }
+
+  if (card.note) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(...ACCENT);
+    const noteLines = pdf.splitTextToSize(pdfSafe(card.note), textWidth);
+    pdf.text(noteLines, left, y);
+    y += noteLines.length * 4 + 3;
   }
 
   try {
-    const qrCodeDataUrl = await QRCode.toDataURL(giftCard.code, {
-      width: 200,
-      margin: 1,
-      errorCorrectionLevel: 'H',
+    const qr = await QRCode.toDataURL(card.code, {
+      width: 240,
+      margin: 0,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#3A332B', light: '#FFFFFF' },
     });
-
-    const qrSize = 35;
-    pdf.addImage(qrCodeDataUrl, 'PNG', halfWidth + 10, yPosition, qrSize, qrSize);
-    yPosition += qrSize + 5;
+    pdf.addImage(qr, 'PNG', left, y, 28, 28);
   } catch (error) {
     console.error('Error generating QR code:', error);
-    yPosition += 5;
   }
-
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(60, 60, 60);
-  pdf.text('Gift Card Code:', halfWidth + 10, yPosition);
-  yPosition += 5;
 
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
-  pdf.setTextColor(40, 40, 40);
-
-  const codeLines = pdf.splitTextToSize(giftCard.code, halfWidth - 20);
-  pdf.text(codeLines, halfWidth + 10, yPosition);
-  yPosition += codeLines.length * 5 + 5;
-
-  if (giftCard.expiresAt) {
-    pdf.setFontSize(9);
-    pdf.setTextColor(180, 0, 0);
-    const expiryDate = new Date(giftCard.expiresAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    pdf.text(`Expires: ${expiryDate}`, halfWidth + 10, yPosition);
-    yPosition += 7;
-  }
-
-  if (giftCard.termsAndConditions) {
-    yPosition += 3;
-    pdf.setDrawColor(220, 220, 220);
-    pdf.line(halfWidth + 10, yPosition, pageWidth - 10, yPosition);
-    yPosition += 5;
-
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(60, 60, 60);
-    pdf.text('Terms & Conditions:', halfWidth + 10, yPosition);
-    yPosition += 4;
-
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...MUTED);
+  pdf.text(t.code.toUpperCase(), left + 33, y + 8, { charSpace: 0.8 });
+  pdf.setFont('courier', 'bold');
+  pdf.setFontSize(10.5);
+  pdf.setTextColor(...INK);
+  pdf.text(pdf.splitTextToSize(card.code, textWidth - 33), left + 33, y + 15);
+  if (card.expiresAt) {
+    const locale = card.language === 'de' ? 'de-DE' : 'en-US';
+    const date = new Date(card.expiresAt).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' });
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
-    pdf.setTextColor(80, 80, 80);
-
-    const terms = giftCard.termsAndConditions;
-    const termsLines = pdf.splitTextToSize(terms, halfWidth - 20);
-
-    const remainingSpace = pageHeight - yPosition - 10;
-    const lineHeight = 3;
-    const maxLines = Math.floor(remainingSpace / lineHeight);
-
-    const displayedLines = termsLines.slice(0, maxLines);
-    pdf.text(displayedLines, halfWidth + 10, yPosition);
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(...MUTED);
+    pdf.text(fill(t.validUntil, { date }), left + 33, y + 23);
   }
+  y += 36;
 
+  if (card.termsAndConditions) {
+    pdf.setDrawColor(...RULE);
+    pdf.line(left, y, pageWidth - 12, y);
+    y += 5;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7);
+    pdf.setTextColor(...MUTED);
+    pdf.text(t.terms, left, y);
+    y += 3.5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(6.5);
+    const lines = pdf.splitTextToSize(pdfSafe(card.termsAndConditions), textWidth);
+    const maxLines = Math.max(0, Math.floor((pageHeight - y - 8) / 2.8));
+    pdf.text(lines.slice(0, maxLines), left, y, { lineHeightFactor: 1.25 });
+  }
+}
+
+/** One A5 landscape page per voucher. */
+export async function generateGiftCardsPDF(cards: GiftCardData[]): Promise<Blob> {
+  if (cards.length === 0) throw new Error('No gift cards to print');
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
+  const designs = new Map<string, Awaited<ReturnType<typeof loadImage>>>();
+
+  for (const [index, card] of cards.entries()) {
+    if (index > 0) pdf.addPage('a5', 'landscape');
+    if (card.designUrl && !designs.has(card.designUrl)) {
+      designs.set(card.designUrl, await loadImage(card.designUrl));
+    }
+    await drawCard(pdf, card, card.designUrl ? designs.get(card.designUrl) ?? null : null);
+  }
   return pdf.output('blob');
+}
+
+export async function generateGiftCardPDF(giftCard: GiftCardData): Promise<Blob> {
+  return generateGiftCardsPDF([giftCard]);
+}
+
+function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export async function downloadGiftCardPDF(giftCard: GiftCardData): Promise<void> {
   const blob = await generateGiftCardPDF(giftCard);
-  const url = URL.createObjectURL(blob);
+  saveBlob(blob, `${giftCard.cardType === 'service_pass' ? 'ServicePass' : 'GiftCard'}-${giftCard.code}.pdf`);
+}
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${giftCard.cardType === 'service_pass' ? 'ServicePass' : 'GiftCard'}-${giftCard.code}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
+export async function downloadGiftCardsPDF(cards: GiftCardData[], fileName: string): Promise<void> {
+  saveBlob(await generateGiftCardsPDF(cards), fileName);
 }
 
 export async function getGiftCardPDFBase64(giftCard: GiftCardData): Promise<string> {

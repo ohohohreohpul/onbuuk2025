@@ -168,7 +168,7 @@ const TEXT: Translations<{
 };
 
 export default function GiftCardSuccess() {
-  const { t, locale } = useBookingText(TEXT);
+  const { t, locale, lang: language } = useBookingText(TEXT);
   const [loading, setLoading] = useState(true);
   const [giftCard, setGiftCard] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
@@ -183,6 +183,12 @@ export default function GiftCardSuccess() {
     fetchGiftCardDetails();
   }, []);
 
+  // Vouchers are not publicly readable; the receipt function returns only the buyer's own card.
+  const fetchReceipt = async (args: { p_session_id?: string; p_gift_card_id?: string }) => {
+    const { data, error } = await supabase.rpc('get_gift_card_receipt', args);
+    return { data: data ?? null, error };
+  };
+
   const fetchGiftCardDetails = async () => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -195,11 +201,7 @@ export default function GiftCardSuccess() {
 
       if (giftCardId) {
         // Legacy flow: fetch by gift card ID
-        const { data, error } = await supabase
-          .from('gift_cards')
-          .select('*, service_durations(duration_minutes)')
-          .eq('id', giftCardId)
-          .maybeSingle();
+        const { data, error } = await fetchReceipt({ p_gift_card_id: giftCardId });
 
         if (error || !data) {
           setError(t.errNotFound);
@@ -214,22 +216,14 @@ export default function GiftCardSuccess() {
         // Wait a moment for webhook to process
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        const { data, error } = await supabase
-          .from('gift_cards')
-          .select('*, service_durations(duration_minutes)')
-          .eq('stripe_session_id', currentSessionId)
-          .maybeSingle();
+        const { data, error } = await fetchReceipt({ p_session_id: currentSessionId });
 
         if (error || !data) {
           console.log('First attempt failed, trying again after delay...');
           // Try one more time after a longer wait
           await new Promise(resolve => setTimeout(resolve, 4000));
 
-          const { data: retryData, error: retryError } = await supabase
-            .from('gift_cards')
-            .select('*, service_durations(duration_minutes)')
-            .eq('stripe_session_id', currentSessionId)
-            .maybeSingle();
+          const { data: retryData, error: retryError } = await fetchReceipt({ p_session_id: currentSessionId });
 
           if (retryError || !retryData) {
             // Webhook didn't process in time, try manual processing
@@ -260,11 +254,7 @@ export default function GiftCardSuccess() {
                 if (errorMessage.includes('duplicate key') || errorMessage.includes('23505')) {
                   console.log('Duplicate key error detected, gift card likely exists. Attempting final fetch...');
 
-                  const { data: duplicateCheckData, error: duplicateCheckError } = await supabase
-                    .from('gift_cards')
-                    .select('*, service_durations(duration_minutes)')
-                    .eq('stripe_session_id', currentSessionId)
-                    .maybeSingle();
+                  const { data: duplicateCheckData, error: duplicateCheckError } = await fetchReceipt({ p_session_id: currentSessionId });
 
                   if (!duplicateCheckError && duplicateCheckData) {
                     console.log('Successfully found existing gift card after duplicate error');
@@ -280,11 +270,7 @@ export default function GiftCardSuccess() {
                 console.log('Manual processing result:', result);
 
                 // Try fetching the gift card one more time
-                const { data: finalData, error: finalError } = await supabase
-                  .from('gift_cards')
-                  .select('*, service_durations(duration_minutes)')
-                  .eq('stripe_session_id', currentSessionId)
-                  .maybeSingle();
+                const { data: finalData, error: finalError } = await fetchReceipt({ p_session_id: currentSessionId });
 
                 if (finalError || !finalData) {
                   console.error('Failed to fetch gift card after manual creation');
@@ -443,6 +429,8 @@ export default function GiftCardSuccess() {
         businessName: business.name,
         expiresAt: giftCard.expires_at,
         currencySymbol: business.currency_symbol || CURRENCY_SYMBOLS[business.currency_code] || business.currency_code || CURRENCY_SYMBOLS.USD,
+        currencyCode: business.currency_code || undefined,
+        language: language === 'de' ? 'de' : 'en',
       });
 
       console.log('PDF download initiated successfully');

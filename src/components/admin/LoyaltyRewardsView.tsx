@@ -25,6 +25,7 @@ import { POSView } from './POSView';
 import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 import { GiftCardDetailModal } from './GiftCardDetailModal';
 import { ImportGiftCardsModal } from './ImportGiftCardsModal';
+import GiftCardOrdersPanel from './giftCardOrders/GiftCardOrdersPanel';
 import {
   ADMIN_INPUT,
   ADMIN_MODAL,
@@ -115,9 +116,9 @@ interface ServicePassOffer {
 }
 
 export function LoyaltyRewardsView() {
-  const { businessId } = useTenant();
-  const { currencySymbol, formatAmount } = useCurrency();
-  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'pos'>('loyalty');
+  const { businessId, language } = useTenant();
+  const { currency, currencySymbol, formatAmount } = useCurrency();
+  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'orders' | 'pos'>('loyalty');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -529,6 +530,8 @@ export function LoyaltyRewardsView() {
         businessName: businessName,
         expiresAt: card.expires_at,
         currencySymbol: currencySymbol,
+        currencyCode: currency,
+        language: language === 'de' ? 'de' : 'en',
       });
       setMessage('Gift card PDF downloaded!');
       setTimeout(() => setMessage(''), 3000);
@@ -696,6 +699,7 @@ export function LoyaltyRewardsView() {
             { id: 'loyalty' as const, label: 'Loyalty program', icon: Award },
             { id: 'giftcards' as const, label: 'Gift-card setup', icon: Gift },
             { id: 'manage' as const, label: 'Gift cards', icon: CreditCard },
+            { id: 'orders' as const, label: 'Orders & sets', icon: Gift },
             { id: 'pos' as const, label: 'Point of sale', icon: DollarSign },
           ].map((tab) => (
             <button
@@ -1433,6 +1437,7 @@ export function LoyaltyRewardsView() {
                           <span className={`${ADMIN_STATUS_PILL} ${
                             card.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
                             card.status === 'fully_redeemed' ? 'bg-stone-900/[0.05] text-stone-600' :
+                            card.status === 'pending_payment' ? 'bg-amber-50 text-amber-800' :
                             'bg-red-50 text-red-700'
                           }`}>
                             {card.status.replace(/_/g, ' ')}
@@ -1485,6 +1490,14 @@ export function LoyaltyRewardsView() {
             </div>
           </section>
         </div>
+      )}
+
+      {activeTab === 'orders' && (
+        <GiftCardOrdersPanel
+          businessName={businessName}
+          designUrl={giftCardSettings.design_url}
+          termsAndConditions={giftCardSettings.terms_and_conditions}
+        />
       )}
 
       {activeTab === 'pos' && (
