@@ -18,7 +18,7 @@
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS total_duration_minutes integer;
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS total_price_cents integer;
 ALTER TABLE public.bookings
-  ADD COLUMN IF NOT EXISTS partner_specialist_id uuid REFERENCES public.specialists(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS partner_specialist_id uuid;  -- no FK: a 2nd bookings->specialists FK breaks PostgREST embeds (see 20261012135000)
 
 COMMENT ON COLUMN public.bookings.partner_specialist_id IS
   'Second therapist of a couple booking (is_pair_booking). Assigned by private.guard_booking_slot.';
