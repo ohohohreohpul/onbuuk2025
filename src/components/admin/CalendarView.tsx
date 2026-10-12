@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, TrendingUp, Clock,
 import CreateBookingModal from './CreateBookingModal';
 import { useCurrency } from '../../lib/currencyContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { toLocalDateString } from '../../lib/localDateTime';
 
 interface Booking {
   id: string;
@@ -98,9 +99,9 @@ export default function CalendarView() {
     const rangeStart = new Date(year, month - 1, 1);
 
     try {
-      const rangeStartIso = rangeStart.toISOString().split('T')[0];
-      const monthStartIso = monthStart.toISOString().split('T')[0];
-      const monthEndIso = monthEnd.toISOString().split('T')[0];
+      const rangeStartIso = toLocalDateString(rangeStart);
+      const monthStartIso = toLocalDateString(monthStart);
+      const monthEndIso = toLocalDateString(monthEnd);
 
       const result = await executeWithTimeout(
         supabase

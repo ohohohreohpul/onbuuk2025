@@ -15,6 +15,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { adminAuth } from '../../lib/adminAuth';
 import { useCurrency } from '../../lib/currencyContext';
+import { toLocalDateString } from '../../lib/localDateTime';
 
 interface CashEntry {
   id: string;
@@ -142,9 +143,9 @@ export default function TaxReportsView() {
     const t = new Date();
     const start = new Date(t.getFullYear(), t.getMonth(), 1);
     const end = new Date(t.getFullYear(), t.getMonth() + 1, 0);
-    setPeriodStart(start.toISOString().split('T')[0]);
-    setPeriodEnd(end.toISOString().split('T')[0]);
-    setEntryForm(f => ({ ...f, date: new Date().toISOString().split('T')[0] }));
+    setPeriodStart(toLocalDateString(start));
+    setPeriodEnd(toLocalDateString(end));
+    setEntryForm(f => ({ ...f, date: toLocalDateString(new Date()) }));
     loadAll();
   }, [businessId]);
 
@@ -545,7 +546,7 @@ export default function TaxReportsView() {
               <input type="month" value={(periodEnd || '').slice(0, 7)} onChange={e => {
                 const [y, m] = e.target.value.split('-').map(Number);
                 const start = new Date(y, m - 1, 1); const end = new Date(y, m, 0);
-                setPeriodStart(start.toISOString().split('T')[0]); setPeriodEnd(end.toISOString().split('T')[0]);
+                setPeriodStart(toLocalDateString(start)); setPeriodEnd(toLocalDateString(end));
               }} className="text-sm border border-stone-200 rounded-lg px-3 py-1.5" />
             </div>
             <div className="overflow-x-auto">
@@ -604,7 +605,7 @@ export default function TaxReportsView() {
                 <input type="month" value={(periodEnd || '').slice(0, 7)} onChange={e => {
                   const [y, m] = e.target.value.split('-').map(Number);
                   const start = new Date(y, m - 1, 1); const end = new Date(y, m, 0);
-                  setPeriodStart(start.toISOString().split('T')[0]); setPeriodEnd(end.toISOString().split('T')[0]);
+                  setPeriodStart(toLocalDateString(start)); setPeriodEnd(toLocalDateString(end));
                 }} className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 flex-1" />
               </div>
               <button onClick={openSummaryDocument} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1A1714] text-white hover:bg-[#2E2926]">

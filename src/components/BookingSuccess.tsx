@@ -118,11 +118,8 @@ export default function BookingSuccess() {
         return;
       }
 
-      const { data: bookingData, error: bookingError } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', bookingId)
-        .maybeSingle();
+      // Guests can't read bookings directly; the id in the return link is the key.
+      const { data: bookingData, error: bookingError } = await supabase.rpc('get_booking_by_link', { p_booking_id: bookingId });
 
       if (bookingError || !bookingData) {
         setError('errorNotFound');

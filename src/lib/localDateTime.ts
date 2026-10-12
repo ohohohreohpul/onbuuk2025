@@ -10,6 +10,11 @@ function formatLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Local calendar day as YYYY-MM-DD (toISOString() would shift it to the UTC day). */
+export function toLocalDateString(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** Stored instant -> value for a datetime-local input ('' when invalid). */
 export function toDateTimeLocalValue(iso: string): string {
   const date = new Date(iso);

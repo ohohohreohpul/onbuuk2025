@@ -110,17 +110,11 @@ export default function CancelBooking() {
     if (!bookingId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          service:services(name),
-          duration:service_durations(duration_minutes)
-        `)
-        .eq('id', bookingId)
-        .single();
+      // Guests can't read bookings directly; the id in the link is the key.
+      const { data, error } = await supabase.rpc('get_booking_by_link', { p_booking_id: bookingId });
 
       if (error) throw error;
+      if (!data) throw new Error('Booking not found');
 
       if (data.status === 'cancelled') {
         setError('errorAlreadyCancelled');
@@ -140,12 +134,14 @@ export default function CancelBooking() {
     setCancelling(true);
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', booking.id);
+      const { data: result, error } = await supabase.rpc('cancel_booking_by_link', { p_booking_id: booking.id });
 
       if (error) throw error;
+      if (result === 'already_cancelled') {
+        setError('errorAlreadyCancelled');
+        return;
+      }
+      if (result !== 'cancelled') throw new Error(`Cancellation refused: ${result}`);
 
       // The cancellation emails (customer + shop) are queued by the database.
       setCancelled(true);

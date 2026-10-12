@@ -76,6 +76,9 @@ export function POSView() {
       `)
       .eq('business_id', businessId)
       .eq('payment_status', 'pending')
+      // Cancelled bookings and no-shows are not collected at the counter.
+      .neq('status', 'cancelled')
+      .or('no_show.is.null,no_show.eq.false')
       .order('booking_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -198,10 +201,8 @@ export function POSView() {
 
     const { error } = await supabase
       .from('bookings')
-      .update({
-        payment_status: 'paid',
-        status: 'confirmed',
-      })
+      // Records the payment only; the appointment status stays as it is.
+      .update({ payment_status: 'completed' })
       .eq('id', bookingId);
 
     if (error) {

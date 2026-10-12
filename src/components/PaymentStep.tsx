@@ -9,6 +9,7 @@ import { useTheme } from '../lib/themeContext';
 import { useCurrency } from '../lib/currencyContext';
 import { Button } from './ui/button';
 import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+import { toLocalDateString } from '../lib/localDateTime';
 
 const CARD_GUARANTEE_POLICY_VERSION = '2026-09';
 
@@ -418,7 +419,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         .select('id, no_show, status, booking_date')
         .eq('business_id', tenant.businessId)
         .eq('customer_email', bookingData.customerDetails.email)
-        .gte('booking_date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .gte('booking_date', toLocalDateString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)))
         .then(({ data: history }) => {
           const offences = (history || []).filter((b: any) => b.no_show === true);
           if (offences.length >= 2) setRepeatOffender(true);

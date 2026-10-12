@@ -4,6 +4,7 @@ import { ADMIN_ATTRIBUTION } from '../../lib/attribution';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
+import { toLocalDateString } from '../../lib/localDateTime';
 
 interface Service {
   id: string;
@@ -58,7 +59,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
     newCustomerName: '',
     newCustomerEmail: '',
     newCustomerPhone: '',
-    date: preselectedDate || new Date().toISOString().split('T')[0],
+    date: preselectedDate || toLocalDateString(new Date()),
     time: '',
     notes: ''
   });
@@ -251,7 +252,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
       newCustomerName: '',
       newCustomerEmail: '',
       newCustomerPhone: '',
-      date: preselectedDate || new Date().toISOString().split('T')[0],
+      date: preselectedDate || toLocalDateString(new Date()),
       time: '',
       notes: ''
     });
@@ -370,7 +371,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value, time: '' })}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={toLocalDateString(new Date())}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                 />
               </div>

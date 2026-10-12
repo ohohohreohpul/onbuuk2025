@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultBlockRange, fromDateTimeLocalValue, toDateTimeLocalValue } from '../localDateTime';
+import { defaultBlockRange, fromDateTimeLocalValue, toDateTimeLocalValue, toLocalDateString } from '../localDateTime';
 
 describe('toDateTimeLocalValue', () => {
   it('shows a stored instant in local wall-clock time, in the datetime-local format', () => {
@@ -49,5 +49,16 @@ describe('defaultBlockRange', () => {
     const now = new Date(2026, 11, 31, 10, 0);
 
     expect(defaultBlockRange(now, { wholeDay: true })).toEqual({ start: '2027-01-01T00:00', end: '2027-01-02T00:00' });
+  });
+});
+
+describe('toLocalDateString', () => {
+  it('keeps the local calendar day (no shift to the previous UTC day)', () => {
+    expect(toLocalDateString(new Date(2026, 9, 31, 0, 0))).toBe('2026-10-31');
+    expect(toLocalDateString(new Date(2026, 0, 1, 0, 30))).toBe('2026-01-01');
+  });
+
+  it('gives the last day of a month for new Date(y, m + 1, 0)', () => {
+    expect(toLocalDateString(new Date(2026, 1 + 1, 0))).toBe('2026-02-28');
   });
 });

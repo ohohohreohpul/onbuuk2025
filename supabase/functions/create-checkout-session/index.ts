@@ -33,6 +33,8 @@ interface CheckoutRequest {
   };
 }
 
+const BOOKING_CHECKOUT_MINUTES = 31; // Stripe minimum is 30
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -370,7 +372,6 @@ Deno.serve(async (req: Request) => {
       "success_url": successUrl,
       "cancel_url": cancelUrl,
       "customer_email": customerEmail,
-      "allow_promotion_codes": "true",
       // Card-on-file: attach the payment method to a Stripe customer so the
       // business can charge late-cancel / no-show fees off-session.
       "customer_creation": "always",
@@ -381,6 +382,12 @@ Deno.serve(async (req: Request) => {
       "line_items[0][price_data][unit_amount]": amountInCents.toString(),
       "line_items[0][quantity]": "1",
     };
+    if (bookingId) {
+      // Promo codes only for appointments: gift-card fulfilment checks the paid amount.
+      stripeParams["allow_promotion_codes"] = "true";
+      // Unpaid booking holds are released after 90 min (cron), so the link must die first.
+      stripeParams["expires_at"] = String(Math.floor(Date.now() / 1000) + BOOKING_CHECKOUT_MINUTES * 60);
+    }
 
     const platformFeePercentage = business.platform_fee_percentage || 2.5;
     const applicationFee = Math.round(amountInCents * (platformFeePercentage / 100));
