@@ -1,0 +1,37 @@
+{
+  "title": "SATUUU99 Christmas voucher packages (07.10.–23.12.2026)",
+  "state": {
+    "goal": "SATUUU99 (German spa) wants to sell four voucher packages online from tomorrow 07.10.2026 until 23.12.2026 'solange der Vorrat reicht', plus a small surprise gift for every voucher purchase from 70 € or from 60 minutes.",
+    "packages": "Set Basis 150 € statt 169 € (1× Head Spa Deluxe 90 min, 1× Anti-Stress Gua Sha 60 min, Überraschungsgeschenk). Set Premium 250 € statt 269 € (1× Head Spa Deluxe 90, 1× Gua Sha 60, 2× Pure Relax Kopfmassage 45, Überraschungsgeschenk). Weihnachtspaket 500 € statt 558 € (2× Head Spa Deluxe 90, 2× Gua Sha 60, 1× Aqua Facial 60, 1× Sleep & Glow Goldtherapie 60, 1× Sleep & Glow Lavendel 60, plus a Handtasche chosen in the shop). Weihnachtspaket 700 € statt 770 €: 11 vouchers of 60 minutes, each usable for Gua Sha, Fußmassage, Premium Fußpflege or BellaBambi (all 60 min = 65–70 €); other treatments allowed with a surcharge; plus Handtasche and a large gift set.",
+    "system_today": "A service pass voucher is tied to exactly one service + duration and redeemed when booking that exact treatment. A value voucher holds euros and pays any treatment; the customer pays any difference. One purchase creates one voucher; there are no packages, date windows or stock limits.",
+    "payment_today": "SATUUU99 has no Stripe Connect and no PayPal configured. Without online payment the current gift card page would create ACTIVE vouchers for free from the browser, which is unsafe. The shop hands out handbags and gifts in person anyway.",
+    "missing_treatments": "Head Spa Deluxe 90 min, Pure Relax Kopfmassage 45 min, Sleep & Glow mit Goldtherapie 60 min and Sleep & Glow mit Lavendel 60 min do not exist as treatments yet. Prices implied by the flyer arithmetic: 99 €, 50 €, 70 €, 70 €. A service pass for them can only be redeemed online if the treatment exists and is bookable.",
+    "deadline": "Promotion starts tomorrow; must ship today without new payment setup."
+  },
+  "decisions": {
+    "package_700_model": {
+      "instructions": "How should the 700 € package's 11 flexible 60-minute vouchers be modelled?",
+      "criteria": {
+        "eleven_value_vouchers_70": "Issue 11 separate value vouchers of 70 € each. Any treatment can be paid with them; the four 60-minute programmes cost 65–70 €, other treatments simply cost a surcharge. Works with existing redemption, no core changes.",
+        "new_multi_service_pass": "Build a new pass type that accepts a list of services, changing the core redemption functions the day before launch."
+      },
+      "fallback": "eleven_value_vouchers_70"
+    },
+    "payment_flow": {
+      "instructions": "How should customers buy packages while the shop has no online payment?",
+      "criteria": {
+        "order_online_pay_in_store": "Customers order online; vouchers are created inactive ('awaiting payment') and the shop activates them in the admin when the customer pays and picks up the gift/handbag. Also replaces the unsafe free path for normal vouchers.",
+        "wait_for_stripe": "Do not sell online until the shop connects Stripe or PayPal."
+      },
+      "fallback": "order_online_pay_in_store"
+    },
+    "new_treatments_visibility": {
+      "instructions": "The four missing treatments must exist so their vouchers can be redeemed. Should they be bookable on the public booking page?",
+      "criteria": {
+        "bookable_with_flyer_prices": "Create them as normal bookable treatments with the flyer-derived prices and the same specialists as the closest existing treatment, so voucher holders can book online; the owner can edit texts and hide them later.",
+        "hidden_until_owner_reviews": "Create them hidden; vouchers for them must be booked by the shop until the owner reviews and unhides them."
+      },
+      "fallback": "bookable_with_flyer_prices"
+    }
+  }
+}

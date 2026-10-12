@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
-import { Plus, Edit2, Trash2, X, Clock, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Clock, Calendar, CalendarOff } from 'lucide-react';
 import WorkingHoursModal from './WorkingHoursModal';
 import TimeBlocksModal from './TimeBlocksModal';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
@@ -36,7 +36,7 @@ export default function SpecialistsView() {
   });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [workingHoursModal, setWorkingHoursModal] = useState<{ id: string; name: string } | null>(null);
-  const [timeBlocksModal, setTimeBlocksModal] = useState<{ id: string; name: string } | null>(null);
+  const [timeBlocksModal, setTimeBlocksModal] = useState<{ id: string | null; name: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -226,13 +226,22 @@ export default function SpecialistsView() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Specialists</h1>
           <p className="text-gray-600">Manage massage therapists</p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="font-medium">Add Specialist</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setTimeBlocksModal({ id: null, name: 'Applies to every specialist' })}
+            className="flex items-center space-x-2 px-4 py-2.5 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition-all"
+          >
+            <CalendarOff className="w-5 h-5" />
+            <span className="font-medium">Shop closed days</span>
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Add Specialist</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

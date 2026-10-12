@@ -64,3 +64,20 @@
 |---|---|---|---|
 | first | **send_outage_message** | 0.97 | send_outage_message 98%, send_announcement 1%, fix_customer_profiles 1%, fix_gift_card_status 0% |
 | combine_messages | **one_message** | 0.43 | one_message 72%, two_messages 28% |
+
+## 2026-09-30 — Marketing positioning for Zenno AI booking (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| category | **ai_bookable_salon** (low confidence → fallback; Jev said ai_bookable_salon) | 0.19 | ai_bookable_salon 46%, ai_booking_software 44%, booking_layer_for_ai_search 10% |
+| lead_promise | **your_customers_no_commission** | 0.81 | your_customers_no_commission 87%, get_booked_not_just_found 13%, early_in_hamburg 0% |
+| lead_differentiator_vs_marketplaces | **own_page_no_middleman** | 0.76 | own_page_no_middleman 84%, no_commission 13%, works_with_every_ai 3% |
+| primary_segment | **existing_zenno_salons** | 0.87 | existing_zenno_salons 91%, treatwell_salons_hamburg 9%, salons_without_online_booking 0% |
+
+## 2026-10-06 — SATUUU99 Christmas voucher packages (07.10.–23.12.2026) (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| package_700_model | **eleven_value_vouchers_70** | 0.86 | eleven_value_vouchers_70 93%, new_multi_service_pass 7% |
+| payment_flow | **order_online_pay_in_store** (low confidence → fallback; Jev said order_online_pay_in_store) | 0.25 | order_online_pay_in_store 63%, wait_for_stripe 37% |
+| new_treatments_visibility | **bookable_with_flyer_prices** (low confidence → fallback; Jev said hidden_until_owner_reviews) | 0.14 | hidden_until_owner_reviews 57%, bookable_with_flyer_prices 43% |

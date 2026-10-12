@@ -406,7 +406,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
     <div className="space-y-6">
       {/* Header */}
       <div
-        className={`flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
+        className={`relative z-20 flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
       >
         <div>
           <div className="flex items-center gap-3 mb-1">

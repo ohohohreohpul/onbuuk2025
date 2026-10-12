@@ -54,6 +54,8 @@ interface DateTimeStepProps {
   durationId: string | null;
   /** Chosen specialist, or null for "anyone". */
   specialistId: string | null;
+  /** Couple booking: two therapists must be free at the same time. */
+  isPairBooking: boolean;
   onNext: (date: string, time: string) => void;
   onBack: () => void;
 }
@@ -66,7 +68,7 @@ interface SlotRow {
 /** How far ahead the booking page looks (the business's booking window may be shorter). */
 const DAYS_AHEAD = 28;
 
-export default function DateTimeStep({ durationId, specialistId, onNext, onBack }: DateTimeStepProps) {
+export default function DateTimeStep({ durationId, specialistId, isPairBooking, onNext, onBack }: DateTimeStepProps) {
   const { businessId } = useTenant();
   const { customization } = useBookingCustomization();
   const { colors } = useTheme();
@@ -102,6 +104,7 @@ export default function DateTimeStep({ durationId, specialistId, onNext, onBack 
         p_duration_id: durationId,
         p_specialist_id: specialistId,
         p_days: DAYS_AHEAD,
+        p_people: isPairBooking ? 2 : 1,
       })
       .then(({ data, error }) => {
         if (isCancelled) return;
@@ -124,7 +127,7 @@ export default function DateTimeStep({ durationId, specialistId, onNext, onBack 
     return () => {
       isCancelled = true;
     };
-  }, [businessId, durationId, specialistId, reloadKey]);
+  }, [businessId, durationId, specialistId, isPairBooking, reloadKey]);
 
   const content = {
     title: customization?.datetime_step?.title || t.title,

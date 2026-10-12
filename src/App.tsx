@@ -523,6 +523,7 @@ function AppContent() {
         <DateTimeStep
           durationId={bookingState.duration?.id ?? null}
           specialistId={bookingState.specialistId}
+          isPairBooking={bookingState.isPairBooking}
           onNext={handleDateTimeSelect}
           onBack={() => setCurrentStep('specialist')}
         />

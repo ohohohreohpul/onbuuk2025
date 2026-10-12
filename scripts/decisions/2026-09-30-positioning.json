@@ -1,0 +1,56 @@
+{
+  "title": "Marketing positioning for Zenno AI booking",
+  "state": {
+    "product": "Zenno: booking software for appointment businesses (salons, barbers, beauty, wellness). Every salon page on Zenno now carries machine-readable data for AI search (services, prices, hours, a 'book directly' action), an llms.txt, and a plain AI booking form so an AI assistant can complete the booking itself — no customer account, no redirect. Owners switch it on with one toggle, choose auto-accept or approve each, get an email per AI booking, and see a dashboard card 'Where your bookings come from' that counts AI bookings and AI referrals.",
+    "market": {
+      "demand": "45% of US consumers used AI to find local businesses in 2026, up from 6% in 2025; ChatGPT most used at 31%.",
+      "platforms": "Google AI Mode books local appointments through partner platforms (US first, summer 2026). OpenAI retired in-chat checkout in March 2026: discover in AI, complete on the business's own site.",
+      "germany": "None of these platform launches cover Germany yet. Zenno's first city is Hamburg."
+    },
+    "competitors": {
+      "fresha": "Aug 2026: bookings via ChatGPT and Claude for its 140,000-business marketplace; the AI finds the slot, then sends the customer to Fresha to confirm and pay.",
+      "treatwell": "Largest marketplace in Germany; 35% commission on a new customer's first booking plus monthly fee.",
+      "planity": "Growing in Germany since 2024; subscription, no commission; no AI booking announced."
+    },
+    "honest_limits": "No real ChatGPT or Google agent booking has been observed yet on a Zenno page; Zenno is not listed as a ChatGPT app; agent identity verification not built yet; admin UI is English only.",
+    "buyer": "Owner of an independent salon in Hamburg, often older and non-technical, busy with clients, sceptical of marketplaces and commissions."
+  },
+  "decisions": {
+    "category": {
+      "instructions": "Which category name should marketing use for this product?",
+      "criteria": {
+        "ai_bookable_salon": "'The salon AI can book' — describes the outcome for the owner, not the technology.",
+        "booking_layer_for_ai_search": "'The booking layer for AI search' — infrastructure framing.",
+        "ai_booking_software": "'AI booking software for salons' — plain software category."
+      },
+      "fallback": "ai_bookable_salon"
+    },
+    "lead_promise": {
+      "instructions": "Which promise should lead the headline for the buyer in `state.buyer`?",
+      "criteria": {
+        "get_booked_not_just_found": "Get booked by AI, not just found: when customers ask ChatGPT or Google, your salon is the one that can be booked on the spot.",
+        "your_customers_no_commission": "Bookings from AI land in your own calendar, under your own name, with no marketplace commission.",
+        "early_in_hamburg": "Be first in Hamburg: AI booking reaches Germany soon; be ready before your competitors."
+      },
+      "fallback": "get_booked_not_just_found"
+    },
+    "lead_differentiator_vs_marketplaces": {
+      "instructions": "Against Fresha and Treatwell, which differentiator should marketing lead with?",
+      "criteria": {
+        "own_page_no_middleman": "The booking happens on your own page and brand, not a marketplace that owns the customer relationship.",
+        "no_commission": "No commission on AI bookings, unlike 35% first-booking commission on Treatwell.",
+        "works_with_every_ai": "Open web standards, so it works with any AI that reads the web, not one app store listing."
+      },
+      "fallback": "own_page_no_middleman"
+    },
+    "primary_segment": {
+      "instructions": "Which segment should the first campaign target?",
+      "criteria": {
+        "existing_zenno_salons": "Existing Zenno salons: switch AI booking on, prove it works, collect first case studies.",
+        "treatwell_salons_hamburg": "Hamburg salons currently paying Treatwell commissions.",
+        "salons_without_online_booking": "Hamburg salons with no online booking at all."
+      },
+      "fallback": "existing_zenno_salons"
+    }
+  }
+}

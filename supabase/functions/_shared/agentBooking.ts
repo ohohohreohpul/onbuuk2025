@@ -3,32 +3,16 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 // ---------------------------------------------------------------------------
 // Server-side booking repository for the agent API.
 //
-// Ports the availability logic from src/lib/availabilityService.ts so the
-// agent path and the human booking form share one source of truth. Runs with
-// the service-role client, explicitly scoped by businessId on every query.
+// Availability comes from the SQL function public.get_available_slots, the same
+// engine the booking page uses (working hours, buffers, bookings, time off, shop
+// closures, couple bookings). Runs with the service-role client, explicitly
+// scoped by businessId on every query.
 // ---------------------------------------------------------------------------
 
-const SLOT_INTERVAL_MINUTES = 30;
-
-interface ServiceBuffers {
-  buffer_before: number;
-  buffer_after: number;
-}
-
-interface WorkingHourRow {
-  start_time: string;
-  end_time: string;
-  is_available: boolean;
-}
-
-interface TimeBlockRow {
-  start_time: string;
-  end_time: string;
-}
-
-interface ExistingBookingRow {
-  start_time: string;
-  duration: { duration_minutes: number } | null;
+interface SlotRow {
+  slot_date: string;
+  slot_time: string; // "HH:MM:SS"
+  free_specialists: number;
 }
 
 export interface AvailableSlot {
@@ -51,42 +35,25 @@ export async function getAvailableSlots(
 ): Promise<AvailableSlot[]> {
   const { businessId, serviceId, durationMinutes, specialistId, date } = args;
 
-  const dayOfWeek = new Date(`${date}T00:00:00`).getDay();
-
-  const { data: service } = await supabase
-    .from("services")
-    .select("buffer_before, buffer_after")
-    .eq("id", serviceId)
+  const { data: duration, error: durationError } = await supabase
+    .from("service_durations")
+    .select("id")
+    .eq("service_id", serviceId)
     .eq("business_id", businessId)
+    .eq("duration_minutes", durationMinutes)
+    .limit(1)
     .maybeSingle();
-  const buffers: ServiceBuffers = {
-    buffer_before: service?.buffer_before ?? 0,
-    buffer_after: service?.buffer_after ?? 0,
-  };
-  const totalDuration = durationMinutes + buffers.buffer_before + buffers.buffer_after;
+  if (durationError) throw new Error(`Could not load treatment length: ${durationError.message}`);
+  if (!duration) return [];
 
-  const { data: workingHours } = await supabase
-    .from("working_hours")
-    .select("start_time, end_time, is_available")
-    .eq("specialist_id", specialistId)
-    .eq("day_of_week", dayOfWeek)
-    .maybeSingle() as { data: WorkingHourRow | null };
-
-  if (!workingHours || !workingHours.is_available) return [];
-
-  const { data: timeBlocks } = await supabase
-    .from("time_blocks")
-    .select("start_time, end_time")
-    .eq("specialist_id", specialistId)
-    .lte("start_time", `${date}T23:59:59`)
-    .gte("end_time", `${date}T00:00:00`) as { data: TimeBlockRow[] | null };
-
-  const { data: existingBookings } = await supabase
-    .from("bookings")
-    .select("start_time, duration:service_durations(duration_minutes)")
-    .eq("specialist_id", specialistId)
-    .eq("booking_date", date)
-    .neq("status", "cancelled") as { data: ExistingBookingRow[] | null };
+  const { data: rows, error: slotsError } = await supabase.rpc("get_available_slots", {
+    p_business_id: businessId,
+    p_duration_id: duration.id,
+    p_specialist_id: specialistId,
+    p_from: date,
+    p_days: 1,
+  });
+  if (slotsError) throw new Error(`Could not load availability: ${slotsError.message}`);
 
   // Exclude slots already held (not yet booked) so two agents don't grab the
   // same slot. Stale holds are expired first.
@@ -97,102 +64,13 @@ export async function getAvailableSlots(
     .eq("specialist_id", specialistId)
     .eq("booking_date", date)
     .eq("status", "held");
+  const heldTimes = new Set((activeHolds ?? []).map((h) => String(h.start_time).slice(0, 5)));
 
-  const heldTimes = new Set((activeHolds ?? []).map((h) => h.start_time));
-
-  const allSlots = generateTimeSlots(
-    workingHours.start_time,
-    workingHours.end_time,
-    SLOT_INTERVAL_MINUTES,
-  );
-
-  const blocks = timeBlocks ?? [];
-  const bookings = existingBookings ?? [];
-
-  return allSlots
-    .map((time) => {
-      const slotStart = parseTimeMs(time);
-      const slotEnd = slotStart + totalDuration * 60_000;
-      const startsAt = `${date}T${time}:00`;
-      return { time, startsAt, slotStart, slotEnd };
-    })
-    .filter((slot) => {
-      if (heldTimes.has(slot.time)) return false;
-      if (isBlockedByTimeBlock(slot.slotStart, slot.slotEnd, date, blocks)) {
-        return false;
-      }
-      if (
-        isBlockedByBooking(
-          slot.slotStart,
-          slot.slotEnd,
-          bookings,
-          buffers.buffer_before,
-          buffers.buffer_after,
-        )
-      ) {
-        return false;
-      }
-      return true;
-    })
-    .map(({ time, startsAt }) => ({ time, startsAt }));
-}
-
-function generateTimeSlots(start: string, end: string, interval: number): string[] {
-  const slots: string[] = [];
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  for (let m = sh * 60 + sm; m < eh * 60 + em; m += interval) {
-    const h = Math.floor(m / 60);
-    const min = m % 60;
-    slots.push(`${h.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`);
-  }
-  return slots;
-}
-
-function parseTimeMs(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.getTime();
-}
-
-function isBlockedByTimeBlock(
-  slotStart: number,
-  slotEnd: number,
-  date: string,
-  blocks: TimeBlockRow[],
-): boolean {
-  return blocks.some((b) => {
-    const blockStart = new Date(b.start_time).getTime();
-    const blockEnd = new Date(b.end_time).getTime();
-    const dayStart = new Date(`${date}T00:00:00`);
-    const s = dayStart.getTime() + (slotStart - parseTimeMs("00:00"));
-    const e = dayStart.getTime() + (slotEnd - parseTimeMs("00:00"));
-    return (
-      (s >= blockStart && s < blockEnd) ||
-      (e > blockStart && e <= blockEnd) ||
-      (s <= blockStart && e >= blockEnd)
-    );
-  });
-}
-
-function isBlockedByBooking(
-  slotStart: number,
-  slotEnd: number,
-  bookings: ExistingBookingRow[],
-  bufferBefore: number,
-  bufferAfter: number,
-): boolean {
-  return bookings.some((b) => {
-    const bStart = parseTimeMs(b.start_time);
-    const dur = b.duration?.duration_minutes ?? 60;
-    const bEnd = bStart + (dur + bufferBefore + bufferAfter) * 60_000;
-    return (
-      (slotStart >= bStart && slotStart < bEnd) ||
-      (slotEnd > bStart && slotEnd <= bEnd) ||
-      (slotStart <= bStart && slotEnd >= bEnd)
-    );
-  });
+  return ((rows ?? []) as SlotRow[])
+    .filter((row) => row.slot_date === date)
+    .map((row) => row.slot_time.slice(0, 5))
+    .filter((time) => !heldTimes.has(time))
+    .map((time) => ({ time, startsAt: `${date}T${time}:00` }));
 }
 
 // --- holds -----------------------------------------------------------------
