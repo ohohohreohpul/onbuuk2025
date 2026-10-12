@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSpecialistChoice } from './hooks/useSpecialistChoice';
 import BookingLayout from './components/BookingLayout';
 import WelcomeStep from './components/WelcomeStep';
 import ServiceStep from './components/ServiceStep';
@@ -65,6 +66,7 @@ interface BookingState {
 
 function AppContent() {
   const tenant = useTenant();
+  const isSpecialistChoiceAllowed = useSpecialistChoice(tenant.businessId);
   const { customization } = useBookingCustomization();
   const [appMode, setAppMode] = useState<AppMode>(() => {
     const hash = window.location.hash;
@@ -313,7 +315,7 @@ function AppContent() {
       if (hasProducts) {
         setCurrentStep('addons');
       } else {
-        setCurrentStep('specialist');
+        goToSpecialistStep();
       }
     } else {
       setCurrentStep('addons');
@@ -338,7 +340,18 @@ function AppContent() {
       ...bookingState,
       selectedProducts,
     });
-    setCurrentStep('specialist');
+    goToSpecialistStep();
+  };
+
+  // Shops that assign staff themselves skip the therapist step: "anyone".
+  const goToSpecialistStep = () => {
+    if (isSpecialistChoiceAllowed) {
+      setCurrentStep('specialist');
+      return;
+    }
+    setBookingState((prev) => ({ ...prev, specialistId: null }));
+    setSpecialistName(null);
+    setCurrentStep('datetime');
   };
 
   const handleSpecialistSelect = async (specialistId: string | null) => {
@@ -525,7 +538,7 @@ function AppContent() {
           specialistId={bookingState.specialistId}
           isPairBooking={bookingState.isPairBooking}
           onNext={handleDateTimeSelect}
-          onBack={() => setCurrentStep('specialist')}
+          onBack={isSpecialistChoiceAllowed ? () => setCurrentStep('specialist') : handleSpecialistBack}
         />
       )}
 

@@ -4,6 +4,7 @@ import { useTenant } from '../../lib/tenantContext';
 import { Plus, Edit2, Trash2, X, Clock, Calendar, CalendarOff } from 'lucide-react';
 import WorkingHoursModal from './WorkingHoursModal';
 import TimeBlocksModal from './TimeBlocksModal';
+import SpecialistChoiceSetting from './SpecialistChoiceSetting';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
 
 interface Specialist {
@@ -243,6 +244,8 @@ export default function SpecialistsView() {
           </button>
         </div>
       </div>
+
+      <SpecialistChoiceSetting />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {specialists.map((specialist) => (
