@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isServiceRoleRequest } from '../_shared/emailAccess.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -151,6 +152,15 @@ async function sendWithMailgun(settings: EmailSettings, toEmail: string, subject
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  // Raw sender: any recipient, any content. Only other edge functions may call it;
+  // the app goes through send-business-email, which checks who is asking.
+  if (!isServiceRoleRequest(req)) {
+    return new Response(
+      JSON.stringify({ error: 'Not allowed' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {

@@ -1,5 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { authorizationErrorResponse } from '../_shared/adminAuthorization.ts';
+import { buildPublicBookingEmail, identifyEmailCaller } from '../_shared/emailAccess.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,14 +44,32 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { business_id, event_key, recipient_email, recipient_name, variables, booking_id, attachments }: BusinessEmailRequest = await req.json();
+    const request: BusinessEmailRequest = await req.json();
+    const { business_id, event_key, booking_id } = request;
+    let { recipient_email, recipient_name, variables, attachments } = request;
 
-    console.log(`📧 Sending ${event_key} email to ${recipient_email} for business ${business_id}`);
-    console.log(`📎 Attachments received: ${attachments ? attachments.length : 0}`);
-
-    if (!business_id || !event_key || !recipient_email || !variables) {
+    if (!business_id || !event_key) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: business_id, event_key, recipient_email, variables' }),
+        JSON.stringify({ error: 'Missing required fields: business_id, event_key' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Without sign-in, only booking emails for a real booking go out, rebuilt from the booking itself.
+    const caller = await identifyEmailCaller(req, business_id);
+    if (caller === 'public') {
+      const publicEmail = await buildPublicBookingEmail(supabase, req, business_id, event_key, booking_id);
+      recipient_email = publicEmail.recipientEmail;
+      recipient_name = publicEmail.recipientName;
+      variables = publicEmail.variables;
+      attachments = undefined;
+    }
+
+    console.log(`📧 Sending ${event_key} email (${caller}) for business ${business_id}`);
+
+    if (!recipient_email || !variables) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: recipient_email, variables' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -182,13 +202,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`✅ Email sent successfully to ${recipient_email}`);
+    console.log(`✅ ${event_key} email sent for business ${business_id}`);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email sent successfully' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error('❌ Error in send-business-email:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
