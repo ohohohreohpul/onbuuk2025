@@ -1,0 +1,71 @@
+{
+  "title": "Next round after the 2026-10-12 fixes: order and policies",
+  "state": {
+    "product": "Zenno: booking + gift card + payments SaaS for German wellness/massage studios (Hamburg). Still internal, first live shop SATUUU99 (Strato mail, pay in shop, voucher Christmas sets running 07.10.-23.12.2026). Owner asked to stop pausing for questions.",
+    "owner_notes_2026_10_12": "1 migrate EasyWeek bookings/time blocks; 2 several therapists per time slot; 3 automatic confirmation by email to customer and owner; 3.1 mark pay-in-shop vouchers paid; 4 send from info@satuuu99.de; 5/9 SATUUU99 only: 'Gutscheine vor Ort get Geschenk' - pay the voucher in the shop to receive a gift; 11 Thai language; 12 E-Rechnung Germany.",
+    "done_today": "Email relay closed; couple bookings use two therapists; shop closed days; one availability engine; therapist-choice switch; SMTP port 465 (waiting for SATUUU99 mailbox password); auto-confirm + customer/owner emails + day-before reminder via outbox and pg_cron; critical security fixes (admin accounts, tenant leaks, function auth); guest cancel link and payment success page; unpaid online holds released; date shift bugs; POS mark paid.",
+    "open_items": {
+      "security_tidy": "Small leaks: any signed-in user can overwrite another shop's logo in the shared storage bucket; a known gift card code can be attached to someone's customer account; get_gift_card_receipt returns code and balance to anyone with the card id. Each about 30-60 min.",
+      "reschedule_email": "Moving a confirmed booking to a new time sends no email and the day-before reminder is silently dropped, so customers can come at the old time. About 1 h.",
+      "gift_card_restore": "Gift card value or pass visits used on a booking are never returned when the booking is cancelled, even a week ahead. Shops have a cancellationHours setting (default 24). Also redemption happens after the booking insert, so a failed redemption leaves a confirmed booking. About 2-3 h.",
+      "couple_calendar": "A couple booking blocks two therapists but the admin calendar and bookings list only show it under the first therapist; the second looks free. About 1-2 h.",
+      "gift_promo_satuuu99": "Per-order bonus note and 'handed over' tick exist in admin, but customers don't see a gift message when ordering. Needs a per-shop promo text on the voucher page, set for SATUUU99. About 1 h. SATUUU99 promotion is running now until 23.12.",
+      "easyweek_import": "No importer for customers/bookings/time blocks from EasyWeek. Needs EasyWeek's CSV export format; a generic CSV importer with column mapping could be built without the file. About 4-6 h.",
+      "invoices": "No invoice/receipt PDF, numbering or tax IDs. B2C salons don't need E-Rechnung; B2B issuing becomes mandatory 2027 (>800k turnover) / 2028 (all). About 1 day for invoice PDF + numbering, more for ZUGFeRD.",
+      "thai_language": "UI has en/de only; Thai would be a full translation set. About 1 day."
+    },
+    "market_reference": "Fresha, Treatwell, Shore, Planity and EasyWeek all: send booking confirmation + reminder + reschedule notification emails/SMS; restore prepaid value or credit on in-policy cancellations and keep it for late cancellations; show multi-staff/group appointments in every involved staff column; offer CSV import of clients and appointments during onboarding (switching cost is the main sales objection); support German invoices with sequential numbers and tax ID (Treatwell/Shore), E-Rechnung via DATEV export at most. Gift card promos (bonus on purchase) are common around Christmas.",
+    "constraints": "One developer (Claude) working continuously; production deploys verified live; SATUUU99 is the only real shop and its Christmas promo is live now."
+  },
+  "decisions": {
+    "first_item": {
+      "instructions": "Which open item should be built first? The distribution is used as the overall build order.",
+      "criteria": {
+        "security_tidy": "Close the three small security leaks first.",
+        "reschedule_email": "Reschedule email + reminder requeue first.",
+        "gift_card_restore": "Restore gift card value on in-policy cancellations (and make redemption atomic) first.",
+        "couple_calendar": "Show couple bookings under both therapists first.",
+        "gift_promo_satuuu99": "SATUUU99 gift promo text on the voucher page first (promotion is live now).",
+        "easyweek_import": "Generic CSV import (clients, bookings, time blocks) for EasyWeek migration first.",
+        "invoices": "Invoice PDF with numbering and tax IDs first.",
+        "thai_language": "Thai translation first."
+      },
+      "fallback": "gift_promo_satuuu99"
+    },
+    "gift_card_cancel_policy": {
+      "instructions": "When a booking paid (partly) with a gift card or service pass is cancelled, what happens to the redeemed value?",
+      "criteria": {
+        "restore_before_window": "Restore the value/visit if cancelled before the shop's cancellation window (cancellationHours, default 24 h); keep it for late cancellations and no-shows. Admin cancellations always restore.",
+        "always_restore": "Always restore on any cancellation; late fees handled separately.",
+        "never_restore": "Never restore automatically; the shop adjusts balances by hand."
+      },
+      "fallback": "restore_before_window"
+    },
+    "couple_display": {
+      "instructions": "How should a couple booking appear for the second therapist in calendar and bookings list?",
+      "criteria": {
+        "both_columns_linked": "Show the same booking in both therapists' columns with a 'Couple' badge naming the partner; editing either opens the one booking.",
+        "first_column_badge": "Keep it under the first therapist only but add a badge with the second therapist's name."
+      },
+      "fallback": "both_columns_linked"
+    },
+    "easyweek_approach": {
+      "instructions": "How to start the EasyWeek migration without the owner's export file?",
+      "criteria": {
+        "generic_csv_mapping": "Build a generic CSV import (customers, upcoming bookings, time blocks) with a column-mapping step and German/English header auto-detection; EasyWeek's export maps onto it.",
+        "wait_for_file": "Wait for a real EasyWeek export before building anything.",
+        "manual_service": "Offer to import for the shop by hand (SQL) when they send the file."
+      },
+      "fallback": "generic_csv_mapping"
+    },
+    "invoice_scope": {
+      "instructions": "What invoice scope for the German market now?",
+      "criteria": {
+        "invoice_pdf_first": "Invoice/receipt PDF with sequential numbering, Steuernummer/USt-IdNr, VAT lines and Kleinunternehmer note; ZUGFeRD later for B2B.",
+        "zugferd_now": "Build ZUGFeRD/XRechnung e-invoices right away.",
+        "later": "Postpone invoices until a shop asks."
+      },
+      "fallback": "invoice_pdf_first"
+    }
+  }
+}

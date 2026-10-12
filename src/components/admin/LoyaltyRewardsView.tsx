@@ -26,6 +26,7 @@ import { downloadGiftCardPDF } from '../../lib/giftCardPdfGenerator';
 import { GiftCardDetailModal } from './GiftCardDetailModal';
 import { ImportGiftCardsModal } from './ImportGiftCardsModal';
 import GiftCardOrdersPanel from './giftCardOrders/GiftCardOrdersPanel';
+import GiftCardPromoSettings from './giftCardOrders/GiftCardPromoSettings';
 import {
   ADMIN_INPUT,
   ADMIN_MODAL,
@@ -387,9 +388,19 @@ export function LoyaltyRewardsView() {
       .from('gift_card_settings')
       .upsert({
         business_id: businessId,
-        ...giftCardSettings,
+        // Only the fields this screen edits; the promotion is saved separately.
+        enabled: giftCardSettings.enabled,
+        preset_amounts_cents: giftCardSettings.preset_amounts_cents,
+        allow_custom_amount: giftCardSettings.allow_custom_amount,
+        min_custom_amount_cents: giftCardSettings.min_custom_amount_cents,
+        max_custom_amount_cents: giftCardSettings.max_custom_amount_cents,
+        expiry_days: giftCardSettings.expiry_days,
+        design_url: giftCardSettings.design_url,
+        terms_and_conditions: giftCardSettings.terms_and_conditions,
+        code_format: giftCardSettings.code_format,
+        code_prefix: giftCardSettings.code_prefix,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'business_id' });
 
     if (error) {
       setMessage('Error saving settings');
@@ -1259,6 +1270,8 @@ export function LoyaltyRewardsView() {
               </button>
             </div>
           </section>
+
+          <GiftCardPromoSettings />
         </div>
       )}
 

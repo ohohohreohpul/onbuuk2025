@@ -81,3 +81,13 @@
 | package_700_model | **eleven_value_vouchers_70** | 0.86 | eleven_value_vouchers_70 93%, new_multi_service_pass 7% |
 | payment_flow | **order_online_pay_in_store** (low confidence → fallback; Jev said order_online_pay_in_store) | 0.25 | order_online_pay_in_store 63%, wait_for_stripe 37% |
 | new_treatments_visibility | **bookable_with_flyer_prices** (low confidence → fallback; Jev said hidden_until_owner_reviews) | 0.14 | hidden_until_owner_reviews 57%, bookable_with_flyer_prices 43% |
+
+## 2026-10-12 — Next round after the 2026-10-12 fixes: order and policies (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| first_item | **security_tidy** | 0.52 | security_tidy 58%, gift_promo_satuuu99 25%, reschedule_email 7%, gift_card_restore 7%, easyweek_import 3%, couple_calendar 0%, invoices 0%, thai_language 0% |
+| gift_card_cancel_policy | **never_restore** | 0.92 | never_restore 95%, restore_before_window 5%, always_restore 0% |
+| couple_display | **both_columns_linked** | 1.00 | both_columns_linked 100%, first_column_badge 0% |
+| easyweek_approach | **generic_csv_mapping** | 1.00 | generic_csv_mapping 100%, wait_for_file 0%, manual_service 0% |
+| invoice_scope | **invoice_pdf_first** | 0.98 | invoice_pdf_first 99%, later 1%, zugferd_now 0% |
