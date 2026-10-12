@@ -10,6 +10,7 @@
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { AuthorizationError, requireActiveAdmin } from "./adminAuthorization.ts";
+import { escapeHtml, loadBookingEmailData } from "./bookingEmailData.ts";
 
 export type EmailCaller = "server" | "admin" | "public";
 
@@ -44,14 +45,7 @@ export async function identifyEmailCaller(req: Request, businessId: string): Pro
   }
 }
 
-export function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+export { escapeHtml };
 
 /** Hosts a public request may name as the base for links in its email. */
 export function isTrustedHost(host: string, permalink: string | null, customDomains: string[]): boolean {
@@ -83,34 +77,6 @@ async function linkBase(supabase: SupabaseClient, req: Request, businessId: stri
   return isTrustedHost(url.hostname, permalink, customDomains) ? url.origin : fallback;
 }
 
-/** PostgREST types embedded rows as arrays even for many-to-one joins. */
-function one<T>(value: T | T[] | null | undefined): T | null {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
-}
-
-function addMinutes(time: string, minutes: number): string {
-  const [hours, mins] = time.split(":").map(Number);
-  const total = hours * 60 + mins + minutes;
-  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-async function shopCurrency(supabase: SupabaseClient, businessId: string): Promise<string> {
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("business_id", businessId)
-    .eq("key", "currency")
-    .maybeSingle();
-  const raw = data?.value;
-  if (!raw) return "EUR";
-  try {
-    const parsed = JSON.parse(raw);
-    return typeof parsed === "string" ? parsed : String(raw);
-  } catch {
-    return String(raw);
-  }
-}
-
 export interface PublicEmail {
   recipientEmail: string;
   recipientName: string;
@@ -129,63 +95,13 @@ export async function buildPublicBookingEmail(
     throw new AuthorizationError("Sign in is required to send this email", 401);
   }
 
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select(`id, business_id, status, created_at, booking_date, start_time, customer_name, customer_email,
-      specialist:specialists(name), service:services(name),
-      duration:service_durations(duration_minutes, price_cents)`)
-    .eq("id", bookingId)
-    .maybeSingle();
-
-  if (!booking || booking.business_id !== businessId) {
+  const data = await loadBookingEmailData(supabase, bookingId, (id, permalink) => linkBase(supabase, req, id, permalink));
+  if (!data || data.businessId !== businessId) {
     throw new AuthorizationError("Booking not found", 404);
   }
-  assertPublicEventAllowed(eventKey as PublicEventKey, booking.status, booking.created_at);
+  assertPublicEventAllowed(eventKey as PublicEventKey, data.status, data.createdAt);
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("name, address, phone, language, permalink")
-    .eq("id", businessId)
-    .maybeSingle();
-
-  const service = one<{ name: string }>(booking.service);
-  const specialist = one<{ name: string }>(booking.specialist);
-  const duration = one<{ duration_minutes: number; price_cents: number }>(booking.duration);
-  const locale = business?.language === "de" ? "de-DE" : "en-US";
-  const durationMinutes = duration?.duration_minutes ?? 60;
-  const base = await linkBase(supabase, req, businessId, business?.permalink ?? null);
-  const currency = await shopCurrency(supabase, businessId);
-  const date = new Date(`${booking.booking_date}T12:00:00Z`).toLocaleDateString(locale, {
-    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC",
-  });
-  const startTime = String(booking.start_time).slice(0, 5);
-  const price = new Intl.NumberFormat(locale, { style: "currency", currency })
-    .format((duration?.price_cents ?? 0) / 100);
-  const cancelLink = `${base}/cancel?id=${booking.id}`;
-
-  const values: Record<string, string> = {
-    customer_name: booking.customer_name ?? "",
-    customer_email: booking.customer_email ?? "",
-    service_name: service?.name ?? "",
-    service_duration: `${durationMinutes} ${business?.language === "de" ? "Minuten" : "minutes"}`,
-    service_price: price,
-    booking_date: date,
-    booking_time: startTime,
-    booking_end_time: addMinutes(startTime, durationMinutes),
-    specialist_name: specialist?.name ?? "",
-    business_name: business?.name ?? "",
-    business_address: business?.address ?? "",
-    business_phone: business?.phone ?? "",
-    business_email: "",
-    cancellation_link: cancelLink,
-    reschedule_link: cancelLink,
-    cancellation_reason: "",
-    cancelled_by: "customer",
-    rebook_link: base,
-  };
-
-  const variables = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, escapeHtml(value)]));
-  return { recipientEmail: booking.customer_email, recipientName: booking.customer_name ?? "", variables };
+  return { recipientEmail: data.customerEmail, recipientName: data.customerName, variables: data.variables };
 }
 
 export function assertPublicEventAllowed(eventKey: PublicEventKey, status: string, createdAt: string, now = Date.now()): void {

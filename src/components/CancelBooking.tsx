@@ -74,7 +74,6 @@ const TEXT: Translations<{
 type CancelErrorKey = 'errorInvalidLink' | 'errorAlreadyCancelled' | 'errorNotFound' | 'errorCancelFailed';
 
 // Dates in the cancellation email variables stay in the format the server has always received.
-const EMAIL_DATE_LOCALE = 'en-US';
 
 interface Booking {
   id: string;
@@ -148,34 +147,7 @@ export default function CancelBooking() {
 
       if (error) throw error;
 
-      const { data: business } = await supabase
-        .from('businesses')
-        .select('name, phone')
-        .eq('id', booking.business_id)
-        .maybeSingle();
-
-      const rebookLink = `${window.location.origin}`;
-
-      await supabase.functions.invoke('send-business-email', {
-        body: {
-          business_id: booking.business_id,
-          event_key: 'booking_cancelled',
-          recipient_email: booking.customer_email,
-          recipient_name: booking.customer_name,
-          variables: {
-            customer_name: booking.customer_name,
-            service_name: booking.service.name,
-            booking_date: formatDate(booking.booking_date, EMAIL_DATE_LOCALE),
-            booking_time: booking.start_time,
-            cancellation_reason: '',
-            cancelled_by: 'customer',
-            business_name: business?.name || 'Our Business',
-            business_phone: business?.phone || '',
-            rebook_link: rebookLink,
-          },
-        },
-      });
-
+      // The cancellation emails (customer + shop) are queued by the database.
       setCancelled(true);
     } catch (err) {
       setError('errorCancelFailed');

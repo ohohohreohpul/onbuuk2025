@@ -726,6 +726,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             notes: bookingData.customerDetails.notes || null,
             payment_status: 'pending',
             status: 'pending',
+            payment_method: 'paypal',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
           });
@@ -779,6 +780,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             notes: bookingData.customerDetails.notes || null,
             payment_status: 'pending',
             status: 'pending',
+            payment_method: 'stripe',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
           });
@@ -872,6 +874,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             notes: bookingData.customerDetails.notes || null,
             payment_status: 'pending',
             status: 'pending',
+            payment_method: isPayingInPerson ? 'in_person' : 'none',
             gift_card_amount_cents: 0,
             final_amount_cents: totalPrice,
           });
@@ -893,7 +896,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           .from('bookings')
           .update({
             payment_status: actualFullyCovered ? 'completed' : (isPayingInPerson ? 'pending' : 'completed'),
-            status: actualFullyCovered ? 'confirmed' : (isPayingInPerson ? 'pending' : 'confirmed'),
+            // Pay-in-shop bookings keep the status the shop's confirmation mode gave them.
+            ...(isPayingInPerson && !actualFullyCovered ? {} : { status: 'confirmed' }),
           })
           .eq('id', data.id);
 
@@ -952,61 +956,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           console.warn('Card guarantee checkout unavailable; continuing with unpaid booking.');
         }
 
-        console.log('Sending confirmation email...');
-        try {
-          const calculateEndTime = (startTime: string, durationMinutes: number): string => {
-            const [hours, minutes] = startTime.split(':').map(Number);
-            const totalMinutes = hours * 60 + minutes + durationMinutes;
-            const endHours = Math.floor(totalMinutes / 60) % 24;
-            const endMinutes = totalMinutes % 60;
-            return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-          };
-
-          const { data: business } = await supabase
-            .from('businesses')
-            .select('name, address, phone')
-            .eq('id', tenant.businessId)
-            .maybeSingle();
-
-          const endTime = calculateEndTime(bookingData.time, bookingData.duration.duration_minutes);
-          const cancelUrl = `${window.location.origin}/cancel?id=${data.id}`;
-
-          const { error: emailError } = await supabase.functions.invoke('send-business-email', {
-            body: {
-              business_id: tenant.businessId,
-              event_key: 'booking_confirmation',
-              recipient_email: bookingData.customerDetails.email,
-              recipient_name: bookingData.customerDetails.name,
-              variables: {
-                customer_name: bookingData.customerDetails.name,
-                customer_email: bookingData.customerDetails.email,
-                service_name: bookingData.service.name,
-                service_duration: `${bookingData.duration.duration_minutes} minutes`,
-                service_price: formatPrice(bookingData.duration.price_cents),
-                booking_date: formatDate(bookingData.date),
-                booking_time: bookingData.time,
-                booking_end_time: endTime,
-                specialist_name: specialistName || 'Any Available Specialist',
-                business_name: business?.name || 'Our Business',
-                business_address: business?.address || '',
-                business_phone: business?.phone || '',
-                business_email: '',
-                cancellation_link: cancelUrl,
-                reschedule_link: cancelUrl,
-              },
-              booking_id: data.id,
-            },
-          });
-
-          if (emailError) {
-            console.error('Error sending confirmation email:', emailError);
-          } else {
-            console.log('Confirmation email sent successfully');
-          }
-        } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError);
-        }
-
+        // Confirmation / request-received emails are queued by the database (notification outbox).
         setBookingId(data.id);
         setIsComplete(true);
       }

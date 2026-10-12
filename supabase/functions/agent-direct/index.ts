@@ -12,7 +12,6 @@ import {
   loadBookableBusiness,
   loadDuration,
   recentAttempts,
-  sendCustomerConfirmation,
 } from "../_shared/directBooking.ts";
 
 // POST /agent/v1/direct — keyless booking for AI assistants, behind the
@@ -102,10 +101,9 @@ async function book(supabase: SupabaseClient, body: Record<string, unknown>) {
   });
 
   const cancelUrl = `${origin}/cancel?id=${booking.id}`;
-  const { data: staff } = await supabase.from("specialists").select("name").eq("id", slot.specialistId).maybeSingle();
+  // The customer's confirmation / request-received email is queued by the database.
   await Promise.all([
     notifyMerchantOfAgentBooking(supabase, { businessId: business.id, bookingId: booking.id, status: booking.status, approvalToken, agentName }),
-    sendCustomerConfirmation(supabase, { business, duration, bookingId: booking.id, date: req.date, time: slot.time, name: req.name, email: req.email, specialistName: staff?.name ?? "", cancelUrl }),
     log(booking.status, { bookingId: booking.id }),
   ]);
 

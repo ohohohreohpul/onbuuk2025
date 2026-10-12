@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
           console.error("Error updating booking:", bookingError);
         } else {
           console.log("Booking confirmed:", bookingId);
-          await sendBookingConfirmationEmail(supabase, bookingId);
+          // The confirmation email is queued by the database when the status turns "confirmed".
         }
       } else if (type === "gc" && parts[2]) {
         // Gift card payment - retrieve metadata from temp storage
@@ -279,97 +279,6 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-
-async function sendBookingConfirmationEmail(supabase: any, bookingId: string) {
-  try {
-    const { data: booking } = await supabase
-      .from("bookings")
-      .select("customer_email, customer_name, service_id, duration_id, specialist_id, booking_date, start_time, business_id")
-      .eq("id", bookingId)
-      .maybeSingle();
-
-    if (!booking) return;
-
-    const { data: service } = await supabase
-      .from("services")
-      .select("name")
-      .eq("id", booking.service_id)
-      .maybeSingle();
-
-    const { data: duration } = await supabase
-      .from("service_durations")
-      .select("duration_minutes, price_cents")
-      .eq("id", booking.duration_id)
-      .maybeSingle();
-
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("name, address, phone")
-      .eq("id", booking.business_id)
-      .maybeSingle();
-
-    let specialistName = "Any Available Specialist";
-    if (booking.specialist_id) {
-      const { data: specialist } = await supabase
-        .from("specialists")
-        .select("name")
-        .eq("id", booking.specialist_id)
-        .maybeSingle();
-      if (specialist) {
-        specialistName = specialist.name;
-      }
-    }
-
-    const calculateEndTime = (startTime: string, durationMinutes: number): string => {
-      const [hours, minutes] = startTime.split(":").map(Number);
-      const totalMinutes = hours * 60 + minutes + durationMinutes;
-      const endHours = Math.floor(totalMinutes / 60) % 24;
-      const endMinutes = totalMinutes % 60;
-      return `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
-    };
-
-    const formattedDate = new Date(booking.booking_date).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-    const endTime = duration ? calculateEndTime(booking.start_time, duration.duration_minutes) : booking.start_time;
-    const cancelUrl = `${Deno.env.get("SUPABASE_URL")?.replace("/functions/v1", "")}/cancel?id=${bookingId}`;
-
-    await supabase.functions.invoke("send-business-email", {
-      body: {
-        business_id: booking.business_id,
-        event_key: "booking_confirmation",
-        recipient_email: booking.customer_email,
-        recipient_name: booking.customer_name,
-        variables: {
-          customer_name: booking.customer_name,
-          customer_email: booking.customer_email,
-          service_name: service?.name || "Service",
-          service_duration: duration ? `${duration.duration_minutes} minutes` : "N/A",
-          service_price: duration ? `€${(duration.price_cents / 100).toFixed(2)}` : "N/A",
-          booking_date: formattedDate,
-          booking_time: booking.start_time,
-          booking_end_time: endTime,
-          specialist_name: specialistName,
-          business_name: business?.name || "Our Business",
-          business_address: business?.address || "",
-          business_phone: business?.phone || "",
-          business_email: "",
-          cancellation_link: cancelUrl,
-          reschedule_link: cancelUrl,
-        },
-        booking_id: bookingId,
-      },
-    });
-
-    console.log("Booking confirmation email sent");
-  } catch (error) {
-    console.error("Error sending booking confirmation email:", error);
-  }
-}
 
 async function sendGiftCardEmail(supabase: any, metadata: any, giftCardId: string) {
   try {

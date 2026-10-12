@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings, FileText, History } from 'lucide-react';
 import EmailSettings from './EmailSettings';
+import BookingNotificationSettings from './BookingNotificationSettings';
 import EmailTemplates from './EmailTemplates';
 import EmailLogs from './EmailLogs';
 
@@ -40,7 +41,12 @@ export default function CustomerEmails() {
       </div>
 
       <div>
-        {activeTab === 'settings' && <EmailSettings />}
+        {activeTab === 'settings' && (
+          <>
+            <BookingNotificationSettings />
+            <EmailSettings />
+          </>
+        )}
         {activeTab === 'templates' && <EmailTemplates />}
         {activeTab === 'logs' && <EmailLogs />}
       </div>

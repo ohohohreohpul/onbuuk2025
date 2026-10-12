@@ -43,7 +43,7 @@ export function approvalUrl(token: string): string {
   return `${base}/approve-booking?token=${encodeURIComponent(token)}`;
 }
 
-async function merchantEmails(supabase: SupabaseClient, businessId: string): Promise<string[]> {
+export async function merchantEmails(supabase: SupabaseClient, businessId: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("admin_users")
     .select("email, role")
