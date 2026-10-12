@@ -8,6 +8,8 @@ import BookingRowActions from './bookings/BookingRowActions';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
 import RescheduleModal from './bookings/RescheduleModal';
+import { useSpecialistNames } from '../../hooks/useSpecialistNames';
+import { therapistLabel } from '../../lib/therapistLabel';
 
 interface Booking {
   id: string;
@@ -20,6 +22,7 @@ interface Booking {
   is_pair_booking: boolean;
   duration_id: string;
   specialist_id: string | null;
+  partner_specialist_id: string | null;
   notes: string | null;
   no_show: boolean;
   no_show_marked_at: string | null;
@@ -85,6 +88,7 @@ const matchesFilter = (filter: ViewFilter, state: BookingState): boolean => {
 export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const { formatPrice } = useCurrency();
   const { businessId } = useTenant();
+  const specialistNames = useSpecialistNames(businessId);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -377,7 +381,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                           {formatDate(booking.booking_date)} · {formatStartTime(booking.start_time)}
                         </div>
                         <div className="mt-0.5 text-xs text-stone-500">
-                          {booking.service.name} · {booking.duration.duration_minutes} min · {booking.specialist?.name || 'Any specialist'}
+                          {booking.service.name} · {booking.duration.duration_minutes} min · {therapistLabel(booking, specialistNames)}
                           {booking.is_pair_booking && (
                             <span className="ml-2 rounded-full bg-stone-900/[0.06] px-2 py-0.5 text-[11px] font-medium text-stone-700">Couples</span>
                           )}

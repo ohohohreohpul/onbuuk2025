@@ -7,6 +7,8 @@ import CreateBookingModal from './CreateBookingModal';
 import { useCurrency } from '../../lib/currencyContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { toLocalDateString } from '../../lib/localDateTime';
+import { useSpecialistNames } from '../../hooks/useSpecialistNames';
+import { therapistLabel } from '../../lib/therapistLabel';
 
 interface Booking {
   id: string;
@@ -14,16 +16,16 @@ interface Booking {
   customer_email: string;
   customer_phone: string;
   service_name: string;
-  specialist_name: string;
+  specialist_id: string | null;
+  partner_specialist_id: string | null;
   booking_date: string;
   start_time: string;
-  duration_minutes: number;
   total_price_cents: number | null;
   status: string;
   no_show: boolean;
   is_pair_booking: boolean;
   services?: { name: string } | null;
-  service_durations?: { price_cents: number } | null;
+  service_durations?: { price_cents: number; duration_minutes: number } | null;
 }
 
 interface BookingStats {
@@ -64,6 +66,7 @@ export default function CalendarView() {
   const { formatPrice } = useCurrency();
   const canSeeRevenue = hasPermission('view_revenue');
   const businessId = adminUser?.business_id;
+  const specialistNames = useSpecialistNames(businessId ?? null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<BookingStats>({
@@ -106,7 +109,7 @@ export default function CalendarView() {
       const result = await executeWithTimeout(
         supabase
           .from('bookings')
-          .select('*, services(name), service_durations(price_cents)')
+          .select('*, services(name), service_durations(price_cents, duration_minutes)')
           .eq('business_id', businessId)
           .gte('booking_date', rangeStartIso)
           .lte('booking_date', monthEndIso)
@@ -364,7 +367,7 @@ export default function CalendarView() {
                         {formatTime(booking.start_time)}
                       </span>
                       <span className="text-xs text-stone-400">
-                        {booking.duration_minutes} min
+                        {booking.service_durations?.duration_minutes ?? '–'} min
                       </span>
                     </div>
                     <StatusPill status={booking.status} />
@@ -373,7 +376,7 @@ export default function CalendarView() {
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-stone-500 truncate">
                       {booking.services?.name || booking.service_name || 'Service'}
-                      {booking.specialist_name ? ` · ${booking.specialist_name}` : ''}
+                      {` · ${therapistLabel(booking, specialistNames)}`}
                     </p>
                     {canSeeRevenue && priceOf(booking) > 0 && (
                       <span className="text-xs font-semibold text-[#1A1714] tabular-nums shrink-0">
