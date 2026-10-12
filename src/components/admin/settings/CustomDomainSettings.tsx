@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Globe, Plus, Check, X, AlertCircle, Copy, RefreshCw, Trash2, Crown, ExternalLink } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
+import { adminAccessToken } from '../../../lib/functionAuth';
 
 interface CustomDomain {
   id: string;
@@ -72,7 +73,7 @@ export default function CustomDomainSettings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify({
           business_id: businessId,
@@ -168,7 +169,7 @@ export default function CustomDomainSettings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify({ domain_id: domainId }),
       });
@@ -225,7 +226,7 @@ export default function CustomDomainSettings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify({ domain_id: domainId }),
       });

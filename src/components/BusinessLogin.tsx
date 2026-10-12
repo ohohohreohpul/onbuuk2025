@@ -58,14 +58,11 @@ export function BusinessLogin({ onBack, onLoginSuccess }: BusinessLoginProps) {
     setLoading(true);
 
     try {
-      const { data: adminUser } = await supabase
-        .from('admin_users')
-        .select('email')
-        .eq('email', email)
-        .eq('is_active', true)
-        .maybeSingle();
+      // Only "is this an admin email?" is public; admin records are not.
+      const { data: isAdminEmail, error: lookupError } = await supabase.rpc('is_admin_email', { p_email: email });
+      if (lookupError) throw lookupError;
 
-      if (!adminUser) {
+      if (!isAdminEmail) {
         setError('No active account found with this email.');
         setLoading(false);
         return;

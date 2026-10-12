@@ -9,7 +9,7 @@
  *             so nobody can use the shop's sender for their own content.
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { AuthorizationError, requireActiveAdmin } from "./adminAuthorization.ts";
+import { AuthorizationError, isServiceRoleRequest, requireActiveAdmin } from "./adminAuthorization.ts";
 import { escapeHtml, loadBookingEmailData } from "./bookingEmailData.ts";
 
 export type EmailCaller = "server" | "admin" | "public";
@@ -23,15 +23,7 @@ const PLATFORM_HOSTS = ["book.zennohq.com", "book.zennohq.studio", "app.onbuuk.c
 const SHOP_BASE_DOMAINS = ["zennohq.com", "zennohq.studio"];
 const DEFAULT_APP_URL = "https://app.onbuuk.com";
 
-function bearerToken(req: Request): string {
-  const header = req.headers.get("Authorization") ?? "";
-  return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
-}
-
-export function isServiceRoleRequest(req: Request): boolean {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  return serviceKey.length > 0 && bearerToken(req) === serviceKey;
-}
+export { isServiceRoleRequest };
 
 /** server > admin of this business > public (anonymous or another business's admin). */
 export async function identifyEmailCaller(req: Request, businessId: string): Promise<EmailCaller> {

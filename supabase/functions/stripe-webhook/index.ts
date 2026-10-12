@@ -182,25 +182,21 @@ async function handleEvent(event: Stripe.Event) {
           // Card-on-file for off-session no-show/late-cancel charges (Treatwell model)
           if (payment_intent && typeof payment_intent === 'string') {
             try {
-              const stripeKey = await resolveBusinessStripeKey(metadata.business_id);
-              const piRes = await fetch(`https://api.stripe.com/v1/payment_intents/${payment_intent}?expand[]=payment_method`, {
-                headers: { Authorization: `Bearer ${stripeKey}` },
-              });
-              if (piRes.ok) {
-                const pi = await piRes.json();
-                const pm = pi.payment_method;
-                const cust = pi.customer;
-                if (pm || cust) {
-                  const { error: cardErr } = await supabase
-                    .from('bookings')
-                    .update({
-                      stripe_payment_method_id: typeof pm === 'string' ? pm : pm?.id || null,
-                      stripe_customer_id: typeof cust === 'string' ? cust : cust?.id || null,
-                    })
-                    .eq('id', bookingId);
-                  if (cardErr) console.error('Failed to save card-on-file:', cardErr);
-                  else console.info(`Card-on-file saved for booking: ${bookingId}`);
-                }
+              // Checkout runs on the platform account (Connect destination charges),
+              // so the payment intent is read with the platform key.
+              const pi = await stripe.paymentIntents.retrieve(payment_intent, { expand: ['payment_method'] });
+              const pm = pi.payment_method;
+              const cust = pi.customer;
+              if (pm || cust) {
+                const { error: cardErr } = await supabase
+                  .from('bookings')
+                  .update({
+                    stripe_payment_method_id: typeof pm === 'string' ? pm : pm?.id || null,
+                    stripe_customer_id: typeof cust === 'string' ? cust : cust?.id || null,
+                  })
+                  .eq('id', bookingId);
+                if (cardErr) console.error('Failed to save card-on-file:', cardErr);
+                else console.info(`Card-on-file saved for booking: ${bookingId}`);
               }
             } catch (cardSaveError) {
               console.error('Card-on-file save error (non-fatal):', cardSaveError);
@@ -519,7 +515,6 @@ async function handleNewSignup(customerId: string, session: Stripe.Checkout.Sess
     await supabase.from('admin_users').insert({
       business_id: business.id,
       email: metadata.user_email,
-      password_hash: metadata.user_password,
       full_name: metadata.user_full_name,
       role: 'admin',
       is_owner: true,

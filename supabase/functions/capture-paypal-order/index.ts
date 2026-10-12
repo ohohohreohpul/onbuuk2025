@@ -120,7 +120,22 @@ Deno.serve(async (req: Request) => {
       if (type === "bk" && parts[1]) {
         // Booking payment
         const bookingId = parts[1];
-        
+
+        // The PayPal order must pay for a booking of this shop, in full.
+        const { data: paidBooking, error: paidBookingError } = await supabase
+          .from("bookings")
+          .select("business_id, final_amount_cents")
+          .eq("id", bookingId)
+          .maybeSingle();
+        if (paidBookingError) throw new Error(`Could not load booking: ${paidBookingError.message}`);
+        const capturedCents = Math.round(Number(purchaseUnit?.payments?.captures?.[0]?.amount?.value ?? 0) * 100);
+        if (!paidBooking || paidBooking.business_id !== businessId) {
+          throw new Error("This PayPal payment does not belong to a booking of this shop");
+        }
+        if (capturedCents < (paidBooking.final_amount_cents ?? 0)) {
+          throw new Error(`PayPal payment of ${capturedCents} cents does not cover the booking (${paidBooking.final_amount_cents} cents)`);
+        }
+
         const { error: bookingError } = await supabase
           .from("bookings")
           .update({

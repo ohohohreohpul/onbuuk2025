@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Crown, Calendar, CreditCard, Check, Loader, AlertCircle, Tag } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { useCurrency } from '../../../lib/currencyContext';
+import { adminAccessToken } from '../../../lib/functionAuth';
 
 interface Business {
   id: string;
@@ -137,7 +138,7 @@ export default function SubscriptionManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -181,7 +182,7 @@ export default function SubscriptionManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify({
           business_id: businessId,

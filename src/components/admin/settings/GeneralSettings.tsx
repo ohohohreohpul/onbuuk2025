@@ -6,6 +6,7 @@ import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 import { CURRENCY_NAMES, CURRENCY_SYMBOLS } from '../../../lib/currency';
 import { useCurrency } from '../../../lib/currencyContext';
 import { BRAND_FAVICON, BRAND_LOGO, BRAND_NAME } from '../../../lib/brand';
+import { adminAccessToken } from '../../../lib/functionAuth';
 
 interface Business {
   id: string;
@@ -61,7 +62,7 @@ export default function GeneralSettings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${await adminAccessToken()}`,
         },
         body: JSON.stringify({
           business_id: businessId,

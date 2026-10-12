@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { authorizationErrorResponse, isServiceRoleRequest, requireDomainAccess, AuthorizationError } from "../_shared/adminAuthorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,6 +94,9 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { domain_id } = await req.json() as CheckSSLRequest;
+    // One domain: its shop's admin. All domains (batch refresh): server only.
+    if (domain_id) await requireDomainAccess(req, domain_id);
+    else if (!isServiceRoleRequest(req)) throw new AuthorizationError("Not allowed", 403);
 
     if (domain_id) {
       const { data: domain, error: domainError } = await supabase
@@ -229,6 +233,8 @@ Deno.serve(async (req: Request) => {
       );
     }
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error("Error in check-ssl-status:", error);
     return new Response(
       JSON.stringify({

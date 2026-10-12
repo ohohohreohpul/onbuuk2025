@@ -130,3 +130,30 @@ export function authorizationErrorResponse(error: unknown, corsHeaders: HeadersI
   return null;
 }
 
+/** True when another edge function calls with the service-role key. */
+export function isServiceRoleRequest(req: Request): boolean {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const header = req.headers.get("Authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+  return serviceKey.length > 0 && token === serviceKey;
+}
+
+/** Server calls pass; otherwise the caller must be an active admin of this business. */
+export async function requireBusinessAccess(req: Request, businessId: string): Promise<void> {
+  if (isServiceRoleRequest(req)) return;
+  await requireActiveAdmin(req, { businessId });
+}
+
+
+/** The caller must be an admin of the shop that owns this custom domain (or a server call). */
+export async function requireDomainAccess(req: Request, domainId: string): Promise<void> {
+  if (isServiceRoleRequest(req)) return;
+  const { data: domain, error } = await getServiceClient()
+    .from("custom_domains")
+    .select("business_id")
+    .eq("id", domainId)
+    .maybeSingle();
+  if (error) throw new Error(`Could not load domain: ${error.message}`);
+  if (!domain) throw new AuthorizationError("Domain not found", 404);
+  await requireActiveAdmin(req, { businessId: domain.business_id });
+}

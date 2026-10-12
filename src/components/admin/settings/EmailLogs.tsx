@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Mail, CheckCircle, XCircle, Clock, Search } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { Input } from '../../ui/input';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface EmailLog {
   id: string;
@@ -281,7 +282,7 @@ export default function EmailLogs() {
                 <div className="text-sm font-medium text-stone-500 mb-2">Email Body</div>
                 <div
                   className="border border-stone-200 rounded-lg p-4 bg-stone-50 text-sm"
-                  dangerouslySetInnerHTML={{ __html: selectedLog.body }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedLog.body) }}
                 />
               </div>
             </div>

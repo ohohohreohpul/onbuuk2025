@@ -1,5 +1,3 @@
-import { PostgrestBuilder } from '@supabase/postgrest-js';
-
 export interface QueryOptions {
   timeout?: number;
   retries?: number;
@@ -10,14 +8,19 @@ export interface QueryResult<T> {
   data: T | null;
   error: Error | null;
   timedOut: boolean;
+  /** Row count when the query asked for one ({ count: 'exact' }). */
+  count?: number | null;
 }
+
+/** Any awaitable Supabase query (select, rpc, ...). */
+type AwaitableQuery<T> = PromiseLike<{ data: T | null; error: unknown; count?: number | null }>;
 
 const DEFAULT_TIMEOUT = 10000;
 const DEFAULT_RETRIES = 3;
 const DEFAULT_RETRY_DELAY = 800;
 
 export async function executeWithTimeout<T>(
-  queryBuilder: PostgrestBuilder<T>,
+  queryBuilder: AwaitableQuery<T>,
   options: QueryOptions = {}
 ): Promise<QueryResult<T>> {
   const timeout = options.timeout || DEFAULT_TIMEOUT;
@@ -35,8 +38,8 @@ export async function executeWithTimeout<T>(
         ),
       ]);
 
-      if ('error' in result && result.error) {
-        const error = result.error as any;
+      if (result.error) {
+        const error = result.error as { code?: string; message?: string };
 
         if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
           return {
@@ -69,9 +72,10 @@ export async function executeWithTimeout<T>(
       }
 
       return {
-        data: (result as any).data || null,
+        data: result.data ?? null,
         error: null,
         timedOut: false,
+        count: result.count ?? null,
       };
     } catch (error: any) {
       if (error.message === 'Query timeout') {

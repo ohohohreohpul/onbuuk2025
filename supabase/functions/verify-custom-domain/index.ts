@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { authorizationErrorResponse, requireDomainAccess } from "../_shared/adminAuthorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,6 +86,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { domain_id } = await req.json() as VerifyRequest;
+    if (domain_id) await requireDomainAccess(req, domain_id);
 
     console.log(`[Verify Domain] Starting verification for domain_id: ${domain_id}`);
 
@@ -225,6 +227,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error("Error verifying domain:", error);
     return new Response(
       JSON.stringify({

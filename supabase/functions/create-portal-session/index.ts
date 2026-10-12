@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { authorizationErrorResponse, requireBusinessAccess } from "../_shared/adminAuthorization.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +32,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { business_id } = await req.json();
+    await requireBusinessAccess(req, business_id);
 
     if (!business_id) {
       return new Response(
@@ -70,6 +72,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error('Portal session error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
