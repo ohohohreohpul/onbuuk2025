@@ -7,6 +7,7 @@ import { deriveBookingState, formatStartTime, type BookingState, type FeeResolut
 import BookingRowActions from './bookings/BookingRowActions';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
+import RescheduleModal from './bookings/RescheduleModal';
 
 interface Booking {
   id: string;
@@ -17,6 +18,8 @@ interface Booking {
   start_time: string;
   status: string;
   is_pair_booking: boolean;
+  duration_id: string;
+  specialist_id: string | null;
   notes: string | null;
   no_show: boolean;
   no_show_marked_at: string | null;
@@ -89,6 +92,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const [viewFilter, setViewFilter] = useState<ViewFilter>('needs-action');
   const [hasChosenFilter, setHasChosenFilter] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [movingBooking, setMovingBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -400,6 +404,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                           onAddFee={() => addFee(booking)}
                           onCancel={() => cancelBooking(booking)}
                           onRestore={() => updateBookingStatus(booking.id, 'confirmed')}
+                          onMove={() => setMovingBooking(booking)}
                           onDelete={() => deleteBooking(booking.id)}
                         />
                       </td>
@@ -415,6 +420,16 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       <div className="text-xs text-stone-400">
         Showing {filteredBookings.length} of {bookings.length} bookings
       </div>
+      {movingBooking && (
+        <RescheduleModal
+          booking={movingBooking}
+          onClose={() => setMovingBooking(null)}
+          onMoved={() => {
+            setMovingBooking(null);
+            fetchBookings();
+          }}
+        />
+      )}
     </div>
   );
 }

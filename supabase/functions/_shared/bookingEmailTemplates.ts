@@ -10,6 +10,7 @@ export type NotificationEvent =
   | "booking_confirmation"
   | "booking_cancelled"
   | "booking_reminder"
+  | "booking_rescheduled"
   | "owner_new_booking"
   | "owner_booking_cancelled";
 
@@ -71,6 +72,11 @@ const TEMPLATES: Record<EmailLanguage, Record<NotificationEvent, Template>> = {
       heading: "Bis morgen!",
       intro: "Hallo {{customer_name}}, wir erinnern Sie an Ihren Termin.",
     },
+    booking_rescheduled: {
+      subject: "Neuer Termin: {{booking_date}}, {{booking_time}} Uhr",
+      heading: "Ihr Termin wurde verschoben",
+      intro: "Hallo {{customer_name}}, Ihr Termin bei {{business_name}} findet jetzt zu dieser Zeit statt:",
+    },
     owner_new_booking: {
       subject: "Neue Buchung: {{service_name}} am {{booking_date}}, {{booking_time}} Uhr",
       heading: "Neue Buchung",
@@ -104,6 +110,11 @@ const TEMPLATES: Record<EmailLanguage, Record<NotificationEvent, Template>> = {
       subject: "Reminder: tomorrow at {{booking_time}} at {{business_name}}",
       heading: "See you tomorrow!",
       intro: "Hi {{customer_name}}, this is a reminder of your appointment.",
+    },
+    booking_rescheduled: {
+      subject: "New time: {{booking_date}} at {{booking_time}}",
+      heading: "Your appointment was moved",
+      intro: "Hi {{customer_name}}, your appointment at {{business_name}} is now at this time:",
     },
     owner_new_booking: {
       subject: "New booking: {{service_name}} on {{booking_date}}, {{booking_time}}",

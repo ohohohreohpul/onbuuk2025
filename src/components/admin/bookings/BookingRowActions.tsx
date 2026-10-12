@@ -1,5 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock } from 'lucide-react';
 import type { BookingState } from './bookingState';
 
 interface BookingRowActionsProps {
@@ -12,6 +12,7 @@ interface BookingRowActionsProps {
   onAddFee: () => void;
   onCancel: () => void;
   onRestore: () => void;
+  onMove: () => void;
   onDelete: () => void;
 }
 
@@ -65,6 +66,11 @@ export default function BookingRowActions(props: BookingRowActionsProps) {
             sideOffset={6}
             className="z-50 min-w-[200px] rounded-xl border border-stone-200/80 bg-white p-1 shadow-[0_12px_40px_rgba(26,23,20,0.14)]"
           >
+            {!isClosed && (
+              <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onMove}>
+                <CalendarClock className="h-4 w-4 text-stone-400" /> Move appointment
+              </DropdownMenu.Item>
+            )}
             {!isClosed && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onCancel}>
                 <XCircle className="h-4 w-4 text-stone-400" /> Cancel booking

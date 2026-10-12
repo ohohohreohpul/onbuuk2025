@@ -23,6 +23,7 @@ const REQUIRED_STATUS: Record<NotificationEvent, string[]> = {
   booking_received: ["pending"],
   booking_confirmation: ["confirmed"],
   booking_reminder: ["confirmed"],
+  booking_rescheduled: ["pending", "confirmed"],
   booking_cancelled: ["cancelled"],
   owner_new_booking: ["pending", "confirmed"],
   owner_booking_cancelled: ["cancelled"],
@@ -36,7 +37,8 @@ export function decideSend(queued: QueuedNotification, booking: CurrentBooking |
     return { send: false, reason: `booking is ${booking.status}` };
   }
   const isMoved = booking.bookingDate !== queued.bookingDate || hhmm(booking.startTime) !== hhmm(queued.startTime);
-  if (queued.event === "booking_reminder" && isMoved) {
+  // A reminder or "moved" notice for an older time is obsolete (a newer one is queued).
+  if ((queued.event === "booking_reminder" || queued.event === "booking_rescheduled") && isMoved) {
     return { send: false, reason: "booking was moved" };
   }
   return { send: true };

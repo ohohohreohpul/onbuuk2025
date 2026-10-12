@@ -34,3 +34,10 @@ Deno.test("unknown placeholders become empty, no {{ }} left behind", () => {
   assert(!html.includes("{{"));
   assertEquals(fillTemplate("Hi {{nobody}}!", {}), "Hi !");
 });
+
+Deno.test("German 'moved' notice names the new date and time", () => {
+  const { subject, html } = renderBuiltIn("booking_rescheduled", "de", VARS);
+  assertEquals(subject, "Neuer Termin: Montag, 19. Oktober 2026, 10:00 Uhr");
+  assertStringIncludes(html, "verschoben");
+  assertStringIncludes(html, "/cancel?id=1");
+});

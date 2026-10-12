@@ -28,3 +28,8 @@ Deno.test("owner hears about a new booking while it is pending or confirmed", ()
   assertEquals(decideSend({ ...QUEUED, event: "owner_new_booking" }, booking("pending")), { send: true });
   assertEquals(decideSend({ ...QUEUED, event: "owner_new_booking" }, booking("cancelled")).send, false);
 });
+
+Deno.test("sends the 'moved' notice for the current time, skips one for an older time", () => {
+  assertEquals(decideSend({ ...QUEUED, event: "booking_rescheduled" }, booking("confirmed")), { send: true });
+  assertEquals(decideSend({ ...QUEUED, event: "booking_rescheduled" }, booking("confirmed", "2026-10-21")), { send: false, reason: "booking was moved" });
+});
