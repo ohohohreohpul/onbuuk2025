@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Mail, TestTube, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { TestTube, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
+import { SMTP_PORT, buildEmailSettingsPayload } from '../../../lib/emailSettingsPayload';
 
 interface EmailSettings {
   id?: string;
@@ -12,12 +13,16 @@ interface EmailSettings {
   smtp_host?: string;
   smtp_port?: number;
   smtp_username?: string;
-  smtp_password?: string;
-  api_key?: string;
   from_email: string;
   from_name: string;
   is_verified: boolean;
+  /** Secrets are write-only; these say whether one is stored. */
+  has_api_key: boolean;
+  has_smtp_password: boolean;
 }
+
+const EMAIL_SETTINGS_COLUMNS =
+  'id, business_id, provider, smtp_host, smtp_port, smtp_username, from_email, from_name, is_verified, has_api_key, has_smtp_password';
 
 export default function EmailSettings() {
   const [settings, setSettings] = useState<EmailSettings | null>(null);
@@ -26,7 +31,7 @@ export default function EmailSettings() {
   const [fromName, setFromName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState(587);
+  const [smtpPort, setSmtpPort] = useState(SMTP_PORT);
   const [smtpUsername, setSmtpUsername] = useState('');
   const [smtpPassword, setSmtpPassword] = useState('');
   const [testEmail, setTestEmail] = useState('');
@@ -57,20 +62,22 @@ export default function EmailSettings() {
 
       const { data, error } = await supabase
         .from('email_settings')
-        .select('*')
+        .select(EMAIL_SETTINGS_COLUMNS)
         .eq('business_id', adminData.business_id)
-        .maybeSingle();
+        .maybeSingle<EmailSettings>();
+
+      if (error) throw error;
 
       if (data) {
         setSettings(data);
         setProvider(data.provider);
         setFromEmail(data.from_email);
         setFromName(data.from_name);
-        setApiKey(data.api_key || '');
+        setApiKey('');
         setSmtpHost(data.smtp_host || '');
-        setSmtpPort(data.smtp_port || 587);
+        setSmtpPort(data.smtp_port || SMTP_PORT);
         setSmtpUsername(data.smtp_username || '');
-        setSmtpPassword(data.smtp_password || '');
+        setSmtpPassword('');
       }
     } catch (err) {
       console.error('Error loading settings:', err);
@@ -82,18 +89,20 @@ export default function EmailSettings() {
 
   const handleSave = async () => {
     if (!businessId) return;
-    if (!fromEmail || !fromName) {
-      setMessage({ type: 'error', text: 'From Email and From Name are required' });
-      return;
-    }
-
-    if (provider !== 'smtp' && !apiKey) {
-      setMessage({ type: 'error', text: 'API Key is required for this provider' });
-      return;
-    }
-
-    if (provider === 'smtp' && (!smtpHost || !smtpUsername || !smtpPassword)) {
-      setMessage({ type: 'error', text: 'SMTP Host, Username, and Password are required' });
+    const result = buildEmailSettingsPayload({
+      provider,
+      fromEmail,
+      fromName,
+      apiKey,
+      smtpHost,
+      smtpPort,
+      smtpUsername,
+      smtpPassword,
+      hasApiKey: Boolean(settings?.has_api_key),
+      hasSmtpPassword: Boolean(settings?.has_smtp_password),
+    });
+    if (!result.ok) {
+      setMessage({ type: 'error', text: result.error });
       return;
     }
 
@@ -101,17 +110,7 @@ export default function EmailSettings() {
     setMessage(null);
 
     try {
-      const settingsData = {
-        business_id: businessId,
-        provider,
-        from_email: fromEmail,
-        from_name: fromName,
-        api_key: provider !== 'smtp' ? apiKey : null,
-        smtp_host: provider === 'smtp' ? smtpHost : null,
-        smtp_port: provider === 'smtp' ? smtpPort : null,
-        smtp_username: provider === 'smtp' ? smtpUsername : null,
-        smtp_password: provider === 'smtp' ? smtpPassword : null,
-      };
+      const settingsData = { business_id: businessId, ...result.payload };
 
       if (settings?.id) {
         const { error } = await supabase
@@ -130,9 +129,9 @@ export default function EmailSettings() {
 
       setMessage({ type: 'success', text: 'Email settings saved successfully!' });
       await loadBusinessAndSettings();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error saving settings:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to save email settings' });
+      setMessage({ type: 'error', text: err instanceof Error && err.message ? err.message : 'Failed to save email settings' });
     } finally {
       setIsSaving(false);
     }
@@ -173,9 +172,9 @@ export default function EmailSettings() {
       }
 
       setMessage({ type: 'success', text: `Test email sent successfully to ${testEmail}!` });
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error testing connection:', err);
-      setMessage({ type: 'error', text: err.message || 'Failed to send test email' });
+      setMessage({ type: 'error', text: err instanceof Error && err.message ? err.message : 'Failed to send test email' });
     } finally {
       setIsTesting(false);
     }
@@ -225,7 +224,7 @@ export default function EmailSettings() {
             <option value="resend">Resend (Recommended)</option>
             <option value="sendgrid">SendGrid</option>
             <option value="mailgun">Mailgun</option>
-            <option value="smtp">SMTP (Coming Soon)</option>
+            <option value="smtp">SMTP – own mailbox (e.g. Strato, IONOS)</option>
           </select>
           <p className="mt-1 text-sm text-stone-500">
             Choose your email service provider. Resend is recommended for its simplicity and reliability.
@@ -265,12 +264,15 @@ export default function EmailSettings() {
             <Input
               id="api_key"
               type="password"
+              autoComplete="new-password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={
-                provider === 'mailgun'
-                  ? 'yourdomain.com:key-xxxxxxxxxx'
-                  : 'Enter your API key'
+                settings?.has_api_key
+                  ? 'Saved – leave empty to keep it'
+                  : provider === 'mailgun'
+                    ? 'yourdomain.com:key-xxxxxxxxxx'
+                    : 'Enter your API key'
               }
             />
             <p className="mt-1 text-sm text-stone-500">
@@ -291,8 +293,7 @@ export default function EmailSettings() {
                   type="text"
                   value={smtpHost}
                   onChange={(e) => setSmtpHost(e.target.value)}
-                  placeholder="smtp.example.com"
-                  disabled
+                  placeholder="smtp.strato.de"
                 />
               </div>
 
@@ -302,9 +303,8 @@ export default function EmailSettings() {
                   id="smtp_port"
                   type="number"
                   value={smtpPort}
-                  onChange={(e) => setSmtpPort(parseInt(e.target.value))}
-                  placeholder="587"
-                  disabled
+                  onChange={(e) => setSmtpPort(Number.parseInt(e.target.value, 10) || SMTP_PORT)}
+                  placeholder="465"
                 />
               </div>
             </div>
@@ -317,7 +317,7 @@ export default function EmailSettings() {
                   type="text"
                   value={smtpUsername}
                   onChange={(e) => setSmtpUsername(e.target.value)}
-                  disabled
+                  placeholder="info@yourshop.de"
                 />
               </div>
 
@@ -326,16 +326,21 @@ export default function EmailSettings() {
                 <Input
                   id="smtp_password"
                   type="password"
+                  autoComplete="new-password"
                   value={smtpPassword}
                   onChange={(e) => setSmtpPassword(e.target.value)}
-                  disabled
+                  placeholder={settings?.has_smtp_password ? 'Saved – leave empty to keep it' : 'Mailbox password'}
                 />
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                SMTP support is coming soon. Please use Resend, SendGrid, or Mailgun for now.
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+              <p>
+                Use port <strong>465</strong> (SSL). Ports 25 and 587 are blocked on our servers.
+                User name is usually the full email address.
+              </p>
+              <p className="mt-1">
+                Strato: <code>smtp.strato.de</code> · IONOS: <code>smtp.ionos.de</code> · Google Workspace: <code>smtp.gmail.com</code> (app password)
               </p>
             </div>
           </>
@@ -344,7 +349,7 @@ export default function EmailSettings() {
         <div className="flex gap-4">
           <Button
             onClick={handleSave}
-            disabled={isSaving || provider === 'smtp'}
+            disabled={isSaving}
             className="bg-stone-900 hover:bg-stone-800 text-white"
           >
             <Save className="w-4 h-4 mr-2" />

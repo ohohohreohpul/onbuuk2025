@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { isServiceRoleRequest } from '../_shared/emailAccess.ts';
+import { sendWithSmtp } from '../_shared/smtpSender.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,9 +68,7 @@ async function sendWithResend(settings: EmailSettings, toEmail: string, subject:
 }
 
 async function sendWithSMTP(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
-  // For SMTP, we would need a SMTP library
-  // This is a placeholder - SMTP is complex in edge functions
-  throw new Error('SMTP provider is not yet implemented. Please use Resend, SendGrid, or Mailgun.');
+  return await sendWithSmtp(settings, { to: toEmail, subject, html: body, attachments });
 }
 
 async function sendWithSendGrid(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {

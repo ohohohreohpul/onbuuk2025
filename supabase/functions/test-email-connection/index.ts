@@ -1,5 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { authorizationErrorResponse, requireActiveAdmin } from '../_shared/adminAuthorization.ts';
+import { escapeHtml } from '../_shared/emailAccess.ts';
+import { sendWithSmtp } from '../_shared/smtpSender.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,6 +123,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Only the shop's own admins may send test emails through its mailbox.
+    await requireActiveAdmin(req, { businessId });
+
     // Fetch email settings for the business
     const { data: settings, error: settingsError } = await supabase
       .from('email_settings')
@@ -147,7 +153,12 @@ Deno.serve(async (req: Request) => {
         result = await sendWithMailgun(settings, testEmail);
         break;
       case 'smtp':
-        throw new Error('SMTP provider is not yet implemented. Please use Resend, SendGrid, or Mailgun.');
+        result = await sendWithSmtp(settings, {
+          to: testEmail,
+          subject: 'Test Email from Zenno',
+          html: `<h1>Email Configuration Test</h1><p>This is a test email from your Zenno booking system. If you received this, your email settings are working correctly!</p><p><strong>From:</strong> ${escapeHtml(settings.from_name ?? '')} &lt;${escapeHtml(settings.from_email)}&gt;</p>`,
+        });
+        break;
       default:
         throw new Error(`Unsupported email provider: ${settings.provider}`);
     }
@@ -157,6 +168,8 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    const authResponse = authorizationErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error('Error testing email connection:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
