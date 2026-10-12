@@ -94,12 +94,29 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
 
     if (error) {
       console.error('Error fetching specialists:', error);
-    } else {
-      const specialistData = data
-        ?.map((item: any) => item.specialists)
-        .filter((s: any) => s && s.is_active) || [];
-      setSpecialists(specialistData);
+      setLoading(false);
+      return;
     }
+
+    // A treatment without assigned therapists can be done by every active
+    // therapist (same rule as the availability engine, service_specialists()).
+    if (!data || data.length === 0) {
+      const { data: everyone, error: everyoneError } = await supabase
+        .from('specialists')
+        .select('id, name, bio, image_url, is_active')
+        .eq('business_id', tenant.businessId)
+        .eq('is_active', true)
+        .order('name');
+      if (everyoneError) console.error('Error fetching specialists:', everyoneError);
+      setSpecialists(everyone || []);
+      setLoading(false);
+      return;
+    }
+
+    const specialistData = data
+      .map((item: any) => item.specialists)
+      .filter((s: any) => s && s.is_active);
+    setSpecialists(specialistData);
     setLoading(false);
   };
 

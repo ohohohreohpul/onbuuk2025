@@ -11,6 +11,8 @@ const TEXT: Translations<{
   loading: string;
   cancelledTitle: string;
   cancelledBody: string;
+  cancelledEmail: string;
+  warningEmail: string;
   unableToCancel: string;
   cancelBooking: string;
   bookingDetails: string;
@@ -32,7 +34,9 @@ const TEXT: Translations<{
     errorCancelFailed: 'Failed to cancel booking. Please contact support.',
     loading: 'Loading booking details...',
     cancelledTitle: 'Booking Cancelled',
-    cancelledBody: 'Your booking has been successfully cancelled. A confirmation email has been sent to',
+    cancelledBody: 'Your booking has been cancelled.',
+    cancelledEmail: 'A confirmation goes to {email}.',
+    warningEmail: 'You will get a confirmation email.',
     unableToCancel: 'Unable to Cancel',
     cancelBooking: 'Cancel Booking',
     bookingDetails: 'Booking Details',
@@ -43,7 +47,7 @@ const TEXT: Translations<{
     duration: 'Duration:',
     minutes: '{count} minutes',
     important: 'Important:',
-    warning: 'This action cannot be undone. You will receive a confirmation email once the cancellation is complete.',
+    warning: 'This action cannot be undone.',
     keepBooking: 'Keep Booking',
     cancelling: 'Cancelling...',
   },
@@ -54,7 +58,9 @@ const TEXT: Translations<{
     errorCancelFailed: 'Die Buchung konnte nicht storniert werden. Bitte kontaktieren Sie uns direkt.',
     loading: 'Buchungsdetails werden geladen …',
     cancelledTitle: 'Buchung storniert',
-    cancelledBody: 'Die Buchung wurde erfolgreich storniert. Eine Bestätigung wurde per E-Mail gesendet an',
+    cancelledBody: 'Die Buchung wurde storniert.',
+    cancelledEmail: 'Eine Bestätigung geht an {email}.',
+    warningEmail: 'Sie erhalten eine Bestätigung per E-Mail.',
     unableToCancel: 'Stornierung nicht möglich',
     cancelBooking: 'Buchung stornieren',
     bookingDetails: 'Buchungsdetails',
@@ -65,7 +71,7 @@ const TEXT: Translations<{
     duration: 'Dauer:',
     minutes: '{count} Minuten',
     important: 'Wichtig:',
-    warning: 'Die Stornierung kann nicht rückgängig gemacht werden. Nach Abschluss erhalten Sie eine Bestätigung per E-Mail.',
+    warning: 'Die Stornierung kann nicht rückgängig gemacht werden.',
     keepBooking: 'Buchung behalten',
     cancelling: 'Wird storniert …',
   },
@@ -76,7 +82,9 @@ const TEXT: Translations<{
     errorCancelFailed: 'ไม่สามารถยกเลิกการจองได้ กรุณาติดต่อร้านโดยตรง',
     loading: 'กำลังโหลดรายละเอียดการจอง...',
     cancelledTitle: 'ยกเลิกการจองแล้ว',
-    cancelledBody: 'ยกเลิกการจองเรียบร้อยแล้ว อีเมลยืนยันถูกส่งไปที่',
+    cancelledBody: 'ยกเลิกการจองเรียบร้อยแล้ว',
+    cancelledEmail: 'อีเมลยืนยันจะส่งไปที่ {email}',
+    warningEmail: 'คุณจะได้รับอีเมลยืนยัน',
     unableToCancel: 'ไม่สามารถยกเลิกได้',
     cancelBooking: 'ยกเลิกการจอง',
     bookingDetails: 'รายละเอียดการจอง',
@@ -87,7 +95,7 @@ const TEXT: Translations<{
     duration: 'ระยะเวลา:',
     minutes: '{count} นาที',
     important: 'สำคัญ:',
-    warning: 'การยกเลิกนี้ไม่สามารถย้อนกลับได้ คุณจะได้รับอีเมลยืนยันเมื่อยกเลิกเสร็จสมบูรณ์',
+    warning: 'การยกเลิกนี้ไม่สามารถย้อนกลับได้',
     keepBooking: 'เก็บการจองไว้',
     cancelling: 'กำลังยกเลิก...',
   },
@@ -117,6 +125,7 @@ export default function CancelBooking() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+  const [sendsEmails, setSendsEmails] = useState(false);
   const [error, setError] = useState<CancelErrorKey | ''>('');
 
   useEffect(() => {
@@ -142,6 +151,9 @@ export default function CancelBooking() {
         setError('errorAlreadyCancelled');
       } else {
         setBooking(data as any);
+        const { data: sends, error: senderError } = await supabase.rpc('shop_sends_booking_emails', { p_business_id: data.business_id });
+        if (senderError) console.error('Could not check the shop email sender:', senderError);
+        setSendsEmails(sends === true);
       }
     } catch (err) {
       setError('errorNotFound');
@@ -204,8 +216,8 @@ export default function CancelBooking() {
           </div>
           <h1 className="text-2xl font-light text-stone-800 mb-2">{t.cancelledTitle}</h1>
           <p className="text-stone-600">
-            {t.cancelledBody}{' '}
-            <strong>{booking?.customer_email}</strong>.
+            {t.cancelledBody}
+            {sendsEmails && booking?.customer_email && <> {fillText(t.cancelledEmail, { email: booking.customer_email })}</>}
           </p>
         </div>
       </div>
@@ -255,7 +267,7 @@ export default function CancelBooking() {
             </p>
             <p>
               <span className="text-stone-600">{t.time}</span>{' '}
-              <span className="font-medium">{booking?.start_time}</span>
+              <span className="font-medium">{booking?.start_time?.slice(0, 5)}</span>
             </p>
             <p>
               <span className="text-stone-600">{t.duration}</span>{' '}
@@ -266,7 +278,7 @@ export default function CancelBooking() {
 
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded">
           <p className="text-sm text-amber-800">
-            <strong>{t.important}</strong> {t.warning}
+            <strong>{t.important}</strong> {t.warning}{sendsEmails && <> {t.warningEmail}</>}
           </p>
         </div>
 

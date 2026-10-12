@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronRight, Calendar, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
@@ -87,6 +87,14 @@ export default function DateTimeStep({ durationId, specialistId, isPairBooking, 
   const { colors } = useTheme();
   const { t, locale } = useBookingText(TEXT);
   const [selectedDate, setSelectedDate] = useState('');
+  const timesRef = useRef<HTMLDivElement>(null);
+
+  // The times sit below several weeks of dates: bring them into view after a pick.
+  useEffect(() => {
+    if (!selectedDate) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    timesRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }, [selectedDate]);
   const [selectedTime, setSelectedTime] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [slotsByDate, setSlotsByDate] = useState<Map<string, string[]>>(new Map());
@@ -271,7 +279,7 @@ export default function DateTimeStep({ durationId, specialistId, isPairBooking, 
 
         {/* Time Selection */}
         {selectedDate && (
-          <div className={`transform transition-all duration-500 pb-4 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <div ref={timesRef} className={`scroll-mt-4 transform transition-all duration-500 pb-4 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
             <div className="flex items-center gap-3 mb-4">
               <div 
                 className="p-2 rounded-lg"

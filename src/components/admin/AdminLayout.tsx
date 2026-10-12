@@ -149,7 +149,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen w-72 z-[56]
+        fixed lg:sticky top-0 left-0 h-screen w-72 z-[56] lg:z-auto
         transform transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>

@@ -33,8 +33,11 @@ const TEXT: Translations<{
   checkoutFailed: string;
   unknownError: string;
   bookingFailedAlert: string;
-  successPrefix: string;
-  successSuffix: string;
+  successConfirmedTitle: string;
+  successRequestedTitle: string;
+  successConfirmedText: string;
+  successRequestedText: string;
+  successEmailNote: string;
   bookingDetails: string;
   bookingIdLabel: string;
   serviceLabel: string;
@@ -80,7 +83,7 @@ const TEXT: Translations<{
   payInPerson: string;
   payInPersonHint: string;
   fullyCovered: string;
-  securePaymentNote: string;
+  payInShopNote: string;
   consentPrefix: string;
   consentSuffix: string;
   paypalLoadError: string;
@@ -120,8 +123,11 @@ const TEXT: Translations<{
     checkoutFailed: 'Failed to create checkout session',
     unknownError: 'Unknown error occurred',
     bookingFailedAlert: 'Failed to create booking: {message}\n\nPlease check the console for more details.',
-    successPrefix: 'Your appointment has been successfully scheduled. We\'ve sent a confirmation email to',
-    successSuffix: '',
+    successConfirmedTitle: 'Booking confirmed',
+    successRequestedTitle: 'Booking request received',
+    successConfirmedText: 'Your appointment is booked. We look forward to seeing you.',
+    successRequestedText: 'The shop will confirm your appointment shortly.',
+    successEmailNote: 'An email with the details goes to {email}.',
     bookingDetails: 'Booking Details',
     bookingIdLabel: 'Booking ID:',
     serviceLabel: 'Service:',
@@ -167,7 +173,7 @@ const TEXT: Translations<{
     payInPerson: 'Pay in Person',
     payInPersonHint: 'Pay when you arrive',
     fullyCovered: 'Your booking is fully covered by cards or passes. No payment is required.',
-    securePaymentNote: 'Payment will be processed securely. Click "Confirm Booking" to proceed.',
+    payInShopNote: 'Nothing is paid online. You pay in the shop on the day of your appointment.',
     consentPrefix: 'I authorize this business to save my card and charge up to ',
     consentSuffix: ' if I do not attend or cancel less than {hours} hours before the appointment. No appointment payment is taken now.',
     paypalLoadError: 'Couldn\'t load PayPal. Please check your connection and try again.',
@@ -207,8 +213,11 @@ const TEXT: Translations<{
     checkoutFailed: 'Bezahlvorgang konnte nicht gestartet werden',
     unknownError: 'Unbekannter Fehler',
     bookingFailedAlert: 'Buchung konnte nicht erstellt werden: {message}\n\nWeitere Details sind in der Browser-Konsole zu finden.',
-    successPrefix: 'Der Termin wurde erfolgreich gebucht. Eine Bestätigung wurde per E-Mail an',
-    successSuffix: ' gesendet.',
+    successConfirmedTitle: 'Termin bestätigt',
+    successRequestedTitle: 'Terminanfrage erhalten',
+    successConfirmedText: 'Ihr Termin ist gebucht. Wir freuen uns auf Sie.',
+    successRequestedText: 'Das Studio bestätigt Ihren Termin in Kürze.',
+    successEmailNote: 'Eine E-Mail mit allen Details geht an {email}.',
     bookingDetails: 'Buchungsdetails',
     bookingIdLabel: 'Buchungsnummer:',
     serviceLabel: 'Leistung:',
@@ -254,7 +263,7 @@ const TEXT: Translations<{
     payInPerson: 'Vor Ort bezahlen',
     payInPersonHint: 'Zahlung bei Ankunft',
     fullyCovered: 'Die Buchung ist vollständig durch Gutscheine oder Pässe abgedeckt. Es ist keine Zahlung erforderlich.',
-    securePaymentNote: 'Die Zahlung wird sicher abgewickelt. Zum Fortfahren auf „Buchung bestätigen“ klicken.',
+    payInShopNote: 'Online wird nichts bezahlt. Sie bezahlen am Termin vor Ort.',
     consentPrefix: 'Ich ermächtige dieses Unternehmen, meine Karte zu speichern und mit bis zu ',
     consentSuffix: ' zu belasten, falls ich den Termin nicht wahrnehme oder weniger als {hours} Stunden vor dem Termin absage. Eine Zahlung für den Termin wird jetzt nicht eingezogen.',
     paypalLoadError: 'PayPal konnte nicht geladen werden. Bitte die Internetverbindung prüfen und erneut versuchen.',
@@ -294,8 +303,11 @@ const TEXT: Translations<{
     checkoutFailed: 'สร้างรายการชำระเงินไม่สำเร็จ',
     unknownError: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ',
     bookingFailedAlert: 'สร้างการจองไม่สำเร็จ: {message}\n\nกรุณาตรวจสอบรายละเอียดเพิ่มเติมในคอนโซล',
-    successPrefix: 'นัดหมายของคุณได้รับการยืนยันเรียบร้อยแล้ว เราได้ส่งอีเมลยืนยันไปที่',
-    successSuffix: '',
+    successConfirmedTitle: 'ยืนยันการจองแล้ว',
+    successRequestedTitle: 'ได้รับคำขอจองแล้ว',
+    successConfirmedText: 'การจองของคุณเรียบร้อยแล้ว แล้วพบกันนะคะ',
+    successRequestedText: 'ร้านจะยืนยันนัดหมายของคุณในไม่ช้า',
+    successEmailNote: 'รายละเอียดจะส่งไปทางอีเมลที่ {email}',
     bookingDetails: 'รายละเอียดการจอง',
     bookingIdLabel: 'หมายเลขการจอง:',
     serviceLabel: 'บริการ:',
@@ -341,7 +353,7 @@ const TEXT: Translations<{
     payInPerson: 'ชำระที่ร้าน',
     payInPersonHint: 'ชำระเมื่อมาถึงร้าน',
     fullyCovered: 'การจองของคุณชำระครบแล้วด้วยบัตรหรือบัตรบริการ ไม่ต้องชำระเงินเพิ่ม',
-    securePaymentNote: 'การชำระเงินจะดำเนินการอย่างปลอดภัย กด "ยืนยันการจอง" เพื่อดำเนินการต่อ',
+    payInShopNote: 'ไม่ต้องชำระเงินออนไลน์ ชำระที่ร้านในวันนัดหมาย',
     consentPrefix: 'ฉันอนุญาตให้ร้านบันทึกบัตรของฉันและเรียกเก็บเงินได้สูงสุด ',
     consentSuffix: ' หากฉันไม่มาตามนัดหรือยกเลิกน้อยกว่า {hours} ชั่วโมงก่อนเวลานัด ตอนนี้ยังไม่มีการเรียกเก็บค่าบริการ',
     paypalLoadError: 'โหลด PayPal ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง',
@@ -417,6 +429,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [stripeEnabled, setStripeEnabled] = useState<boolean>(false);
   const [paypalEnabled, setPaypalEnabled] = useState<boolean>(false);
+  const [sendsEmails, setSendsEmails] = useState(false);
+  const [needsShopConfirmation, setNeedsShopConfirmation] = useState(false);
+  const [isAwaitingShop, setIsAwaitingShop] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState<string>('');
   const [allowPayInPerson, setAllowPayInPerson] = useState<boolean>(false);
   const [noShowFeeCents, setNoShowFeeCents] = useState<number>(0);
@@ -489,6 +504,18 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
       .select('key, value')
       .eq('business_id', tenant.businessId)
       .in('key', ['stripe_enabled', 'allow_pay_in_person', 'paypal_enabled', 'paypal_client_id']);
+
+    // What the success page may promise: an email (only with a sender) and a confirmed slot (only in auto mode).
+    supabase.rpc('shop_sends_booking_emails', { p_business_id: tenant.businessId })
+      .then(({ data: sends, error }) => {
+        if (error) console.error('Could not check the shop email sender:', error);
+        setSendsEmails(sends === true);
+      });
+    supabase.from('businesses').select('booking_confirmation_mode').eq('id', tenant.businessId).maybeSingle()
+      .then(({ data: shop, error }) => {
+        if (error) console.error('Could not load the confirmation mode:', error);
+        setNeedsShopConfirmation(shop?.booking_confirmation_mode === 'manual');
+      });
 
     // Card-guarantee config from the service + serial-offender gate (Treatwell rule set)
     if (tenant.businessId) {
@@ -767,6 +794,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     };
   };
 
+  const isOnlinePayment = (selectedPaymentMethod === 'stripe' && stripeEnabled)
+    || (selectedPaymentMethod === 'paypal' && paypalEnabled);
+
   const handlePayment = async () => {
     setIsProcessing(true);
 
@@ -938,7 +968,8 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         console.log('Redirecting to Stripe checkout:', url);
         window.location.href = url;
       } else {
-        const isPayingInPerson = selectedPaymentMethod === 'in_person' && allowPayInPerson;
+        // Without an available online method the customer pays in the shop.
+        const isPayingInPerson = !isOnlinePayment;
 
         console.log('Creating booking without Stripe (pay in person, gift card, or no payment required)...');
         // Public visitors may create but not read bookings (RLS), so the id is
@@ -1046,6 +1077,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
 
         // Confirmation / request-received emails are queued by the database (notification outbox).
         setBookingId(data.id);
+        setIsAwaitingShop(needsShopConfirmation && isPayingInPerson && !actualFullyCovered);
         setIsComplete(true);
       }
     } catch (error: any) {
@@ -1065,11 +1097,17 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-3">{content.title}</h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-custom-primary mb-3">
+            {isAwaitingShop ? t.successRequestedTitle : t.successConfirmedTitle}
+          </h2>
           <p className="text-custom-secondary leading-relaxed">
-            {t.successPrefix}{' '}
-            <span className="font-medium">{bookingData.customerDetails.email}</span>{t.successSuffix}
+            {isAwaitingShop ? t.successRequestedText : t.successConfirmedText}
           </p>
+          {sendsEmails && bookingData.customerDetails.email && (
+            <p className="mt-2 text-custom-secondary leading-relaxed">
+              {fillText(t.successEmailNote, { email: bookingData.customerDetails.email })}
+            </p>
+          )}
         </div>
 
         <div className="border border-stone-200 p-6 space-y-4 bg-stone-50">
@@ -1492,7 +1530,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             <p className="text-sm text-stone-600 leading-relaxed">
               {finalPrice === 0
                 ? t.fullyCovered
-                : t.securePaymentNote}
+                : t.payInShopNote}
             </p>
           )}
 
@@ -1605,7 +1643,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
               {t.completeGiftCard}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </>
-          ) : selectedPaymentMethod === 'in_person' ? (
+          ) : !isOnlinePayment ? (
             <>
               {t.confirmPayInPerson}
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
