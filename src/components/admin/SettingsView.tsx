@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code } from 'lucide-react';
+import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code, FileUp } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -11,6 +11,7 @@ import CustomerEmails from './settings/CustomerEmails';
 import { GiftCardCustomization } from './settings/GiftCardCustomization';
 import AccountSettings from './settings/AccountSettings';
 import WidgetEmbed from './settings/WidgetEmbed';
+import DataImport from './settings/dataImport/DataImport';
 import { adminAuth } from '../../lib/adminAuth';
 import {
   ADMIN_SEGMENT_ACTIVE,
@@ -19,7 +20,7 @@ import {
   ADMIN_SURFACE,
 } from './adminUi';
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget' | 'import';
 
 export default function SettingsView() {
   const currentUser = adminAuth.getCurrentUser();
@@ -28,7 +29,7 @@ export default function SettingsView() {
     const requestedTab = new URLSearchParams(window.location.search).get('tab') as SettingsTab | null;
     const validTabs: SettingsTab[] = [
       'account', 'profile', 'general', 'appearance', 'welcome-features', 'colors',
-      'payment', 'subscription', 'emails', 'gift-cards', 'widget',
+      'payment', 'subscription', 'emails', 'gift-cards', 'widget', 'import',
     ];
     if (requestedTab && validTabs.includes(requestedTab)) {
       return requestedTab === 'payment' && !isOwner ? 'account' : requestedTab;
@@ -48,6 +49,7 @@ export default function SettingsView() {
     { id: 'subscription' as SettingsTab, name: 'Subscription', icon: Crown },
     ...(isOwner ? [{ id: 'payment' as SettingsTab, name: 'Payment', icon: CreditCard }] : []),
     { id: 'emails' as SettingsTab, name: 'Emails', icon: Mail },
+    { id: 'import' as SettingsTab, name: 'Import', icon: FileUp },
   ];
 
   return (
@@ -91,6 +93,7 @@ export default function SettingsView() {
         {activeTab === 'subscription' && <SubscriptionManagement />}
         {activeTab === 'payment' && <PaymentSettings />}
         {activeTab === 'emails' && <CustomerEmails />}
+        {activeTab === 'import' && <DataImport />}
       </div>
     </div>
   );

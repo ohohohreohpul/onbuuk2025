@@ -118,7 +118,7 @@ const endOfLocalDay = (value: string) => {
   return date.getMonth() === month - 1 ? date.toISOString() : null;
 };
 
-const detectDelimiter = (headerLine: string) =>
+export const detectDelimiter = (headerLine: string) =>
   (headerLine.match(/;/g)?.length ?? 0) > (headerLine.match(/,/g)?.length ?? 0) ? ';' : ',';
 
 interface ParseOptions {

@@ -13,7 +13,8 @@ export type BookingChannel =
   | 'email'
   | 'referral'
   | 'direct'
-  | 'admin';
+  | 'admin'
+  | 'import';
 
 export interface Attribution {
   channel: BookingChannel;

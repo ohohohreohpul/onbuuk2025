@@ -32,6 +32,7 @@ export const SOURCE_LABELS: Record<SourceBucket['channel'], string> = {
   referral: 'Other websites',
   direct: 'Direct',
   admin: 'Added by your team',
+  import: 'Imported',
   untracked: 'Before tracking',
 };
 
