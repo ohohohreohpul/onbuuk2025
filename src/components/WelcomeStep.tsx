@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import DOMPurify from 'isomorphic-dompurify';
 import { useTheme } from '../lib/themeContext';
-import { useBookingText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   loading: string;
@@ -54,6 +54,20 @@ const TEXT: Translations<{
     unavailableBody: 'Bitte kontaktieren Sie uns direkt, um einen Termin zu buchen oder einen Gutschein zu kaufen.',
     bookAppointment: 'Termin buchen',
     purchaseGiftCard: 'Gutschein kaufen',
+  },
+  th: {
+    loading: 'กำลังโหลด…',
+    title: 'ยินดีต้อนรับ! จองคิวได้เลย',
+    subtitle: 'เลือกบริการและเวลาที่ต้องการ',
+    buttonText: 'เริ่มจอง',
+    myAccount: 'บัญชีของฉัน',
+    signIn: 'เข้าสู่ระบบ',
+    paymentCancelledTitle: 'ยกเลิกการชำระเงินแล้ว',
+    paymentCancelledBody: 'การชำระเงินถูกยกเลิกและไม่มีการเรียกเก็บเงิน คุณสามารถจองใหม่ได้ทุกเมื่อ',
+    unavailableTitle: 'ระบบจองออนไลน์ปิดให้บริการชั่วคราว',
+    unavailableBody: 'กรุณาติดต่อเราโดยตรงเพื่อจองคิวหรือซื้อบัตรของขวัญ',
+    bookAppointment: 'จองคิว',
+    purchaseGiftCard: 'ซื้อบัตรของขวัญ',
   },
 };
 
@@ -180,10 +194,10 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     );
   }
 
-  const welcomeContent = customization?.welcome_step || {
-    title: t.title,
-    subtitle: t.subtitle,
-    buttonText: t.buttonText
+  const welcomeContent = {
+    title: customOr(customization?.welcome_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.welcome_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.welcome_step?.buttonText, t.buttonText, TEXT.en.buttonText),
   };
 
   return (
@@ -328,7 +342,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             }}
           >
             <Calendar className="w-5 h-5 mr-2" />
-            {customization?.welcome_step?.bookingButtonText || t.bookAppointment}
+            {customOr(customization?.welcome_step?.bookingButtonText, t.bookAppointment, TEXT.en.bookAppointment)}
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
         )}
@@ -355,7 +369,7 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
             }}
           >
             <Gift className="w-5 h-5 mr-2" />
-            {customization?.welcome_step?.giftCardButtonText || t.purchaseGiftCard}
+            {customOr(customization?.welcome_step?.giftCardButtonText, t.purchaseGiftCard, TEXT.en.purchaseGiftCard)}
             <Sparkles className="w-4 h-4 ml-2 group-hover:rotate-12 transition-transform" />
           </Button>
         )}

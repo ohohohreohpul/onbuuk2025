@@ -6,7 +6,7 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useBookingText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   title: string;
@@ -46,6 +46,19 @@ const TEXT: Translations<{
     noSlots: 'In den nächsten Wochen sind keine Termine frei. Bitte kontaktieren Sie uns direkt.',
     loadFailed: 'Freie Termine konnten nicht geladen werden.',
     retry: 'Erneut versuchen',
+  },
+  th: {
+    title: 'เลือกวันและเวลา',
+    subtitle: 'เลือกช่วงเวลานัดที่ต้องการ',
+    buttonText: 'ถัดไป',
+    back: 'ย้อนกลับ',
+    selectDate: 'เลือกวันที่',
+    today: '(วันนี้)',
+    selectTime: 'เลือกเวลา',
+    loading: 'กำลังตรวจสอบเวลาว่าง…',
+    noSlots: 'ไม่มีคิวว่างในช่วงหลายสัปดาห์ข้างหน้า กรุณาติดต่อเราโดยตรง',
+    loadFailed: 'ไม่สามารถโหลดเวลาว่างได้',
+    retry: 'ลองอีกครั้ง',
   },
 };
 
@@ -130,9 +143,9 @@ export default function DateTimeStep({ durationId, specialistId, isPairBooking, 
   }, [businessId, durationId, specialistId, isPairBooking, reloadKey]);
 
   const content = {
-    title: customization?.datetime_step?.title || t.title,
-    subtitle: customization?.datetime_step?.subtitle || t.subtitle,
-    buttonText: customization?.datetime_step?.buttonText || t.buttonText
+    title: customOr(customization?.datetime_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.datetime_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.datetime_step?.buttonText, t.buttonText, TEXT.en.buttonText)
   };
 
   const availableDays = useMemo(

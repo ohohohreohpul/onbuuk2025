@@ -3,7 +3,7 @@ import { supabase, Specialist } from '../lib/supabase';
 import { ChevronRight, User } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
-import { useBookingText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   title: string;
@@ -35,6 +35,16 @@ const TEXT: Translations<{
     orChoose: 'oder Fachkraft auswählen',
     noSpecialists: 'Für diese Behandlung ist keine Fachkraft hinterlegt. Die Zuweisung erfolgt automatisch.',
   },
+  th: {
+    title: 'เลือกผู้ให้บริการ',
+    subtitle: 'เลือกนักบำบัด หรือให้เราจัดให้',
+    buttonText: 'ถัดไป',
+    anySpecialist: 'ใครก็ได้ที่ว่าง',
+    back: 'ย้อนกลับ',
+    anySpecialistHint: 'เราจะจัดผู้ให้บริการที่ว่างคนแรกให้',
+    orChoose: 'หรือเลือกผู้ให้บริการ',
+    noSpecialists: 'ไม่พบผู้ให้บริการสำหรับบริการนี้ เราจะจัดให้โดยอัตโนมัติ',
+  },
 };
 
 interface SpecialistStepProps {
@@ -52,10 +62,10 @@ export default function SpecialistStep({ serviceId, onNext, onBack }: Specialist
   const [selectedSpecialistId, setSelectedSpecialistId] = useState<string | null>(null);
 
   const content = {
-    title: customization?.specialist_step?.title || t.title,
-    subtitle: customization?.specialist_step?.subtitle || t.subtitle,
-    buttonText: customization?.specialist_step?.buttonText || t.buttonText,
-    anySpecialistText: customization?.specialist_step?.anySpecialistText || t.anySpecialist
+    title: customOr(customization?.specialist_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.specialist_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.specialist_step?.buttonText, t.buttonText, TEXT.en.buttonText),
+    anySpecialistText: customOr(customization?.specialist_step?.anySpecialistText, t.anySpecialist, TEXT.en.anySpecialist)
   };
 
   useEffect(() => {

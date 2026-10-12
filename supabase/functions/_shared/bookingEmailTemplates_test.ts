@@ -41,3 +41,10 @@ Deno.test("German 'moved' notice names the new date and time", () => {
   assertStringIncludes(html, "verschoben");
   assertStringIncludes(html, "/cancel?id=1");
 });
+
+Deno.test("Thai confirmation names the service and keeps the cancel link", () => {
+  const { subject, html } = renderBuiltIn("booking_confirmation", "th", VARS);
+  assertStringIncludes(subject, "Thai Massage");
+  assertStringIncludes(html, "สวัสดี Anna");
+  assertStringIncludes(html, "https://app.onbuuk.com/satuuu99/cancel?id=1");
+});

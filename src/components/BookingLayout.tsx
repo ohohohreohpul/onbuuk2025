@@ -11,6 +11,7 @@ import { useBookingText, type Translations } from '../lib/bookingLanguage';
 const TEXT: Translations<{ loading: string }> = {
   en: { loading: 'Loading...' },
   de: { loading: 'Wird geladen …' },
+  th: { loading: 'กำลังโหลด…' },
 };
 
 const PREVIEW_LAYOUTS = new Set(['default', 'vertical', 'minimal', 'split-panel', 'glass']);

@@ -8,7 +8,7 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { useCurrency } from '../lib/currencyContext';
 import { Button } from './ui/button';
-import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, fillText, type Translations, customOr } from '../lib/bookingLanguage';
 import { toLocalDateString } from '../lib/localDateTime';
 
 const CARD_GUARANTEE_POLICY_VERSION = '2026-09';
@@ -274,6 +274,93 @@ const TEXT: Translations<{
     completePaymentFailed: 'Zahlung konnte nicht abgeschlossen werden',
     paypalGenericError: 'Bei PayPal ist ein Fehler aufgetreten. Bitte erneut versuchen.',
   },
+  th: {
+    back: 'ย้อนกลับ',
+    title: 'ตรวจสอบและชำระเงิน',
+    subtitle: 'กรุณาตรวจสอบรายละเอียดการจอง',
+    confirmBooking: 'ยืนยันการจอง',
+    enterGiftCardCode: 'กรุณากรอกรหัสบัตรของขวัญ',
+    alreadyFullyCovered: 'การจองของคุณชำระครบแล้วด้วยบัตรหรือบัตรบริการ',
+    invalidGiftCard: 'รหัสบัตรของขวัญหรือบัตรบริการไม่ถูกต้อง',
+    giftCardAlreadyApplied: 'ใช้บัตรของขวัญหรือบัตรบริการนี้ไปแล้ว',
+    bothUnitsCovered: 'บริการทั้งสองรายการชำระด้วยบัตรบริการครบแล้ว',
+    passAlreadyApplied: 'การจองนี้ใช้บัตรบริการไปแล้ว',
+    giftCardValidationFailed: 'ตรวจสอบบัตรของขวัญไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+    redeemFailed: 'ไม่สามารถใช้ {code} ได้: {message}',
+    totalNotVerified: 'ไม่สามารถตรวจสอบยอดรวมการจองหลังใช้บัตรได้',
+    businessNotFound: 'ไม่พบร้าน',
+    createBookingFailed: 'สร้างการจองไม่สำเร็จ: {message}',
+    slotTaken: 'ขออภัย เวลานี้เพิ่งมีผู้อื่นจองไปแล้ว กรุณาย้อนกลับและเลือกเวลาอื่น',
+    checkoutFailed: 'สร้างรายการชำระเงินไม่สำเร็จ',
+    unknownError: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ',
+    bookingFailedAlert: 'สร้างการจองไม่สำเร็จ: {message}\n\nกรุณาตรวจสอบรายละเอียดเพิ่มเติมในคอนโซล',
+    successPrefix: 'นัดหมายของคุณได้รับการยืนยันเรียบร้อยแล้ว เราได้ส่งอีเมลยืนยันไปที่',
+    successSuffix: '',
+    bookingDetails: 'รายละเอียดการจอง',
+    bookingIdLabel: 'หมายเลขการจอง:',
+    serviceLabel: 'บริการ:',
+    durationLabel: 'ระยะเวลา:',
+    durationMinutes: '{minutes} นาที',
+    dateLabel: 'วันที่:',
+    timeLabel: 'เวลา:',
+    typeLabel: 'ประเภท:',
+    couplesSession: 'แบบคู่',
+    arrivalNote: 'กรุณามาถึงก่อนเวลานัด 10 นาที หากต้องการเลื่อนหรือยกเลิก กรุณาติดต่อเราล่วงหน้าอย่างน้อย 24 ชั่วโมง',
+    bookingSummary: 'สรุปการจอง',
+    nameLabel: 'ชื่อ:',
+    emailLabel: 'อีเมล:',
+    addOnsLabel: 'บริการเสริม:',
+    subtotalLabel: 'ยอดรวมย่อย:',
+    servicePass: 'บัตรบริการ',
+    valueCard: 'บัตรเงินสด',
+    amountToPayLabel: 'ยอดที่ต้องชำระ:',
+    totalLabel: 'ยอดรวม:',
+    giftCardQuestion: 'มีบัตรของขวัญหรือบัตรบริการไหม?',
+    giftCardHint: 'ใช้มูลค่าบัตรหรือแลกใช้บริการ 1 ครั้งที่เข้าเงื่อนไข',
+    giftCardCodeLabel: 'รหัสบัตรของขวัญหรือบัตรบริการ',
+    validating: 'กำลังตรวจสอบ...',
+    apply: 'ใช้',
+    appliedCards: 'บัตรที่ใช้แล้ว',
+    visitApplied: 'ใช้ไป 1 ครั้ง',
+    visitsLeft: 'เหลือ {count} ครั้ง',
+    appliedAmount: 'ใช้ไป: {amount}',
+    remainingAmount: 'คงเหลือ: {amount}',
+    removeGiftCard: 'นำบัตรของขวัญออก',
+    giftCardInfo: 'บัตรเงินสดจะหักจากยอดรวม บัตรบริการใช้ได้ 1 ครั้งสำหรับบริการที่ตรงกัน 1 รายการ ส่วนบริการเสริมและผู้รับบริการคนที่สองยังต้องชำระเพิ่ม',
+    paymentMethod: 'วิธีชำระเงิน',
+    policyTitle: 'นโยบายการไม่มาตามนัดและการยกเลิกล่าช้า',
+    policyText: 'การให้ข้อมูลบัตรเป็นการยืนยันการจอง โดยจะไม่มีการเรียกเก็บเงินขณะจอง อาจมีการเรียกเก็บ {fee} จากบัตรของคุณ หากยกเลิกน้อยกว่า {hours} ชั่วโมงก่อนเวลานัดหรือไม่มาตามนัด',
+    payWithCard: 'ชำระด้วยบัตร',
+    payWithCardHint: 'ชำระเงินอย่างปลอดภัยผ่าน Stripe',
+    payWithPayPal: 'ชำระด้วย PayPal',
+    payWithPayPalHint: 'PayPal, บัตรเครดิต/เดบิต, ชำระภายหลัง',
+    prepaymentRequired: 'ต้องชำระเงินล่วงหน้า',
+    prepaymentText: 'เนื่องจากคุณไม่มาตามนัดหรือยกเลิกหลายครั้ง เราจึงขอให้ชำระเงินล่วงหน้าสำหรับการจองนี้',
+    payInPersonSecured: 'ชำระที่ร้าน — ยืนยันด้วยบัตร',
+    payInPersonSecuredHint: 'ให้ข้อมูลบัตรไว้ โดยยังไม่เรียกเก็บเงินตอนนี้ จะเรียกเก็บ {fee} เฉพาะเมื่อไม่มาตามนัดหรือยกเลิกภายใน {hours} ชม.',
+    payInPerson: 'ชำระที่ร้าน',
+    payInPersonHint: 'ชำระเมื่อมาถึงร้าน',
+    fullyCovered: 'การจองของคุณชำระครบแล้วด้วยบัตรหรือบัตรบริการ ไม่ต้องชำระเงินเพิ่ม',
+    securePaymentNote: 'การชำระเงินจะดำเนินการอย่างปลอดภัย กด "ยืนยันการจอง" เพื่อดำเนินการต่อ',
+    consentPrefix: 'ฉันอนุญาตให้ร้านบันทึกบัตรของฉันและเรียกเก็บเงินได้สูงสุด ',
+    consentSuffix: ' หากฉันไม่มาตามนัดหรือยกเลิกน้อยกว่า {hours} ชั่วโมงก่อนเวลานัด ตอนนี้ยังไม่มีการเรียกเก็บค่าบริการ',
+    paypalLoadError: 'โหลด PayPal ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง',
+    tryAgain: 'ลองอีกครั้ง',
+    loadingPayPal: 'กำลังโหลด PayPal...',
+    completeWithPayPal: 'ชำระเงินให้เสร็จสิ้นด้วย PayPal:',
+    paymentFailed: 'ชำระเงินไม่สำเร็จ: {error}',
+    cancelPayPal: 'ยกเลิกและเลือกวิธีชำระเงินอื่น',
+    processing: 'กำลังดำเนินการ...',
+    completeGiftCard: 'ยืนยันการจอง - ชำระด้วยบัตรของขวัญ',
+    confirmPayInPerson: 'ยืนยันการจอง - ชำระที่ร้าน',
+    confirmAndPay: 'ยืนยันและชำระ {amount}',
+    cancellationAgreement: 'การยืนยันการจองถือว่าคุณยอมรับนโยบายการยกเลิกของเรา กรุณายกเลิกล่วงหน้าอย่างน้อย 24 ชั่วโมง',
+    paypalCreateOrderFailed: 'สร้างคำสั่งซื้อ PayPal ไม่สำเร็จ',
+    paypalCaptureFailed: 'ยืนยันการชำระเงิน PayPal ไม่สำเร็จ',
+    paymentCaptureFailed: 'เรียกเก็บเงินไม่สำเร็จ',
+    completePaymentFailed: 'ชำระเงินไม่สำเร็จ',
+    paypalGenericError: 'PayPal เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+  },
 };
 
 interface SelectedProduct {
@@ -347,9 +434,9 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const primaryColor = colors.primary || '#1A1714';
 
   const content = {
-    title: customization?.payment_step?.title || t.title,
-    subtitle: customization?.payment_step?.subtitle || t.subtitle,
-    buttonText: customization?.payment_step?.buttonText || t.confirmBooking
+    title: customOr(customization?.payment_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.payment_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.payment_step?.buttonText, t.confirmBooking, TEXT.en.confirmBooking)
   };
 
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);

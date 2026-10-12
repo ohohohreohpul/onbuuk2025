@@ -27,6 +27,14 @@ const TEXT: Translations<{
     until: 'Angebot bis {date}',
     minutes: '{minutes} Min.',
   },
+  th: {
+    title: 'เลือกชุดบัตรของขวัญ',
+    hint: 'บัตรแต่ละใบในชุดมีรหัสของตัวเองและใช้แยกกันได้',
+    instead: 'จากปกติ {amount}',
+    soldOut: 'จำหน่ายหมดแล้ว',
+    until: 'ข้อเสนอถึง {date}',
+    minutes: '{minutes} นาที',
+  },
 };
 
 interface PackagePickerProps {

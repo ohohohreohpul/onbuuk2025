@@ -4,7 +4,7 @@ import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { useBookingText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   back: string;
@@ -57,6 +57,23 @@ const TEXT: Translations<{
     emailPlaceholder: 'name@beispiel.de',
     notesPlaceholder: 'Besondere Wünsche oder gesundheitliche Hinweise, die wir kennen sollten …',
   },
+  th: {
+    back: 'ย้อนกลับ',
+    title: 'ข้อมูลของคุณ',
+    subtitle: 'กรุณากรอกข้อมูลติดต่อ',
+    continue: 'ดำเนินการต่อ',
+    nameLabel: 'ชื่อ-นามสกุล',
+    emailLabel: 'อีเมล',
+    phoneLabel: 'เบอร์โทรศัพท์',
+    notesLabel: 'หมายเหตุเพิ่มเติม (ไม่บังคับ)',
+    nameRequired: 'กรุณากรอกชื่อ',
+    emailRequired: 'กรุณากรอกอีเมล',
+    emailInvalid: 'กรุณากรอกอีเมลที่ถูกต้อง',
+    phoneRequired: 'กรุณากรอกเบอร์โทรศัพท์',
+    namePlaceholder: 'กรอกชื่อ-นามสกุล',
+    emailPlaceholder: 'your.email@example.com',
+    notesPlaceholder: 'คำขอพิเศษหรือข้อมูลด้านสุขภาพที่ควรแจ้งให้เราทราบ...',
+  },
 };
 
 interface PersonalDetailsStepProps {
@@ -83,14 +100,14 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
   }, []);
 
   const content = {
-    title: customization?.details_step?.title || t.title,
-    subtitle: customization?.details_step?.subtitle || t.subtitle,
-    buttonText: customization?.details_step?.buttonText || t.continue,
+    title: customOr(customization?.details_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.details_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.details_step?.buttonText, t.continue, TEXT.en.continue),
     labels: {
-      name: customization?.details_step?.labels?.name || t.nameLabel,
-      email: customization?.details_step?.labels?.email || t.emailLabel,
-      phone: customization?.details_step?.labels?.phone || t.phoneLabel,
-      notes: customization?.details_step?.labels?.notes || t.notesLabel
+      name: customOr(customization?.details_step?.labels?.name, t.nameLabel, TEXT.en.nameLabel),
+      email: customOr(customization?.details_step?.labels?.email, t.emailLabel, TEXT.en.emailLabel),
+      phone: customOr(customization?.details_step?.labels?.phone, t.phoneLabel, TEXT.en.phoneLabel),
+      notes: customOr(customization?.details_step?.labels?.notes, t.notesLabel, TEXT.en.notesLabel)
     }
   };
 

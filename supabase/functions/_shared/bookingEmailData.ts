@@ -7,7 +7,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const DEFAULT_APP_URL = "https://app.onbuuk.com";
 
-export type EmailLanguage = "de" | "en";
+export type EmailLanguage = "de" | "en" | "th";
 
 export interface BookingEmailData {
   bookingId: string;
@@ -104,8 +104,8 @@ export async function loadBookingEmailData(
     .maybeSingle();
   if (businessError) throw new Error(`Could not load business: ${businessError.message}`);
 
-  const language: EmailLanguage = business?.language === "de" ? "de" : "en";
-  const locale = language === "de" ? "de-DE" : "en-US";
+  const language: EmailLanguage = business?.language === "de" || business?.language === "th" ? business.language : "en";
+  const locale = language === "de" ? "de-DE" : language === "th" ? "th-TH" : "en-US";
   const service = one<{ name: string }>(booking.service);
   const specialist = one<{ name: string }>(booking.specialist);
   const duration = one<{ duration_minutes: number; price_cents: number }>(booking.duration);
@@ -127,12 +127,12 @@ export async function loadBookingEmailData(
     customer_phone: booking.customer_phone ?? "",
     customer_notes: booking.notes ?? "",
     service_name: service?.name ?? "",
-    service_duration: `${durationMinutes} ${language === "de" ? "Minuten" : "minutes"}`,
+    service_duration: `${durationMinutes} ${language === "de" ? "Minuten" : language === "th" ? "นาที" : "minutes"}`,
     service_price: price,
     booking_date: date,
     booking_time: startTime,
     booking_end_time: addMinutes(startTime, durationMinutes),
-    booking_type: booking.is_pair_booking ? (language === "de" ? "Paarbehandlung" : "Couple") : "",
+    booking_type: booking.is_pair_booking ? (language === "de" ? "Paarbehandlung" : language === "th" ? "แบบคู่" : "Couple") : "",
     specialist_name: specialist?.name ?? "",
     business_name: business?.name ?? "",
     business_address: business?.address ?? "",

@@ -9,7 +9,7 @@ export interface TenantInfo {
   customDomain: string | null;
   planType: 'starter' | 'professional' | 'enterprise';
   /** Language of the business's customer-facing pages. */
-  language: 'en' | 'de';
+  language: 'en' | 'de' | 'th';
   hostKind: HostKind;
   isLoading: boolean;
 }

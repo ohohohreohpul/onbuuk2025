@@ -34,6 +34,16 @@ const TEXT: Translations<{
     keepNumber: 'Ihre Gutscheine sind für Sie reserviert und werden mit der Zahlung gültig.',
     done: 'Fertig',
   },
+  th: {
+    title: 'ขอบคุณสำหรับคำสั่งซื้อ!',
+    orderNumber: 'หมายเลขคำสั่งซื้อ',
+    nextTitle: 'ขั้นตอนถัดไป',
+    stepPay: 'กรุณาชำระเงิน {amount} ที่ร้าน {business} โดยแจ้งหมายเลขคำสั่งซื้อของคุณ',
+    stepCodes: 'คุณจะได้รับบัตรของขวัญพร้อมรหัสทันทีหลังชำระเงิน',
+    stepBonus: 'รวมถึง: {bonus} ซึ่งจะมอบให้เมื่อคุณมารับบัตรของขวัญ',
+    keepNumber: 'บัตรของขวัญถูกจองไว้ให้คุณแล้ว และจะใช้ได้เมื่อชำระเงิน',
+    done: 'เสร็จสิ้น',
+  },
 };
 
 interface OrderPlacedProps {

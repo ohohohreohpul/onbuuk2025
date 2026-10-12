@@ -69,6 +69,28 @@ const TEXT: Translations<{
     keepBooking: 'Buchung behalten',
     cancelling: 'Wird storniert …',
   },
+  th: {
+    errorInvalidLink: 'ลิงก์ยกเลิกไม่ถูกต้อง',
+    errorAlreadyCancelled: 'การจองนี้ถูกยกเลิกแล้ว',
+    errorNotFound: 'ไม่พบการจอง',
+    errorCancelFailed: 'ไม่สามารถยกเลิกการจองได้ กรุณาติดต่อร้านโดยตรง',
+    loading: 'กำลังโหลดรายละเอียดการจอง...',
+    cancelledTitle: 'ยกเลิกการจองแล้ว',
+    cancelledBody: 'ยกเลิกการจองเรียบร้อยแล้ว อีเมลยืนยันถูกส่งไปที่',
+    unableToCancel: 'ไม่สามารถยกเลิกได้',
+    cancelBooking: 'ยกเลิกการจอง',
+    bookingDetails: 'รายละเอียดการจอง',
+    customer: 'ชื่อลูกค้า:',
+    service: 'บริการ:',
+    date: 'วันที่:',
+    time: 'เวลา:',
+    duration: 'ระยะเวลา:',
+    minutes: '{count} นาที',
+    important: 'สำคัญ:',
+    warning: 'การยกเลิกนี้ไม่สามารถย้อนกลับได้ คุณจะได้รับอีเมลยืนยันเมื่อยกเลิกเสร็จสมบูรณ์',
+    keepBooking: 'เก็บการจองไว้',
+    cancelling: 'กำลังยกเลิก...',
+  },
 };
 
 type CancelErrorKey = 'errorInvalidLink' | 'errorAlreadyCancelled' | 'errorNotFound' | 'errorCancelFailed';

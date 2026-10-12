@@ -39,7 +39,7 @@ interface BusinessRow {
   language?: string | null;
 }
 
-const toLanguage = (value: string | null | undefined): TenantInfo['language'] => (value === 'de' ? 'de' : 'en');
+const toLanguage = (value: string | null | undefined): TenantInfo['language'] => (value === 'de' || value === 'th' ? value : 'en');
 
 interface ResolvedTenantRow {
   business_id: string;

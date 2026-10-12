@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { Save, Store, AlertCircle, CheckCircle, Link as LinkIcon } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { RESERVED_SUBDOMAINS, shopUrl, toSubdomainLabel } from '../../../lib/tenantHost';
+import BookingLanguageSetting from './BookingLanguageSetting';
 
 const RESERVED_ROUTES = RESERVED_SUBDOMAINS;
 
@@ -280,6 +281,8 @@ export default function StoreProfile() {
             />
           </div>
         </div>
+
+        <BookingLanguageSetting />
 
         <div className="bg-white border border-stone-200 rounded-lg p-6 space-y-6">
           <h3 className="text-lg font-semibold text-stone-900">Booking Page URL</h3>

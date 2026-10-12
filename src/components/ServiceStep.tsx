@@ -7,7 +7,7 @@ import { useTheme } from '../lib/themeContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useBookingText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   loadingServices: string;
@@ -44,6 +44,18 @@ const TEXT: Translations<{
     bookingType: 'Art der Buchung',
     individualSession: 'Einzelbehandlung',
     couplesSession: 'Paarbehandlung',
+  },
+  th: {
+    loadingServices: 'กำลังโหลดบริการ…',
+    otherServices: 'บริการอื่น ๆ',
+    title: 'เลือกบริการ',
+    subtitle: 'เลือกบริการที่ต้องการจอง',
+    buttonText: 'ถัดไป',
+    back: 'ย้อนกลับ',
+    couples: 'แบบคู่',
+    bookingType: 'ประเภทการจอง',
+    individualSession: 'สำหรับ 1 ท่าน',
+    couplesSession: 'แบบคู่ (2 ท่าน)',
   },
 };
 
@@ -145,10 +157,10 @@ export default function ServiceStep({ onNext, onBack }: ServiceStepProps) {
 
   const categories = Object.keys(groupedServices);
 
-  const serviceContent = customization?.service_step || {
-    title: t.title,
-    subtitle: t.subtitle,
-    buttonText: t.buttonText
+  const serviceContent = {
+    title: customOr(customization?.service_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.service_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.service_step?.buttonText, t.buttonText, TEXT.en.buttonText),
   };
 
   return (

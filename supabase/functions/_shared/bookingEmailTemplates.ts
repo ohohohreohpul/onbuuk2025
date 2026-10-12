@@ -1,5 +1,5 @@
 /**
- * Built-in booking emails (German / English). A shop's own enabled template in
+ * Built-in booking emails (German / English / Thai). A shop's own enabled template in
  * email_templates (same event_key) wins for customer emails. Placeholders are
  * {{name}}; values arrive HTML-escaped from bookingEmailData.
  */
@@ -36,6 +36,12 @@ const DETAILS = {
 <tr><td style="padding:4px 16px 4px 0;color:#78716c">Time</td><td>{{booking_time}} – {{booking_end_time}}</td></tr>
 <tr><td style="padding:4px 16px 4px 0;color:#78716c">Price</td><td>{{service_price}}</td></tr>
 </table>`,
+  th: `<table style="border-collapse:collapse;margin:16px 0;font-size:15px">
+<tr><td style="padding:4px 16px 4px 0;color:#78716c">บริการ</td><td>{{service_name}} ({{service_duration}})</td></tr>
+<tr><td style="padding:4px 16px 4px 0;color:#78716c">วันที่</td><td>{{booking_date}}</td></tr>
+<tr><td style="padding:4px 16px 4px 0;color:#78716c">เวลา</td><td>{{booking_time}} – {{booking_end_time}} น.</td></tr>
+<tr><td style="padding:4px 16px 4px 0;color:#78716c">ราคา</td><td>{{service_price}}</td></tr>
+</table>`,
 };
 
 const CUSTOMER_FOOTER = {
@@ -43,11 +49,14 @@ const CUSTOMER_FOOTER = {
 <p>{{business_name}}<br>{{business_address}}<br>{{business_phone}}</p>`,
   en: `<p>Need to cancel? <a href="{{cancellation_link}}">{{cancellation_link}}</a></p>
 <p>{{business_name}}<br>{{business_address}}<br>{{business_phone}}</p>`,
+  th: `<p>ต้องการยกเลิกนัด? <a href="{{cancellation_link}}">{{cancellation_link}}</a></p>
+<p>{{business_name}}<br>{{business_address}}<br>{{business_phone}}</p>`,
 };
 
 const OWNER_DETAILS = {
   de: `<p><strong>{{customer_name}}</strong> · {{customer_email}} · {{customer_phone}}</p><p>{{customer_notes}}</p>`,
   en: `<p><strong>{{customer_name}}</strong> · {{customer_email}} · {{customer_phone}}</p><p>{{customer_notes}}</p>`,
+  th: `<p><strong>{{customer_name}}</strong> · {{customer_email}} · {{customer_phone}}</p><p>{{customer_notes}}</p>`,
 };
 
 const TEMPLATES: Record<EmailLanguage, Record<NotificationEvent, Template>> = {
@@ -127,6 +136,45 @@ const TEMPLATES: Record<EmailLanguage, Record<NotificationEvent, Template>> = {
       heading: "Booking cancelled",
       intro: "This slot is free again.",
       footer: "<p><a href=\"{{admin_link}}\">Open in Zenno admin</a></p>",
+    },
+  },
+  th: {
+    booking_received: {
+      subject: "คำขอจองของคุณที่ {{business_name}}",
+      heading: "ขอบคุณ {{customer_name}}!",
+      intro: "เราได้รับคำขอของคุณแล้ว คุณจะได้รับการยืนยันทันทีที่เราตรวจสอบนัดหมายเรียบร้อย",
+    },
+    booking_confirmation: {
+      subject: "ยืนยันการจอง: {{service_name}} วันที่ {{booking_date}}",
+      heading: "นัดหมายของคุณได้รับการยืนยันแล้ว",
+      intro: "สวัสดี {{customer_name}} เรายินดีที่จะได้ต้อนรับคุณ!",
+    },
+    booking_cancelled: {
+      subject: "นัดหมายวันที่ {{booking_date}} ของคุณถูกยกเลิกแล้ว",
+      heading: "ยกเลิกนัดหมายแล้ว",
+      intro: "สวัสดี {{customer_name}} นัดหมายต่อไปนี้ถูกยกเลิกแล้ว จองนัดใหม่: <a href=\"{{rebook_link}}\">{{rebook_link}}</a>",
+    },
+    booking_reminder: {
+      subject: "แจ้งเตือน: พรุ่งนี้เวลา {{booking_time}} น. ที่ {{business_name}}",
+      heading: "พบกันพรุ่งนี้!",
+      intro: "สวัสดี {{customer_name}} ขอแจ้งเตือนนัดหมายของคุณ",
+    },
+    booking_rescheduled: {
+      subject: "เวลานัดใหม่: {{booking_date}} เวลา {{booking_time}} น.",
+      heading: "นัดหมายของคุณถูกเลื่อนแล้ว",
+      intro: "สวัสดี {{customer_name}} นัดหมายของคุณที่ {{business_name}} เปลี่ยนเป็นเวลานี้:",
+    },
+    owner_new_booking: {
+      subject: "การจองใหม่: {{service_name}} วันที่ {{booking_date}} เวลา {{booking_time}} น.",
+      heading: "การจองใหม่",
+      intro: "สถานะ: {{booking_status}}",
+      footer: "<p><a href=\"{{admin_link}}\">เปิดในระบบหลังร้าน Zenno</a></p>",
+    },
+    owner_booking_cancelled: {
+      subject: "ยกเลิกแล้ว: {{service_name}} วันที่ {{booking_date}} เวลา {{booking_time}} น.",
+      heading: "การจองถูกยกเลิก",
+      intro: "ช่วงเวลานี้ว่างอีกครั้งแล้ว",
+      footer: "<p><a href=\"{{admin_link}}\">เปิดในระบบหลังร้าน Zenno</a></p>",
     },
   },
 };

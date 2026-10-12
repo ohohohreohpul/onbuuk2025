@@ -4,7 +4,7 @@ import { ChevronRight, Plus, Minus, Package, Check } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCurrency } from '../lib/currencyContext';
-import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, fillText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   title: string;
@@ -45,6 +45,19 @@ const TEXT: Translations<{
     select: 'Auswählen',
     addOnsTotal: 'Summe Extras:',
   },
+  th: {
+    title: 'บริการเสริม',
+    subtitle: 'เพิ่มบริการเสริมตามต้องการ',
+    buttonText: 'ถัดไป',
+    skipButtonText: 'ดำเนินการต่อโดยไม่เพิ่มบริการเสริม',
+    back: 'ย้อนกลับ',
+    noProducts: 'ไม่มีบริการเสริมสำหรับบริการนี้',
+    selectOne: 'เลือกหนึ่งรายการ',
+    maxPerBooking: 'สูงสุด {count} รายการต่อการจอง',
+    selected: 'เลือกแล้ว',
+    select: 'เลือก',
+    addOnsTotal: 'รวมบริการเสริม:',
+  },
 };
 
 interface Product {
@@ -79,10 +92,10 @@ export default function AddOnsStep({ serviceId, onNext, onBack }: AddOnsStepProp
   const [loading, setLoading] = useState(true);
 
   const content = {
-    title: customization?.addons_step?.title || t.title,
-    subtitle: customization?.addons_step?.subtitle || t.subtitle,
-    buttonText: customization?.addons_step?.buttonText || t.buttonText,
-    skipButtonText: customization?.addons_step?.skipButtonText || t.skipButtonText
+    title: customOr(customization?.addons_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.addons_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.addons_step?.buttonText, t.buttonText, TEXT.en.buttonText),
+    skipButtonText: customOr(customization?.addons_step?.skipButtonText, t.skipButtonText, TEXT.en.skipButtonText)
   };
 
   useEffect(() => {

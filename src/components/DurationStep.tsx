@@ -4,7 +4,7 @@ import { ChevronRight, Clock } from 'lucide-react';
 import { useTenant } from '../lib/tenantContext';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useCurrency } from '../lib/currencyContext';
-import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
+import { useBookingText, fillText, type Translations, customOr } from '../lib/bookingLanguage';
 
 const TEXT: Translations<{
   title: string;
@@ -33,6 +33,15 @@ const TEXT: Translations<{
     minutes: '{count} Minuten',
     noDurations: 'Für diese Behandlung ist keine Dauer verfügbar',
   },
+  th: {
+    title: 'เลือกระยะเวลา',
+    subtitle: 'เลือกระยะเวลาที่ต้องการ',
+    buttonText: 'ถัดไป',
+    back: 'ย้อนกลับ',
+    pairBooking: 'จองสำหรับ 2 ท่าน',
+    minutes: '{count} นาที',
+    noDurations: 'ไม่มีตัวเลือกระยะเวลาสำหรับบริการนี้',
+  },
 };
 
 interface DurationStepProps {
@@ -52,9 +61,9 @@ export default function DurationStep({ serviceId, isPairBooking, onNext, onBack 
   const [selectedDuration, setSelectedDuration] = useState<ServiceDuration | null>(null);
 
   const content = {
-    title: customization?.duration_step?.title || t.title,
-    subtitle: customization?.duration_step?.subtitle || t.subtitle,
-    buttonText: customization?.duration_step?.buttonText || t.buttonText
+    title: customOr(customization?.duration_step?.title, t.title, TEXT.en.title),
+    subtitle: customOr(customization?.duration_step?.subtitle, t.subtitle, TEXT.en.subtitle),
+    buttonText: customOr(customization?.duration_step?.buttonText, t.buttonText, TEXT.en.buttonText)
   };
 
   useEffect(() => {

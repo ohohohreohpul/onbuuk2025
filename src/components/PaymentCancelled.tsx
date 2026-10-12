@@ -26,6 +26,14 @@ const TEXT: Translations<{
     exit: 'Schließen',
     needHelp: 'Fragen? Wir helfen Ihnen gerne bei Ihrer Buchung weiter.',
   },
+  th: {
+    title: 'ยกเลิกการชำระเงินแล้ว',
+    body: 'การชำระเงินถูกยกเลิกและไม่มีการเรียกเก็บเงินจากบัญชีของคุณ คุณสามารถจองใหม่ได้ทุกเมื่อ',
+    whatHappened: 'เกิดอะไรขึ้น?',
+    whatHappenedBody: 'คุณได้ยกเลิกขั้นตอนการชำระเงิน การจองจึงยังไม่เสร็จสมบูรณ์ คุณสามารถเริ่มจองใหม่ได้ทุกเมื่อ',
+    exit: 'ออก',
+    needHelp: 'ต้องการความช่วยเหลือ? ติดต่อทีมงานของเรา เรายินดีช่วยเหลือเรื่องการจองของคุณ',
+  },
 };
 
 export default function PaymentCancelled() {

@@ -15,6 +15,7 @@ const BATCH_SIZE = 25;
 const STATUS_LABEL = {
   de: { pending: "wartet auf Ihre Bestätigung", confirmed: "bestätigt" },
   en: { pending: "waiting for your confirmation", confirmed: "confirmed" },
+  th: { pending: "รอการยืนยันจากคุณ", confirmed: "ยืนยันแล้ว" },
 } as const;
 
 interface ClaimedRow {
