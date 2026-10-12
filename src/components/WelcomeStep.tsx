@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { User, Calendar, Gift, AlertCircle, X, ArrowRight, Sparkles } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { welcomeIcon } from '../lib/welcomeIcons';
 import { useCustomerAuth } from '../hooks/useCustomerAuth';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { CustomerAuth } from './customer/CustomerAuth';
 import { useTenant } from '../lib/tenantContext';
-import { supabase } from '../lib/supabase';
+import { loadShopPageProfile, loadWelcomeCards } from '../lib/shopPageData';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
@@ -116,19 +116,18 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
         return;
       }
 
-      const [businessData, cardsData] = await Promise.all([
-        supabase
-          .from('businesses')
-          .select('enable_bookings, enable_gift_cards, show_welcome_features, use_custom_welcome_html, welcome_custom_html')
-          .eq('id', businessId)
-          .maybeSingle(),
-        supabase
-          .from('welcome_feature_cards')
-          .select('*')
-          .eq('business_id', businessId)
-          .eq('is_enabled', true)
-          .order('card_order')
+      const [profile, cards] = await Promise.all([
+        loadShopPageProfile(businessId).catch((error) => {
+          console.error('Could not load the welcome settings:', error);
+          return null;
+        }),
+        loadWelcomeCards<WelcomeCard>(businessId).catch((error) => {
+          console.error('Could not load the welcome cards:', error);
+          return null;
+        }),
       ]);
+      const businessData = { data: profile };
+      const cardsData = { data: cards };
 
       if (businessData.data) {
         setEnableBookings(businessData.data.enable_bookings ?? true);
@@ -168,13 +167,8 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     if (card.icon_type === 'custom' && card.icon_url) {
       return <img src={card.icon_url} alt="icon" className="w-5 h-5" />;
     }
-    if (card.icon_type === 'lucide' && card.icon_name) {
-      const IconComponent = (LucideIcons as any)[card.icon_name];
-      if (IconComponent) {
-        return <IconComponent className="w-5 h-5" style={{ color: primaryColor }} />;
-      }
-    }
-    return <LucideIcons.HelpCircle className="w-5 h-5" style={{ color: primaryColor }} />;
+    const IconComponent = welcomeIcon(card.icon_type === 'lucide' ? card.icon_name : null);
+    return <IconComponent className="w-5 h-5" style={{ color: primaryColor }} />;
   };
 
   if (loading || customizationLoading) {

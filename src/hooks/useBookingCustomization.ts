@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
 import { DEFAULT_CUSTOMIZATION } from '../lib/bookingCustomizationDefaults';
+import { cachedRequest } from '../lib/requestCache';
 
 export interface StepContent {
   title: string;
@@ -87,6 +88,19 @@ export interface BookingFormCustomization {
 
 
 
+/** One request per shop, shared by every component that needs the customization. */
+export function loadBookingCustomization(businessId: string): Promise<BookingFormCustomization | null> {
+  return cachedRequest(`booking_form_customization:${businessId}`, async () => {
+    const { data, error } = await supabase
+      .from('booking_form_customization')
+      .select('*')
+      .eq('business_id', businessId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as BookingFormCustomization | null;
+  });
+}
+
 export function useBookingCustomization() {
   const { businessId } = useTenant();
   const [customization, setCustomization] = useState<BookingFormCustomization | null>(null);
@@ -103,13 +117,7 @@ export function useBookingCustomization() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('booking_form_customization')
-        .select('*')
-        .eq('business_id', businessId)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await loadBookingCustomization(businessId);
 
       if (data) {
         setCustomization(data);

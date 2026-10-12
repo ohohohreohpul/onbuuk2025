@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSpecialistChoice } from './hooks/useSpecialistChoice';
 import BookingLayout from './components/BookingLayout';
 import WelcomeStep from './components/WelcomeStep';
@@ -9,32 +9,35 @@ import SpecialistStep from './components/SpecialistStep';
 import DateTimeStep from './components/DateTimeStep';
 import PersonalDetailsStep from './components/PersonalDetailsStep';
 import PaymentStep from './components/PaymentStep';
-import Admin from './components/admin/Admin';
-import SuperAdmin from './components/admin/SuperAdmin';
-import CancelBooking from './components/CancelBooking';
-import ApproveBooking from './components/ApproveBooking';
 import { TenantProvider } from './components/TenantProvider';
-import { BusinessRegistration } from './components/BusinessRegistration';
-import { BusinessSignUp } from './components/BusinessSignUp';
-import { SignupSuccess } from './components/SignupSuccess';
-import { NoBusinessFound } from './components/NoBusinessFound';
-import { CustomerPortal } from './components/customer/CustomerPortal';
-import { GiftCardPurchase } from './components/GiftCardPurchase';
-import { LandingPage } from './components/LandingPage';
-import { BusinessLogin } from './components/BusinessLogin';
-import { AcceptInvite } from './components/AcceptInvite';
-import { ForgotPassword } from './components/ForgotPassword';
-import { ResetPassword } from './components/ResetPassword';
-import BookingSuccess from './components/BookingSuccess';
-import GiftCardSuccess from './components/GiftCardSuccess';
-import PaymentCancelled from './components/PaymentCancelled';
 import { DynamicBranding } from './components/DynamicBranding';
 import { useTenant } from './lib/tenantContext';
+import { prefetchShopPage } from './lib/shopPageData';
 import { appUrl, isAppOnlyPath } from './lib/tenantHost';
 import { useBookingCustomization } from './hooks/useBookingCustomization';
 import { CurrencyProvider } from './lib/currencyContext';
 import { ThemeProvider } from './lib/themeContext';
 import { supabase, Service, ServiceDuration } from './lib/supabase';
+
+// Booking steps stay in the main bundle; everything else loads on demand.
+const Admin = lazy(() => import('./components/admin/Admin'));
+const SuperAdmin = lazy(() => import('./components/admin/SuperAdmin'));
+const CancelBooking = lazy(() => import('./components/CancelBooking'));
+const ApproveBooking = lazy(() => import('./components/ApproveBooking'));
+const BookingSuccess = lazy(() => import('./components/BookingSuccess'));
+const GiftCardSuccess = lazy(() => import('./components/GiftCardSuccess'));
+const PaymentCancelled = lazy(() => import('./components/PaymentCancelled'));
+const BusinessRegistration = lazy(() => import('./components/BusinessRegistration').then((m) => ({ default: m.BusinessRegistration })));
+const BusinessSignUp = lazy(() => import('./components/BusinessSignUp').then((m) => ({ default: m.BusinessSignUp })));
+const SignupSuccess = lazy(() => import('./components/SignupSuccess').then((m) => ({ default: m.SignupSuccess })));
+const NoBusinessFound = lazy(() => import('./components/NoBusinessFound').then((m) => ({ default: m.NoBusinessFound })));
+const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal').then((m) => ({ default: m.CustomerPortal })));
+const GiftCardPurchase = lazy(() => import('./components/GiftCardPurchase').then((m) => ({ default: m.GiftCardPurchase })));
+const LandingPage = lazy(() => import('./components/LandingPage').then((m) => ({ default: m.LandingPage })));
+const BusinessLogin = lazy(() => import('./components/BusinessLogin').then((m) => ({ default: m.BusinessLogin })));
+const AcceptInvite = lazy(() => import('./components/AcceptInvite').then((m) => ({ default: m.AcceptInvite })));
+const ForgotPassword = lazy(() => import('./components/ForgotPassword').then((m) => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import('./components/ResetPassword').then((m) => ({ default: m.ResetPassword })));
 
 type Step = 'welcome' | 'service' | 'duration' | 'addons' | 'specialist' | 'datetime' | 'details' | 'payment' | 'giftcard';
 type AppMode = 'landing' | 'login' | 'booking' | 'admin' | 'staff' | 'superadmin' | 'register' | 'signup' | 'signup-success' | 'cancel' | 'customer' | 'accept-invite' | 'forgot-password' | 'reset-password' | 'booking-success' | 'gift-card-success' | 'payment-cancelled' | 'approve-booking';
@@ -67,6 +70,10 @@ interface BookingState {
 function AppContent() {
   const tenant = useTenant();
   const isSpecialistChoiceAllowed = useSpecialistChoice(tenant.businessId);
+
+  useEffect(() => {
+    if (tenant.businessId) prefetchShopPage(tenant.businessId);
+  }, [tenant.businessId]);
   const { customization } = useBookingCustomization();
   const [appMode, setAppMode] = useState<AppMode>(() => {
     const hash = window.location.hash;
@@ -572,12 +579,22 @@ function AppContent() {
   return <ThemeProvider>{bookingContent}</ThemeProvider>;
 }
 
+function PageLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center" role="status" aria-label="Loading">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-800" />
+    </div>
+  );
+}
+
 function App() {
   return (
     <TenantProvider>
       <CurrencyProvider>
         <DynamicBranding />
-        <AppContent />
+        <Suspense fallback={<PageLoading />}>
+          <AppContent />
+        </Suspense>
       </CurrencyProvider>
     </TenantProvider>
   );

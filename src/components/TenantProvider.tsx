@@ -49,6 +49,7 @@ interface ResolvedTenantRow {
   match_type: 'custom_domain' | 'platform_subdomain';
   primary_host: string;
   is_primary_host: boolean;
+  language?: string | null;
 }
 
 type Resolution =
@@ -84,7 +85,12 @@ async function resolveShopHost(): Promise<Resolution> {
     return { kind: 'redirecting' };
   }
 
-  const { data: languageRow } = await supabase.from('businesses').select('language').eq('id', row.business_id).maybeSingle();
+  // resolve_tenant returns the language; the extra query only covers an older database.
+  let language = row.language;
+  if (language === undefined) {
+    const { data: languageRow } = await supabase.from('businesses').select('language').eq('id', row.business_id).maybeSingle();
+    language = (languageRow as { language?: string } | null)?.language ?? null;
+  }
 
   return {
     kind: 'tenant',
@@ -93,7 +99,7 @@ async function resolveShopHost(): Promise<Resolution> {
       name: row.business_name,
       permalink: row.permalink,
       plan_type: row.plan_type,
-      language: (languageRow as { language?: string } | null)?.language ?? null,
+      language,
     },
     customDomain: row.match_type === 'custom_domain' ? window.location.hostname : null,
   };

@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useTenant } from '../lib/tenantContext';
 import { supabase } from '../lib/supabase';
+import { loadBookingCustomization } from '../hooks/useBookingCustomization';
 import DefaultLayout from './layouts/DefaultLayout';
 import VerticalLayout from './layouts/VerticalLayout';
 import MinimalLayout from './layouts/MinimalLayout';
@@ -47,14 +48,11 @@ export default function BookingLayout({ children, imageUrl, imageMobile, imageTa
         return;
       }
 
-      const { data } = await supabase
-        .from('booking_form_customization')
-        .select('styling')
-        .eq('business_id', businessId)
-        .maybeSingle();
-
-      if (data?.styling?.layout) {
-        setLayoutType(data.styling.layout);
+      try {
+        const data = await loadBookingCustomization(businessId);
+        if (data?.styling?.layout) setLayoutType(data.styling.layout);
+      } catch (error) {
+        console.error('Could not load the booking layout:', error);
       }
       setLoading(false);
     }

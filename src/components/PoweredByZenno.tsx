@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { loadShopPageProfile } from '../lib/shopPageData';
 import { useTenant } from '../lib/tenantContext';
 import { BRAND_LOGO, BRAND_SITE_URL } from '../lib/brand';
 
@@ -16,11 +16,10 @@ export function PoweredByZenno() {
         return;
       }
 
-      const { data: business } = await supabase
-        .from('businesses')
-        .select('hide_powered_by_badge, plan_type')
-        .eq('id', tenant.businessId)
-        .maybeSingle();
+      const business = await loadShopPageProfile(tenant.businessId).catch((error) => {
+        console.error('Could not load the badge setting:', error);
+        return null;
+      });
 
       const isPro = business?.plan_type === 'pro' || business?.plan_type === 'premium';
       const isFree = business?.plan_type === 'free' || business?.plan_type === 'starter';

@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import * as LucideIcons from 'lucide-react';
+import { WELCOME_ICON_NAMES, welcomeIcon } from '../../../lib/welcomeIcons';
 import { Plus, Trash2, GripVertical, Save, Upload, AlertCircle, Eye, Code } from 'lucide-react';
 
 interface WelcomeCard {
@@ -19,12 +19,6 @@ interface WelcomeCard {
   description: string;
   is_enabled: boolean;
 }
-
-const POPULAR_ICONS = [
-  'Check', 'CheckCircle2', 'Clock', 'Star', 'Heart', 'Award', 'Shield',
-  'Sparkles', 'Zap', 'Users', 'Calendar', 'Gift', 'ThumbsUp', 'Smile',
-  'BadgeCheck', 'CircleCheck', 'ShieldCheck', 'TrendingUp'
-];
 
 export default function WelcomeFeaturesSettings() {
   const adminUser = useAdminAuth();
@@ -207,13 +201,8 @@ export default function WelcomeFeaturesSettings() {
     if (card.icon_type === 'custom' && card.icon_url) {
       return <img src={card.icon_url} alt="icon" className={size} />;
     }
-    if (card.icon_type === 'lucide' && card.icon_name) {
-      const IconComponent = (LucideIcons as any)[card.icon_name];
-      if (IconComponent) {
-        return <IconComponent className={size} />;
-      }
-    }
-    return <LucideIcons.HelpCircle className={size} />;
+    const IconComponent = welcomeIcon(card.icon_type === 'lucide' ? card.icon_name : null);
+    return <IconComponent className={size} />;
   };
 
   if (loading) {
@@ -360,7 +349,7 @@ export default function WelcomeFeaturesSettings() {
                                 onChange={(e) => updateCard(index, { icon_name: e.target.value })}
                                 className="flex-1 px-3 py-1.5 border rounded-md text-sm"
                               >
-                                {POPULAR_ICONS.map(icon => (
+                                {WELCOME_ICON_NAMES.map(icon => (
                                   <option key={icon} value={icon}>{icon}</option>
                                 ))}
                               </select>

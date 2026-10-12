@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { PoweredByZenno } from '../PoweredByZenno';
 import { useTenant } from '../../lib/tenantContext';
-import { supabase } from '../../lib/supabase';
+import { loadShopPageProfile } from '../../lib/shopPageData';
 import { useTheme } from '../../lib/themeContext';
 
 interface DefaultLayoutProps {
@@ -28,11 +28,10 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
     async function fetchBusinessInfo() {
       if (!businessId) return;
 
-      const { data } = await supabase
-        .from('businesses')
-        .select('name, tagline')
-        .eq('id', businessId)
-        .maybeSingle();
+      const data = await loadShopPageProfile(businessId).catch((error) => {
+        console.error('Could not load the shop name:', error);
+        return null;
+      });
 
       if (data) {
         setBusinessName(data.name || '');
