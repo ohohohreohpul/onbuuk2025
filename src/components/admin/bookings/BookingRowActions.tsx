@@ -1,5 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock } from 'lucide-react';
+import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock, Receipt } from 'lucide-react';
 import type { BookingState } from './bookingState';
 
 interface BookingRowActionsProps {
@@ -13,6 +13,7 @@ interface BookingRowActionsProps {
   onCancel: () => void;
   onRestore: () => void;
   onMove: () => void;
+  onInvoice: () => void;
   onDelete: () => void;
 }
 
@@ -74,6 +75,11 @@ export default function BookingRowActions(props: BookingRowActionsProps) {
             {!isClosed && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onCancel}>
                 <XCircle className="h-4 w-4 text-stone-400" /> Cancel booking
+              </DropdownMenu.Item>
+            )}
+            {state.stage !== 'cancelled' && (
+              <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onInvoice}>
+                <Receipt className="h-4 w-4 text-stone-400" /> Invoice (PDF)
               </DropdownMenu.Item>
             )}
             {state.stage === 'cancelled' && (

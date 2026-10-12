@@ -10,6 +10,9 @@ import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGME
 import RescheduleModal from './bookings/RescheduleModal';
 import { useSpecialistNames } from '../../hooks/useSpecialistNames';
 import { therapistLabel } from '../../lib/therapistLabel';
+import { downloadBookingInvoice } from '../../lib/invoice/invoiceApi';
+
+const SMALL_INVOICE_LIMIT_CENTS = 25000;
 
 interface Booking {
   id: string;
@@ -175,6 +178,26 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const cancelBooking = (booking: Booking) => {
     if (!confirm(`Cancel ${booking.customer_name}'s booking on ${formatDate(booking.booking_date)}?`)) return;
     updateBookingStatus(booking.id, 'cancelled');
+  };
+
+  // Above 250 € (Kleinbetragsrechnung limit) a German invoice needs the customer's address.
+  const downloadInvoice = async (booking: Booking) => {
+    let address: string | undefined;
+    if ((booking.duration?.price_cents ?? 0) > SMALL_INVOICE_LIMIT_CENTS) {
+      address = window.prompt(`Customer address for the invoice of ${booking.customer_name}:`) ?? undefined;
+      if (address === undefined) return;
+    }
+    setBusyId(booking.id);
+    try {
+      await downloadBookingInvoice(booking.id, address);
+    } catch (invoiceError) {
+      console.error('Invoice failed:', invoiceError);
+      alert(invoiceError instanceof Error && invoiceError.message.includes('Steuernummer')
+        ? invoiceError.message
+        : 'Could not create the invoice. Check Settings › Invoices and try again.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const deleteBooking = async (bookingId: string) => {
@@ -409,6 +432,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                           onCancel={() => cancelBooking(booking)}
                           onRestore={() => updateBookingStatus(booking.id, 'confirmed')}
                           onMove={() => setMovingBooking(booking)}
+                          onInvoice={() => downloadInvoice(booking)}
                           onDelete={() => deleteBooking(booking.id)}
                         />
                       </td>
