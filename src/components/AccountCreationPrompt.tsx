@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Lock, UserPlus, X, Check, Gift } from 'lucide-react';
+import { useBookingCustomization } from '../hooks/useBookingCustomization';
 
 interface AccountCreationPromptProps {
   customerEmail: string;
@@ -13,6 +14,7 @@ export default function AccountCreationPrompt({
   customerName,
   businessId,
 }: AccountCreationPromptProps) {
+  const { customization } = useBookingCustomization();
   const [showPrompt, setShowPrompt] = useState(true);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -74,7 +76,8 @@ export default function AccountCreationPrompt({
     }
   };
 
-  if (!showPrompt) return null;
+  // Shops that hide customer sign-in (welcome page) get no account offer either.
+  if (!showPrompt || customization?.welcome_step?.showAccountButton === false) return null;
 
   if (accountCreated) {
     return (

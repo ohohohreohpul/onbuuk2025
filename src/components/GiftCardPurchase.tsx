@@ -97,7 +97,8 @@ const TEXT: Translations<{
   orderUnavailable: string;
   orderLimit: string;
   orderInvalid: string;
-  recipientOptionalHelper: string;
+  recipientInStoreHelper: string;
+  errMessageRequired: string;
 }> = {
   en: {
     back: 'Back',
@@ -109,9 +110,9 @@ const TEXT: Translations<{
     defaultSelectAmountLabel: 'Select Amount',
     defaultEnterCustomLabel: 'Enter custom amount',
     defaultUsePresetLabel: 'Use preset amount',
-    defaultRecipientEmailLabel: 'Recipient Email (Optional)',
+    defaultRecipientEmailLabel: 'Recipient Email',
     defaultRecipientEmailHelper: 'Leave blank to purchase for yourself, or enter an email to send as a gift',
-    defaultMessageLabel: 'Personal Message (Optional)',
+    defaultMessageLabel: 'Personal Message',
     defaultYourDetailsLabel: 'Your Details',
     defaultYourNameLabel: 'Your Name',
     defaultYourEmailLabel: 'Your Email',
@@ -179,7 +180,8 @@ const TEXT: Translations<{
     orderUnavailable: 'This offer is no longer available.',
     orderLimit: 'You have several open orders already. Please contact the shop.',
     orderInvalid: 'Please check your details.',
-    recipientOptionalHelper: 'Optional: who the vouchers are for.',
+    recipientInStoreHelper: 'We send the vouchers to this address once you have paid in the shop.',
+    errMessageRequired: 'Please add a personal message',
   },
   de: {
     back: 'Zurück',
@@ -261,7 +263,8 @@ const TEXT: Translations<{
     orderUnavailable: 'Dieses Angebot ist nicht mehr verfügbar.',
     orderLimit: 'Sie haben bereits mehrere offene Bestellungen. Bitte wenden Sie sich an uns.',
     orderInvalid: 'Bitte prüfen Sie Ihre Angaben.',
-    recipientOptionalHelper: 'Optional: für wen die Gutscheine sind.',
+    recipientInStoreHelper: 'An diese Adresse senden wir die Gutscheine, sobald Sie im Laden bezahlt haben.',
+    errMessageRequired: 'Bitte eine persönliche Nachricht eingeben',
   },
   th: {
     back: 'กลับ',
@@ -273,9 +276,9 @@ const TEXT: Translations<{
     defaultSelectAmountLabel: 'เลือกจำนวนเงิน',
     defaultEnterCustomLabel: 'ระบุจำนวนเงินเอง',
     defaultUsePresetLabel: 'ใช้จำนวนเงินที่กำหนดไว้',
-    defaultRecipientEmailLabel: 'อีเมลผู้รับ (ไม่บังคับ)',
+    defaultRecipientEmailLabel: 'อีเมลผู้รับ',
     defaultRecipientEmailHelper: 'เว้นว่างไว้หากซื้อให้ตนเอง หรือกรอกอีเมลเพื่อส่งเป็นของขวัญ',
-    defaultMessageLabel: 'ข้อความส่วนตัว (ไม่บังคับ)',
+    defaultMessageLabel: 'ข้อความส่วนตัว',
     defaultYourDetailsLabel: 'ข้อมูลของคุณ',
     defaultYourNameLabel: 'ชื่อของคุณ',
     defaultYourEmailLabel: 'อีเมลของคุณ',
@@ -343,7 +346,8 @@ const TEXT: Translations<{
     orderUnavailable: 'ข้อเสนอนี้ไม่มีให้บริการแล้ว',
     orderLimit: 'คุณมีคำสั่งซื้อที่ยังไม่ชำระหลายรายการแล้ว กรุณาติดต่อร้าน',
     orderInvalid: 'กรุณาตรวจสอบข้อมูลของคุณ',
-    recipientOptionalHelper: 'ไม่บังคับ: ระบุว่าบัตรของขวัญนี้สำหรับใคร',
+    recipientInStoreHelper: 'เราจะส่งบัตรกำนัลไปที่อีเมลนี้เมื่อคุณชำระเงินที่ร้านแล้ว',
+    errMessageRequired: 'กรุณาใส่ข้อความส่วนตัว',
   },
 };
 
@@ -585,8 +589,16 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
         setError(t.errChoosePackage);
         return;
       }
-      if (recipientEmail && !emailPattern.test(recipientEmail)) {
+      if (!recipientEmail.trim()) {
+        setError(t.errRecipientRequired);
+        return;
+      }
+      if (!emailPattern.test(recipientEmail)) {
         setError(t.errRecipientInvalid);
+        return;
+      }
+      if (!message.trim()) {
+        setError(t.errMessageRequired);
         return;
       }
       if (!buyerName.trim()) {
@@ -630,15 +642,20 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       }
     }
 
-    if (!recipientEmail && !isPayInStore) {
+    if (!recipientEmail) {
       setError(t.errRecipientRequired);
       return;
     }
 
     // Validate recipient email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (recipientEmail && !emailRegex.test(recipientEmail)) {
+    if (!emailRegex.test(recipientEmail)) {
       setError(t.errRecipientInvalid);
+      return;
+    }
+
+    if (!message.trim()) {
+      setError(t.errMessageRequired);
       return;
     }
 
@@ -955,8 +972,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       {/* Recipient Email */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.recipient_email_label}{' '}
-          {isPayInStore ? <span className="text-gray-400 text-xs font-normal">{t.optional}</span> : <span className="text-red-500">*</span>}
+          {customization.recipient_email_label} <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
@@ -964,17 +980,17 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
           onChange={(e) => setRecipientEmail(e.target.value)}
           placeholder={t.recipientPlaceholder}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required={!isPayInStore}
+          required
         />
         <p className="text-xs text-gray-500">
-          {isPayInStore ? t.recipientOptionalHelper : customization.recipient_email_helper}
+          {isPayInStore ? t.recipientInStoreHelper : customization.recipient_email_helper}
         </p>
       </div>
 
       {/* Message */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
-          {customization.message_label} <span className="text-gray-400 text-xs font-normal">{t.optional}</span>
+          {customization.message_label} <span className="text-red-500">*</span>
         </label>
         <textarea
           value={message}
