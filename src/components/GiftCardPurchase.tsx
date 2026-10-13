@@ -180,7 +180,7 @@ const TEXT: Translations<{
     orderUnavailable: 'This offer is no longer available.',
     orderLimit: 'You have several open orders already. Please contact the shop.',
     orderInvalid: 'Please check your details.',
-    recipientInStoreHelper: 'We send the vouchers to this address once you have paid in the shop.',
+    recipientInStoreHelper: 'Email address of the person receiving the vouchers.',
     errMessageRequired: 'Please add a personal message',
   },
   de: {
@@ -263,7 +263,7 @@ const TEXT: Translations<{
     orderUnavailable: 'Dieses Angebot ist nicht mehr verfügbar.',
     orderLimit: 'Sie haben bereits mehrere offene Bestellungen. Bitte wenden Sie sich an uns.',
     orderInvalid: 'Bitte prüfen Sie Ihre Angaben.',
-    recipientInStoreHelper: 'An diese Adresse senden wir die Gutscheine, sobald Sie im Laden bezahlt haben.',
+    recipientInStoreHelper: 'E-Mail-Adresse der Person, die die Gutscheine erhält.',
     errMessageRequired: 'Bitte eine persönliche Nachricht eingeben',
   },
   th: {
@@ -346,7 +346,7 @@ const TEXT: Translations<{
     orderUnavailable: 'ข้อเสนอนี้ไม่มีให้บริการแล้ว',
     orderLimit: 'คุณมีคำสั่งซื้อที่ยังไม่ชำระหลายรายการแล้ว กรุณาติดต่อร้าน',
     orderInvalid: 'กรุณาตรวจสอบข้อมูลของคุณ',
-    recipientInStoreHelper: 'เราจะส่งบัตรกำนัลไปที่อีเมลนี้เมื่อคุณชำระเงินที่ร้านแล้ว',
+    recipientInStoreHelper: 'อีเมลของผู้ที่จะได้รับบัตรกำนัล',
     errMessageRequired: 'กรุณาใส่ข้อความส่วนตัว',
   },
 };
