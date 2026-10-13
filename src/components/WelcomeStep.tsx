@@ -194,6 +194,10 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
     buttonText: customOr(customization?.welcome_step?.buttonText, t.buttonText, TEXT.en.buttonText),
   };
 
+  // Optional shop notice under the welcome text (e.g. how certain vouchers are redeemed).
+  const noticeTitle = String(customization?.welcome_step?.noticeTitle ?? '').trim();
+  const noticeText = String(customization?.welcome_step?.noticeText ?? '').trim();
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -207,6 +211,23 @@ export default function WelcomeStep({ onBookAppointment, onPurchaseGiftCard }: W
           <p className="text-lg leading-relaxed max-w-lg" style={{ color: colors.textSecondary }}>
             {welcomeContent.subtitle}
           </p>
+          {noticeText && (
+            <aside
+              role="note"
+              className="max-w-lg rounded-2xl border px-4 py-3.5"
+              style={{ borderColor: `${colors.primary || '#1A1714'}33`, backgroundColor: `${colors.primary || '#1A1714'}0D` }}
+            >
+              <div className="flex gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: colors.primary }} aria-hidden="true" />
+                <div className="space-y-1.5">
+                  {noticeTitle && (
+                    <p className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{noticeTitle}</p>
+                  )}
+                  <p className="whitespace-pre-line text-sm leading-relaxed" style={{ color: colors.textSecondary }}>{noticeText}</p>
+                </div>
+              </div>
+            </aside>
+          )}
         </div>
         {customization?.welcome_step?.showAccountButton !== false && (
         <Button

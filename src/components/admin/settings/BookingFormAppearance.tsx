@@ -486,6 +486,27 @@ export default function BookingFormAppearance() {
                     disabled={stepData.showGiftCardButton === false}
                   />
                 </div>
+
+                <div className="space-y-2 rounded-lg bg-stone-50 p-3">
+                  <p className="text-sm font-medium text-stone-700">Notice on the welcome page</p>
+                  <p className="text-xs text-stone-500">Shown in a highlighted box under the welcome text. Leave the text empty to hide it.</p>
+                  <input
+                    type="text"
+                    value={stepData.noticeTitle || ''}
+                    onChange={(e) => updateStepContent(stepKey, 'noticeTitle', e.target.value)}
+                    placeholder="Title, e.g. Wichtiger Hinweis"
+                    maxLength={120}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
+                  />
+                  <textarea
+                    value={stepData.noticeText || ''}
+                    onChange={(e) => updateStepContent(stepKey, 'noticeText', e.target.value)}
+                    placeholder="Text"
+                    rows={4}
+                    maxLength={1000}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
+                  />
+                </div>
               </>
             )}
 
