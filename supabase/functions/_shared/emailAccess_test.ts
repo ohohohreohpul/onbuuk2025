@@ -38,9 +38,22 @@ Deno.test("cancellation email only for a cancelled booking", () => {
   assertThrows(() => assertPublicEventAllowed("booking_cancelled", "confirmed", minutesAgo(1), NOW));
 });
 
-Deno.test("only the exact service-role key counts as a server caller", () => {
-  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "service-key");
-  assert(isServiceRoleRequest(new Request("http://x", { headers: { Authorization: "Bearer service-key" } })));
-  assertFalse(isServiceRoleRequest(new Request("http://x", { headers: { Authorization: "Bearer anon-key" } })));
+const NEW_KEY = "sb_secret_abcdefghijklmnopqrstuvwxyz0123";
+const OTHER_SECRET = "sb_secret_zyxwvutsrqponmlkjihgfedcba9876";
+
+Deno.test("only the project's server keys count as a server caller", () => {
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", NEW_KEY);
+  Deno.env.delete("SUPABASE_SECRET_KEYS");
+  assert(isServiceRoleRequest(new Request("http://x", { headers: { Authorization: `Bearer ${NEW_KEY}` } })));
+  assertFalse(isServiceRoleRequest(new Request("http://x", { headers: { Authorization: "Bearer anon-key-anon-key-anon-key" } })));
   assertFalse(isServiceRoleRequest(new Request("http://x")));
+});
+
+Deno.test("accepts a server key in the apikey header and any key from SUPABASE_SECRET_KEYS", () => {
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", NEW_KEY);
+  Deno.env.set("SUPABASE_SECRET_KEYS", JSON.stringify({ default: OTHER_SECRET }));
+  assert(isServiceRoleRequest(new Request("http://x", { headers: { apikey: NEW_KEY, Authorization: "Bearer user-jwt" } })));
+  assert(isServiceRoleRequest(new Request("http://x", { headers: { Authorization: `Bearer ${OTHER_SECRET}` } })));
+  assertFalse(isServiceRoleRequest(new Request("http://x", { headers: { apikey: "sb_publishable_not-a-server-key" } })));
+  Deno.env.delete("SUPABASE_SECRET_KEYS");
 });

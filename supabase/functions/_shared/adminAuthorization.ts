@@ -130,12 +130,37 @@ export function authorizationErrorResponse(error: unknown, corsHeaders: HeadersI
   return null;
 }
 
-/** True when another edge function calls with the service-role key. */
-export function isServiceRoleRequest(req: Request): boolean {
+/**
+ * Every server key of the project. Supabase now hands functions the new
+ * "sb_secret_..." key in SUPABASE_SERVICE_ROLE_KEY and lists all secret keys
+ * in SUPABASE_SECRET_KEYS (JSON), so a single string comparison is not enough.
+ */
+export function serverKeys(): string[] {
+  const keys = new Set<string>();
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (serviceKey) keys.add(serviceKey);
+
+  const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "";
+  if (secretKeys) {
+    try {
+      const parsed: unknown = JSON.parse(secretKeys);
+      const values = Array.isArray(parsed) ? parsed : typeof parsed === "object" && parsed ? Object.values(parsed) : [parsed];
+      for (const value of values) if (typeof value === "string" && value) keys.add(value);
+    } catch {
+      keys.add(secretKeys);
+    }
+  }
+  return [...keys].filter((key) => key.length >= 20);
+}
+
+/** True when another edge function (or a trusted server job) calls with a server key. */
+export function isServiceRoleRequest(req: Request): boolean {
+  const keys = serverKeys();
+  if (keys.length === 0) return false;
   const header = req.headers.get("Authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
-  return serviceKey.length > 0 && token === serviceKey;
+  const bearer = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+  const apikey = (req.headers.get("apikey") ?? "").trim();
+  return keys.some((key) => (bearer !== "" && bearer === key) || (apikey !== "" && apikey === key));
 }
 
 /** Server calls pass; otherwise the caller must be an active admin of this business. */
