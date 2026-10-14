@@ -17,7 +17,6 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
   const { businessId } = useTenant();
   const { colors } = useTheme();
   const [businessName, setBusinessName] = useState('');
-  const [businessTagline, setBusinessTagline] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Theme colors with fallbacks
@@ -35,7 +34,6 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
 
       if (data) {
         setBusinessName(data.name || '');
-        setBusinessTagline(data.tagline || '');
       }
     }
 
@@ -112,7 +110,6 @@ export default function DefaultLayout({ children, imageUrl, imageMobile, imageTa
                 {businessName && (
                   <>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{businessName}</h2>
-                    {businessTagline && <p className="text-sm sm:text-base" style={{ color: colors.textSecondary }}>{businessTagline}</p>}
                   </>
                 )}
               </div>

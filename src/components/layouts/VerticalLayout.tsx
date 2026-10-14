@@ -15,7 +15,6 @@ interface VerticalLayoutProps {
 export default function VerticalLayout({ children, imageUrl, imageMobile, imageTablet, imageDesktop, imageAlt = 'Business' }: VerticalLayoutProps) {
   const { businessId } = useTenant();
   const [businessName, setBusinessName] = useState('');
-  const [businessTagline, setBusinessTagline] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -29,7 +28,6 @@ export default function VerticalLayout({ children, imageUrl, imageMobile, imageT
 
       if (data) {
         setBusinessName(data.name || '');
-        setBusinessTagline(data.tagline || '');
       }
     }
 
@@ -82,7 +80,6 @@ export default function VerticalLayout({ children, imageUrl, imageMobile, imageT
               {businessName && (
                 <>
                   <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 tracking-tight">{businessName}</h2>
-                  {businessTagline && <p className="text-muted-foreground text-sm sm:text-base">{businessTagline}</p>}
                 </>
               )}
             </div>

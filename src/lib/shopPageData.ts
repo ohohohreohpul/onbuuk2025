@@ -5,7 +5,6 @@ import { loadBookingCustomization } from '../hooks/useBookingCustomization';
 /** Shop fields the public booking page needs (header, badge, welcome page). */
 export interface ShopPageProfile {
   name: string | null;
-  tagline: string | null;
   plan_type: string | null;
   hide_powered_by_badge: boolean | null;
   enable_bookings: boolean | null;
@@ -15,7 +14,7 @@ export interface ShopPageProfile {
   welcome_custom_html: string | null;
 }
 
-const PROFILE_COLUMNS = 'name, tagline, plan_type, hide_powered_by_badge, enable_bookings, enable_gift_cards, '
+const PROFILE_COLUMNS = 'name, plan_type, hide_powered_by_badge, enable_bookings, enable_gift_cards, '
   + 'show_welcome_features, use_custom_welcome_html, welcome_custom_html';
 
 export function loadShopPageProfile(businessId: string): Promise<ShopPageProfile | null> {
