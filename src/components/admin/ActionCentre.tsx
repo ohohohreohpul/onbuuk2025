@@ -6,17 +6,162 @@ import { AlertCircle, CalendarX2, UserX, Banknote, Repeat2, ArrowRight, Sparkles
 import { useCurrency } from '../../lib/currencyContext';
 import { createUnpaidNoShowFees, type UnbilledNoShow } from '../../lib/noShowFees';
 import { REGULAR_MIN_VISITS, fetchCustomerStatsForBusiness } from '../../lib/customerStats';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, Translations } from '../../lib/bookingLanguage';
+
+type ActionId = 'refill' | 'unpaid-fees' | 'unbilled-no-shows' | 'no-shows' | 'pending' | 'lapsed' | 'first-timers';
 
 interface ActionItem {
-  id: string;
-  title: string;
-  detail: string;
-  actionLabel: string;
+  id: ActionId;
+  count: number;
+  amount: number;
   targetView: string;
   tint: 'amber' | 'stone' | 'red' | 'ink';
   signature: string;
   recoverableValue: number;
   unbilledNoShows?: UnbilledNoShow[];
+}
+
+type ActionText = {
+  refillOne: string; refillMany: string; refillDetailOne: string; refillDetailMany: string; refillAction: string;
+  unpaidOne: string; unpaidMany: string; unpaidDetail: string; unpaidAction: string;
+  unbilledOne: string; unbilledMany: string; unbilledDetail: string; unbilledAction: string;
+  noPolicyOne: string; noPolicyMany: string; noPolicyDetail: string; noPolicyAction: string;
+  pendingOne: string; pendingMany: string; pendingDetail: string; pendingAction: string;
+  lapsedOne: string; lapsedMany: string; lapsedDetail: string;
+  firstOne: string; firstMany: string; firstDetail: string; viewCustomers: string;
+  allClear: string; allClearDetail: string; lastHidden: string; hidden: string; undo: string;
+  title: string; itemOne: string; itemMany: string; recoverable: string; attention: string; hint: string;
+  later: string; hideLabel: string; billingError: string;
+};
+
+const TEXT: Translations<ActionText> = {
+  en: {
+    refillOne: '{count} upcoming slot freed by cancellation',
+    refillMany: '{count} upcoming slots freed by cancellation',
+    refillDetailOne: "Worth {amount}. Offer it to a regular or your waitlist, then use Later once you've reached out.",
+    refillDetailMany: "Worth {amount}. Offer them to a regular or your waitlist, then use Later once you've reached out.",
+    refillAction: 'Open bookings',
+    unpaidOne: '{count} no-show fee unpaid', unpaidMany: '{count} no-show fees unpaid',
+    unpaidDetail: '{amount} outstanding. Charge the saved card, record another payment, or waive the fee.',
+    unpaidAction: 'Resolve fee',
+    unbilledOne: '{count} no-show was never billed', unbilledMany: '{count} no-shows were never billed',
+    unbilledDetail: '{amount} in fees under your policy. Add them to No-Show Fees, then charge, record or waive each one.',
+    unbilledAction: 'Add fees',
+    noPolicyOne: '{count} no-show on services without a fee', noPolicyMany: '{count} no-shows on services without a fee',
+    noPolicyDetail: 'Set a no-show fee on these services so the next missed appointment is covered.',
+    noPolicyAction: 'Set a fee',
+    pendingOne: '{count} upcoming booking awaiting confirmation', pendingMany: '{count} upcoming bookings awaiting confirmation',
+    pendingDetail: "Confirm them so customers don't wonder whether they're booked.",
+    pendingAction: 'Confirm now',
+    lapsedOne: "{count} regular client hasn't been in for 30+ days", lapsedMany: "{count} regular clients haven't been in for 30+ days",
+    lapsedDetail: 'They know the service and loved it. A short "we miss you" usually brings them back.',
+    firstOne: "{count} first-time client hasn't rebooked", firstMany: "{count} first-time clients haven't rebooked",
+    firstDetail: 'The second visit is the hardest to win. A personal follow-up now converts best.',
+    viewCustomers: 'View customers',
+    allClear: 'All clear',
+    allClearDetail: 'Nothing needs your attention right now. Resolved tasks stay closed; snoozed items return tomorrow.',
+    lastHidden: 'Last item hidden until tomorrow.', hidden: 'Hidden until tomorrow.', undo: 'Undo',
+    title: 'Action Centre', itemOne: '{count} item', itemMany: '{count} items',
+    recoverable: 'Up to {amount} recoverable today if you act on these.',
+    attention: 'What needs your attention today.',
+    hint: 'Resolve the underlying task, or use Later to hide it until tomorrow.',
+    later: 'Later', hideLabel: 'Hide "{title}" until tomorrow',
+    billingError: 'We could not add these fees. Please try again.',
+  },
+  de: {
+    refillOne: '{count} kommender Termin durch Stornierung frei', refillMany: '{count} kommende Termine durch Stornierung frei',
+    refillDetailOne: 'Wert: {amount}. Stammkunden oder der Warteliste anbieten und nach der Kontaktaufnahme „Später“ wählen.',
+    refillDetailMany: 'Wert: {amount}. Stammkunden oder der Warteliste anbieten und nach der Kontaktaufnahme „Später“ wählen.',
+    refillAction: 'Buchungen öffnen',
+    unpaidOne: '{count} No-Show-Gebühr unbezahlt', unpaidMany: '{count} No-Show-Gebühren unbezahlt',
+    unpaidDetail: '{amount} offen. Gespeicherte Karte belasten, andere Zahlung erfassen oder Gebühr erlassen.',
+    unpaidAction: 'Gebühr klären',
+    unbilledOne: '{count} No-Show wurde nie berechnet', unbilledMany: '{count} No-Shows wurden nie berechnet',
+    unbilledDetail: '{amount} an Gebühren laut Richtlinie. Unter No-Show-Gebühren hinzufügen, dann jeweils belasten, erfassen oder erlassen.',
+    unbilledAction: 'Gebühren hinzufügen',
+    noPolicyOne: '{count} No-Show bei Leistungen ohne Gebühr', noPolicyMany: '{count} No-Shows bei Leistungen ohne Gebühr',
+    noPolicyDetail: 'Für diese Leistungen eine No-Show-Gebühr festlegen, damit der nächste verpasste Termin abgedeckt ist.',
+    noPolicyAction: 'Gebühr festlegen',
+    pendingOne: '{count} kommende Buchung wartet auf Bestätigung', pendingMany: '{count} kommende Buchungen warten auf Bestätigung',
+    pendingDetail: 'Jetzt bestätigen, damit Kunden sicher wissen, dass ihr Termin steht.',
+    pendingAction: 'Jetzt bestätigen',
+    lapsedOne: '{count} Stammkunde seit über 30 Tagen nicht da', lapsedMany: '{count} Stammkunden seit über 30 Tagen nicht da',
+    lapsedDetail: 'Sie kennen und schätzen die Leistung. Ein kurzes „Wir vermissen Sie“ bringt sie meist zurück.',
+    firstOne: '{count} Erstkunde hat nicht wieder gebucht', firstMany: '{count} Erstkunden haben nicht wieder gebucht',
+    firstDetail: 'Der zweite Besuch ist am schwersten zu gewinnen. Eine persönliche Nachricht wirkt jetzt am besten.',
+    viewCustomers: 'Kunden anzeigen',
+    allClear: 'Alles erledigt',
+    allClearDetail: 'Gerade gibt es nichts zu tun. Erledigte Aufgaben bleiben geschlossen, verschobene kommen morgen wieder.',
+    lastHidden: 'Letzte Aufgabe bis morgen ausgeblendet.', hidden: 'Bis morgen ausgeblendet.', undo: 'Rückgängig',
+    title: 'Aufgaben', itemOne: '{count} Aufgabe', itemMany: '{count} Aufgaben',
+    recoverable: 'Bis zu {amount} heute zurückzugewinnen, wenn diese Aufgaben erledigt werden.',
+    attention: 'Was heute Aufmerksamkeit braucht.',
+    hint: 'Die eigentliche Aufgabe erledigen oder mit „Später“ bis morgen ausblenden.',
+    later: 'Später', hideLabel: '„{title}“ bis morgen ausblenden',
+    billingError: 'Die Gebühren konnten nicht hinzugefügt werden. Bitte erneut versuchen.',
+  },
+  th: {
+    refillOne: 'มีคิวว่าง {count} คิวจากการยกเลิก', refillMany: 'มีคิวว่าง {count} คิวจากการยกเลิก',
+    refillDetailOne: 'มูลค่า {amount} เสนอให้ลูกค้าประจำหรือรายชื่อรอคิว แล้วกด "ภายหลัง" เมื่อติดต่อแล้ว',
+    refillDetailMany: 'มูลค่า {amount} เสนอให้ลูกค้าประจำหรือรายชื่อรอคิว แล้วกด "ภายหลัง" เมื่อติดต่อแล้ว',
+    refillAction: 'เปิดการจอง',
+    unpaidOne: 'ค่าธรรมเนียมไม่มาตามนัดค้างชำระ {count} รายการ', unpaidMany: 'ค่าธรรมเนียมไม่มาตามนัดค้างชำระ {count} รายการ',
+    unpaidDetail: 'ค้างอยู่ {amount} เรียกเก็บจากบัตรที่บันทึกไว้ บันทึกการชำระแบบอื่น หรือยกเว้นค่าธรรมเนียม',
+    unpaidAction: 'จัดการค่าธรรมเนียม',
+    unbilledOne: 'ไม่มาตามนัด {count} รายการยังไม่ได้เรียกเก็บ', unbilledMany: 'ไม่มาตามนัด {count} รายการยังไม่ได้เรียกเก็บ',
+    unbilledDetail: 'ค่าธรรมเนียม {amount} ตามนโยบายของร้าน เพิ่มไปที่ค่าธรรมเนียมไม่มาตามนัด แล้วเรียกเก็บ บันทึก หรือยกเว้นทีละรายการ',
+    unbilledAction: 'เพิ่มค่าธรรมเนียม',
+    noPolicyOne: 'ไม่มาตามนัด {count} รายการในบริการที่ไม่มีค่าธรรมเนียม', noPolicyMany: 'ไม่มาตามนัด {count} รายการในบริการที่ไม่มีค่าธรรมเนียม',
+    noPolicyDetail: 'ตั้งค่าธรรมเนียมไม่มาตามนัดให้บริการเหล่านี้ เพื่อให้นัดหมายที่พลาดครั้งต่อไปได้รับการชดเชย',
+    noPolicyAction: 'ตั้งค่าธรรมเนียม',
+    pendingOne: 'การจองที่กำลังจะมาถึง {count} รายการรอยืนยัน', pendingMany: 'การจองที่กำลังจะมาถึง {count} รายการรอยืนยัน',
+    pendingDetail: 'ยืนยันการจองเพื่อให้ลูกค้ามั่นใจว่าจองสำเร็จแล้ว',
+    pendingAction: 'ยืนยันเลย',
+    lapsedOne: 'ลูกค้าประจำ {count} คนไม่ได้มาเกิน 30 วัน', lapsedMany: 'ลูกค้าประจำ {count} คนไม่ได้มาเกิน 30 วัน',
+    lapsedDetail: 'พวกเขารู้จักและชอบบริการของร้านอยู่แล้ว ข้อความสั้น ๆ ว่า "คิดถึงนะ" มักทำให้กลับมา',
+    firstOne: 'ลูกค้าใหม่ {count} คนยังไม่จองอีก', firstMany: 'ลูกค้าใหม่ {count} คนยังไม่จองอีก',
+    firstDetail: 'การมาครั้งที่สองยากที่สุด การติดตามแบบส่วนตัวตอนนี้ได้ผลดีที่สุด',
+    viewCustomers: 'ดูลูกค้า',
+    allClear: 'ไม่มีงานค้าง',
+    allClearDetail: 'ตอนนี้ไม่มีอะไรต้องจัดการ งานที่เสร็จแล้วจะไม่กลับมา ส่วนงานที่เลื่อนไว้จะกลับมาพรุ่งนี้',
+    lastHidden: 'ซ่อนงานล่าสุดไว้จนถึงพรุ่งนี้', hidden: 'ซ่อนไว้จนถึงพรุ่งนี้', undo: 'เลิกทำ',
+    title: 'ศูนย์งาน', itemOne: '{count} รายการ', itemMany: '{count} รายการ',
+    recoverable: 'กู้คืนได้สูงสุด {amount} วันนี้ หากจัดการรายการเหล่านี้',
+    attention: 'สิ่งที่ต้องจัดการวันนี้',
+    hint: 'จัดการงานให้เสร็จ หรือกด "ภายหลัง" เพื่อซ่อนไว้จนถึงพรุ่งนี้',
+    later: 'ภายหลัง', hideLabel: 'ซ่อน "{title}" จนถึงพรุ่งนี้',
+    billingError: 'เพิ่มค่าธรรมเนียมไม่สำเร็จ โปรดลองอีกครั้ง',
+  },
+};
+
+interface ItemText {
+  title: string;
+  detail: string;
+  actionLabel: string;
+}
+
+/** Title, detail and button label for an action, in the current admin language. */
+function describeItem(item: ActionItem, t: ActionText, formatPrice: (cents: number) => string): ItemText {
+  const isOne = item.count === 1;
+  const values = { count: item.count, amount: formatPrice(item.amount) };
+  const pick = (one: string, many: string) => fillText(isOne ? one : many, values);
+  switch (item.id) {
+    case 'refill':
+      return { title: pick(t.refillOne, t.refillMany), detail: pick(t.refillDetailOne, t.refillDetailMany), actionLabel: t.refillAction };
+    case 'unpaid-fees':
+      return { title: pick(t.unpaidOne, t.unpaidMany), detail: fillText(t.unpaidDetail, values), actionLabel: t.unpaidAction };
+    case 'unbilled-no-shows':
+      return { title: pick(t.unbilledOne, t.unbilledMany), detail: fillText(t.unbilledDetail, values), actionLabel: t.unbilledAction };
+    case 'no-shows':
+      return { title: pick(t.noPolicyOne, t.noPolicyMany), detail: t.noPolicyDetail, actionLabel: t.noPolicyAction };
+    case 'pending':
+      return { title: pick(t.pendingOne, t.pendingMany), detail: t.pendingDetail, actionLabel: t.pendingAction };
+    case 'lapsed':
+      return { title: pick(t.lapsedOne, t.lapsedMany), detail: t.lapsedDetail, actionLabel: t.viewCustomers };
+    case 'first-timers':
+      return { title: pick(t.firstOne, t.firstMany), detail: t.firstDetail, actionLabel: t.viewCustomers };
+  }
 }
 
 interface ActionCentreProps {
@@ -87,6 +232,7 @@ const durationPrice = (booking: BookingActionRow) => {
 
 export default function ActionCentre({ onNavigate, refreshKey }: ActionCentreProps) {
   const { formatPrice } = useCurrency();
+  const { t } = useAdminText(TEXT);
   const adminUser = adminAuth.getCurrentUser();
   const [items, setItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,9 +310,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
         const est = cancellations.reduce((sum, booking) => sum + durationPrice(booking), 0);
         actions.push({
           id: 'refill',
-          title: `${cancellations.length} upcoming slot${cancellations.length === 1 ? '' : 's'} freed by cancellation`,
-          detail: `Worth ${formatPrice(est)}. Offer ${cancellations.length === 1 ? 'it' : 'them'} to a regular or your waitlist, then use Later once you've reached out.`,
-          actionLabel: 'Open bookings',
+          count: cancellations.length,
+          amount: est,
           targetView: 'bookings',
           tint: 'ink',
           signature: makeSignature(cancellations.map((booking) => booking.id)),
@@ -180,9 +325,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
         const owed = unpaid.reduce((sum, f) => sum + Math.round(Number(f.amount) || 0), 0);
         actions.push({
           id: 'unpaid-fees',
-          title: `${unpaid.length} no-show fee${unpaid.length === 1 ? '' : 's'} unpaid`,
-          detail: `${formatPrice(owed)} outstanding. Charge the saved card, record another payment, or waive the fee.`,
-          actionLabel: 'Resolve fee',
+          count: unpaid.length,
+          amount: owed,
           targetView: 'fees',
           tint: 'red',
           signature: makeSignature(unpaid.map((fee) => fee.id)),
@@ -207,9 +351,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
         const owedUnbilled = unbilled.reduce((sum, booking) => sum + booking.feeCents, 0);
         actions.push({
           id: 'unbilled-no-shows',
-          title: `${unbilled.length} no-show${unbilled.length === 1 ? ' was' : 's were'} never billed`,
-          detail: `${formatPrice(owedUnbilled)} in fees under your policy. Add them to No-Show Fees, then charge, record or waive each one.`,
-          actionLabel: 'Add fees',
+          count: unbilled.length,
+          amount: owedUnbilled,
           targetView: 'fees',
           tint: 'amber',
           signature: makeSignature(unbilled.map((booking) => booking.id)),
@@ -222,9 +365,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       if (withoutPolicy.length > 0) {
         actions.push({
           id: 'no-shows',
-          title: `${withoutPolicy.length} no-show${withoutPolicy.length === 1 ? '' : 's'} on services without a fee`,
-          detail: 'Set a no-show fee on these services so the next missed appointment is covered.',
-          actionLabel: 'Set a fee',
+          count: withoutPolicy.length,
+          amount: 0,
           targetView: 'services',
           tint: 'stone',
           signature: makeSignature(withoutPolicy.map((booking) => booking.id)),
@@ -237,9 +379,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       if (pendingUp.length > 0) {
         actions.push({
           id: 'pending',
-          title: `${pendingUp.length} upcoming booking${pendingUp.length === 1 ? '' : 's'} awaiting confirmation`,
-          detail: 'Confirm them so customers don\'t wonder whether they\'re booked.',
-          actionLabel: 'Confirm now',
+          count: pendingUp.length,
+          amount: 0,
           targetView: 'bookings',
           tint: 'amber',
           signature: makeSignature(pendingUp.map((booking) => booking.id)),
@@ -255,9 +396,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       if (lapsedRegulars.length > 0) {
         actions.push({
           id: 'lapsed',
-          title: `${lapsedRegulars.length} regular client${lapsedRegulars.length === 1 ? " hasn't" : 's haven\'t'} been in for 30+ days`,
-          detail: 'They know the service and loved it. A short "we miss you" usually brings them back.',
-          actionLabel: 'View customers',
+          count: lapsedRegulars.length,
+          amount: 0,
           targetView: 'customers',
           tint: 'stone',
           signature: makeSignature(lapsedRegulars.map((customer) => customer.customer_id)),
@@ -272,9 +412,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       if (firstTimers.length > 0) {
         actions.push({
           id: 'first-timers',
-          title: `${firstTimers.length} first-time client${firstTimers.length === 1 ? " hasn't" : 's haven\'t'} rebooked`,
-          detail: 'The second visit is the hardest to win. A personal follow-up now converts best.',
-          actionLabel: 'View customers',
+          count: firstTimers.length,
+          amount: 0,
           targetView: 'customers',
           tint: 'stone',
           signature: makeSignature(firstTimers.map((customer) => customer.customer_id)),
@@ -339,7 +478,7 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
     const { error } = await createUnpaidNoShowFees(businessId, item.unbilledNoShows);
     setSnoozingId(null);
     if (error) {
-      setBillingError(error);
+      setBillingError(t.billingError);
       return;
     }
     onNavigate(item.targetView);
@@ -385,16 +524,16 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
             <Sparkles className="h-4 w-4 text-stone-600" strokeWidth={1.75} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1A1714]">All clear</p>
-            <p className="text-xs text-stone-500">Nothing needs your attention right now. Resolved tasks stay closed; snoozed items return tomorrow.</p>
+            <p className="text-sm font-semibold text-[#1A1714]">{t.allClear}</p>
+            <p className="text-xs text-stone-500">{t.allClearDetail}</p>
           </div>
         </div>
         {lastSnoozed && (
           <div className="flex items-center justify-between gap-3 border-t border-stone-200/70 bg-stone-900/[0.025] px-5 py-2.5 text-xs text-stone-600">
-            <span>Last item hidden until tomorrow.</span>
+            <span>{t.lastHidden}</span>
             <button type="button" onClick={undoSnooze} className="inline-flex items-center gap-1 font-medium text-stone-800 hover:text-black">
               <Undo2 className="h-3 w-3" />
-              Undo
+              {t.undo}
             </button>
           </div>
         )}
@@ -402,7 +541,7 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
     );
   }
 
-  const iconFor = (id: string) => {
+  const iconFor = (id: ActionId) => {
     if (id === 'refill') return CalendarX2;
     if (id === 'unpaid-fees') return Banknote;
     if (id === 'no-shows') return AlertCircle;
@@ -417,22 +556,23 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       <div className="px-5 pt-5 pb-3 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2.5 mb-0.5">
-            <h2 className="text-[15px] font-semibold tracking-tight text-[#1A1714]">Action Centre</h2>
+            <h2 className="text-[15px] font-semibold tracking-tight text-[#1A1714]">{t.title}</h2>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
-              {items.length} item{items.length === 1 ? '' : 's'}
+              {fillText(items.length === 1 ? t.itemOne : t.itemMany, { count: items.length })}
             </span>
           </div>
           <p className="text-xs text-stone-500">
             {recoveredValue > 0
-              ? `Up to ${formatPrice(recoveredValue)} recoverable today if you act on these.`
-              : 'What needs your attention today.'}
+              ? fillText(t.recoverable, { amount: formatPrice(recoveredValue) })
+              : t.attention}
           </p>
-          <p className="mt-1 text-[11px] text-stone-400">Resolve the underlying task, or use Later to hide it until tomorrow.</p>
+          <p className="mt-1 text-[11px] text-stone-400">{t.hint}</p>
         </div>
       </div>
       <div className="px-2.5 pb-2.5 space-y-1">
         {items.map((item) => {
           const Icon = iconFor(item.id);
+          const text = describeItem(item, t, formatPrice);
           return (
             <div
               key={item.id}
@@ -443,8 +583,8 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
                   <Icon className="h-4 w-4" strokeWidth={1.75} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-tight">{item.title}</p>
-                  <p className={`text-xs mt-0.5 ${item.tint === 'ink' ? 'text-white/70' : 'opacity-70'}`}>{item.detail}</p>
+                  <p className="text-sm font-medium leading-tight">{text.title}</p>
+                  <p className={`text-xs mt-0.5 ${item.tint === 'ink' ? 'text-white/70' : 'opacity-70'}`}>{text.detail}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-auto">
@@ -455,10 +595,10 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
                   className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all disabled:opacity-50 ${
                     item.tint === 'ink' ? 'text-white/65 hover:bg-white/10 hover:text-white' : 'text-stone-500 hover:bg-white/75 hover:text-stone-700'
                   }`}
-                  aria-label={`Hide ${item.title} until tomorrow`}
+                  aria-label={fillText(t.hideLabel, { title: text.title })}
                 >
                   {snoozingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock3 className="h-3 w-3" />}
-                  Later
+                  {t.later}
                 </button>
                 <button
                   type="button"
@@ -470,7 +610,7 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
                       : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 hover:shadow-sm'
                   }`}
                 >
-                  {item.actionLabel}
+                  {text.actionLabel}
                   <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
@@ -483,10 +623,10 @@ export default function ActionCentre({ onNavigate, refreshKey }: ActionCentrePro
       )}
       {lastSnoozed && (
         <div className="mx-2.5 mb-2.5 flex items-center justify-between gap-3 rounded-xl bg-stone-900/[0.045] px-3 py-2 text-xs text-stone-600">
-          <span>Hidden until tomorrow.</span>
+          <span>{t.hidden}</span>
           <button type="button" onClick={undoSnooze} className="inline-flex items-center gap-1 font-medium text-stone-800 hover:text-black">
             <Undo2 className="h-3 w-3" />
-            Undo
+            {t.undo}
           </button>
         </div>
       )}

@@ -1,0 +1,37 @@
+{
+  "title": "Admin panel in German, English and Thai",
+  "state": {
+    "product": "Zenno: booking + gift card SaaS for German wellness/massage studios, many run by Thai owners. First live shop SATUUU99. Customer booking pages and emails already support en/de/th via businesses.language (one language per shop).",
+    "request": "Owner (2026-10-14): admin panels should be available in Thai; owners mostly speak German, English and Thai. Different people in the same shop may prefer different languages.",
+    "codebase": "Admin UI is 64 React files, ~25k lines, all hard-coded English, no i18n library. Booking pages use a small in-house pattern: per-component text tables Record<'en'|'de'|'th', T> plus useBookingText(). Largest admin files: LoyaltyRewards 1.6k, Services 1.1k, Products, BookingFormAppearance, GeneralSettings, TaxReports, TeamManagement ~0.8-1k lines each.",
+    "effort": "Infrastructure + language picker ~1 h. Daily screens (sidebar/nav, dashboard, calendar, bookings list, create/edit booking, customers, gift card station/orders, login) ~1 day. All remaining settings/reports/loyalty/products/team ~2 more days.",
+    "constraints": "One developer (Claude). SATUUU99 is live and its staff use the daily screens. Untranslated screens fall back to English."
+  },
+  "decisions": {
+    "storage": {
+      "instructions": "Where is the admin language choice stored?",
+      "criteria": {
+        "per_user_db": "Per admin user in admin_users.ui_language (follows them across devices), default from browser language, picker in the sidebar.",
+        "per_browser": "localStorage only, default from browser language.",
+        "per_shop": "One admin language per shop."
+      },
+      "fallback": "per_user_db"
+    },
+    "rollout": {
+      "instructions": "How to roll out?",
+      "criteria": {
+        "daily_first": "Ship infrastructure + picker + the daily screens first, then translate the rest screen by screen in follow-up rounds.",
+        "all_at_once": "Translate all 64 files before shipping anything."
+      },
+      "fallback": "daily_first"
+    },
+    "approach": {
+      "instructions": "How to implement translations?",
+      "criteria": {
+        "reuse_inhouse": "Reuse the existing in-house pattern (typed per-component text tables, useAdminText hook), no new dependency.",
+        "i18next": "Add react-i18next with JSON resource files."
+      },
+      "fallback": "reuse_inhouse"
+    }
+  }
+}

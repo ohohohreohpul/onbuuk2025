@@ -91,3 +91,11 @@
 | couple_display | **both_columns_linked** | 1.00 | both_columns_linked 100%, first_column_badge 0% |
 | easyweek_approach | **generic_csv_mapping** | 1.00 | generic_csv_mapping 100%, wait_for_file 0%, manual_service 0% |
 | invoice_scope | **invoice_pdf_first** | 0.98 | invoice_pdf_first 99%, later 1%, zugferd_now 0% |
+
+## 2026-10-14 — Admin panel in German, English and Thai (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| storage | **per_user_db** | 0.91 | per_user_db 94%, per_browser 3%, per_shop 3% |
+| rollout | **daily_first** | 1.00 | daily_first 100%, all_at_once 0% |
+| approach | **reuse_inhouse** | 0.98 | reuse_inhouse 99%, i18next 1% |

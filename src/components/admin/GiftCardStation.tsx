@@ -5,6 +5,60 @@ import { useCurrency } from '../../lib/currencyContext';
 import { useQrCodeScanner } from '../../hooks/useQrCodeScanner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  enterOrScan: string; checkFailed: string; notFound: string; fullyRedeemed: string; expired: string;
+  passRedeemFailed: string; visitRedeemedOne: string; visitRedeemedMany: string; invalidAmount: string;
+  exceedsBalance: string; redeemFailed: string; redeemedAmount: string; title: string; subtitle: string;
+  manage: string; cancelScan: string; codePlaceholder: string; lookUp: string; scanQr: string;
+  visitLeft: string; visitsLeft: string; minutes: string; balance: string; startOver: string;
+  passHint: string; redeeming: string; redeemOneVisit: string; redeemAmount: string; redeem: string;
+}> = {
+  en: {
+    enterOrScan: 'Please enter or scan a gift card code', checkFailed: 'Failed to check gift card balance',
+    notFound: 'Gift card not found', fullyRedeemed: 'This gift card has already been fully redeemed',
+    expired: 'This gift card has expired', passRedeemFailed: 'Failed to redeem service pass',
+    visitRedeemedOne: 'One visit redeemed. 1 visit remains.', visitRedeemedMany: 'One visit redeemed. {count} visits remain.',
+    invalidAmount: 'Enter a valid amount to redeem', exceedsBalance: 'Amount exceeds the remaining balance',
+    redeemFailed: 'Failed to redeem gift card', redeemedAmount: 'Redeemed {amount}. Remaining balance: {balance}',
+    title: 'Gift Card Station', subtitle: 'Check value balances or redeem a service-pass visit in person',
+    manage: 'Manage Gift Cards', cancelScan: 'Cancel Scan', codePlaceholder: 'Enter gift card code', lookUp: 'Look up gift card',
+    scanQr: 'Scan QR', visitLeft: '1 visit left', visitsLeft: '{count} visits left', minutes: '{count} min',
+    balance: 'Balance:', startOver: 'Start over',
+    passHint: 'Redeem one visit for the service shown above. The pass keeps its own visit count and is never converted into a cash balance.',
+    redeeming: 'Redeeming...', redeemOneVisit: 'Redeem one visit', redeemAmount: 'Redeem Amount', redeem: 'Redeem',
+  },
+  de: {
+    enterOrScan: 'Bitte einen Gutscheincode eingeben oder scannen', checkFailed: 'Guthaben konnte nicht geprüft werden',
+    notFound: 'Gutschein nicht gefunden', fullyRedeemed: 'Dieser Gutschein wurde bereits vollständig eingelöst',
+    expired: 'Dieser Gutschein ist abgelaufen', passRedeemFailed: 'Behandlungsgutschein konnte nicht eingelöst werden',
+    visitRedeemedOne: 'Ein Besuch eingelöst. 1 Besuch verbleibt.', visitRedeemedMany: 'Ein Besuch eingelöst. {count} Besuche verbleiben.',
+    invalidAmount: 'Bitte einen gültigen Betrag zum Einlösen eingeben', exceedsBalance: 'Betrag übersteigt das verbleibende Guthaben',
+    redeemFailed: 'Gutschein konnte nicht eingelöst werden', redeemedAmount: '{amount} eingelöst. Restguthaben: {balance}',
+    title: 'Gutschein-Station', subtitle: 'Guthaben prüfen oder einen Besuch eines Behandlungsgutscheins vor Ort einlösen',
+    manage: 'Gutscheine verwalten', cancelScan: 'Scan abbrechen', codePlaceholder: 'Gutscheincode eingeben', lookUp: 'Gutschein suchen',
+    scanQr: 'QR scannen', visitLeft: 'Noch 1 Besuch', visitsLeft: 'Noch {count} Besuche', minutes: '{count} Min.',
+    balance: 'Guthaben:', startOver: 'Neu beginnen',
+    passHint: 'Einen Besuch für die oben angezeigte Leistung einlösen. Der Gutschein behält seine eigene Besuchszahl und wird nie in Guthaben umgewandelt.',
+    redeeming: 'Wird eingelöst...', redeemOneVisit: 'Einen Besuch einlösen', redeemAmount: 'Einzulösender Betrag', redeem: 'Einlösen',
+  },
+  th: {
+    enterOrScan: 'กรุณากรอกหรือสแกนรหัสบัตรของขวัญ', checkFailed: 'ตรวจสอบยอดคงเหลือไม่สำเร็จ',
+    notFound: 'ไม่พบบัตรของขวัญ', fullyRedeemed: 'บัตรของขวัญนี้ใช้ครบแล้ว',
+    expired: 'บัตรของขวัญนี้หมดอายุแล้ว', passRedeemFailed: 'ใช้บัตรบริการไม่สำเร็จ',
+    visitRedeemedOne: 'ใช้ไป 1 ครั้งแล้ว เหลืออีก 1 ครั้ง', visitRedeemedMany: 'ใช้ไป 1 ครั้งแล้ว เหลืออีก {count} ครั้ง',
+    invalidAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', exceedsBalance: 'จำนวนเงินเกินยอดคงเหลือ',
+    redeemFailed: 'ใช้บัตรของขวัญไม่สำเร็จ', redeemedAmount: 'ใช้ไป {amount} ยอดคงเหลือ: {balance}',
+    title: 'จุดบริการบัตรของขวัญ', subtitle: 'ตรวจสอบยอดคงเหลือ หรือใช้สิทธิ์บัตรบริการที่ร้าน',
+    manage: 'จัดการบัตรของขวัญ', cancelScan: 'ยกเลิกการสแกน', codePlaceholder: 'กรอกรหัสบัตรของขวัญ', lookUp: 'ค้นหาบัตรของขวัญ',
+    scanQr: 'สแกน QR', visitLeft: 'เหลือ 1 ครั้ง', visitsLeft: 'เหลือ {count} ครั้ง', minutes: '{count} นาที',
+    balance: 'ยอดคงเหลือ:', startOver: 'เริ่มใหม่',
+    passHint: 'ใช้สิทธิ์ 1 ครั้งสำหรับบริการด้านบน บัตรนี้นับจำนวนครั้งแยกต่างหากและไม่แปลงเป็นยอดเงิน',
+    redeeming: 'กำลังใช้บัตร...', redeemOneVisit: 'ใช้สิทธิ์ 1 ครั้ง', redeemAmount: 'จำนวนเงินที่ใช้', redeem: 'ใช้บัตร',
+  },
+};
 
 interface GiftCardStationProps {
   businessId: string;
@@ -29,6 +83,7 @@ type Mode = 'type' | 'scan';
 
 export default function GiftCardStation({ businessId, onNavigate }: GiftCardStationProps) {
   const { formatPrice } = useCurrency();
+  const { t } = useAdminText(TEXT);
   const [mode, setMode] = useState<Mode>('type');
   const [code, setCode] = useState('');
   const [looking, setLooking] = useState(false);
@@ -42,7 +97,7 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
   const lookupCode = async (rawCode: string) => {
     const cleanCode = rawCode.trim().toUpperCase();
     if (!cleanCode) {
-      setLookupError('Please enter or scan a gift card code');
+      setLookupError(t.enterOrScan);
       return;
     }
 
@@ -61,13 +116,13 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
 
     if (error) {
       console.error('Error checking gift card:', error);
-      setLookupError('Failed to check gift card balance');
+      setLookupError(t.checkFailed);
     } else if (!data) {
-      setLookupError('Gift card not found');
+      setLookupError(t.notFound);
     } else if (data.status === 'fully_redeemed') {
-      setLookupError('This gift card has already been fully redeemed');
+      setLookupError(t.fullyRedeemed);
     } else if (data.status === 'expired' || (data.expires_at && new Date(data.expires_at) < new Date())) {
-      setLookupError('This gift card has expired');
+      setLookupError(t.expired);
     } else {
       const service = Array.isArray(data.service) ? data.service[0] : data.service;
       const duration = Array.isArray(data.duration) ? data.duration[0] : data.duration;
@@ -107,11 +162,11 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
       setRedeemSuccess(null);
       const { data, error } = await supabase.rpc('redeem_service_pass_at_pos', { p_code: card.code });
       if (error) {
-        setRedeemError(error.message || 'Failed to redeem service pass');
+        setRedeemError(error.message || t.passRedeemFailed);
       } else {
         const remainingVisits = Number(data?.remainingVisits || 0);
         setCard({ ...card, remaining_visits: remainingVisits, status: remainingVisits === 0 ? 'fully_redeemed' : card.status });
-        setRedeemSuccess(`One visit redeemed. ${remainingVisits} ${remainingVisits === 1 ? 'visit remains' : 'visits remain'}.`);
+        setRedeemSuccess(remainingVisits === 1 ? t.visitRedeemedOne : fillText(t.visitRedeemedMany, { count: remainingVisits }));
       }
       setRedeeming(false);
       return;
@@ -119,11 +174,11 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
 
     const amountCents = Math.round(parseFloat(redeemAmount) * 100);
     if (!amountCents || amountCents <= 0) {
-      setRedeemError('Enter a valid amount to redeem');
+      setRedeemError(t.invalidAmount);
       return;
     }
     if (amountCents > card.current_balance_cents) {
-      setRedeemError('Amount exceeds the remaining balance');
+      setRedeemError(t.exceedsBalance);
       return;
     }
 
@@ -140,12 +195,12 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
 
     if (error) {
       console.error('Error redeeming gift card:', error);
-      setRedeemError(error.message || 'Failed to redeem gift card');
+      setRedeemError(error.message || t.redeemFailed);
     } else {
       const newBalance = data as number;
       setCard({ ...card, current_balance_cents: newBalance, status: newBalance === 0 ? 'redeemed' : card.status });
       setRedeemAmount((newBalance / 100).toFixed(2));
-      setRedeemSuccess(`Redeemed ${formatPrice(amountCents)}. Remaining balance: ${formatPrice(newBalance)}`);
+      setRedeemSuccess(fillText(t.redeemedAmount, { amount: formatPrice(amountCents), balance: formatPrice(newBalance) }));
     }
 
     setRedeeming(false);
@@ -169,12 +224,12 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
               <Gift className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg">Gift Card Station</CardTitle>
-              <p className="text-sm text-muted-foreground">Check value balances or redeem a service-pass visit in person</p>
+              <CardTitle className="text-lg">{t.title}</CardTitle>
+              <p className="text-sm text-muted-foreground">{t.subtitle}</p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => onNavigate('gift-cards')}>
-            Manage Gift Cards
+            {t.manage}
           </Button>
         </div>
       </CardHeader>
@@ -194,7 +249,7 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
             <div className="flex justify-center">
               <Button variant="outline" onClick={handleCancelScan}>
                 <X className="h-4 w-4 mr-2" />
-                Cancel Scan
+                {t.cancelScan}
               </Button>
             </div>
           </div>
@@ -205,20 +260,22 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && lookupCode(code)}
-              placeholder="Enter gift card code"
+              placeholder={t.codePlaceholder}
+              aria-label={t.codePlaceholder}
               className="flex-1 px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1714]/20 focus:border-[#1A1714] transition-all uppercase placeholder:normal-case"
             />
             <div className="flex gap-3">
               <Button
                 onClick={() => lookupCode(code)}
                 disabled={looking || !code.trim()}
+                aria-label={t.lookUp}
                 className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] hover:shadow-lg hover:shadow-[#1A1714]/25 px-6"
               >
                 {looking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
               <Button variant="outline" onClick={handleStartScan}>
                 <Camera className="h-4 w-4 mr-2" />
-                Scan QR
+                {t.scanQr}
               </Button>
             </div>
           </div>
@@ -241,27 +298,28 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
                 <p className="text-sm font-semibold text-green-900">{card.code}</p>
                 <p className="text-sm text-green-700 mt-0.5">
                   {card.card_type === 'service_pass' ? (
-                    <><span className="font-bold text-lg">{card.remaining_visits || 0} {(card.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left</span><span className="block text-xs">{card.service_pass_name} · {card.service?.name} · {card.duration?.duration_minutes} min</span></>
+                    <><span className="font-bold text-lg">{(card.remaining_visits || 0) === 1 ? t.visitLeft : fillText(t.visitsLeft, { count: card.remaining_visits || 0 })}</span><span className="block text-xs">{card.service_pass_name} · {card.service?.name} · {fillText(t.minutes, { count: card.duration?.duration_minutes ?? '' })}</span></>
                   ) : (
-                    <>Balance: <span className="font-bold text-lg">{formatPrice(card.current_balance_cents)}</span></>
+                    <>{t.balance} <span className="font-bold text-lg">{formatPrice(card.current_balance_cents)}</span></>
                   )}
                 </p>
               </div>
-              <button onClick={resetStation} className="text-green-700 hover:text-green-900" title="Start over">
+              <button onClick={resetStation} className="text-green-700 hover:text-green-900" title={t.startOver}
+                aria-label={t.startOver}>
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {card.card_type === 'service_pass' && (card.remaining_visits || 0) > 0 ? (
               <div className="space-y-3 rounded-xl border border-gray-200 bg-white/70 p-4">
-                <p className="text-sm leading-6 text-gray-600">Redeem one visit for the service shown above. The pass keeps its own visit count and is never converted into a cash balance.</p>
+                <p className="text-sm leading-6 text-gray-600">{t.passHint}</p>
                 <Button onClick={handleRedeem} disabled={redeeming} className="w-full bg-gradient-to-r from-[#1A1714] to-[#3D3833] px-6">
-                  {redeeming ? 'Redeeming...' : 'Redeem one visit'}
+                  {redeeming ? t.redeeming : t.redeemOneVisit}
                 </Button>
               </div>
             ) : card.current_balance_cents > 0 && (
               <div className="p-4 bg-white/70 border border-gray-200 rounded-xl space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Redeem Amount</label>
+                <label className="block text-sm font-medium text-gray-700">{t.redeemAmount}</label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="number"
@@ -277,7 +335,7 @@ export default function GiftCardStation({ businessId, onNavigate }: GiftCardStat
                     disabled={redeeming}
                     className="bg-gradient-to-r from-[#1A1714] to-[#3D3833] px-6"
                   >
-                    {redeeming ? 'Redeeming...' : 'Redeem'}
+                    {redeeming ? t.redeeming : t.redeem}
                   </Button>
                 </div>
               </div>

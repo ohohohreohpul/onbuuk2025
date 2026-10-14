@@ -2,6 +2,35 @@ import { useState, useEffect } from 'react';
 import { X, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
+import { useAdminText } from '../../lib/adminLanguage';
+import { Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string; close: string; to: string; unavailable: string; tip: string; tipBody: string;
+  saveFailed: string; cancel: string; saving: string; saveHours: string;
+}> = {
+  en: {
+    title: 'Working Hours', close: 'Close', to: 'to', unavailable: 'Unavailable', tip: 'Tip:',
+    tipBody: 'Uncheck a day to mark it as unavailable. Times will be ignored for unchecked days.',
+    saveFailed: 'Failed to save working hours', cancel: 'Cancel', saving: 'Saving...', saveHours: 'Save Hours',
+  },
+  de: {
+    title: 'Arbeitszeiten', close: 'Schließen', to: 'bis', unavailable: 'Nicht verfügbar', tip: 'Tipp:',
+    tipBody: 'Haken entfernen, um einen Tag als nicht verfügbar zu markieren. Zeiten an diesen Tagen werden ignoriert.',
+    saveFailed: 'Arbeitszeiten konnten nicht gespeichert werden', cancel: 'Abbrechen', saving: 'Wird gespeichert...', saveHours: 'Arbeitszeiten speichern',
+  },
+  th: {
+    title: 'เวลาทำงาน', close: 'ปิด', to: 'ถึง', unavailable: 'ไม่ว่าง', tip: 'เคล็ดลับ:',
+    tipBody: 'เอาเครื่องหมายถูกออกเพื่อตั้งวันนั้นเป็นวันไม่ว่าง ระบบจะไม่ใช้เวลาของวันที่ไม่ได้เลือก',
+    saveFailed: 'บันทึกเวลาทำงานไม่สำเร็จ', cancel: 'ยกเลิก', saving: 'กำลังบันทึก...', saveHours: 'บันทึกเวลาทำงาน',
+  },
+};
+
+const DAY_COUNT = 7;
+
+/** Full weekday name for day_of_week (0 = Sunday) in the admin's locale. */
+const weekdayName = (dayOfWeek: number, locale: string): string =>
+  new Date(2024, 0, 7 + dayOfWeek).toLocaleDateString(locale, { weekday: 'long' });
 
 interface WorkingHoursModalProps {
   specialistId: string;
@@ -17,9 +46,8 @@ interface WorkingHour {
   is_available: boolean;
 }
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 export default function WorkingHoursModal({ specialistId, specialistName, onClose }: WorkingHoursModalProps) {
+  const { t, locale } = useAdminText(TEXT);
   const { businessId } = useTenant();
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
   const [saving, setSaving] = useState(false);
@@ -39,7 +67,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
       setWorkingHours(data);
     } else {
       setWorkingHours(
-        DAYS.map((_, index) => ({
+        Array.from({ length: DAY_COUNT }, (_, index) => ({
           day_of_week: index,
           start_time: '09:00',
           end_time: '17:00',
@@ -85,7 +113,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
       onClose();
     } catch (error) {
       console.error('Error saving working hours:', error);
-      alert('Failed to save working hours');
+      alert(t.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -98,11 +126,11 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
           <div className="flex items-center space-x-3">
             <Clock className="w-6 h-6 text-stone-700" />
             <div>
-              <h2 className="text-xl font-semibold text-stone-900">Working Hours</h2>
+              <h2 className="text-xl font-semibold text-stone-900">{t.title}</h2>
               <p className="text-sm text-stone-600">{specialistName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
+          <button onClick={onClose} aria-label={t.close} title={t.close} className="text-stone-400 hover:text-stone-600">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -123,7 +151,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
                       className="rounded border-stone-300"
                     />
                     <span className="text-sm font-medium text-stone-700">
-                      {DAYS[wh.day_of_week]}
+                      {weekdayName(wh.day_of_week, locale)}
                     </span>
                   </label>
                 </div>
@@ -136,7 +164,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
                     disabled={!wh.is_available}
                     className="px-3 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 disabled:bg-stone-50 disabled:text-stone-400"
                   />
-                  <span className="text-stone-500">to</span>
+                  <span className="text-stone-500">{t.to}</span>
                   <input
                     type="time"
                     value={wh.end_time}
@@ -147,7 +175,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
                 </div>
 
                 {!wh.is_available && (
-                  <span className="text-xs text-stone-400">Unavailable</span>
+                  <span className="text-xs text-stone-400">{t.unavailable}</span>
                 )}
               </div>
             ))}
@@ -155,7 +183,7 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
 
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Tip:</strong> Uncheck a day to mark it as unavailable. Times will be ignored for unchecked days.
+              <strong>{t.tip}</strong> {t.tipBody}
             </p>
           </div>
         </div>
@@ -165,14 +193,14 @@ export default function WorkingHoursModal({ specialistId, specialistName, onClos
             onClick={onClose}
             className="px-6 py-2 border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
           >
-            Cancel
+            {t.cancel}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-6 py-2 bg-stone-900 text-white hover:bg-stone-800 transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Hours'}
+            {saving ? t.saving : t.saveHours}
           </button>
         </div>
       </div>

@@ -3,6 +3,8 @@ import { CalendarClock, Loader2, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../lib/tenantContext';
 import { toLocalDateString } from '../../../lib/localDateTime';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { fillText, type Translations } from '../../../lib/bookingLanguage';
 import { ADMIN_INPUT, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON } from '../adminUi';
 
 export interface MovableBooking {
@@ -21,11 +23,43 @@ interface RescheduleModalProps {
   onMoved: () => void;
 }
 
+const TEXT: Translations<{
+  title: string; close: string; emailNotice: string; date: string; freeTimes: string; loadingTimes: string;
+  noFreeTimes: string; time: string; cancel: string; moving: string; chooseDateTime: string;
+  slotUnavailable: string; moveFailed: string;
+}> = {
+  en: {
+    title: 'Move appointment', close: 'Close', emailNotice: '{name} gets an email with the new time and a new reminder.',
+    date: 'Date', freeTimes: 'Free times', loadingTimes: 'Loading free times',
+    noFreeTimes: 'No free times that day — you can still enter a time below.', time: 'Time', cancel: 'Cancel',
+    moving: 'Moving…', chooseDateTime: 'Choose a date and a time.',
+    slotUnavailable: 'That time is taken or the shop is closed then. Pick another time.',
+    moveFailed: 'Could not move the booking. Please try again.',
+  },
+  de: {
+    title: 'Termin verschieben', close: 'Schließen', emailNotice: '{name} erhält eine E-Mail mit der neuen Uhrzeit und eine neue Erinnerung.',
+    date: 'Datum', freeTimes: 'Freie Zeiten', loadingTimes: 'Freie Zeiten werden geladen',
+    noFreeTimes: 'Keine freien Zeiten an diesem Tag – eine Uhrzeit kann trotzdem unten eingegeben werden.', time: 'Uhrzeit', cancel: 'Abbrechen',
+    moving: 'Wird verschoben…', chooseDateTime: 'Bitte Datum und Uhrzeit wählen.',
+    slotUnavailable: 'Diese Zeit ist belegt oder das Geschäft ist dann geschlossen. Bitte eine andere Zeit wählen.',
+    moveFailed: 'Die Buchung konnte nicht verschoben werden. Bitte erneut versuchen.',
+  },
+  th: {
+    title: 'เลื่อนนัด', close: 'ปิด', emailNotice: '{name} จะได้รับอีเมลแจ้งเวลาใหม่และการแจ้งเตือนใหม่',
+    date: 'วันที่', freeTimes: 'เวลาว่าง', loadingTimes: 'กำลังโหลดเวลาว่าง',
+    noFreeTimes: 'ไม่มีเวลาว่างในวันนั้น แต่ยังกรอกเวลาด้านล่างได้', time: 'เวลา', cancel: 'ยกเลิก',
+    moving: 'กำลังเลื่อนนัด…', chooseDateTime: 'กรุณาเลือกวันที่และเวลา',
+    slotUnavailable: 'เวลานี้ถูกจองแล้วหรือร้านปิด กรุณาเลือกเวลาอื่น',
+    moveFailed: 'เลื่อนการจองไม่สำเร็จ กรุณาลองอีกครั้ง',
+  },
+};
+
 const TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 /** Move a booking to another day/time for the same therapist. The customer is emailed. */
 export default function RescheduleModal({ booking, onClose, onMoved }: RescheduleModalProps) {
   const { businessId } = useTenant();
+  const { t } = useAdminText(TEXT);
   const [date, setDate] = useState(booking.booking_date);
   const [time, setTime] = useState(booking.start_time.slice(0, 5));
   const [freeTimes, setFreeTimes] = useState<string[]>([]);
@@ -60,7 +94,7 @@ export default function RescheduleModal({ booking, onClose, onMoved }: Reschedul
 
   const save = async () => {
     if (!date || !TIME_PATTERN.test(time)) {
-      setError('Choose a date and a time.');
+      setError(t.chooseDateTime);
       return;
     }
     setIsSaving(true);
@@ -72,8 +106,8 @@ export default function RescheduleModal({ booking, onClose, onMoved }: Reschedul
     setIsSaving(false);
     if (moveError) {
       setError(moveError.message.includes('SLOT_UNAVAILABLE')
-        ? 'That time is taken or the shop is closed then. Pick another time.'
-        : 'Could not move the booking. Please try again.');
+        ? t.slotUnavailable
+        : t.moveFailed);
       return;
     }
     onMoved();
@@ -87,17 +121,17 @@ export default function RescheduleModal({ booking, onClose, onMoved }: Reschedul
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarClock className="h-5 w-5 text-stone-600" aria-hidden="true" />
-            <h2 id="reschedule-title" className="text-lg font-semibold text-[#1A1714]">Move appointment</h2>
+            <h2 id="reschedule-title" className="text-lg font-semibold text-[#1A1714]">{t.title}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-stone-400 hover:text-stone-700">
+          <button type="button" onClick={onClose} aria-label={t.close} className="text-stone-400 hover:text-stone-700">
             <X className="h-5 w-5" />
           </button>
         </div>
         <p className="mb-4 text-sm text-stone-500">
-          {booking.customer_name} gets an email with the new time and a new reminder.
+          {fillText(t.emailNotice, { name: booking.customer_name })}
         </p>
 
-        <label htmlFor="reschedule-date" className="block text-sm font-medium text-stone-700">Date</label>
+        <label htmlFor="reschedule-date" className="block text-sm font-medium text-stone-700">{t.date}</label>
         <input
           id="reschedule-date"
           type="date"
@@ -107,11 +141,11 @@ export default function RescheduleModal({ booking, onClose, onMoved }: Reschedul
           onChange={(e) => setDate(e.target.value)}
         />
 
-        <p className="mt-4 text-sm font-medium text-stone-700">Free times</p>
+        <p className="mt-4 text-sm font-medium text-stone-700">{t.freeTimes}</p>
         <div className="mt-2 flex min-h-[2.5rem] flex-wrap gap-2">
-          {isLoadingTimes && <Loader2 className="h-4 w-4 animate-spin text-stone-400" aria-label="Loading free times" />}
+          {isLoadingTimes && <Loader2 className="h-4 w-4 animate-spin text-stone-400" aria-label={t.loadingTimes} />}
           {!isLoadingTimes && freeTimes.length === 0 && (
-            <span className="text-sm text-stone-400">No free times that day — you can still enter a time below.</span>
+            <span className="text-sm text-stone-400">{t.noFreeTimes}</span>
           )}
           {!isLoadingTimes && freeTimes.map((slot) => (
             <button
@@ -126,15 +160,15 @@ export default function RescheduleModal({ booking, onClose, onMoved }: Reschedul
           ))}
         </div>
 
-        <label htmlFor="reschedule-time" className="mt-4 block text-sm font-medium text-stone-700">Time</label>
+        <label htmlFor="reschedule-time" className="mt-4 block text-sm font-medium text-stone-700">{t.time}</label>
         <input id="reschedule-time" type="time" step={300} className={`${ADMIN_INPUT} mt-1.5`} value={time} onChange={(e) => setTime(e.target.value)} />
 
         {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
 
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className={ADMIN_SECONDARY_BUTTON}>Cancel</button>
+          <button type="button" onClick={onClose} className={ADMIN_SECONDARY_BUTTON}>{t.cancel}</button>
           <button type="button" onClick={save} disabled={isSaving || isUnchanged} className={ADMIN_PRIMARY_BUTTON}>
-            {isSaving ? 'Moving…' : 'Move appointment'}
+            {isSaving ? t.moving : t.title}
           </button>
         </div>
       </div>

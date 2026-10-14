@@ -11,6 +11,104 @@ import {
   ADMIN_SEGMENTED_CONTROL,
   ADMIN_SURFACE,
 } from './adminUi';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, Translations } from '../../lib/bookingLanguage';
+
+type PosText = {
+  notFound: string; notUsable: string; statusExpired: string; statusFullyRedeemed: string; statusCancelled: string;
+  statusPendingPayment: string; statusInactive: string; noVisitsLeft: string; zeroBalance: string; passRedeemFailed: string;
+  visitRedeemedOne: string; visitRedeemedMany: string; amountRange: string; redeemedSuccess: string; redeemFailed: string;
+  confirmMarkPaid: string; bookingUpdateFailed: string; bookingMarkedPaid: string; title: string; subtitle: string;
+  pendingCountOne: string; pendingCountMany: string; tabRedeem: string; tabPending: string; findHeading: string;
+  findHint: string; codeLabel: string; searching: string; findCard: string; serviceEntitlement: string;
+  availableBalance: string; visitLeft: string; visitsLeft: string; minutes: string; passHint: string; processing: string;
+  redeemOneVisit: string; amountToRedeem: string; redeemValue: string; maximum: string; bookingsHeading: string;
+  bookingsHint: string; emptyTitle: string; emptyHint: string; colDateTime: string; colCustomer: string; colService: string;
+  colAmount: string; colActions: string; markPaid: string;
+};
+
+const TEXT: Translations<PosText> = {
+  en: {
+    notFound: 'Gift card not found', notUsable: 'This gift card is {status} and cannot be used',
+    statusExpired: 'expired', statusFullyRedeemed: 'fully redeemed', statusCancelled: 'cancelled',
+    statusPendingPayment: 'awaiting payment', statusInactive: 'inactive',
+    noVisitsLeft: 'This service pass has no visits remaining', zeroBalance: 'This gift card has a zero balance',
+    passRedeemFailed: 'Failed to redeem service pass', visitRedeemedOne: 'Visit redeemed. 1 visit remains.',
+    visitRedeemedMany: 'Visit redeemed. {count} visits remain.', amountRange: 'Amount must be between {min} and {max}',
+    redeemedSuccess: 'Successfully redeemed {amount} from gift card!', redeemFailed: 'Failed to redeem gift card',
+    confirmMarkPaid: 'Mark this booking as paid?', bookingUpdateFailed: 'Failed to update booking',
+    bookingMarkedPaid: 'Booking marked as paid!', title: 'Checkout desk',
+    subtitle: 'Redeem value cards or service-pass visits and close pending in-person payments.',
+    pendingCountOne: '1 pending payment', pendingCountMany: '{count} pending payments',
+    tabRedeem: 'Redeem card or pass', tabPending: 'Pending payments', findHeading: 'Find a card or pass',
+    findHint: 'Scan a code or enter it exactly as shown to check its live balance or remaining visits.',
+    codeLabel: 'Card or pass code', searching: 'Searching…', findCard: 'Find card',
+    serviceEntitlement: 'Service entitlement', availableBalance: 'Available balance',
+    visitLeft: '1 visit left', visitsLeft: '{count} visits left', minutes: '{count} min',
+    passHint: 'Redeem one visit for the service shown above. This records the current service value but never turns the pass into cash.',
+    processing: 'Processing…', redeemOneVisit: 'Redeem one visit', amountToRedeem: 'Amount to redeem ({symbol})',
+    redeemValue: 'Redeem value', maximum: 'Maximum {amount}', bookingsHeading: 'Bookings awaiting payment',
+    bookingsHint: 'Use this after collecting payment at the venue.', emptyTitle: 'Nothing waiting for payment',
+    emptyHint: 'New pay-at-venue bookings appear here.', colDateTime: 'Date & time', colCustomer: 'Customer',
+    colService: 'Service', colAmount: 'Amount', colActions: 'Actions', markPaid: 'Mark paid',
+  },
+  de: {
+    notFound: 'Gutschein nicht gefunden', notUsable: 'Dieser Gutschein ist {status} und kann nicht verwendet werden',
+    statusExpired: 'abgelaufen', statusFullyRedeemed: 'vollständig eingelöst', statusCancelled: 'storniert',
+    statusPendingPayment: 'noch nicht bezahlt', statusInactive: 'inaktiv',
+    noVisitsLeft: 'Für diesen Behandlungsgutschein sind keine Besuche mehr übrig', zeroBalance: 'Dieser Gutschein hat kein Guthaben mehr',
+    passRedeemFailed: 'Behandlungsgutschein konnte nicht eingelöst werden', visitRedeemedOne: 'Besuch eingelöst. 1 Besuch verbleibt.',
+    visitRedeemedMany: 'Besuch eingelöst. {count} Besuche verbleiben.', amountRange: 'Der Betrag muss zwischen {min} und {max} liegen',
+    redeemedSuccess: '{amount} vom Gutschein eingelöst.', redeemFailed: 'Gutschein konnte nicht eingelöst werden',
+    confirmMarkPaid: 'Diese Buchung als bezahlt markieren?', bookingUpdateFailed: 'Buchung konnte nicht aktualisiert werden',
+    bookingMarkedPaid: 'Buchung als bezahlt markiert.', title: 'Kasse',
+    subtitle: 'Wertgutscheine oder Besuche von Behandlungsgutscheinen einlösen und offene Zahlungen vor Ort abschließen.',
+    pendingCountOne: '1 offene Zahlung', pendingCountMany: '{count} offene Zahlungen',
+    tabRedeem: 'Gutschein einlösen', tabPending: 'Offene Zahlungen', findHeading: 'Gutschein suchen',
+    findHint: 'Code scannen oder genau wie angezeigt eingeben, um das aktuelle Guthaben oder die verbleibenden Besuche zu prüfen.',
+    codeLabel: 'Gutscheincode', searching: 'Suche läuft…', findCard: 'Gutschein suchen',
+    serviceEntitlement: 'Leistungsanspruch', availableBalance: 'Verfügbares Guthaben',
+    visitLeft: 'Noch 1 Besuch', visitsLeft: 'Noch {count} Besuche', minutes: '{count} Min.',
+    passHint: 'Einen Besuch für die oben angezeigte Leistung einlösen. Dabei wird der aktuelle Leistungswert erfasst, der Gutschein wird aber nie in Bargeld umgewandelt.',
+    processing: 'Wird verarbeitet…', redeemOneVisit: 'Einen Besuch einlösen', amountToRedeem: 'Einzulösender Betrag ({symbol})',
+    redeemValue: 'Betrag einlösen', maximum: 'Maximal {amount}', bookingsHeading: 'Buchungen mit offener Zahlung',
+    bookingsHint: 'Nutzen Sie dies, nachdem die Zahlung vor Ort erfolgt ist.', emptyTitle: 'Keine offenen Zahlungen',
+    emptyHint: 'Neue Buchungen mit Zahlung vor Ort erscheinen hier.', colDateTime: 'Datum & Uhrzeit', colCustomer: 'Kund:in',
+    colService: 'Leistung', colAmount: 'Betrag', colActions: 'Aktionen', markPaid: 'Als bezahlt markieren',
+  },
+  th: {
+    notFound: 'ไม่พบบัตรของขวัญ', notUsable: 'บัตรของขวัญนี้{status} จึงใช้งานไม่ได้',
+    statusExpired: 'หมดอายุแล้ว', statusFullyRedeemed: 'ใช้ครบแล้ว', statusCancelled: 'ถูกยกเลิกแล้ว',
+    statusPendingPayment: 'ยังไม่ชำระ', statusInactive: 'ยังไม่เปิดใช้งาน',
+    noVisitsLeft: 'บัตรบริการนี้ไม่มีสิทธิ์คงเหลือแล้ว', zeroBalance: 'บัตรของขวัญนี้ไม่มียอดคงเหลือ',
+    passRedeemFailed: 'ใช้บัตรบริการไม่สำเร็จ', visitRedeemedOne: 'ใช้สิทธิ์แล้ว เหลืออีก 1 ครั้ง',
+    visitRedeemedMany: 'ใช้สิทธิ์แล้ว เหลืออีก {count} ครั้ง', amountRange: 'จำนวนเงินต้องอยู่ระหว่าง {min} ถึง {max}',
+    redeemedSuccess: 'ใช้บัตรของขวัญ {amount} สำเร็จ', redeemFailed: 'ใช้บัตรของขวัญไม่สำเร็จ',
+    confirmMarkPaid: 'ทำเครื่องหมายว่าการจองนี้ชำระแล้ว?', bookingUpdateFailed: 'อัปเดตการจองไม่สำเร็จ',
+    bookingMarkedPaid: 'ทำเครื่องหมายว่าชำระแล้ว', title: 'แคชเชียร์',
+    subtitle: 'ใช้บัตรของขวัญแบบมูลค่าหรือบัตรบริการ และปิดยอดที่ชำระที่ร้าน',
+    pendingCountOne: 'รอชำระ 1 รายการ', pendingCountMany: 'รอชำระ {count} รายการ',
+    tabRedeem: 'ใช้บัตรของขวัญ', tabPending: 'รอชำระเงิน', findHeading: 'ค้นหาบัตรของขวัญ',
+    findHint: 'สแกนหรือกรอกรหัสให้ตรงตามที่แสดง เพื่อตรวจสอบยอดคงเหลือหรือจำนวนครั้งที่เหลือ',
+    codeLabel: 'รหัสบัตรของขวัญ', searching: 'กำลังค้นหา…', findCard: 'ค้นหาบัตร',
+    serviceEntitlement: 'สิทธิ์ใช้บริการ', availableBalance: 'ยอดคงเหลือที่ใช้ได้',
+    visitLeft: 'เหลือ 1 ครั้ง', visitsLeft: 'เหลือ {count} ครั้ง', minutes: '{count} นาที',
+    passHint: 'ใช้สิทธิ์ 1 ครั้งสำหรับบริการด้านบน ระบบจะบันทึกมูลค่าบริการปัจจุบัน แต่บัตรจะไม่ถูกแปลงเป็นเงินสด',
+    processing: 'กำลังดำเนินการ…', redeemOneVisit: 'ใช้สิทธิ์ 1 ครั้ง', amountToRedeem: 'จำนวนเงินที่ใช้ ({symbol})',
+    redeemValue: 'ใช้ยอดเงิน', maximum: 'สูงสุด {amount}', bookingsHeading: 'การจองที่รอชำระเงิน',
+    bookingsHint: 'ใช้หลังจากรับชำระเงินที่ร้านแล้ว', emptyTitle: 'ไม่มีรายการรอชำระ',
+    emptyHint: 'การจองที่ชำระที่ร้านจะแสดงที่นี่', colDateTime: 'วันและเวลา', colCustomer: 'ลูกค้า',
+    colService: 'บริการ', colAmount: 'จำนวนเงิน', colActions: 'การดำเนินการ', markPaid: 'ทำเครื่องหมายว่าชำระแล้ว',
+  },
+};
+
+const CARD_STATUS_KEYS: Record<string, keyof PosText> = {
+  expired: 'statusExpired',
+  fully_redeemed: 'statusFullyRedeemed',
+  redeemed: 'statusFullyRedeemed',
+  cancelled: 'statusCancelled',
+  pending_payment: 'statusPendingPayment',
+};
 
 interface GiftCard {
   id: string;
@@ -46,6 +144,7 @@ interface PendingBooking {
 export function POSView() {
   const { businessId } = useTenant();
   const { formatAmount, currencySymbol } = useCurrency();
+  const { t, locale } = useAdminText(TEXT);
   const [activeTab, setActiveTab] = useState<'gift_cards' | 'bookings'>('gift_cards');
 
   // Gift card state
@@ -105,19 +204,19 @@ export function POSView() {
       .maybeSingle();
 
     if (cardError || !card) {
-      setError('Gift card not found');
+      setError(t.notFound);
       setSearchingCard(false);
       return;
     }
 
     if (card.status !== 'active') {
-      setError(`This gift card is ${card.status}  and cannot be used`);
+      setError(fillText(t.notUsable, { status: t[CARD_STATUS_KEYS[card.status] ?? 'statusInactive'] }));
       setSearchingCard(false);
       return;
     }
 
     if (card.card_type === 'service_pass' ? (card.remaining_visits || 0) <= 0 : card.current_balance_cents <= 0) {
-      setError(card.card_type === 'service_pass' ? 'This service pass has no visits remaining' : 'This gift card has a zero balance');
+      setError(card.card_type === 'service_pass' ? t.noVisitsLeft : t.zeroBalance);
       setSearchingCard(false);
       return;
     }
@@ -138,9 +237,10 @@ export function POSView() {
       });
 
       if (redemptionError) {
-        setError(redemptionError.message || 'Failed to redeem service pass');
+        setError(redemptionError.message || t.passRedeemFailed);
       } else {
-        setMessage(`Visit redeemed. ${data?.remainingVisits || 0} ${data?.remainingVisits === 1 ? 'visit remains' : 'visits remain'}.`);
+        const remainingVisits = Number(data?.remainingVisits || 0);
+        setMessage(remainingVisits === 1 ? t.visitRedeemedOne : fillText(t.visitRedeemedMany, { count: remainingVisits }));
         setGiftCardCode('');
         setFoundCard(null);
         setTimeout(() => setMessage(''), 5000);
@@ -152,7 +252,7 @@ export function POSView() {
     const amountCents = Math.round(parseFloat(redeemAmount) * 100);
 
     if (amountCents <= 0 || amountCents > foundCard.current_balance_cents) {
-      setError(`Amount must be between ${formatAmount(0.01)} and ${formatAmount(foundCard.current_balance_cents / 100)}`);
+      setError(fillText(t.amountRange, { min: formatAmount(0.01), max: formatAmount(foundCard.current_balance_cents / 100) }));
       return;
     }
 
@@ -184,20 +284,20 @@ export function POSView() {
           description: `Redeemed ${formatAmount(amountCents / 100)} at POS`,
         });
 
-      setMessage(`Successfully redeemed ${formatAmount(amountCents / 100)} from gift card!`);
+      setMessage(fillText(t.redeemedSuccess, { amount: formatAmount(amountCents / 100) }));
       setGiftCardCode('');
       setFoundCard(null);
       setRedeemAmount('');
       setTimeout(() => setMessage(''), 5000);
     } catch (err: any) {
-      setError(err.message || 'Failed to redeem gift card');
+      setError(err.message || t.redeemFailed);
     } finally {
       setRedeeming(false);
     }
   };
 
   const handleMarkAsPaid = async (bookingId: string) => {
-    if (!confirm('Mark this booking as paid?')) return;
+    if (!confirm(t.confirmMarkPaid)) return;
 
     const { error } = await supabase
       .from('bookings')
@@ -206,10 +306,10 @@ export function POSView() {
       .eq('id', bookingId);
 
     if (error) {
-      setError('Failed to update booking');
+      setError(t.bookingUpdateFailed);
     } else {
       setError('');
-      setMessage('Booking marked as paid!');
+      setMessage(t.bookingMarkedPaid);
       loadPendingBookings();
       setTimeout(() => setMessage(''), 3000);
     }
@@ -219,10 +319,10 @@ export function POSView() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">Checkout desk</h2>
-          <p className="mt-1 text-sm text-stone-500">Redeem value cards or service-pass visits and close pending in-person payments.</p>
+          <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{t.title}</h2>
+          <p className="mt-1 text-sm text-stone-500">{t.subtitle}</p>
         </div>
-        <span className="text-xs text-stone-400">{pendingBookings.length} pending payment{pendingBookings.length === 1 ? '' : 's'}</span>
+        <span className="text-xs text-stone-400">{pendingBookings.length === 1 ? t.pendingCountOne : fillText(t.pendingCountMany, { count: pendingBookings.length })}</span>
       </div>
 
       {(message || error) && (
@@ -241,7 +341,7 @@ export function POSView() {
             }`}
           >
             <Gift className="h-4 w-4" strokeWidth={1.75} />
-            Redeem card or pass
+            {t.tabRedeem}
           </button>
           <button
             type="button"
@@ -251,7 +351,7 @@ export function POSView() {
             }`}
           >
             <DollarSign className="h-4 w-4" strokeWidth={1.75} />
-            Pending payments
+            {t.tabPending}
             <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${activeTab === 'bookings' ? 'bg-white/[0.15]' : 'bg-stone-900/[0.05]'}`}>
               {pendingBookings.length}
             </span>
@@ -266,14 +366,14 @@ export function POSView() {
               <Gift className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1A1714]">Find a card or pass</h3>
-              <p className="mt-1 text-sm text-stone-500">Scan a code or enter it exactly as shown to check its live balance or remaining visits.</p>
+              <h3 className="font-semibold text-[#1A1714]">{t.findHeading}</h3>
+              <p className="mt-1 text-sm text-stone-500">{t.findHint}</p>
             </div>
           </div>
 
           <form onSubmit={handleSearchGiftCard}>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-stone-700">Card or pass code</span>
+              <span className="mb-2 block text-sm font-medium text-stone-700">{t.codeLabel}</span>
               <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
@@ -289,7 +389,7 @@ export function POSView() {
                     className={ADMIN_PRIMARY_BUTTON}
                   >
                     <Search className="h-4 w-4" />
-                    {searchingCard ? 'Searching…' : 'Find card'}
+                    {searchingCard ? t.searching : t.findCard}
                   </button>
               </div>
             </label>
@@ -299,14 +399,14 @@ export function POSView() {
             <div className="mt-6 overflow-hidden rounded-2xl border border-emerald-200/70 bg-emerald-50/60">
               <div className="flex items-center justify-between gap-4 p-5">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-emerald-700/70">{foundCard.card_type === 'service_pass' ? 'Service entitlement' : 'Available balance'}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-emerald-700/70">{foundCard.card_type === 'service_pass' ? t.serviceEntitlement : t.availableBalance}</p>
                   <p className="mt-2 text-3xl font-semibold tracking-tight text-emerald-950">
                     {foundCard.card_type === 'service_pass'
-                      ? `${foundCard.remaining_visits || 0} ${(foundCard.remaining_visits || 0) === 1 ? 'visit' : 'visits'} left`
+                      ? ((foundCard.remaining_visits || 0) === 1 ? t.visitLeft : fillText(t.visitsLeft, { count: foundCard.remaining_visits || 0 }))
                       : formatAmount(foundCard.current_balance_cents / 100)}
                   </p>
                   {foundCard.card_type === 'service_pass' && (
-                    <p className="mt-1 text-sm text-emerald-800">{foundCard.service_pass_name} · {foundCard.service?.name} · {foundCard.duration?.duration_minutes} min</p>
+                    <p className="mt-1 text-sm text-emerald-800">{foundCard.service_pass_name} · {foundCard.service?.name} · {fillText(t.minutes, { count: foundCard.duration?.duration_minutes ?? '' })}</p>
                   )}
                   <p className="mt-1 font-mono text-xs text-emerald-700/70">{foundCard.code}</p>
                 </div>
@@ -318,14 +418,14 @@ export function POSView() {
               <div className="border-t border-emerald-200/70 bg-white/30 p-5">
                 {foundCard.card_type === 'service_pass' ? (
                   <div>
-                    <p className="text-sm leading-6 text-emerald-900">Redeem one visit for the service shown above. This records the current service value but never turns the pass into cash.</p>
+                    <p className="text-sm leading-6 text-emerald-900">{t.passHint}</p>
                     <button type="button" onClick={handleRedeemGiftCard} disabled={redeeming} className={`${ADMIN_PRIMARY_BUTTON} mt-4 w-full`}>
-                      {redeeming ? 'Processing…' : 'Redeem one visit'}
+                      {redeeming ? t.processing : t.redeemOneVisit}
                     </button>
                   </div>
                 ) : (
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-emerald-950">Amount to redeem ({currencySymbol})</span>
+                  <span className="mb-2 block text-sm font-medium text-emerald-950">{fillText(t.amountToRedeem, { symbol: currencySymbol })}</span>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       type="number"
@@ -343,10 +443,10 @@ export function POSView() {
                       disabled={redeeming}
                       className={ADMIN_PRIMARY_BUTTON}
                     >
-                      {redeeming ? 'Processing…' : 'Redeem value'}
+                      {redeeming ? t.processing : t.redeemValue}
                     </button>
                   </div>
-                  <span className="mt-1.5 block text-xs text-emerald-700/70">Maximum {formatAmount(foundCard.current_balance_cents / 100)}</span>
+                  <span className="mt-1.5 block text-xs text-emerald-700/70">{fillText(t.maximum, { amount: formatAmount(foundCard.current_balance_cents / 100) })}</span>
                 </label>
                 )}
               </div>
@@ -358,8 +458,8 @@ export function POSView() {
       {activeTab === 'bookings' && (
         <section className={`${ADMIN_SURFACE} overflow-hidden`}>
           <div className="border-b border-stone-200/70 px-5 py-4">
-            <h3 className="font-semibold text-[#1A1714]">Bookings awaiting payment</h3>
-            <p className="mt-1 text-xs text-stone-400">Use this after collecting payment at the venue.</p>
+            <h3 className="font-semibold text-[#1A1714]">{t.bookingsHeading}</h3>
+            <p className="mt-1 text-xs text-stone-400">{t.bookingsHint}</p>
           </div>
           {loadingBookings ? (
             <div className="animate-pulse space-y-3 p-5">
@@ -368,17 +468,18 @@ export function POSView() {
           ) : pendingBookings.length === 0 ? (
             <div className="px-6 py-14 text-center">
               <Check className="mx-auto h-6 w-6 text-emerald-500" strokeWidth={1.75} />
-              <p className="mt-3 text-sm font-medium text-stone-600">Nothing waiting for payment</p>
-              <p className="mt-1 text-xs text-stone-400">New pay-at-venue bookings appear here.</p>
+              <p className="mt-3 text-sm font-medium text-stone-600">{t.emptyTitle}</p>
+              <p className="mt-1 text-xs text-stone-400">{t.emptyHint}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px]">
                 <thead className="bg-stone-900/[0.025]">
                   <tr>
-                    {['Date & time', 'Customer', 'Service', 'Amount', ''].map((heading) => (
-                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">{heading}</th>
+                    {[t.colDateTime, t.colCustomer, t.colService, t.colAmount].map((heading) => (
+                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400">{heading}</th>
                     ))}
+                    <th className="px-5 py-3 text-right"><span className="sr-only">{t.colActions}</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200/60">
@@ -387,7 +488,7 @@ export function POSView() {
                       <td className="px-5 py-4">
                         <div className="text-sm">
                           <p className="font-medium text-[#1A1714]">
-                            {new Date(booking.booking_date).toLocaleDateString()}
+                            {new Date(booking.booking_date).toLocaleDateString(locale)}
                           </p>
                           <p className="mt-0.5 text-xs text-stone-400">{booking.start_time}</p>
                         </div>
@@ -401,7 +502,7 @@ export function POSView() {
                       <td className="px-5 py-4">
                         <div className="text-sm">
                           <p className="font-medium text-[#1A1714]">{booking.service.name}</p>
-                          <p className="mt-0.5 text-xs text-stone-400">{booking.duration.duration_minutes} min</p>
+                          <p className="mt-0.5 text-xs text-stone-400">{fillText(t.minutes, { count: booking.duration.duration_minutes })}</p>
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -415,7 +516,7 @@ export function POSView() {
                           onClick={() => handleMarkAsPaid(booking.id)}
                           className={ADMIN_PRIMARY_BUTTON}
                         >
-                          <Check className="h-4 w-4" /> Mark paid
+                          <Check className="h-4 w-4" /> {t.markPaid}
                         </button>
                       </td>
                     </tr>

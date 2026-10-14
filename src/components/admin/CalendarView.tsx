@@ -9,6 +9,64 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { toLocalDateString } from '../../lib/localDateTime';
 import { useSpecialistNames } from '../../hooks/useSpecialistNames';
 import { therapistLabel } from '../../lib/therapistLabel';
+import { useAdminText } from '../../lib/adminLanguage';
+import { Translations, fillText } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  loading: string; title: string; subtitle: string; createBooking: string;
+  todaysBookings: string; revenueThisWeek: string; bookingsThisMonth: string; upcomingToday: string;
+  today: string; previousMonth: string; nextMonth: string;
+  appointmentOne: string; appointmentMany: string; noBookings: string; nothingThisDay: string; noMoreToday: string;
+  minutes: string; service: string;
+  statusConfirmed: string; statusPending: string; statusCompleted: string; statusCancelled: string; statusNoShow: string;
+}> = {
+  en: {
+    loading: 'Loading calendar...', title: 'Calendar', subtitle: 'View and manage bookings', createBooking: 'Create Booking',
+    todaysBookings: "Today's Bookings", revenueThisWeek: 'Revenue This Week', bookingsThisMonth: 'Bookings This Month',
+    upcomingToday: 'Upcoming Today', today: 'Today', previousMonth: 'Previous month', nextMonth: 'Next month',
+    appointmentOne: '{count} appointment', appointmentMany: '{count} appointments', noBookings: 'No bookings',
+    nothingThisDay: 'Nothing scheduled for this day', noMoreToday: 'No more appointments today',
+    minutes: '{count} min', service: 'Service',
+    statusConfirmed: 'Confirmed', statusPending: 'Pending', statusCompleted: 'Completed', statusCancelled: 'Cancelled', statusNoShow: 'No-show',
+  },
+  de: {
+    loading: 'Kalender wird geladen...', title: 'Kalender', subtitle: 'Buchungen ansehen und verwalten', createBooking: 'Buchung erstellen',
+    todaysBookings: 'Buchungen heute', revenueThisWeek: 'Umsatz diese Woche', bookingsThisMonth: 'Buchungen diesen Monat',
+    upcomingToday: 'Heute anstehend', today: 'Heute', previousMonth: 'Vorheriger Monat', nextMonth: 'Nächster Monat',
+    appointmentOne: '{count} Termin', appointmentMany: '{count} Termine', noBookings: 'Keine Buchungen',
+    nothingThisDay: 'An diesem Tag ist nichts geplant', noMoreToday: 'Heute keine weiteren Termine',
+    minutes: '{count} Min.', service: 'Leistung',
+    statusConfirmed: 'Bestätigt', statusPending: 'Ausstehend', statusCompleted: 'Abgeschlossen', statusCancelled: 'Storniert', statusNoShow: 'No-Show',
+  },
+  th: {
+    loading: 'กำลังโหลดปฏิทิน...', title: 'ปฏิทิน', subtitle: 'ดูและจัดการการจอง', createBooking: 'สร้างการจอง',
+    todaysBookings: 'การจองวันนี้', revenueThisWeek: 'รายได้สัปดาห์นี้', bookingsThisMonth: 'การจองเดือนนี้',
+    upcomingToday: 'นัดหมายถัดไปวันนี้', today: 'วันนี้', previousMonth: 'เดือนก่อนหน้า', nextMonth: 'เดือนถัดไป',
+    appointmentOne: '{count} นัดหมาย', appointmentMany: '{count} นัดหมาย', noBookings: 'ไม่มีการจอง',
+    nothingThisDay: 'ไม่มีนัดหมายในวันนี้', noMoreToday: 'วันนี้ไม่มีนัดหมายเพิ่มเติม',
+    minutes: '{count} นาที', service: 'บริการ',
+    statusConfirmed: 'ยืนยันแล้ว', statusPending: 'รอยืนยัน', statusCompleted: 'เสร็จสิ้น', statusCancelled: 'ยกเลิกแล้ว', statusNoShow: 'ไม่มาตามนัด',
+  },
+};
+
+type CalendarText = (typeof TEXT)['en'];
+
+const statusLabel = (status: string, t: CalendarText): string => {
+  switch (status) {
+    case 'confirmed': return t.statusConfirmed;
+    case 'pending': return t.statusPending;
+    case 'completed': return t.statusCompleted;
+    case 'cancelled': return t.statusCancelled;
+    case 'no_show': return t.statusNoShow;
+    default: return status;
+  }
+};
+
+/** Narrow weekday names, Sunday first, in the admin's locale. */
+const weekdayInitials = (locale: string): string[] =>
+  Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 7 + i).toLocaleDateString(locale, { weekday: 'narrow' })
+  );
 
 interface Booking {
   id: string;
@@ -41,7 +99,7 @@ const SURFACE =
 const ICON_TILE =
   'w-10 h-10 rounded-xl bg-stone-900/[6%] text-[#1A1714] flex items-center justify-center shrink-0';
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status, t }: { status: string; t: CalendarText }) {
   const style =
     status === 'confirmed'
       ? 'bg-stone-900/[6%] text-stone-700 border border-stone-200'
@@ -52,7 +110,7 @@ function StatusPill({ status }: { status: string }) {
           : status === 'cancelled'
             ? 'bg-red-50 text-red-600 border border-red-200'
             : 'bg-stone-100 text-stone-500 border border-stone-200';
-  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${style}`}>{status}</span>;
+  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${style}`}>{statusLabel(status, t)}</span>;
 }
 
 const priceOf = (b: Booking) =>
@@ -61,6 +119,7 @@ const priceOf = (b: Booking) =>
 const countable = (b: Booking) => b.status !== 'cancelled' && !b.no_show;
 
 export default function CalendarView() {
+  const { t, locale } = useAdminText(TEXT);
   const adminUser = adminAuth.getCurrentUser();
   const { hasPermission } = usePermissions(adminUser?.id || null);
   const { formatPrice } = useCurrency();
@@ -183,14 +242,14 @@ export default function CalendarView() {
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
 
   const formatTime = (time: string) => time.slice(0, 5);
-  const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthYear = currentDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-stone-500">Loading calendar...</p>
+          <p className="text-sm text-stone-500">{t.loading}</p>
         </div>
       </div>
     );
@@ -198,12 +257,12 @@ export default function CalendarView() {
 
   const days = getDaysInMonth();
   const statCards = [
-    { title: "Today's Bookings", value: String(stats.todayBookings), icon: CalendarIcon },
+    { title: t.todaysBookings, value: String(stats.todayBookings), icon: CalendarIcon },
     ...(canSeeRevenue
-      ? [{ title: 'Revenue This Week', value: formatPrice(stats.weekRevenue), icon: Wallet }]
+      ? [{ title: t.revenueThisWeek, value: formatPrice(stats.weekRevenue), icon: Wallet }]
       : []),
-    { title: 'Bookings This Month', value: String(stats.monthBookings), icon: TrendingUp },
-    { title: 'Upcoming Today', value: String(stats.upcomingToday.length), icon: Clock },
+    { title: t.bookingsThisMonth, value: String(stats.monthBookings), icon: TrendingUp },
+    { title: t.upcomingToday, value: String(stats.upcomingToday.length), icon: Clock },
   ];
 
   const listBookings = selectedDate ? dayBookings : stats.upcomingToday;
@@ -215,15 +274,15 @@ export default function CalendarView() {
         className={`flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
       >
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">Calendar</h1>
-          <p className="text-sm text-stone-500">View and manage bookings</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">{t.title}</h1>
+          <p className="text-sm text-stone-500">{t.subtitle}</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 bg-[#1A1714] hover:bg-[#2E2926] text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-[0_2px_12px_rgba(26,23,20,0.16)] transition-colors"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Booking</span>
+          <span>{t.createBooking}</span>
         </button>
       </div>
 
@@ -257,6 +316,8 @@ export default function CalendarView() {
             <div className="flex items-center gap-1">
               <button
                 onClick={previousMonth}
+                aria-label={t.previousMonth}
+                title={t.previousMonth}
                 className="p-2 hover:bg-stone-100 rounded-lg transition-colors text-stone-600"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -268,10 +329,12 @@ export default function CalendarView() {
                 }}
                 className="px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
               >
-                Today
+                {t.today}
               </button>
               <button
                 onClick={nextMonth}
+                aria-label={t.nextMonth}
+                title={t.nextMonth}
                 className="p-2 hover:bg-stone-100 rounded-lg transition-colors text-stone-600"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -280,7 +343,7 @@ export default function CalendarView() {
           </div>
 
           <div className="grid grid-cols-7 gap-1.5">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+            {weekdayInitials(locale).map((day, i) => (
               <div
                 key={i}
                 className="text-center text-[10px] font-semibold text-stone-400 pb-2 uppercase tracking-wider"
@@ -338,10 +401,10 @@ export default function CalendarView() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[15px] font-semibold text-[#1A1714] tracking-tight">
               {selectedDate
-                ? selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-                : 'Upcoming Today'}
+                ? selectedDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })
+                : t.upcomingToday}
             </h2>
-            <span className="text-xs text-stone-400">{listBookings.length} appointment{listBookings.length === 1 ? '' : 's'}</span>
+            <span className="text-xs text-stone-400">{fillText(listBookings.length === 1 ? t.appointmentOne : t.appointmentMany, { count: listBookings.length })}</span>
           </div>
 
           {listBookings.length === 0 ? (
@@ -349,9 +412,9 @@ export default function CalendarView() {
               <div className="p-3 bg-[#F0EDE8] rounded-xl mb-3">
                 <Clock className="h-5 w-5 text-stone-400" strokeWidth={1.75} />
               </div>
-              <p className="text-sm text-stone-500">No bookings</p>
+              <p className="text-sm text-stone-500">{t.noBookings}</p>
               <p className="text-xs text-stone-400 mt-1">
-                {selectedDate ? 'Nothing scheduled for this day' : 'No more appointments today'}
+                {selectedDate ? t.nothingThisDay : t.noMoreToday}
               </p>
             </div>
           ) : (
@@ -367,15 +430,15 @@ export default function CalendarView() {
                         {formatTime(booking.start_time)}
                       </span>
                       <span className="text-xs text-stone-400">
-                        {booking.service_durations?.duration_minutes ?? '–'} min
+                        {fillText(t.minutes, { count: booking.service_durations?.duration_minutes ?? '–' })}
                       </span>
                     </div>
-                    <StatusPill status={booking.status} />
+                    <StatusPill status={booking.status} t={t} />
                   </div>
                   <p className="text-sm font-medium text-stone-700 truncate">{booking.customer_name}</p>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-stone-500 truncate">
-                      {booking.services?.name || booking.service_name || 'Service'}
+                      {booking.services?.name || booking.service_name || t.service}
                       {` · ${therapistLabel(booking, specialistNames)}`}
                     </p>
                     {canSeeRevenue && priceOf(booking) > 0 && (

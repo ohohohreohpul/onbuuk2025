@@ -18,13 +18,16 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
-  X
+  X,
+  Languages
 } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
+import { ADMIN_LANGUAGES, AdminLanguage, useAdminLanguage, useAdminText } from '../../lib/adminLanguage';
+import { Translations } from '../../lib/bookingLanguage';
 import {
   BRAND_DOCS_URL,
   BRAND_LOGO,
@@ -33,6 +36,38 @@ import {
   BRAND_SITE_URL,
   BRAND_SUPPORT_URL,
 } from '../../lib/brand';
+
+const TEXT: Translations<{
+  dashboard: string; today: string; calendar: string; bookings: string; customers: string;
+  business: string; services: string; products: string; specialists: string; team: string; agents: string;
+  money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
+  documentation: string; help: string; logout: string; poweredBy: string; language: string; businessLogo: string;
+}> = {
+  en: {
+    dashboard: 'Dashboard', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
+    business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
+    team: 'Team & Permissions', agents: 'AI booking', money: 'Money', fees: 'No-Show Fees',
+    loyalty: 'Loyalty & Rewards', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
+    documentation: 'Documentation', help: 'Get Help', logout: 'Logout', poweredBy: 'Powered by',
+    language: 'Language', businessLogo: 'Business logo',
+  },
+  de: {
+    dashboard: 'Übersicht', today: 'Heute', calendar: 'Kalender', bookings: 'Buchungen', customers: 'Kunden',
+    business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
+    team: 'Team & Berechtigungen', agents: 'KI-Buchung', money: 'Finanzen', fees: 'No-Show-Gebühren',
+    loyalty: 'Treue & Prämien', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
+    documentation: 'Dokumentation', help: 'Hilfe', logout: 'Abmelden', poweredBy: 'Powered by',
+    language: 'Sprache', businessLogo: 'Firmenlogo',
+  },
+  th: {
+    dashboard: 'แดชบอร์ด', today: 'วันนี้', calendar: 'ปฏิทิน', bookings: 'การจอง', customers: 'ลูกค้า',
+    business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
+    team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
+    loyalty: 'สะสมแต้มและรางวัล', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
+    documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
+    language: 'ภาษา', businessLogo: 'โลโก้ร้าน',
+  },
+};
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -47,6 +82,8 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const { hasPermission, hasAnyPermission, loading } = usePermissions(adminUser?.id || null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { t } = useAdminText(TEXT);
+  const { language, setLanguage } = useAdminLanguage();
 
   useEffect(() => {
     async function fetchLogo() {
@@ -74,49 +111,49 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'main',
       label: null,
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permissions: ['view_reports'] },
+        { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard, permissions: ['view_reports'] },
       ]
     },
     {
       id: 'today',
-      label: 'Today',
+      label: t.today,
       items: [
-        { id: 'calendar', label: 'Calendar', icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars'] },
-        { id: 'bookings', label: 'Bookings', icon: Calendar, permissions: ['view_own_bookings', 'view_all_bookings'] },
+        { id: 'calendar', label: t.calendar, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars'] },
+        { id: 'bookings', label: t.bookings, icon: Calendar, permissions: ['view_own_bookings', 'view_all_bookings'] },
       ]
     },
     {
       id: 'customers',
-      label: 'Customers',
+      label: t.customers,
       items: [
-        { id: 'customers', label: 'Customers', icon: Users, permissions: ['view_customers'] },
+        { id: 'customers', label: t.customers, icon: Users, permissions: ['view_customers'] },
       ]
     },
     {
       id: 'business',
-      label: 'Business',
+      label: t.business,
       items: [
-        { id: 'services', label: 'Services', icon: Briefcase, permissions: ['view_services'] },
-        { id: 'products', label: 'Add-On Products', icon: Package, permissions: ['view_services', 'manage_services'] },
-        { id: 'specialists', label: 'Specialists', icon: UserCircle, permissions: ['view_staff'] },
-        { id: 'staff', label: 'Team & Permissions', icon: Users, permissions: ['view_staff', 'manage_staff'] },
-        { id: 'agents', label: 'AI booking', icon: Bot, permissions: ['view_settings'] },
+        { id: 'services', label: t.services, icon: Briefcase, permissions: ['view_services'] },
+        { id: 'products', label: t.products, icon: Package, permissions: ['view_services', 'manage_services'] },
+        { id: 'specialists', label: t.specialists, icon: UserCircle, permissions: ['view_staff'] },
+        { id: 'staff', label: t.team, icon: Users, permissions: ['view_staff', 'manage_staff'] },
+        { id: 'agents', label: t.agents, icon: Bot, permissions: ['view_settings'] },
       ]
     },
     {
       id: 'money',
-      label: 'Money',
+      label: t.money,
       items: [
-        { id: 'fees', label: 'No-Show Fees', icon: DollarSign, permissions: ['process_payments', 'view_all_bookings'] },
-        { id: 'loyalty', label: 'Loyalty & Rewards', icon: Gift, permissions: ['process_payments', 'view_gift_cards'] },
-        { id: 'tax', label: 'Tax & Reports', icon: FileText, permissions: ['view_reports', 'process_payments'] },
+        { id: 'fees', label: t.fees, icon: DollarSign, permissions: ['process_payments', 'view_all_bookings'] },
+        { id: 'loyalty', label: t.loyalty, icon: Gift, permissions: ['process_payments', 'view_gift_cards'] },
+        { id: 'tax', label: t.tax, icon: FileText, permissions: ['view_reports', 'process_payments'] },
       ]
     },
     {
       id: 'configuration',
-      label: 'Setup',
+      label: t.setup,
       items: [
-        { id: 'settings', label: 'Settings', icon: Settings, permissions: ['view_settings'] },
+        { id: 'settings', label: t.settings, icon: Settings, permissions: ['view_settings'] },
       ]
     }
   ];
@@ -170,7 +207,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                     ? BRAND_LOGO_LIGHT
                     : logoUrl
                 }
-                alt={logoUrl && logoUrl !== BRAND_LOGO ? 'Business logo' : BRAND_NAME}
+                alt={logoUrl && logoUrl !== BRAND_LOGO ? t.businessLogo : BRAND_NAME}
                 className="h-10 w-auto object-contain"
               />
             </div>
@@ -278,6 +315,18 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
           {/* Footer */}
           <div className="p-4 border-t border-white/10 space-y-1 relative">
+            <label className="flex items-center gap-3 px-4 py-2 rounded-xl text-white/60 text-sm">
+              <Languages className="w-4 h-4" aria-hidden="true" />
+              <span className="sr-only">{t.language}</span>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as AdminLanguage)}
+                aria-label={t.language}
+                className="flex-1 bg-white/10 hover:bg-white/15 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-2 py-1.5 text-white text-sm cursor-pointer [&>option]:text-stone-900"
+              >
+                {ADMIN_LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
             <a
               href={BRAND_DOCS_URL}
               target="_blank"
@@ -285,7 +334,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
               className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
             >
               <Book className="w-4 h-4" />
-              <span>Documentation</span>
+              <span>{t.documentation}</span>
               <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
             </a>
 
@@ -296,7 +345,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
               className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
             >
               <HelpCircle className="w-4 h-4" />
-              <span>Get Help</span>
+              <span>{t.help}</span>
               <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
             </a>
 
@@ -305,7 +354,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-red-500/20 hover:text-red-200 transition-all duration-200 text-sm"
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span>{t.logout}</span>
             </button>
 
             <div className="pt-4 mt-4 border-t border-white/10">
@@ -315,7 +364,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-white/40 hover:text-white/60 transition-colors text-xs"
               >
-                <span>Powered by</span>
+                <span>{t.poweredBy}</span>
                 <span className="font-semibold">{BRAND_NAME}</span>
                 <span className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">v1.0</span>
               </a>

@@ -1,6 +1,29 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock, Receipt } from 'lucide-react';
 import type { BookingState } from './bookingState';
+import { useAdminText } from '../../../lib/adminLanguage';
+import type { Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  confirm: string; showedUp: string; noShow: string; addFee: string; resolveFee: string; moreActions: string;
+  move: string; cancelBooking: string; invoice: string; reopen: string; deletePermanently: string;
+}> = {
+  en: {
+    confirm: 'Confirm', showedUp: 'Showed up', noShow: 'No-show', addFee: 'Add fee', resolveFee: 'Resolve fee',
+    moreActions: 'More actions', move: 'Move appointment', cancelBooking: 'Cancel booking', invoice: 'Invoice (PDF)',
+    reopen: 'Reopen as confirmed', deletePermanently: 'Delete permanently',
+  },
+  de: {
+    confirm: 'Bestätigen', showedUp: 'Erschienen', noShow: 'No-Show', addFee: 'Gebühr anlegen', resolveFee: 'Gebühr klären',
+    moreActions: 'Weitere Aktionen', move: 'Termin verschieben', cancelBooking: 'Buchung stornieren', invoice: 'Rechnung (PDF)',
+    reopen: 'Als bestätigt wiederherstellen', deletePermanently: 'Endgültig löschen',
+  },
+  th: {
+    confirm: 'ยืนยัน', showedUp: 'มาตามนัด', noShow: 'ไม่มาตามนัด', addFee: 'เพิ่มค่าธรรมเนียม', resolveFee: 'จัดการค่าธรรมเนียม',
+    moreActions: 'การดำเนินการเพิ่มเติม', move: 'เลื่อนนัด', cancelBooking: 'ยกเลิกการจอง', invoice: 'ใบแจ้งหนี้ (PDF)',
+    reopen: 'เปิดใหม่เป็นยืนยันแล้ว', deletePermanently: 'ลบถาวร',
+  },
+};
 
 interface BookingRowActionsProps {
   state: BookingState;
@@ -23,40 +46,41 @@ const MENU_ITEM = 'flex cursor-pointer select-none items-center gap-2 rounded-lg
 
 export default function BookingRowActions(props: BookingRowActionsProps) {
   const { state, isBusy } = props;
+  const { t } = useAdminText(TEXT);
   const isClosed = state.stage === 'cancelled' || state.stage === 'completed' || state.stage === 'no-show';
 
   return (
     <div className="flex items-center justify-end gap-1.5">
       {state.primary === 'confirm' && (
         <button type="button" onClick={props.onConfirm} disabled={isBusy} className={PRIMARY}>
-          <Check className="h-3.5 w-3.5" /> Confirm
+          <Check className="h-3.5 w-3.5" /> {t.confirm}
         </button>
       )}
       {state.primary === 'complete' && (
         <button type="button" onClick={props.onComplete} disabled={isBusy} className={PRIMARY}>
-          <CheckCheck className="h-3.5 w-3.5" /> Showed up
+          <CheckCheck className="h-3.5 w-3.5" /> {t.showedUp}
         </button>
       )}
       {state.canMarkNoShow && (
         <button type="button" onClick={props.onNoShow} disabled={isBusy} className={SECONDARY}>
-          <UserX className="h-3.5 w-3.5" /> No-show
+          <UserX className="h-3.5 w-3.5" /> {t.noShow}
         </button>
       )}
       {state.primary === 'add-fee' && (
         <button type="button" onClick={props.onAddFee} disabled={isBusy} className={PRIMARY}>
-          <Banknote className="h-3.5 w-3.5" /> Add fee
+          <Banknote className="h-3.5 w-3.5" /> {t.addFee}
         </button>
       )}
       {state.primary === 'resolve-fee' && (
         <button type="button" onClick={props.onResolveFee} disabled={isBusy} className={PRIMARY}>
-          <Banknote className="h-3.5 w-3.5" /> Resolve fee
+          <Banknote className="h-3.5 w-3.5" /> {t.resolveFee}
         </button>
       )}
 
       <DropdownMenu.Root>
         <DropdownMenu.Trigger
           disabled={isBusy}
-          aria-label="More actions"
+          aria-label={t.moreActions}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 data-[state=open]:bg-stone-100 data-[state=open]:text-stone-700"
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -69,22 +93,22 @@ export default function BookingRowActions(props: BookingRowActionsProps) {
           >
             {!isClosed && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onMove}>
-                <CalendarClock className="h-4 w-4 text-stone-400" /> Move appointment
+                <CalendarClock className="h-4 w-4 text-stone-400" /> {t.move}
               </DropdownMenu.Item>
             )}
             {!isClosed && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onCancel}>
-                <XCircle className="h-4 w-4 text-stone-400" /> Cancel booking
+                <XCircle className="h-4 w-4 text-stone-400" /> {t.cancelBooking}
               </DropdownMenu.Item>
             )}
             {state.stage !== 'cancelled' && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onInvoice}>
-                <Receipt className="h-4 w-4 text-stone-400" /> Invoice (PDF)
+                <Receipt className="h-4 w-4 text-stone-400" /> {t.invoice}
               </DropdownMenu.Item>
             )}
             {state.stage === 'cancelled' && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onRestore}>
-                <RotateCcw className="h-4 w-4 text-stone-400" /> Reopen as confirmed
+                <RotateCcw className="h-4 w-4 text-stone-400" /> {t.reopen}
               </DropdownMenu.Item>
             )}
             <DropdownMenu.Separator className="my-1 h-px bg-stone-100" />
@@ -92,7 +116,7 @@ export default function BookingRowActions(props: BookingRowActionsProps) {
               className={`${MENU_ITEM} text-red-600 data-[highlighted]:bg-red-50 data-[highlighted]:text-red-700`}
               onSelect={props.onDelete}
             >
-              <Trash2 className="h-4 w-4" /> Delete permanently
+              <Trash2 className="h-4 w-4" /> {t.deletePermanently}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>

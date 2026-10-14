@@ -15,6 +15,7 @@ import TaxReportsView from './TaxReportsView';
 import ProductsView from './ProductsView';
 import AiAgentsView from './AiAgentsView';
 import { adminAuth } from '../../lib/adminAuth';
+import { AdminLanguageProvider } from '../../lib/adminLanguage';
 import { supabase } from '../../lib/supabase';
 import { executeWithTimeout } from '../../lib/queryUtils';
 import { BRAND_LOGO } from '../../lib/brand';
@@ -23,6 +24,14 @@ const AUTH_CHECK_TIMEOUT = 15000;
 const OAUTH_PROCESSING_TIMEOUT = 60000;
 
 export default function Admin() {
+  return (
+    <AdminLanguageProvider>
+      <AdminPanel />
+    </AdminLanguageProvider>
+  );
+}
+
+function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading...');

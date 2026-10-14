@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { X, Calendar, DollarSign, Mail, Phone, FileText, Plus, Trash2 } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { useCurrency } from '../../lib/currencyContext';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, Translations } from '../../lib/bookingLanguage';
 
 interface Customer {
   id: string;
@@ -32,6 +34,50 @@ interface Note {
   created_at: string;
 }
 
+const TEXT: Translations<{
+  profile: string; close: string; totalVisits: string; totalSpent: string; firstVisit: string; lastVisit: string;
+  notAvailable: string; privateNotes: string; notePlaceholder: string; add: string; loadingNotes: string;
+  noNotes: string; deleteNote: string; confirmDeleteNote: string; addNoteFailed: string; deleteNoteFailed: string;
+  visitHistory: string; loadingBookings: string; noBookings: string; date: string; service: string;
+  specialist: string; duration: string; price: string; status: string; anySpecialist: string; minutes: string;
+  statusConfirmed: string; statusPending: string; statusCompleted: string; statusCancelled: string;
+}> = {
+  en: {
+    profile: 'Customer Profile', close: 'Close', totalVisits: 'Total Visits', totalSpent: 'Total Spent',
+    firstVisit: 'First Visit', lastVisit: 'Last Visit', notAvailable: 'N/A', privateNotes: 'Private Notes',
+    notePlaceholder: 'Add a private note about this customer...', add: 'Add', loadingNotes: 'Loading notes...',
+    noNotes: 'No notes yet. Add a note to keep track of important information.', deleteNote: 'Delete note',
+    confirmDeleteNote: 'Are you sure you want to delete this note?', addNoteFailed: 'Failed to add note',
+    deleteNoteFailed: 'Failed to delete note', visitHistory: 'Visit History', loadingBookings: 'Loading bookings...',
+    noBookings: 'No bookings found', date: 'Date', service: 'Service', specialist: 'Specialist',
+    duration: 'Duration', price: 'Price', status: 'Status', anySpecialist: 'Any', minutes: '{count} min',
+    statusConfirmed: 'Confirmed', statusPending: 'Pending', statusCompleted: 'Completed', statusCancelled: 'Cancelled',
+  },
+  de: {
+    profile: 'Kundenprofil', close: 'Schließen', totalVisits: 'Besuche gesamt', totalSpent: 'Umsatz gesamt',
+    firstVisit: 'Erster Besuch', lastVisit: 'Letzter Besuch', notAvailable: 'k. A.', privateNotes: 'Interne Notizen',
+    notePlaceholder: 'Interne Notiz zu diesem Kunden hinzufügen...', add: 'Hinzufügen', loadingNotes: 'Notizen werden geladen...',
+    noNotes: 'Noch keine Notizen. Notizen helfen, wichtige Informationen festzuhalten.', deleteNote: 'Notiz löschen',
+    confirmDeleteNote: 'Diese Notiz wirklich löschen?', addNoteFailed: 'Notiz konnte nicht hinzugefügt werden',
+    deleteNoteFailed: 'Notiz konnte nicht gelöscht werden', visitHistory: 'Besuchsverlauf',
+    loadingBookings: 'Buchungen werden geladen...', noBookings: 'Keine Buchungen gefunden', date: 'Datum',
+    service: 'Leistung', specialist: 'Therapeut:in', duration: 'Dauer', price: 'Preis', status: 'Status',
+    anySpecialist: 'Beliebig', minutes: '{count} Min.',
+    statusConfirmed: 'Bestätigt', statusPending: 'Ausstehend', statusCompleted: 'Abgeschlossen', statusCancelled: 'Storniert',
+  },
+  th: {
+    profile: 'โปรไฟล์ลูกค้า', close: 'ปิด', totalVisits: 'จำนวนการเข้าใช้บริการ', totalSpent: 'ยอดใช้จ่ายรวม',
+    firstVisit: 'เข้าใช้บริการครั้งแรก', lastVisit: 'เข้าใช้บริการล่าสุด', notAvailable: 'ไม่มีข้อมูล', privateNotes: 'บันทึกส่วนตัว',
+    notePlaceholder: 'เพิ่มบันทึกส่วนตัวเกี่ยวกับลูกค้ารายนี้...', add: 'เพิ่ม', loadingNotes: 'กำลังโหลดบันทึก...',
+    noNotes: 'ยังไม่มีบันทึก เพิ่มบันทึกเพื่อเก็บข้อมูลสำคัญ', deleteNote: 'ลบบันทึก',
+    confirmDeleteNote: 'ต้องการลบบันทึกนี้ใช่หรือไม่?', addNoteFailed: 'เพิ่มบันทึกไม่สำเร็จ',
+    deleteNoteFailed: 'ลบบันทึกไม่สำเร็จ', visitHistory: 'ประวัติการเข้าใช้บริการ', loadingBookings: 'กำลังโหลดการจอง...',
+    noBookings: 'ไม่พบการจอง', date: 'วันที่', service: 'บริการ', specialist: 'ผู้ให้บริการ',
+    duration: 'ระยะเวลา', price: 'ราคา', status: 'สถานะ', anySpecialist: 'ใครก็ได้', minutes: '{count} นาที',
+    statusConfirmed: 'ยืนยันแล้ว', statusPending: 'รอดำเนินการ', statusCompleted: 'เสร็จสิ้น', statusCancelled: 'ยกเลิกแล้ว',
+  },
+};
+
 interface Props {
   customer: Customer;
   onClose: () => void;
@@ -40,6 +86,7 @@ interface Props {
 
 export default function CustomerDetailModal({ customer, onClose }: Props) {
   const { formatPrice } = useCurrency();
+  const { t, locale } = useAdminText(TEXT);
   const user = useAdminAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -107,14 +154,14 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
       fetchNotes();
     } catch (error) {
       console.error('Error adding note:', error);
-      alert('Failed to add note');
+      alert(t.addNoteFailed);
     } finally {
       setAddingNote(false);
     }
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to delete this note?')) return;
+    if (!confirm(t.confirmDeleteNote)) return;
 
     try {
       const { error } = await supabase
@@ -127,13 +174,13 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
       fetchNotes();
     } catch (error) {
       console.error('Error deleting note:', error);
-      alert('Failed to delete note');
+      alert(t.deleteNoteFailed);
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -142,13 +189,20 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     });
+  };
+
+  const statusLabels: Record<string, string> = {
+    confirmed: t.statusConfirmed,
+    pending: t.statusPending,
+    completed: t.statusCompleted,
+    cancelled: t.statusCancelled,
   };
 
   const getStatusColor = (status: string) => {
@@ -170,10 +224,12 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
         <div className="p-6 border-b border-stone-200 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-light text-stone-800">{customer.name}</h2>
-            <p className="text-sm text-stone-600">Customer Profile</p>
+            <p className="text-sm text-stone-600">{t.profile}</p>
           </div>
           <button
             onClick={onClose}
+            aria-label={t.close}
+            title={t.close}
             className="text-stone-400 hover:text-stone-600 transition-colors"
           >
             <X className="w-6 h-6" />
@@ -185,14 +241,14 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
             <div className="p-4 bg-stone-50 border border-stone-200 rounded">
               <div className="flex items-center space-x-2 text-stone-600 mb-2">
                 <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase">Total Visits</span>
+                <span className="text-xs uppercase">{t.totalVisits}</span>
               </div>
               <div className="text-2xl font-light text-stone-800">{customer.total_bookings}</div>
             </div>
             <div className="p-4 bg-stone-50 border border-stone-200 rounded">
               <div className="flex items-center space-x-2 text-stone-600 mb-2">
                 <DollarSign className="w-4 h-4" />
-                <span className="text-xs uppercase">Total Spent</span>
+                <span className="text-xs uppercase">{t.totalSpent}</span>
               </div>
               <div className="text-2xl font-light text-stone-800">
                 {formatPrice(customer.total_spent_cents)}
@@ -201,19 +257,19 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
             <div className="p-4 bg-stone-50 border border-stone-200 rounded">
               <div className="flex items-center space-x-2 text-stone-600 mb-2">
                 <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase">First Visit</span>
+                <span className="text-xs uppercase">{t.firstVisit}</span>
               </div>
               <div className="text-lg font-light text-stone-800">
-                {customer.first_visit_date ? formatDate(customer.first_visit_date) : 'N/A'}
+                {customer.first_visit_date ? formatDate(customer.first_visit_date) : t.notAvailable}
               </div>
             </div>
             <div className="p-4 bg-stone-50 border border-stone-200 rounded">
               <div className="flex items-center space-x-2 text-stone-600 mb-2">
                 <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase">Last Visit</span>
+                <span className="text-xs uppercase">{t.lastVisit}</span>
               </div>
               <div className="text-lg font-light text-stone-800">
-                {customer.last_visit_date ? formatDate(customer.last_visit_date) : 'N/A'}
+                {customer.last_visit_date ? formatDate(customer.last_visit_date) : t.notAvailable}
               </div>
             </div>
           </div>
@@ -234,14 +290,14 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
           <div>
             <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">
               <FileText className="w-5 h-5" />
-              <span>Private Notes</span>
+              <span>{t.privateNotes}</span>
             </h3>
             <div className="space-y-3">
               <div className="flex space-x-2">
                 <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a private note about this customer..."
+                  placeholder={t.notePlaceholder}
                   rows={3}
                   className="flex-1 px-4 py-2 border border-stone-200 rounded focus:outline-none focus:border-stone-800 resize-none"
                 />
@@ -251,15 +307,15 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
                   className="px-4 py-2 bg-stone-800 text-white hover:bg-stone-700 transition-colors disabled:opacity-50 flex items-center space-x-2 h-fit"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add</span>
+                  <span>{t.add}</span>
                 </button>
               </div>
 
               {loadingNotes ? (
-                <div className="text-center text-stone-500 py-4">Loading notes...</div>
+                <div className="text-center text-stone-500 py-4">{t.loadingNotes}</div>
               ) : notes.length === 0 ? (
                 <div className="text-center text-stone-500 py-4 border border-stone-200 rounded bg-stone-50">
-                  No notes yet. Add a note to keep track of important information.
+                  {t.noNotes}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -276,6 +332,8 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
                       </div>
                       <button
                         onClick={() => handleDeleteNote(note.id)}
+                        aria-label={t.deleteNote}
+                        title={t.deleteNote}
                         className="text-stone-400 hover:text-red-600 transition-colors ml-4"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -290,13 +348,13 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
           <div>
             <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">
               <Calendar className="w-5 h-5" />
-              <span>Visit History</span>
+              <span>{t.visitHistory}</span>
             </h3>
             {loadingBookings ? (
-              <div className="text-center text-stone-500 py-8">Loading bookings...</div>
+              <div className="text-center text-stone-500 py-8">{t.loadingBookings}</div>
             ) : bookings.length === 0 ? (
               <div className="text-center text-stone-500 py-8 border border-stone-200 rounded bg-stone-50">
-                No bookings found
+                {t.noBookings}
               </div>
             ) : (
               <div className="border border-stone-200 rounded overflow-hidden">
@@ -304,22 +362,22 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
                   <thead className="bg-stone-50 border-b border-stone-200">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Date
+                        {t.date}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Service
+                        {t.service}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Specialist
+                        {t.specialist}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Duration
+                        {t.duration}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Price
+                        {t.price}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-stone-600 uppercase">
-                        Status
+                        {t.status}
                       </th>
                     </tr>
                   </thead>
@@ -334,10 +392,10 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
                           {booking.service.name}
                         </td>
                         <td className="px-4 py-3 text-sm text-stone-600">
-                          {booking.specialist?.name || 'Any'}
+                          {booking.specialist?.name || t.anySpecialist}
                         </td>
                         <td className="px-4 py-3 text-sm text-stone-600">
-                          {booking.duration.duration_minutes} min
+                          {fillText(t.minutes, { count: booking.duration.duration_minutes })}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-stone-800">
                           {formatPrice(booking.duration.price_cents)}
@@ -348,7 +406,7 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
                               booking.status
                             )}`}
                           >
-                            {booking.status}
+                            {statusLabels[booking.status] ?? booking.status}
                           </span>
                         </td>
                       </tr>

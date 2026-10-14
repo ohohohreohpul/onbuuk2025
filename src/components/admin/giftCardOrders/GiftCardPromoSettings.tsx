@@ -9,13 +9,60 @@ import {
   type PromoSettingsRow,
 } from '../../../lib/giftCardPromo';
 import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { Translations } from '../../../lib/bookingLanguage';
 
 const PROMO_COLUMNS =
   'pay_in_store_enabled, promo_title, promo_text, promo_gift_note, promo_gift_min_cents, promo_gift_min_minutes, promo_valid_from, promo_valid_until';
 
+const TEXT: Translations<{
+  loadError: string; saveError: string; saved: string; heading: string; intro: string;
+  payInShop: string; payInShopHint: string; bannerTitle: string; bannerTitlePlaceholder: string;
+  bannerText: string; bannerTextPlaceholder: string; gift: string; giftPlaceholder: string;
+  giftMinAmount: string; giftMinMinutes: string; starts: string; ends: string; saving: string; save: string;
+}> = {
+  en: {
+    loadError: 'Could not load the promotion.', saveError: 'Could not save. Please try again.', saved: 'Promotion saved.',
+    heading: 'Promotion & gift',
+    intro: 'Shown as a banner on your voucher page. Orders that reach the minimum get the gift note; you tick it off when you hand it over.',
+    payInShop: 'Customers may order online and pay in the shop',
+    payInShopHint: 'Vouchers stay inactive until you press "Paid – activate vouchers" in Orders & sets.',
+    bannerTitle: 'Banner title', bannerTitlePlaceholder: 'Exclusive voucher sets for the holidays',
+    bannerText: 'Banner text', bannerTextPlaceholder: 'Get a small gift with every voucher purchase from €70 when you pay in the studio.',
+    gift: 'Gift (shown on qualifying orders)', giftPlaceholder: 'A little surprise from us',
+    giftMinAmount: 'Gift from amount (€)', giftMinMinutes: 'or from treatment minutes',
+    starts: 'Starts', ends: 'Ends (including this day)', saving: 'Saving…', save: 'Save promotion',
+  },
+  de: {
+    loadError: 'Die Aktion konnte nicht geladen werden.', saveError: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', saved: 'Aktion gespeichert.',
+    heading: 'Aktion & Geschenk',
+    intro: 'Wird als Banner auf Ihrer Gutscheinseite angezeigt. Bestellungen ab dem Mindestwert erhalten den Geschenkhinweis; Sie haken ihn bei der Übergabe ab.',
+    payInShop: 'Kund:innen dürfen online bestellen und vor Ort bezahlen',
+    payInShopHint: 'Gutscheine bleiben inaktiv, bis Sie unter „Bestellungen & Pakete“ auf „Bezahlt – Gutscheine aktivieren“ klicken.',
+    bannerTitle: 'Banner-Titel', bannerTitlePlaceholder: 'Exklusive Gutscheinsets zur Weihnachtszeit',
+    bannerText: 'Banner-Text', bannerTextPlaceholder: 'Zu jedem Gutscheinkauf ab 70 € erhalten Sie bei Bezahlung im Studio ein kleines Geschenk.',
+    gift: 'Geschenk (bei qualifizierten Bestellungen angezeigt)', giftPlaceholder: 'Kleine Überraschung von uns',
+    giftMinAmount: 'Geschenk ab Betrag (€)', giftMinMinutes: 'oder ab Behandlungsminuten',
+    starts: 'Beginn', ends: 'Ende (einschließlich dieses Tages)', saving: 'Speichern…', save: 'Aktion speichern',
+  },
+  th: {
+    loadError: 'โหลดโปรโมชันไม่สำเร็จ', saveError: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', saved: 'บันทึกโปรโมชันแล้ว',
+    heading: 'โปรโมชันและของแถม',
+    intro: 'แสดงเป็นแบนเนอร์บนหน้าบัตรของขวัญ คำสั่งซื้อที่ถึงยอดขั้นต่ำจะมีหมายเหตุของแถม และคุณติ๊กเมื่อส่งมอบแล้ว',
+    payInShop: 'ลูกค้าสั่งซื้อออนไลน์และชำระที่ร้านได้',
+    payInShopHint: 'บัตรของขวัญจะยังไม่เปิดใช้จนกว่าคุณจะกด "ชำระแล้ว – เปิดใช้บัตรของขวัญ" ในหน้าคำสั่งซื้อและแพ็กเกจ',
+    bannerTitle: 'หัวข้อแบนเนอร์', bannerTitlePlaceholder: 'แพ็กเกจบัตรของขวัญสุดพิเศษช่วงเทศกาล',
+    bannerText: 'ข้อความแบนเนอร์', bannerTextPlaceholder: 'ซื้อบัตรของขวัญตั้งแต่ 70 € และชำระที่ร้าน รับของขวัญเล็กๆ ทันที',
+    gift: 'ของแถม (แสดงในคำสั่งซื้อที่ได้รับสิทธิ์)', giftPlaceholder: 'เซอร์ไพรส์เล็กๆ จากเรา',
+    giftMinAmount: 'ของแถมเมื่อซื้อตั้งแต่ (€)', giftMinMinutes: 'หรือเมื่อทรีตเมนต์ตั้งแต่ (นาที)',
+    starts: 'เริ่ม', ends: 'สิ้นสุด (รวมวันนี้)', saving: 'กำลังบันทึก…', save: 'บันทึกโปรโมชัน',
+  },
+};
+
 /** Voucher promotion: banner text, gift for qualifying orders, pay in the shop. */
 export default function GiftCardPromoSettings() {
   const { businessId } = useTenant();
+  const { t } = useAdminText(TEXT);
   const [form, setForm] = useState<PromoForm>(promoFormFromSettings(null));
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,11 +78,12 @@ export default function GiftCardPromoSettings() {
       .then(({ data, error }) => {
         if (error) {
           console.error('Could not load the voucher promotion:', error);
-          setNotice({ tone: 'error', text: 'Could not load the promotion.' });
+          setNotice({ tone: 'error', text: t.loadError });
         }
         setForm(promoFormFromSettings(data));
         setIsLoading(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the business changes, not the language
   }, [businessId]);
 
   const update = <K extends keyof PromoForm>(key: K, value: PromoForm[K]) =>
@@ -56,10 +104,10 @@ export default function GiftCardPromoSettings() {
     setIsSaving(false);
     if (error) {
       console.error('Could not save the voucher promotion:', error);
-      setNotice({ tone: 'error', text: 'Could not save. Please try again.' });
+      setNotice({ tone: 'error', text: t.saveError });
       return;
     }
-    setNotice({ tone: 'success', text: 'Promotion saved.' });
+    setNotice({ tone: 'success', text: t.saved });
   };
 
   const field = (id: keyof PromoForm, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -83,10 +131,8 @@ export default function GiftCardPromoSettings() {
           <Gift className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
         </div>
         <div>
-          <h2 id="promo-heading" className="font-semibold text-[#1A1714]">Promotion &amp; gift</h2>
-          <p className="mt-1 text-sm text-stone-500">
-            Shown as a banner on your voucher page. Orders that reach the minimum get the gift note; you tick it off when you hand it over.
-          </p>
+          <h2 id="promo-heading" className="font-semibold text-[#1A1714]">{t.heading}</h2>
+          <p className="mt-1 text-sm text-stone-500">{t.intro}</p>
         </div>
       </div>
 
@@ -99,15 +145,15 @@ export default function GiftCardPromoSettings() {
           onChange={(e) => update('payInStoreEnabled', e.target.checked)}
         />
         <span>
-          <span className="block text-sm font-medium text-stone-800">Customers may order online and pay in the shop</span>
-          <span className="block text-xs text-stone-500">Vouchers stay inactive until you press "Paid – activate vouchers" in Orders &amp; sets.</span>
+          <span className="block text-sm font-medium text-stone-800">{t.payInShop}</span>
+          <span className="block text-xs text-stone-500">{t.payInShopHint}</span>
         </span>
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">{field('title', 'Banner title', { maxLength: 120, placeholder: 'Exklusive Gutscheinsets zur Weihnachtszeit' })}</div>
+        <div className="sm:col-span-2">{field('title', t.bannerTitle, { maxLength: 120, placeholder: t.bannerTitlePlaceholder })}</div>
         <label htmlFor="promo-text" className="block sm:col-span-2">
-          <span className="text-sm font-medium text-stone-700">Banner text</span>
+          <span className="text-sm font-medium text-stone-700">{t.bannerText}</span>
           <textarea
             id="promo-text"
             rows={3}
@@ -116,14 +162,14 @@ export default function GiftCardPromoSettings() {
             value={form.text}
             disabled={isLoading}
             onChange={(e) => update('text', e.target.value)}
-            placeholder="Zu jedem Gutscheinkauf ab 70 € erhalten Sie bei Bezahlung im Studio ein kleines Geschenk."
+            placeholder={t.bannerTextPlaceholder}
           />
         </label>
-        <div className="sm:col-span-2">{field('giftNote', 'Gift (shown on qualifying orders)', { maxLength: 300, placeholder: 'Kleine Überraschung von uns' })}</div>
-        {field('giftMinEuros', 'Gift from amount (€)', { inputMode: 'decimal', placeholder: '70' })}
-        {field('giftMinMinutes', 'or from treatment minutes', { inputMode: 'numeric', placeholder: '60' })}
-        {field('validFrom', 'Starts', { type: 'date' })}
-        {field('validUntil', 'Ends (including this day)', { type: 'date' })}
+        <div className="sm:col-span-2">{field('giftNote', t.gift, { maxLength: 300, placeholder: t.giftPlaceholder })}</div>
+        {field('giftMinEuros', t.giftMinAmount, { inputMode: 'decimal', placeholder: '70' })}
+        {field('giftMinMinutes', t.giftMinMinutes, { inputMode: 'numeric', placeholder: '60' })}
+        {field('validFrom', t.starts, { type: 'date' })}
+        {field('validUntil', t.ends, { type: 'date' })}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-stone-200/70 pt-5">
@@ -134,7 +180,7 @@ export default function GiftCardPromoSettings() {
         )}
         <button type="button" onClick={save} disabled={isLoading || isSaving} className={ADMIN_PRIMARY_BUTTON}>
           <Save className="h-4 w-4" aria-hidden="true" />
-          {isSaving ? 'Saving…' : 'Save promotion'}
+          {isSaving ? t.saving : t.save}
         </button>
       </div>
     </section>

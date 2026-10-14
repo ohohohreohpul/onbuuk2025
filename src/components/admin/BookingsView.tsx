@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Search } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
-import { deriveBookingState, formatStartTime, type BookingState, type FeeResolution } from './bookings/bookingState';
+import { BOOKING_STATE_TEXT, deriveBookingState, formatStartTime, type BookingState, type BookingStateText, type FeeResolution } from './bookings/bookingState';
 import BookingRowActions from './bookings/BookingRowActions';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
@@ -11,6 +11,8 @@ import RescheduleModal from './bookings/RescheduleModal';
 import { useSpecialistNames } from '../../hooks/useSpecialistNames';
 import { therapistLabel } from '../../lib/therapistLabel';
 import { downloadBookingInvoice } from '../../lib/invoice/invoiceApi';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
 
 const SMALL_INVOICE_LIMIT_CENTS = 25000;
 
@@ -41,12 +43,88 @@ interface BookingsViewProps {
   onNavigate?: (view: string) => void;
 }
 
-const FILTERS: { id: ViewFilter; label: string }[] = [
-  { id: 'needs-action', label: 'Needs action' },
-  { id: 'upcoming', label: 'Upcoming' },
-  { id: 'past', label: 'Past' },
-  { id: 'cancelled', label: 'Cancelled & no-shows' },
-  { id: 'all', label: 'All' },
+const TEXT: Translations<{
+  filterNeedsAction: string; filterUpcoming: string; filterPast: string; filterCancelled: string; filterAll: string;
+  title: string; needsDecisionOne: string; needsDecisionMany: string; nothingNeedsDecision: string;
+  filterLabel: string; searchPlaceholder: string;
+  colCustomer: string; colAppointment: string; colPrice: string; colStatus: string; colNextStep: string;
+  allCaughtUp: string; noBookings: string; couples: string; minutes: string; showing: string;
+  updateFailed: string; cancelConfirm: string; invoiceAddressPrompt: string; invoiceFailed: string;
+  deleteConfirm: string; noShowConfirm: string; noShowFeeNote: string; noShowFailed: string; noShowCharged: string;
+}> = {
+  en: {
+    filterNeedsAction: 'Needs action', filterUpcoming: 'Upcoming', filterPast: 'Past',
+    filterCancelled: 'Cancelled & no-shows', filterAll: 'All',
+    title: 'Bookings',
+    needsDecisionOne: '{count} booking needs a decision. Each row shows its next step; everything else is under ⋯.',
+    needsDecisionMany: '{count} bookings need a decision. Each row shows its next step; everything else is under ⋯.',
+    nothingNeedsDecision: 'Nothing needs a decision right now. Each row shows its next step when one is due.',
+    filterLabel: 'Filter bookings', searchPlaceholder: 'Search by customer name or email...',
+    colCustomer: 'Customer', colAppointment: 'Appointment', colPrice: 'Price', colStatus: 'Status', colNextStep: 'Next step',
+    allCaughtUp: 'You’re all caught up — nothing needs a decision.', noBookings: 'No bookings found',
+    couples: 'Couples', minutes: '{count} min', showing: 'Showing {shown} of {total} bookings',
+    updateFailed: 'Could not update this booking. Please try again.',
+    cancelConfirm: 'Cancel {name}’s booking on {date}?',
+    invoiceAddressPrompt: 'Customer address for the invoice of {name}:',
+    invoiceFailed: 'Could not create the invoice. Check Settings › Invoices and try again.',
+    deleteConfirm: 'Delete this booking permanently? It will disappear from reports and history. To keep a record, cancel it instead.',
+    noShowConfirm: 'Mark {name} as a no-show?',
+    noShowFeeNote: 'We’ll try to charge the {fee} fee to their saved card. If there isn’t one, the fee goes to No-Show Fees for you to resolve.',
+    noShowFailed: 'Failed to mark as no-show: {message}',
+    noShowCharged: 'No-show marked. Charged {amount} to the card on file.',
+  },
+  de: {
+    filterNeedsAction: 'Handlungsbedarf', filterUpcoming: 'Anstehend', filterPast: 'Vergangen',
+    filterCancelled: 'Storniert & No-Shows', filterAll: 'Alle',
+    title: 'Buchungen',
+    needsDecisionOne: '{count} Buchung wartet auf eine Entscheidung. Jede Zeile zeigt den nächsten Schritt; alles Weitere unter ⋯.',
+    needsDecisionMany: '{count} Buchungen warten auf eine Entscheidung. Jede Zeile zeigt den nächsten Schritt; alles Weitere unter ⋯.',
+    nothingNeedsDecision: 'Aktuell ist nichts zu entscheiden. Jede Zeile zeigt den nächsten Schritt, sobald einer fällig ist.',
+    filterLabel: 'Buchungen filtern', searchPlaceholder: 'Nach Kundenname oder E-Mail suchen …',
+    colCustomer: 'Kunde', colAppointment: 'Termin', colPrice: 'Preis', colStatus: 'Status', colNextStep: 'Nächster Schritt',
+    allCaughtUp: 'Alles erledigt – nichts wartet auf eine Entscheidung.', noBookings: 'Keine Buchungen gefunden',
+    couples: 'Paar', minutes: '{count} Min.', showing: '{shown} von {total} Buchungen',
+    updateFailed: 'Die Buchung konnte nicht aktualisiert werden. Bitte erneut versuchen.',
+    cancelConfirm: 'Buchung von {name} am {date} stornieren?',
+    invoiceAddressPrompt: 'Kundenadresse für die Rechnung von {name}:',
+    invoiceFailed: 'Die Rechnung konnte nicht erstellt werden. Bitte Einstellungen › Rechnungen prüfen und erneut versuchen.',
+    deleteConfirm: 'Buchung endgültig löschen? Sie verschwindet aus Berichten und Verlauf. Um sie zu behalten, stattdessen stornieren.',
+    noShowConfirm: '{name} als No-Show markieren?',
+    noShowFeeNote: 'Die Gebühr von {fee} wird von der hinterlegten Karte eingezogen. Ist keine hinterlegt, landet die Gebühr unter No-Show-Gebühren zur Klärung.',
+    noShowFailed: 'Markieren als No-Show fehlgeschlagen: {message}',
+    noShowCharged: 'Als No-Show markiert. {amount} wurden von der hinterlegten Karte eingezogen.',
+  },
+  th: {
+    filterNeedsAction: 'ต้องดำเนินการ', filterUpcoming: 'กำลังจะมาถึง', filterPast: 'ที่ผ่านมา',
+    filterCancelled: 'ยกเลิกและไม่มาตามนัด', filterAll: 'ทั้งหมด',
+    title: 'การจอง',
+    needsDecisionOne: 'มี {count} การจองที่รอการตัดสินใจ แต่ละแถวแสดงขั้นตอนถัดไป ส่วนอื่นๆ อยู่ใน ⋯',
+    needsDecisionMany: 'มี {count} การจองที่รอการตัดสินใจ แต่ละแถวแสดงขั้นตอนถัดไป ส่วนอื่นๆ อยู่ใน ⋯',
+    nothingNeedsDecision: 'ตอนนี้ยังไม่มีอะไรต้องตัดสินใจ แต่ละแถวจะแสดงขั้นตอนถัดไปเมื่อถึงเวลา',
+    filterLabel: 'กรองการจอง', searchPlaceholder: 'ค้นหาตามชื่อหรืออีเมลลูกค้า...',
+    colCustomer: 'ลูกค้า', colAppointment: 'นัดหมาย', colPrice: 'ราคา', colStatus: 'สถานะ', colNextStep: 'ขั้นตอนถัดไป',
+    allCaughtUp: 'เรียบร้อยแล้ว ไม่มีอะไรรอการตัดสินใจ', noBookings: 'ไม่พบการจอง',
+    couples: 'คู่', minutes: '{count} นาที', showing: 'แสดง {shown} จาก {total} การจอง',
+    updateFailed: 'อัปเดตการจองไม่สำเร็จ กรุณาลองอีกครั้ง',
+    cancelConfirm: 'ยกเลิกการจองของ {name} วันที่ {date} ใช่หรือไม่?',
+    invoiceAddressPrompt: 'ที่อยู่ลูกค้าสำหรับใบแจ้งหนี้ของ {name}:',
+    invoiceFailed: 'สร้างใบแจ้งหนี้ไม่สำเร็จ กรุณาตรวจสอบ การตั้งค่า › ใบแจ้งหนี้ แล้วลองอีกครั้ง',
+    deleteConfirm: 'ลบการจองนี้ถาวรหรือไม่? การจองจะหายไปจากรายงานและประวัติ หากต้องการเก็บบันทึกไว้ ให้ยกเลิกการจองแทน',
+    noShowConfirm: 'ทำเครื่องหมาย {name} ว่าไม่มาตามนัดหรือไม่?',
+    noShowFeeNote: 'ระบบจะพยายามเรียกเก็บค่าธรรมเนียม {fee} จากบัตรที่บันทึกไว้ หากไม่มีบัตร ค่าธรรมเนียมจะไปอยู่ที่ ค่าธรรมเนียมไม่มาตามนัด เพื่อให้คุณจัดการ',
+    noShowFailed: 'ทำเครื่องหมายไม่มาตามนัดไม่สำเร็จ: {message}',
+    noShowCharged: 'ทำเครื่องหมายไม่มาตามนัดแล้ว เรียกเก็บ {amount} จากบัตรที่บันทึกไว้',
+  },
+};
+
+type BookingsText = (typeof TEXT)['en'];
+
+const FILTERS: { id: ViewFilter; labelKey: keyof BookingsText }[] = [
+  { id: 'needs-action', labelKey: 'filterNeedsAction' },
+  { id: 'upcoming', labelKey: 'filterUpcoming' },
+  { id: 'past', labelKey: 'filterPast' },
+  { id: 'cancelled', labelKey: 'filterCancelled' },
+  { id: 'all', labelKey: 'filterAll' },
 ];
 
 const TONE_CLASSES: Record<BookingState['tone'], string> = {
@@ -70,7 +148,7 @@ const feeResolutionOf = (booking: Booking): FeeResolution | null => {
   return fee?.resolution_status ?? null;
 };
 
-const stateOf = (booking: Booking): BookingState =>
+const stateOf = (booking: Booking, text: BookingStateText = BOOKING_STATE_TEXT.en): BookingState =>
   deriveBookingState({
     status: booking.status,
     no_show: booking.no_show,
@@ -78,7 +156,7 @@ const stateOf = (booking: Booking): BookingState =>
     start_time: booking.start_time,
     hasNoShowFee: (booking.service?.no_show_fee || 0) > 0,
     feeResolution: feeResolutionOf(booking),
-  });
+  }, new Date(), text);
 
 const matchesFilter = (filter: ViewFilter, state: BookingState): boolean => {
   if (filter === 'all') return true;
@@ -91,6 +169,8 @@ const matchesFilter = (filter: ViewFilter, state: BookingState): boolean => {
 export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const { formatPrice } = useCurrency();
   const { businessId } = useTenant();
+  const { t, lang, locale } = useAdminText(TEXT);
+  const stateText = BOOKING_STATE_TEXT[lang];
   const specialistNames = useSpecialistNames(businessId);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
@@ -168,7 +248,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       .eq('id', bookingId);
 
     if (error) {
-      alert('Could not update this booking. Please try again.');
+      alert(t.updateFailed);
     } else {
       await fetchBookings();
     }
@@ -176,7 +256,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   };
 
   const cancelBooking = (booking: Booking) => {
-    if (!confirm(`Cancel ${booking.customer_name}'s booking on ${formatDate(booking.booking_date)}?`)) return;
+    if (!confirm(fillText(t.cancelConfirm, { name: booking.customer_name, date: formatDate(booking.booking_date) }))) return;
     updateBookingStatus(booking.id, 'cancelled');
   };
 
@@ -184,7 +264,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const downloadInvoice = async (booking: Booking) => {
     let address: string | undefined;
     if ((booking.duration?.price_cents ?? 0) > SMALL_INVOICE_LIMIT_CENTS) {
-      address = window.prompt(`Customer address for the invoice of ${booking.customer_name}:`) ?? undefined;
+      address = window.prompt(fillText(t.invoiceAddressPrompt, { name: booking.customer_name })) ?? undefined;
       if (address === undefined) return;
     }
     setBusyId(booking.id);
@@ -194,14 +274,14 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       console.error('Invoice failed:', invoiceError);
       alert(invoiceError instanceof Error && invoiceError.message.includes('Steuernummer')
         ? invoiceError.message
-        : 'Could not create the invoice. Check Settings › Invoices and try again.');
+        : t.invoiceFailed);
     } finally {
       setBusyId(null);
     }
   };
 
   const deleteBooking = async (bookingId: string) => {
-    if (!confirm('Delete this booking permanently? It will disappear from reports and history. To keep a record, cancel it instead.')) return;
+    if (!confirm(t.deleteConfirm)) return;
 
     const { error } = await supabase
       .from('bookings')
@@ -214,7 +294,10 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   };
 
   const markAsNoShow = async (booking: Booking) => {
-    if (!confirm(`Mark ${booking.customer_name} as a no-show? ${booking.service.no_show_fee > 0 ? `We'll try to charge the ${formatPrice(booking.service.no_show_fee)} fee to their saved card. If there isn't one, the fee goes to No-Show Fees for you to resolve.` : ''}`)) return;
+    const feeNote = booking.service.no_show_fee > 0
+      ? ` ${fillText(t.noShowFeeNote, { fee: formatPrice(booking.service.no_show_fee) })}`
+      : '';
+    if (!confirm(fillText(t.noShowConfirm, { name: booking.customer_name }) + feeNote)) return;
     setBusyId(booking.id);
 
     const { error: bookingError } = await supabase
@@ -227,7 +310,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       .eq('id', booking.id);
 
     if (bookingError) {
-      alert('Failed to mark as no-show: ' + bookingError.message);
+      alert(fillText(t.noShowFailed, { message: bookingError.message }));
       setBusyId(null);
       return;
     }
@@ -240,7 +323,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
         });
 
         if (!chargeError && chargeResult?.charged) {
-          alert(`No-show marked. Charged ${formatPrice(chargeResult.amount)} to the card on file.`);
+          alert(fillText(t.noShowCharged, { amount: formatPrice(chargeResult.amount) }));
           await fetchBookings();
           setBusyId(null);
           return;
@@ -298,7 +381,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(`${dateString}T00:00:00`);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -326,16 +409,16 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Bookings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
         <p className="text-sm text-stone-500">
           {needsActionCount > 0
-            ? `${needsActionCount} booking${needsActionCount === 1 ? ' needs' : 's need'} a decision. Each row shows its next step; everything else is under ⋯.`
-            : 'Nothing needs a decision right now. Each row shows its next step when one is due.'}
+            ? fillText(needsActionCount === 1 ? t.needsDecisionOne : t.needsDecisionMany, { count: needsActionCount })
+            : t.nothingNeedsDecision}
         </p>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className={`${ADMIN_SEGMENTED_CONTROL} overflow-x-auto`} role="tablist" aria-label="Filter bookings">
+        <div className={`${ADMIN_SEGMENTED_CONTROL} overflow-x-auto`} role="tablist" aria-label={t.filterLabel}>
           {FILTERS.map((filter) => {
             const count = countFor(filter.id);
             const isActive = viewFilter === filter.id;
@@ -348,7 +431,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                 onClick={() => chooseFilter(filter.id)}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${isActive ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE}`}
               >
-                {filter.label}
+                {t[filter.labelKey]}
                 <span className={`rounded-full px-1.5 text-[11px] tabular-nums ${isActive ? 'bg-white/20' : filter.id === 'needs-action' && count > 0 ? 'bg-amber-100 text-amber-800' : 'bg-stone-900/[0.06]'}`}>
                   {count}
                 </span>
@@ -360,7 +443,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
-            placeholder="Search by customer name or email..."
+            placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`${ADMIN_INPUT} pl-10`}
@@ -373,24 +456,24 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
           <table className="w-full">
             <thead className="border-b border-stone-200/70 bg-[#F9F7F4]/80">
               <tr>
-                {['Customer', 'Appointment', 'Price', 'Status'].map((heading) => (
+                {[t.colCustomer, t.colAppointment, t.colPrice, t.colStatus].map((heading) => (
                   <th key={heading} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-stone-500">
                     {heading}
                   </th>
                 ))}
-                <th className="px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-stone-500">Next step</th>
+                <th className="px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-stone-500">{t.colNextStep}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {filteredBookings.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-sm text-stone-500">
-                    {viewFilter === 'needs-action' ? 'You’re all caught up — nothing needs a decision.' : 'No bookings found'}
+                    {viewFilter === 'needs-action' ? t.allCaughtUp : t.noBookings}
                   </td>
                 </tr>
               ) : (
                 filteredBookings.map((booking) => {
-                  const state = stateOf(booking);
+                  const state = stateOf(booking, stateText);
                   const isClosed = state.stage === 'cancelled';
                   return (
                     <tr key={booking.id} className={`transition-colors hover:bg-stone-50/70 ${state.needsAction ? 'bg-amber-50/25' : ''}`}>
@@ -404,9 +487,9 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                           {formatDate(booking.booking_date)} · {formatStartTime(booking.start_time)}
                         </div>
                         <div className="mt-0.5 text-xs text-stone-500">
-                          {booking.service.name} · {booking.duration.duration_minutes} min · {therapistLabel(booking, specialistNames)}
+                          {booking.service.name} · {fillText(t.minutes, { count: booking.duration.duration_minutes })} · {therapistLabel(booking, specialistNames)}
                           {booking.is_pair_booking && (
-                            <span className="ml-2 rounded-full bg-stone-900/[0.06] px-2 py-0.5 text-[11px] font-medium text-stone-700">Couples</span>
+                            <span className="ml-2 rounded-full bg-stone-900/[0.06] px-2 py-0.5 text-[11px] font-medium text-stone-700">{t.couples}</span>
                           )}
                         </div>
                       </td>
@@ -446,7 +529,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       </div>
 
       <div className="text-xs text-stone-400">
-        Showing {filteredBookings.length} of {bookings.length} bookings
+        {fillText(t.showing, { shown: filteredBookings.length, total: bookings.length })}
       </div>
       {movingBooking && (
         <RescheduleModal

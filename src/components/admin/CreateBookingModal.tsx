@@ -5,6 +5,58 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 import { toLocalDateString } from '../../lib/localDateTime';
+import { useAdminText } from '../../lib/adminLanguage';
+import { Translations, fillText } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string; close: string; serviceDetails: string; service: string; selectService: string;
+  durationPrice: string; selectDuration: string; durationOption: string; specialist: string; selectSpecialist: string;
+  next: string; back: string; dateTime: string; date: string; availableTimes: string; noSlots: string;
+  customerInfo: string; existingCustomer: string; newCustomer: string; selectCustomerLabel: string; selectCustomer: string;
+  name: string; namePlaceholder: string; email: string; phone: string; phonePlaceholder: string;
+  notes: string; notesPlaceholder: string; creating: string; createBooking: string;
+  errorSelectCustomer: string; errorCustomerFields: string; errorCreate: string;
+}> = {
+  en: {
+    title: 'Create Booking', close: 'Close', serviceDetails: 'Service Details', service: 'Service', selectService: 'Select a service',
+    durationPrice: 'Duration & Price', selectDuration: 'Select duration', durationOption: '{minutes} minutes - {price}',
+    specialist: 'Specialist', selectSpecialist: 'Select a specialist',
+    next: 'Next', back: 'Back', dateTime: 'Date & Time', date: 'Date', availableTimes: 'Available Times',
+    noSlots: 'No available slots for this date',
+    customerInfo: 'Customer Information', existingCustomer: 'Existing Customer', newCustomer: 'New Customer',
+    selectCustomerLabel: 'Select Customer', selectCustomer: 'Select a customer',
+    name: 'Name', namePlaceholder: 'Customer name', email: 'Email', phone: 'Phone', phonePlaceholder: 'Phone number',
+    notes: 'Notes (Optional)', notesPlaceholder: 'Any special requests or notes', creating: 'Creating...', createBooking: 'Create Booking',
+    errorSelectCustomer: 'Please select a customer', errorCustomerFields: 'All customer fields are required',
+    errorCreate: 'Failed to create booking',
+  },
+  de: {
+    title: 'Buchung erstellen', close: 'Schließen', serviceDetails: 'Leistung', service: 'Leistung', selectService: 'Leistung auswählen',
+    durationPrice: 'Dauer & Preis', selectDuration: 'Dauer auswählen', durationOption: '{minutes} Minuten – {price}',
+    specialist: 'Therapeut:in', selectSpecialist: 'Therapeut:in auswählen',
+    next: 'Weiter', back: 'Zurück', dateTime: 'Datum & Uhrzeit', date: 'Datum', availableTimes: 'Verfügbare Zeiten',
+    noSlots: 'An diesem Datum sind keine Zeiten frei',
+    customerInfo: 'Kundendaten', existingCustomer: 'Bestehender Kunde', newCustomer: 'Neuer Kunde',
+    selectCustomerLabel: 'Kunde auswählen', selectCustomer: 'Kunde auswählen',
+    name: 'Name', namePlaceholder: 'Name des Kunden', email: 'E-Mail', phone: 'Telefon', phonePlaceholder: 'Telefonnummer',
+    notes: 'Notizen (optional)', notesPlaceholder: 'Besondere Wünsche oder Notizen', creating: 'Wird erstellt...', createBooking: 'Buchung erstellen',
+    errorSelectCustomer: 'Bitte einen Kunden auswählen', errorCustomerFields: 'Alle Kundenfelder sind Pflichtfelder',
+    errorCreate: 'Buchung konnte nicht erstellt werden',
+  },
+  th: {
+    title: 'สร้างการจอง', close: 'ปิด', serviceDetails: 'รายละเอียดบริการ', service: 'บริการ', selectService: 'เลือกบริการ',
+    durationPrice: 'ระยะเวลาและราคา', selectDuration: 'เลือกระยะเวลา', durationOption: '{minutes} นาที - {price}',
+    specialist: 'พนักงานบริการ', selectSpecialist: 'เลือกพนักงานบริการ',
+    next: 'ถัดไป', back: 'ย้อนกลับ', dateTime: 'วันและเวลา', date: 'วันที่', availableTimes: 'เวลาที่ว่าง',
+    noSlots: 'ไม่มีเวลาว่างในวันนี้',
+    customerInfo: 'ข้อมูลลูกค้า', existingCustomer: 'ลูกค้าเดิม', newCustomer: 'ลูกค้าใหม่',
+    selectCustomerLabel: 'เลือกลูกค้า', selectCustomer: 'เลือกลูกค้า',
+    name: 'ชื่อ', namePlaceholder: 'ชื่อลูกค้า', email: 'อีเมล', phone: 'โทรศัพท์', phonePlaceholder: 'เบอร์โทรศัพท์',
+    notes: 'หมายเหตุ (ไม่บังคับ)', notesPlaceholder: 'คำขอพิเศษหรือหมายเหตุ', creating: 'กำลังสร้าง...', createBooking: 'สร้างการจอง',
+    errorSelectCustomer: 'กรุณาเลือกลูกค้า', errorCustomerFields: 'กรุณากรอกข้อมูลลูกค้าให้ครบทุกช่อง',
+    errorCreate: 'สร้างการจองไม่สำเร็จ',
+  },
+};
 
 interface Service {
   id: string;
@@ -38,6 +90,7 @@ interface CreateBookingModalProps {
 }
 
 export default function CreateBookingModal({ isOpen, onClose, onSuccess, preselectedDate }: CreateBookingModalProps) {
+  const { t } = useAdminText(TEXT);
   const { businessId } = useTenant();
   const { formatPrice } = useCurrency();
   const [step, setStep] = useState(1);
@@ -177,7 +230,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
       if (formData.customerType === 'existing') {
         const customer = customers.find(c => c.id === formData.customerId);
         if (!customer) {
-          setError('Please select a customer');
+          setError(t.errorSelectCustomer);
           setLoading(false);
           return;
         }
@@ -186,7 +239,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
         customerPhone = customer.phone;
       } else {
         if (!formData.newCustomerName || !formData.newCustomerEmail || !formData.newCustomerPhone) {
-          setError('All customer fields are required');
+          setError(t.errorCustomerFields);
           setLoading(false);
           return;
         }
@@ -236,7 +289,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
       onSuccess();
       handleClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create booking');
+      setError(err.message || t.errorCreate);
     } finally {
       setLoading(false);
     }
@@ -269,8 +322,8 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-stone-200 p-6 flex items-center justify-between">
-          <h2 className="text-2xl font-light text-stone-900">Create Booking</h2>
-          <button onClick={handleClose} className="text-stone-400 hover:text-stone-600">
+          <h2 className="text-2xl font-light text-stone-900">{t.title}</h2>
+          <button onClick={handleClose} aria-label={t.close} title={t.close} className="text-stone-400 hover:text-stone-600">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -297,16 +350,16 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
 
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-stone-900">Service Details</h3>
+              <h3 className="text-lg font-medium text-stone-900">{t.serviceDetails}</h3>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Service</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.service}</label>
                 <select
                   value={formData.serviceId}
                   onChange={(e) => setFormData({ ...formData, serviceId: e.target.value, durationId: '' })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                 >
-                  <option value="">Select a service</option>
+                  <option value="">{t.selectService}</option>
                   {services.map(service => (
                     <option key={service.id} value={service.id}>
                       {service.name} ({service.category})
@@ -317,16 +370,16 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
 
               {formData.serviceId && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-2">Duration & Price</label>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">{t.durationPrice}</label>
                   <select
                     value={formData.durationId}
                     onChange={(e) => setFormData({ ...formData, durationId: e.target.value })}
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                   >
-                    <option value="">Select duration</option>
+                    <option value="">{t.selectDuration}</option>
                     {durations.map(duration => (
                       <option key={duration.id} value={duration.id}>
-                        {duration.duration_minutes} minutes - {formatPrice(duration.price_cents)}
+                        {fillText(t.durationOption, { minutes: duration.duration_minutes, price: formatPrice(duration.price_cents) })}
                       </option>
                     ))}
                   </select>
@@ -334,13 +387,13 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
               )}
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Specialist</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.specialist}</label>
                 <select
                   value={formData.specialistId}
                   onChange={(e) => setFormData({ ...formData, specialistId: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                 >
-                  <option value="">Select a specialist</option>
+                  <option value="">{t.selectSpecialist}</option>
                   {specialists.map(specialist => (
                     <option key={specialist.id} value={specialist.id}>
                       {specialist.name}
@@ -355,7 +408,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                   disabled={!formData.serviceId || !formData.durationId || !formData.specialistId}
                   className="px-6 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t.next}
                 </button>
               </div>
             </div>
@@ -363,10 +416,10 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
 
           {step === 2 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-stone-900">Date & Time</h3>
+              <h3 className="text-lg font-medium text-stone-900">{t.dateTime}</h3>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Date</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.date}</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -378,7 +431,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
 
               {availableSlots.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-2">Available Times</label>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">{t.availableTimes}</label>
                   <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto">
                     {availableSlots.map(slot => (
                       <button
@@ -398,7 +451,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
               )}
 
               {availableSlots.length === 0 && formData.date && (
-                <p className="text-sm text-stone-500">No available slots for this date</p>
+                <p className="text-sm text-stone-500">{t.noSlots}</p>
               )}
 
               <div className="flex justify-between">
@@ -406,14 +459,14 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                   onClick={() => setStep(1)}
                   className="px-6 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50"
                 >
-                  Back
+                  {t.back}
                 </button>
                 <button
                   onClick={() => setStep(3)}
                   disabled={!formData.time}
                   className="px-6 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t.next}
                 </button>
               </div>
             </div>
@@ -421,7 +474,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
 
           {step === 3 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-stone-900">Customer Information</h3>
+              <h3 className="text-lg font-medium text-stone-900">{t.customerInfo}</h3>
 
               <div className="flex space-x-4">
                 <button
@@ -432,7 +485,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                       : 'bg-white text-stone-700 border-stone-300'
                   }`}
                 >
-                  Existing Customer
+                  {t.existingCustomer}
                 </button>
                 <button
                   onClick={() => setFormData({ ...formData, customerType: 'new' })}
@@ -442,19 +495,19 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                       : 'bg-white text-stone-700 border-stone-300'
                   }`}
                 >
-                  New Customer
+                  {t.newCustomer}
                 </button>
               </div>
 
               {formData.customerType === 'existing' ? (
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-2">Select Customer</label>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">{t.selectCustomerLabel}</label>
                   <select
                     value={formData.customerId}
                     onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                   >
-                    <option value="">Select a customer</option>
+                    <option value="">{t.selectCustomer}</option>
                     {customers.map(customer => (
                       <option key={customer.id} value={customer.id}>
                         {customer.name} ({customer.email})
@@ -465,17 +518,17 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2">Name</label>
+                    <label className="block text-sm font-medium text-stone-700 mb-2">{t.name}</label>
                     <input
                       type="text"
                       value={formData.newCustomerName}
                       onChange={(e) => setFormData({ ...formData, newCustomerName: e.target.value })}
                       className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
-                      placeholder="Customer name"
+                      placeholder={t.namePlaceholder}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-stone-700 mb-2">{t.email}</label>
                     <input
                       type="email"
                       value={formData.newCustomerEmail}
@@ -485,26 +538,26 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2">Phone</label>
+                    <label className="block text-sm font-medium text-stone-700 mb-2">{t.phone}</label>
                     <input
                       type="tel"
                       value={formData.newCustomerPhone}
                       onChange={(e) => setFormData({ ...formData, newCustomerPhone: e.target.value })}
                       className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
-                      placeholder="Phone number"
+                      placeholder={t.phonePlaceholder}
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Notes (Optional)</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.notes}</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900"
                   rows={3}
-                  placeholder="Any special requests or notes"
+                  placeholder={t.notesPlaceholder}
                 />
               </div>
 
@@ -514,14 +567,14 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, presele
                   className="px-6 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50"
                   disabled={loading}
                 >
-                  Back
+                  {t.back}
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={loading || (formData.customerType === 'existing' ? !formData.customerId : !formData.newCustomerName || !formData.newCustomerEmail || !formData.newCustomerPhone)}
                   className="px-6 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Creating...' : 'Create Booking'}
+                  {loading ? t.creating : t.createBooking}
                 </button>
               </div>
             </div>
