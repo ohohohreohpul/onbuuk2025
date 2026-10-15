@@ -10,6 +10,7 @@ export interface BookingPayment {
   booking_id: string;
   method: PaymentMethod;
   amount_cents: number;
+  gift_card_id?: string | null;
   reference: string | null;
   created_at: string;
 }
@@ -29,14 +30,18 @@ export const PAYMENT_METHOD_LABELS: Translations<Record<PaymentMethod, string>> 
   },
 };
 
-/** Counter payments that staff record by hand; vouchers reduce the price instead. */
-export const isCounterPayment = (method: PaymentMethod): boolean =>
-  method === 'cash' || method === 'card' || method === 'other';
+/**
+ * Payments staff record by hand, including vouchers noted without a Zenno code.
+ * Vouchers redeemed through Zenno (gift_card_id set) reduce the price instead.
+ */
+export const isCounterPayment = (payment: Pick<BookingPayment, 'method' | 'gift_card_id'>): boolean =>
+  payment.method === 'cash' || payment.method === 'card' || payment.method === 'other'
+  || (payment.method === 'gift_card' && !payment.gift_card_id);
 
 /** Amount still open: the price after vouchers minus what was paid at the counter. */
 export function openAmountCents(finalAmountCents: number, payments: BookingPayment[]): number {
   const paidAtCounter = payments
-    .filter((payment) => isCounterPayment(payment.method))
+    .filter(isCounterPayment)
     .reduce((sum, payment) => sum + payment.amount_cents, 0);
   return Math.max(0, finalAmountCents - paidAtCounter);
 }

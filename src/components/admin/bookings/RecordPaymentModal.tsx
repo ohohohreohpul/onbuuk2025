@@ -16,34 +16,31 @@ const TEXT: Translations<{
   title: string; close: string; price: string; open: string; paid: string; paidInFull: string; howPaid: string;
   amount: string; voucherCode: string; voucherHint: string; record: string; recording: string; done: string;
   coveredByVoucher: string; markPaid: string; loadFailed: string; recordFailed: string; voucherFailed: string;
-  invalidAmount: string; codeRequired: string; tooMuch: string;
+  invalidAmount: string; tooMuch: string;
 }> = {
   en: {
     title: 'Record payment', close: 'Close', price: 'Price', open: 'Still open', paid: 'Already paid',
     paidInFull: 'Paid in full', howPaid: 'How did the customer pay?', amount: 'Amount ({symbol})',
-    voucherCode: 'Gift card or service pass code', voucherHint: 'The amount is taken off the card balance and linked to this booking.',
+    voucherCode: 'Voucher number (optional)', voucherHint: 'If the number is a Zenno gift card, its balance is reduced too.',
     record: 'Record payment', recording: 'Saving…', done: 'Done', coveredByVoucher: 'Gift cards cover the full price.',
     markPaid: 'Mark as paid', loadFailed: 'Could not load the payments for this booking.', recordFailed: 'Could not record the payment.',
-    voucherFailed: 'Could not redeem the card: {reason}', invalidAmount: 'Enter an amount greater than 0.',
-    codeRequired: 'Enter the gift card code.', tooMuch: 'That is more than the open amount of {amount}.',
+    voucherFailed: 'Could not redeem the card: {reason}', invalidAmount: 'Enter an amount greater than 0.', tooMuch: 'That is more than the open amount of {amount}.',
   },
   de: {
     title: 'Zahlung erfassen', close: 'Schließen', price: 'Preis', open: 'Noch offen', paid: 'Bereits bezahlt',
     paidInFull: 'Vollständig bezahlt', howPaid: 'Wie wurde bezahlt?', amount: 'Betrag ({symbol})',
-    voucherCode: 'Gutschein- oder Mehrfachkarten-Code', voucherHint: 'Der Betrag wird vom Guthaben abgezogen und dieser Buchung zugeordnet.',
+    voucherCode: 'Gutschein-Nummer (optional)', voucherHint: 'Ist es ein Zenno-Gutschein, wird auch das Guthaben abgebucht.',
     record: 'Zahlung erfassen', recording: 'Wird gespeichert…', done: 'Fertig', coveredByVoucher: 'Gutscheine decken den vollen Preis.',
     markPaid: 'Als bezahlt markieren', loadFailed: 'Zahlungen dieser Buchung konnten nicht geladen werden.', recordFailed: 'Zahlung konnte nicht erfasst werden.',
-    voucherFailed: 'Gutschein konnte nicht eingelöst werden: {reason}', invalidAmount: 'Bitte einen Betrag größer als 0 eingeben.',
-    codeRequired: 'Bitte den Gutschein-Code eingeben.', tooMuch: 'Das ist mehr als der offene Betrag von {amount}.',
+    voucherFailed: 'Gutschein konnte nicht eingelöst werden: {reason}', invalidAmount: 'Bitte einen Betrag größer als 0 eingeben.', tooMuch: 'Das ist mehr als der offene Betrag von {amount}.',
   },
   th: {
     title: 'บันทึกการชำระเงิน', close: 'ปิด', price: 'ราคา', open: 'ยอดค้างชำระ', paid: 'ชำระแล้ว',
     paidInFull: 'ชำระครบแล้ว', howPaid: 'ลูกค้าชำระด้วยวิธีใด', amount: 'จำนวนเงิน ({symbol})',
-    voucherCode: 'รหัสบัตรของขวัญหรือบัตรแพ็กเกจ', voucherHint: 'ระบบจะหักยอดจากบัตรและผูกกับการจองนี้',
+    voucherCode: 'เลขที่บัตรของขวัญ (ไม่บังคับ)', voucherHint: 'ถ้าเป็นบัตรของขวัญในระบบ Zenno ระบบจะหักยอดในบัตรด้วย',
     record: 'บันทึกการชำระ', recording: 'กำลังบันทึก…', done: 'เสร็จสิ้น', coveredByVoucher: 'บัตรของขวัญครอบคลุมราคาทั้งหมดแล้ว',
     markPaid: 'ทำเครื่องหมายว่าชำระแล้ว', loadFailed: 'โหลดข้อมูลการชำระเงินของการจองนี้ไม่สำเร็จ', recordFailed: 'บันทึกการชำระเงินไม่สำเร็จ',
-    voucherFailed: 'ใช้บัตรไม่สำเร็จ: {reason}', invalidAmount: 'กรุณาใส่จำนวนเงินที่มากกว่า 0',
-    codeRequired: 'กรุณาใส่รหัสบัตรของขวัญ', tooMuch: 'จำนวนนี้มากกว่ายอดค้างชำระ {amount}',
+    voucherFailed: 'ใช้บัตรไม่สำเร็จ: {reason}', invalidAmount: 'กรุณาใส่จำนวนเงินที่มากกว่า 0', tooMuch: 'จำนวนนี้มากกว่ายอดค้างชำระ {amount}',
   },
 };
 
@@ -108,21 +105,25 @@ export default function RecordPaymentModal({ booking, onClose, onChanged }: Reco
   const open = openAmountCents(finalAmountCents, payments);
   const paidTotal = payments.reduce((sum, payment) => sum + payment.amount_cents, 0);
 
-  const redeemVoucher = async (cents: number) => {
-    if (!code.trim()) return t.codeRequired;
+  /** Zenno voucher: redeem it (balance + link). Returns null when the number is not a Zenno voucher. */
+  const redeemZennoVoucher = async (cents: number): Promise<{ handled: boolean; failure: string | null }> => {
     const { error: redeemError } = await supabase.rpc('redeem_gift_card_for_booking', {
       p_booking_id: booking.id,
       p_code: code.trim(),
       p_requested_amount_cents: cents,
     });
-    return redeemError ? fillText(t.voucherFailed, { reason: redeemError.message }) : null;
+    if (!redeemError) return { handled: true, failure: null };
+    // Paper voucher or other number Zenno does not know: record it as a plain voucher payment.
+    if (/invalid gift card/i.test(redeemError.message)) return { handled: false, failure: null };
+    return { handled: true, failure: fillText(t.voucherFailed, { reason: redeemError.message }) };
   };
 
-  const recordCounterPayment = async (method: 'cash' | 'card' | 'other', cents: number) => {
+  const recordCounterPayment = async (method: Choice, cents: number, reference?: string) => {
     const { error: recordError } = await supabase.rpc('record_shop_payment', {
       p_booking_id: booking.id,
       p_method: method,
       p_amount_cents: cents,
+      p_reference: reference || null,
     });
     if (recordError) console.error('Could not record shop payment:', recordError);
     return recordError ? t.recordFailed : null;
@@ -131,18 +132,18 @@ export default function RecordPaymentModal({ booking, onClose, onChanged }: Reco
   const handleRecord = async () => {
     const cents = parseCents(amount);
     if (!Number.isFinite(cents) || cents <= 0) { setError(t.invalidAmount); return; }
-    if (choice !== 'gift_card' && cents > open) { setError(fillText(t.tooMuch, { amount: formatPrice(open) })); return; }
+    if (cents > open) { setError(fillText(t.tooMuch, { amount: formatPrice(open) })); return; }
 
     setSaving(true);
     setError('');
-    let failure = choice === 'gift_card' ? await redeemVoucher(cents) : await recordCounterPayment(choice, cents);
-    // A voucher that covers everything left still has to close the booking.
-    if (!failure && choice === 'gift_card') {
-      const { data } = await supabase.from('bookings').select('final_amount_cents').eq('id', booking.id).maybeSingle();
-      const { data: rows } = await supabase.from('booking_payments').select('*').eq('booking_id', booking.id);
-      if (openAmountCents(Number(data?.final_amount_cents ?? 0), (rows ?? []) as BookingPayment[]) === 0) {
-        failure = await recordCounterPayment('other', 0);
-      }
+    let failure: string | null;
+    if (choice === 'gift_card' && code.trim()) {
+      const zenno = await redeemZennoVoucher(cents);
+      failure = zenno.handled ? zenno.failure : await recordCounterPayment('gift_card', cents, code.trim());
+      // A Zenno voucher lowers the price; if nothing is left, close the booking.
+      if (zenno.handled && !failure) failure = await recordCounterPayment('other', 0);
+    } else {
+      failure = await recordCounterPayment(choice, cents);
     }
     setSaving(false);
     if (failure) { setError(failure); return; }
