@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // New versions wait until src/lib/appUpdates.ts applies them (on open or when the tab is left).
+      // The new worker takes over at once; src/lib/appUpdates.ts reloads open tabs at a safe moment.
       registerType: 'prompt',
       injectRegister: false,
       includeAssets: ['apple-touch-icon.png', 'zenno-mark.svg', 'zenno-logo.svg'],
@@ -30,10 +30,21 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache the built app shell; SPA navigations fall back to index.html.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        navigateFallback: '/index.html',
+        // The page itself (index.html) always comes from the network when online, so
+        // a deploy is visible on the next load; the cached copy is only an offline
+        // fallback. Hashed JS/CSS files never change, so caching them is safe.
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'],
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'pages', networkTimeoutSeconds: 4 },
+          },
+        ],
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         // The main bundle is ~2.3 MB (uncode-split). Raise the precache ceiling
         // so the app shell is fully cached. TODO: code-split to shrink this.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

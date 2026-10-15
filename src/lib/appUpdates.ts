@@ -38,7 +38,20 @@ export function keepAppUpdated(): void {
     },
   });
 
+  // The new worker takes over by itself; reload open tabs then (right away on a
+  // fresh load, otherwise when the tab is left). Not on the very first install.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloadPending = false;
+  const reload = () => window.location.reload();
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    if (Date.now() - loadedAt < FRESH_LOAD_MS || document.visibilityState === 'hidden') reload();
+    else reloadPending = true;
+  });
+
   document.addEventListener('visibilitychange', () => {
-    if (updatePending && document.visibilityState === 'hidden') void updateSW(true);
+    if (document.visibilityState !== 'hidden') return;
+    if (updatePending) void updateSW(true);
+    else if (reloadPending) reload();
   });
 }

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import CreateBookingModal from './CreateBookingModal';
 import ActionCentre from './ActionCentre';
 import GiftCardStation from './GiftCardStation';
@@ -249,7 +250,6 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -262,16 +262,6 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       mountedRef.current = false;
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowCreateDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleCreateAction = (action: string) => {
@@ -501,36 +491,32 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </div>
           <p className="text-sm text-stone-500">{t.welcome}</p>
         </div>
-        <div className="relative" ref={dropdownRef}>
-          <Button
-            onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-            className="bg-[#1A1714] hover:bg-[#2E2926] text-white rounded-xl shadow-[0_2px_12px_rgba(26,23,20,0.16)]"
-          >
-            <Plus className="h-4 w-4" />
-            {t.newButton}
-            <ChevronDown
-              className={`h-4 w-4 ml-1 transition-transform duration-200 ${showCreateDropdown ? 'rotate-180' : ''}`}
-            />
-          </Button>
-          {showCreateDropdown && (
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-stone-200/80 bg-white/95 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(26,23,20,0.14)] z-[9999] animate-fade-in-down">
+        {/* Rendered in a portal so no card on the page can cover the menu. */}
+        <DropdownMenu.Root open={showCreateDropdown} onOpenChange={setShowCreateDropdown}>
+          <DropdownMenu.Trigger asChild>
+            <Button className="bg-[#1A1714] hover:bg-[#2E2926] text-white rounded-xl shadow-[0_2px_12px_rgba(26,23,20,0.16)]">
+              <Plus className="h-4 w-4" />
+              {t.newButton}
+              <ChevronDown className={`h-4 w-4 ml-1 transition-transform duration-200 ${showCreateDropdown ? 'rotate-180' : ''}`} />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content align="end" sideOffset={8}
+              className="z-50 w-56 rounded-2xl border border-stone-200/80 bg-white p-1.5 shadow-[0_12px_40px_rgba(26,23,20,0.14)]">
               {[
                 { action: 'create-booking', label: t.createBooking, icon: Calendar },
                 { action: 'customers', label: t.addCustomer, icon: Users },
                 { action: 'gift-cards', label: t.issueGiftCard, icon: DollarSign },
               ].map((item) => (
-                <button
-                  key={item.action}
-                  onClick={() => handleCreateAction(item.action)}
-                  className="relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm text-stone-700 hover:bg-stone-100 transition-colors"
-                >
+                <DropdownMenu.Item key={item.action} onSelect={() => handleCreateAction(item.action)}
+                  className="flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm text-stone-700 outline-none data-[highlighted]:bg-stone-100">
                   <item.icon className="mr-3 h-4 w-4 text-stone-500" />
                   <span>{item.label}</span>
-                </button>
+                </DropdownMenu.Item>
               ))}
-            </div>
-          )}
-        </div>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
 
       {/* Action Centre — daily briefing */}
