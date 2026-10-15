@@ -6,7 +6,7 @@ import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, type Translations } from '../../lib/bookingLanguage';
 import { toLocalDateString } from '../../lib/localDateTime';
 import { ADMIN_SURFACE } from './adminUi';
-import QuickPay, { STEP_SELECT } from './bookings/QuickPay';
+import QuickPay, { STEP_SELECT_DONE, STEP_SELECT_OPEN } from './bookings/QuickPay';
 import RecordPaymentModal from './bookings/RecordPaymentModal';
 import { markBookingNoShow, setBookingStatus } from './bookings/bookingActions';
 import type { BookingPayment } from './bookings/paymentMethods';
@@ -15,26 +15,34 @@ import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCard
 
 const TEXT: Translations<{
   title: string; today: string; more: string; loadFailed: string; actionFailed: string;
-  confirmed: string; showedUp: string; paid: string; choose: string; yes: string; no: string; cash: string; card: string;
-  declineConfirm: string; noShowConfirm: string; voucherOrder: string;
+  confirmation: string; attendance: string; payment: string; stillOpen: string; notPaid: string;
+  confirmYes: string; confirmNo: string; confirmedDone: string; reset: string; cancelBooking: string; showYes: string; showNo: string; showedDone: string;
+  paidCash: string; paidCard: string;
+  declineConfirm: string; noShowConfirm: string; voucherOrder: string; orderNumber: string; voucherCodes: string;
 }> = {
   en: {
     title: 'To do', today: 'Today', more: '{count} more in Bookings', loadFailed: 'Could not load open items.', actionFailed: 'Could not save. Please try again.',
-    confirmed: 'Confirmed', showedUp: 'Showed up', paid: 'Paid', choose: 'Choose…', yes: 'Yes', no: 'No', cash: 'Cash', card: 'Card',
+    confirmation: 'Confirmation', attendance: 'Attendance', payment: 'Payment', stillOpen: 'Still open', notPaid: 'Not paid',
+    confirmYes: 'Yes, confirm', confirmNo: 'No, decline', confirmedDone: 'Confirmed', reset: 'Back to: still open', cancelBooking: 'Cancel booking', showYes: 'Yes, showed up', showNo: 'No, did not come', showedDone: 'Showed up',
+    paidCash: 'Paid cash', paidCard: 'Paid by card',
     declineConfirm: 'Decline the booking of {name}? The customer is informed by email.', noShowConfirm: 'Mark {name} as no-show?',
-    voucherOrder: 'Gift card order {code}',
+    voucherOrder: 'Gift card order {code}', orderNumber: 'Order', voucherCodes: 'Voucher code (valid after payment): {codes}',
   },
   de: {
     title: 'Zu erledigen', today: 'Heute', more: '{count} weitere unter Buchungen', loadFailed: 'Offene Punkte konnten nicht geladen werden.', actionFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
-    confirmed: 'Bestätigt', showedUp: 'Erschienen', paid: 'Bezahlt', choose: 'Auswählen…', yes: 'Ja', no: 'Nein', cash: 'Bar', card: 'Karte',
+    confirmation: 'Bestätigung', attendance: 'Erscheinen', payment: 'Zahlung', stillOpen: 'Noch offen', notPaid: 'Nicht bezahlt',
+    confirmYes: 'Ja, bestätigen', confirmNo: 'Nein, ablehnen', confirmedDone: 'Bestätigt', reset: 'Zurück auf: noch offen', cancelBooking: 'Absagen', showYes: 'Ja, erschienen', showNo: 'Nein, nicht erschienen', showedDone: 'Erschienen',
+    paidCash: 'Bar bezahlt', paidCard: 'Mit Karte bezahlt',
     declineConfirm: 'Buchung von {name} ablehnen? Die Kundin bzw. der Kunde wird per E-Mail informiert.', noShowConfirm: '{name} als nicht erschienen eintragen?',
-    voucherOrder: 'Gutschein-Bestellung {code}',
+    voucherOrder: 'Gutschein-Bestellung {code}', orderNumber: 'Bestellung', voucherCodes: 'Gutscheincode (gültig nach Zahlung): {codes}',
   },
   th: {
     title: 'สิ่งที่ต้องทำ', today: 'วันนี้', more: 'อีก {count} รายการในหน้าการจอง', loadFailed: 'โหลดรายการไม่สำเร็จ', actionFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง',
-    confirmed: 'ยืนยัน', showedUp: 'ลูกค้ามา', paid: 'ชำระ', choose: 'เลือก…', yes: 'ใช่', no: 'ไม่', cash: 'เงินสด', card: 'บัตร',
+    confirmation: 'การยืนยัน', attendance: 'การมาตามนัด', payment: 'การชำระเงิน', stillOpen: 'ยังไม่ดำเนินการ', notPaid: 'ยังไม่ชำระ',
+    confirmYes: 'ใช่ ยืนยัน', confirmNo: 'ไม่ ปฏิเสธ', confirmedDone: 'ยืนยันแล้ว', reset: 'กลับเป็น: ยังไม่ดำเนินการ', cancelBooking: 'ยกเลิกการจอง', showYes: 'ใช่ ลูกค้ามา', showNo: 'ไม่ ลูกค้าไม่มา', showedDone: 'ลูกค้ามาแล้ว',
+    paidCash: 'ชำระเงินสดแล้ว', paidCard: 'ชำระด้วยบัตรแล้ว',
     declineConfirm: 'ปฏิเสธการจองของ {name}? ลูกค้าจะได้รับอีเมลแจ้ง', noShowConfirm: 'บันทึกว่า {name} ไม่มาตามนัด?',
-    voucherOrder: 'คำสั่งซื้อบัตรของขวัญ {code}',
+    voucherOrder: 'คำสั่งซื้อบัตรของขวัญ {code}', orderNumber: 'คำสั่งซื้อ', voucherCodes: 'รหัสบัตร (ใช้ได้หลังชำระเงิน): {codes}',
   },
 };
 
@@ -59,6 +67,7 @@ interface OpenBooking {
 interface OpenOrder {
   id: string;
   order_number: string;
+  gift_cards: { code: string }[] | null;
   title: string;
   total_cents: number;
   buyer_name: string;
@@ -111,7 +120,7 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
         .order('start_time'),
       supabase
         .from('gift_card_orders')
-        .select('id, order_number, title, total_cents, buyer_name, created_at')
+        .select('id, order_number, title, total_cents, buyer_name, created_at, gift_cards(code)')
         .eq('business_id', businessId)
         .eq('status', 'pending_payment')
         .order('created_at'),
@@ -143,10 +152,12 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
   };
 
   const onConfirm = (b: OpenBooking, value: string) => {
+    if (value === 'reset') run(b.id, () => setBookingStatus(b.id, 'pending'));
     if (value === 'yes') run(b.id, () => setBookingStatus(b.id, 'confirmed'));
     if (value === 'no' && confirm(fillText(t.declineConfirm, { name: b.customer_name }))) run(b.id, () => setBookingStatus(b.id, 'cancelled'));
   };
   const onShowedUp = (b: OpenBooking, value: string) => {
+    if (value === 'reset') run(b.id, () => setBookingStatus(b.id, 'confirmed'));
     if (value === 'yes') run(b.id, () => setBookingStatus(b.id, 'completed'));
     if (value === 'no' && confirm(fillText(t.noShowConfirm, { name: b.customer_name }))) {
       run(b.id, () => markBookingNoShow(businessId, b, `No-show for ${b.service?.name ?? ''} on ${b.booking_date} at ${b.start_time}`));
@@ -163,13 +174,33 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
   if (!error && total === 0) return null;
 
   const day = (date: string) => (date === today ? t.today : new Date(`${date}T00:00:00`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'numeric' }));
-  const yesNo = (done: boolean, enabled: boolean, busy: boolean, onChange: (value: string) => void) => (
-    <select value={done ? 'yes' : ''} disabled={done || !enabled || busy} onChange={(e) => onChange(e.target.value)} className={STEP_SELECT}>
-      {!done && <option value="">{t.choose}</option>}
-      <option value="yes">{t.yes}</option>
-      {!done && <option value="no">{t.no}</option>}
-    </select>
-  );
+  /**
+   * One step as a dropdown that always names the current state. Open = amber with the
+   * two answers; done = green "✓ …" that can still be changed or set back; not reached = grey.
+   */
+  const stepChoice = (
+    state: 'open' | 'done' | 'locked', busy: boolean, onChange: (value: string) => void,
+    texts: { done: string; yes: string; no: string; noWhenDone: string; canReset: boolean },
+  ) => {
+    if (state === 'done') {
+      return (
+        <select value="yes" disabled={busy} onChange={(e) => onChange(e.target.value)} aria-label={texts.done}
+          className={STEP_SELECT_DONE}>
+          <option value="yes">✓ {texts.done}</option>
+          {texts.canReset && <option value="reset">{t.reset}</option>}
+          <option value="no">{texts.noWhenDone}</option>
+        </select>
+      );
+    }
+    return (
+      <select value="" disabled={state === 'locked' || busy} onChange={(e) => onChange(e.target.value)} className={STEP_SELECT_OPEN}>
+        <option value="" disabled>{t.stillOpen}</option>
+        <option value="yes">{texts.yes}</option>
+        <option value="no">{texts.no}</option>
+      </select>
+    );
+  };
+  const stateOf = (step: number, own: number): 'open' | 'done' | 'locked' => (step > own ? 'done' : step === own ? 'open' : 'locked');
 
   return (
     <section className={`${ADMIN_SURFACE} p-5`} aria-labelledby="todo-title">
@@ -187,10 +218,14 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
                 <p className="truncate text-xs text-stone-500">{day(b.booking_date)} · {b.start_time.slice(0, 5)} · {b.service?.name} · {formatPrice(b.final_amount_cents ?? b.duration?.price_cents ?? 0)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <Step label={t.confirmed}>{yesNo(step > 1, step === 1, busy, (v) => onConfirm(b, v))}</Step>
-                <Step label={t.showedUp} muted={step < 2}>{yesNo(step > 2, step === 2, busy, (v) => onShowedUp(b, v))}</Step>
-                <Step label={t.paid} muted={step < 3}>
-                  <QuickPay asSelect label={t.paid} disabled={step !== 3 || busy} bookingId={b.id} openCents={openCentsOf(b)} onOther={() => setPaying(b)} onPaid={load} />
+                <Step label={t.confirmation}>
+                  {stepChoice(stateOf(step, 1), busy, (v) => onConfirm(b, v), { done: t.confirmedDone, yes: t.confirmYes, no: t.confirmNo, noWhenDone: t.cancelBooking, canReset: step === 2 })}
+                </Step>
+                <Step label={t.attendance} muted={step < 2}>
+                  {stepChoice(stateOf(step, 2), busy, (v) => onShowedUp(b, v), { done: t.showedDone, yes: t.showYes, no: t.showNo, noWhenDone: t.showNo, canReset: true })}
+                </Step>
+                <Step label={t.payment} muted={step < 3}>
+                  <QuickPay asSelect label={t.payment} disabled={step !== 3 || busy} bookingId={b.id} openCents={openCentsOf(b)} onOther={() => setPaying(b)} onPaid={load} />
                 </Step>
               </div>
             </li>
@@ -201,15 +236,20 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
             <div className="flex min-w-0 items-center gap-2.5">
               <Gift className="h-4 w-4 shrink-0 text-stone-400" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#1A1714]">{order.buyer_name}</p>
-                <p className="truncate text-xs text-stone-500">{fillText(t.voucherOrder, { code: order.order_number })} · {order.title} · {formatPrice(order.total_cents)}</p>
+                <p className="truncate text-sm font-semibold text-[#1A1714]">
+                  {order.buyer_name} · <span className="font-normal text-stone-500">{t.orderNumber}</span> <span className="font-mono tracking-wider">{order.order_number}</span>
+                </p>
+                <p className="truncate text-xs text-stone-500">{order.title} · {formatPrice(order.total_cents)}</p>
+                {(order.gift_cards ?? []).length > 0 && (
+                  <p className="truncate text-xs text-stone-500">{fillText(t.voucherCodes, { codes: (order.gift_cards ?? []).map((card) => card.code).join(', ') })}</p>
+                )}
               </div>
             </div>
-            <Step label={t.paid}>
-              <select value="" disabled={busyId === order.id} onChange={(e) => onOrderPaid(order, e.target.value)} className={STEP_SELECT}>
-                <option value="">{t.choose}</option>
-                <option value="cash">{t.cash}</option>
-                <option value="card">{t.card}</option>
+            <Step label={t.payment}>
+              <select value="" disabled={busyId === order.id} onChange={(e) => onOrderPaid(order, e.target.value)} className={STEP_SELECT_OPEN}>
+                <option value="" disabled>{t.notPaid}</option>
+                <option value="cash">{t.paidCash}</option>
+                <option value="card">{t.paidCard}</option>
               </select>
               {busyId === order.id && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
             </Step>
