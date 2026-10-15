@@ -10,21 +10,21 @@ import { ToastAction } from '@/components/ui/toast';
 const UNDO_VISIBLE_MS = 10000;
 
 const TEXT: Translations<{
-  cash: string; card: string; voucher: string; other: string; code: string; redeem: string; cancel: string;
+  choose: string; cash: string; card: string; voucher: string; other: string; code: string; redeem: string; cancel: string;
   open: string; failed: string; voucherFailed: string; paid: string; saved: string; undo: string; undone: string; undoFailed: string;
 }> = {
   en: {
-    cash: 'Cash', card: 'Card', voucher: 'Gift card', other: 'Other / split…', code: 'Gift card code', redeem: 'Redeem', cancel: 'Back',
+    choose: 'Choose…', cash: 'Cash', card: 'Card', voucher: 'Gift card', other: 'Other / split…', code: 'Gift card code', redeem: 'Redeem', cancel: 'Back',
     open: '{amount} still open', failed: 'Could not save. Please try again.', voucherFailed: 'Gift card not accepted: {reason}', paid: 'Paid',
     saved: '{method} · {amount} saved', undo: 'Undo', undone: 'Payment taken back.', undoFailed: 'Could not undo: {reason}',
   },
   de: {
-    cash: 'Bar', card: 'Karte', voucher: 'Gutschein', other: 'Anders / geteilt…', code: 'Gutschein-Code', redeem: 'Einlösen', cancel: 'Zurück',
+    choose: 'Auswählen…', cash: 'Bar', card: 'Karte', voucher: 'Gutschein', other: 'Anders / geteilt…', code: 'Gutschein-Code', redeem: 'Einlösen', cancel: 'Zurück',
     open: 'Noch offen: {amount}', failed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', voucherFailed: 'Gutschein nicht angenommen: {reason}', paid: 'Bezahlt',
     saved: '{method} · {amount} gespeichert', undo: 'Rückgängig', undone: 'Zahlung zurückgenommen.', undoFailed: 'Rückgängig nicht möglich: {reason}',
   },
   th: {
-    cash: 'เงินสด', card: 'บัตร', voucher: 'บัตรของขวัญ', other: 'วิธีอื่น / แบ่งจ่าย…', code: 'รหัสบัตรของขวัญ', redeem: 'ใช้บัตร', cancel: 'กลับ',
+    choose: 'เลือก…', cash: 'เงินสด', card: 'บัตร', voucher: 'บัตรของขวัญ', other: 'วิธีอื่น / แบ่งจ่าย…', code: 'รหัสบัตรของขวัญ', redeem: 'ใช้บัตร', cancel: 'กลับ',
     open: 'ค้างชำระ {amount}', failed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', voucherFailed: 'ใช้บัตรไม่ได้: {reason}', paid: 'ชำระแล้ว',
     saved: '{method} · {amount} บันทึกแล้ว', undo: 'ย้อนกลับ', undone: 'ยกเลิกการชำระแล้ว', undoFailed: 'ย้อนกลับไม่ได้: {reason}',
   },
@@ -33,6 +33,8 @@ const TEXT: Translations<{
 const BUTTON = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30 disabled:opacity-50';
 const DARK = `${BUTTON} bg-[#1A1714] text-white hover:bg-[#2E2926]`;
 const LIGHT = `${BUTTON} bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50`;
+/** Dropdown look shared with the dashboard step row. */
+export const STEP_SELECT = 'rounded-lg border border-stone-200 bg-white py-1.5 pl-3 pr-8 text-sm text-stone-800 outline-none transition hover:border-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/10 disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-400';
 
 interface QuickPayProps {
   bookingId: string;
@@ -46,10 +48,14 @@ interface QuickPayProps {
   compact?: boolean;
   /** Greyed out until earlier steps are done. */
   disabled?: boolean;
+  /** A single dropdown instead of buttons (dashboard step row). */
+  asSelect?: boolean;
+  /** Accessible name of the dropdown. */
+  label?: string;
 }
 
 /** One tap at the counter: how did the customer pay the open amount? */
-export default function QuickPay({ bookingId, openCents, onOther, onPaid, compact = false, disabled = false }: QuickPayProps) {
+export default function QuickPay({ bookingId, openCents, onOther, onPaid, compact = false, disabled = false, asSelect = false, label }: QuickPayProps) {
   const { t } = useAdminText(TEXT);
   const { formatPrice } = useCurrency();
   const [busy, setBusy] = useState(false);
@@ -137,6 +143,27 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid, compac
         <button type="button" onClick={() => { setAskCode(false); setError(''); }} className="px-2 text-sm text-stone-500 hover:text-stone-800">{t.cancel}</button>
         {error && <p role="alert" className="w-full text-xs text-red-700">{error}</p>}
       </div>
+    );
+  }
+
+  if (asSelect) {
+    const choose = (value: string) => {
+      if (value === 'cash' || value === 'card') void pay(value);
+      else if (value === 'voucher') setAskCode(true);
+      else if (value === 'other') onOther();
+    };
+    return (
+      <span className="inline-flex items-center gap-2">
+        <select value="" onChange={(e) => choose(e.target.value)} disabled={busy || disabled} aria-label={label} className={STEP_SELECT}>
+          <option value="">{t.choose}</option>
+          <option value="cash">{t.cash}</option>
+          <option value="card">{t.card}</option>
+          <option value="voucher">{t.voucher}</option>
+          <option value="other">{t.other}</option>
+        </select>
+        {busy && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
+        {error && <span role="alert" className="text-xs text-red-700">{error}</span>}
+      </span>
     );
   }
 
