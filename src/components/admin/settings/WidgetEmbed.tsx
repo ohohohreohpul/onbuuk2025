@@ -5,6 +5,84 @@ import { supabase } from '../../../lib/supabase';
 import { usePremiumFeatures } from '../../../hooks/usePremiumFeatures';
 import { BRAND_NAME } from '../../../lib/brand';
 import { shopUrl } from '../../../lib/tenantHost';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { fillText, type Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  floatingName: string; floatingDesc: string; fullPageName: string; fullPageDesc: string; inlineName: string; inlineDesc: string;
+  loading: string; premiumTitle: string; premiumBody: string; proPlan: string; typesWithPro: string;
+  notFoundTitle: string; notFoundBefore: string; profileName: string; notFoundAfter: string; notFoundRefresh: string;
+  manualTitle: string; manualHint: string;
+  heading: string; intro: string; widgetType: string; buttonCustomization: string; buttonText: string; position: string;
+  bottomRight: string; bottomLeft: string; topRight: string; topLeft: string; buttonColor: string; textColor: string; preview: string;
+  sizeConfig: string; width: string; widthHint: string; height: string; heightHint: string;
+  embedCode: string; copied: string; copyCode: string; directLink: string; directLinkHint: string; copyLink: string; openLink: string;
+  howTo: string; step1: string; step2: string; step3: string; step4: string; step5Before: string; step5After: string;
+}> = {
+  en: {
+    floatingName: 'Floating Button', floatingDesc: 'A button that floats on the page and opens a booking popup',
+    fullPageName: 'Full Page Embed', fullPageDesc: 'Embed the full booking page directly on your website',
+    inlineName: 'Inline Widget', inlineDesc: 'A compact widget that fits within your page content',
+    loading: 'Loading...', premiumTitle: 'Premium Feature',
+    premiumBody: 'Embeddable widgets allow you to add booking functionality directly to your website. Upgrade to Pro to unlock this feature.',
+    proPlan: 'Available on Pro Plan', typesWithPro: 'Widget Types Available with Pro:',
+    notFoundTitle: 'Booking URL Not Found', notFoundBefore: "We couldn't find your booking page URL. Please ensure your subdomain is configured in ",
+    profileName: 'Store Profile', notFoundAfter: '.', notFoundRefresh: "If you've already set up your subdomain, try refreshing the page.",
+    manualTitle: 'Enter Your Booking URL Manually', manualHint: 'Enter your full booking page URL (e.g., {example})',
+    heading: 'Embed Booking Widget', intro: 'Add a booking widget to your website. Choose from different styles and customize the appearance.',
+    widgetType: 'Widget Type', buttonCustomization: 'Button Customization', buttonText: 'Button Text', position: 'Position',
+    bottomRight: 'Bottom Right', bottomLeft: 'Bottom Left', topRight: 'Top Right', topLeft: 'Top Left',
+    buttonColor: 'Button Color', textColor: 'Text Color', preview: 'Preview',
+    sizeConfig: 'Size Configuration', width: 'Width', widthHint: 'e.g., 100%, 600px, 80vw', height: 'Height', heightHint: 'e.g., 700px, 80vh',
+    embedCode: 'Embed Code', copied: 'Copied!', copyCode: 'Copy Code', directLink: 'Direct Booking Link', directLinkHint: 'Share this link directly with your customers:',
+    copyLink: 'Copy link', openLink: 'Open booking page',
+    howTo: 'How to Use', step1: 'Choose your preferred widget type above', step2: 'Customize the appearance if needed',
+    step3: 'Copy the embed code using the "Copy Code" button', step4: "Paste the code into your website's HTML where you want the widget to appear",
+    step5Before: 'For the floating button, paste it just before the closing', step5After: ' tag',
+  },
+  de: {
+    floatingName: 'Schwebender Button', floatingDesc: 'Ein Button, der über der Seite schwebt und die Buchung als Popup öffnet',
+    fullPageName: 'Ganze Seite einbinden', fullPageDesc: 'Die komplette Buchungsseite direkt auf Ihrer Website einbinden',
+    inlineName: 'Inline-Widget', inlineDesc: 'Ein kompaktes Widget, das sich in Ihre Seiteninhalte einfügt',
+    loading: 'Wird geladen…', premiumTitle: 'Premium-Funktion',
+    premiumBody: 'Mit einbettbaren Widgets lässt sich die Buchung direkt auf Ihrer Website anbieten. Mit Pro wird diese Funktion freigeschaltet.',
+    proPlan: 'Im Pro-Tarif enthalten', typesWithPro: 'Widget-Typen mit Pro:',
+    notFoundTitle: 'Buchungs-URL nicht gefunden', notFoundBefore: 'Die URL Ihrer Buchungsseite wurde nicht gefunden. Bitte prüfen, ob die Subdomain unter ',
+    profileName: 'Shop-Profil', notFoundAfter: ' eingerichtet ist.', notFoundRefresh: 'Ist die Subdomain bereits eingerichtet, die Seite bitte neu laden.',
+    manualTitle: 'Buchungs-URL manuell eingeben', manualHint: 'Vollständige URL der Buchungsseite eingeben (z. B. {example})',
+    heading: 'Widget einbinden', intro: 'Ein Buchungs-Widget auf Ihrer Website einbinden. Stil wählen und Darstellung anpassen.',
+    widgetType: 'Widget-Typ', buttonCustomization: 'Button anpassen', buttonText: 'Button-Text', position: 'Position',
+    bottomRight: 'Unten rechts', bottomLeft: 'Unten links', topRight: 'Oben rechts', topLeft: 'Oben links',
+    buttonColor: 'Button-Farbe', textColor: 'Textfarbe', preview: 'Vorschau',
+    sizeConfig: 'Größe', width: 'Breite', widthHint: 'z. B. 100%, 600px, 80vw', height: 'Höhe', heightHint: 'z. B. 700px, 80vh',
+    embedCode: 'Einbettungscode', copied: 'Kopiert', copyCode: 'Code kopieren', directLink: 'Direkter Buchungslink', directLinkHint: 'Diesen Link direkt an Ihre Kunden weitergeben:',
+    copyLink: 'Link kopieren', openLink: 'Buchungsseite öffnen',
+    howTo: 'Anleitung', step1: 'Oben den gewünschten Widget-Typ wählen', step2: 'Bei Bedarf die Darstellung anpassen',
+    step3: 'Den Einbettungscode über „Code kopieren“ kopieren', step4: 'Den Code an der gewünschten Stelle in das HTML Ihrer Website einfügen',
+    step5Before: 'Beim schwebenden Button den Code direkt vor dem schließenden', step5After: '-Tag einfügen',
+  },
+  th: {
+    floatingName: 'ปุ่มลอย', floatingDesc: 'ปุ่มที่ลอยอยู่บนหน้าเว็บ กดแล้วเปิดหน้าจองแบบป๊อปอัป',
+    fullPageName: 'ฝังทั้งหน้า', fullPageDesc: 'ฝังหน้าจองทั้งหน้าลงในเว็บไซต์ของคุณโดยตรง',
+    inlineName: 'วิดเจ็ตในเนื้อหา', inlineDesc: 'วิดเจ็ตขนาดกะทัดรัดที่แทรกอยู่ในเนื้อหาของหน้า',
+    loading: 'กำลังโหลด…', premiumTitle: 'ฟีเจอร์พรีเมียม',
+    premiumBody: 'วิดเจ็ตแบบฝังช่วยให้ลูกค้าจองได้โดยตรงจากเว็บไซต์ของคุณ อัปเกรดเป็น Pro เพื่อใช้ฟีเจอร์นี้',
+    proPlan: 'มีในแพ็กเกจ Pro', typesWithPro: 'ประเภทวิดเจ็ตที่ใช้ได้ในแพ็กเกจ Pro:',
+    notFoundTitle: 'ไม่พบ URL หน้าจอง', notFoundBefore: 'ไม่พบ URL หน้าจองของคุณ กรุณาตรวจสอบว่าได้ตั้งค่าซับโดเมนใน ',
+    profileName: 'ข้อมูลร้าน', notFoundAfter: ' แล้ว', notFoundRefresh: 'ถ้าตั้งค่าซับโดเมนไว้แล้ว ลองรีเฟรชหน้านี้',
+    manualTitle: 'ใส่ URL หน้าจองเอง', manualHint: 'ใส่ URL หน้าจองแบบเต็ม (เช่น {example})',
+    heading: 'ฝังวิดเจ็ต', intro: 'เพิ่มวิดเจ็ตจองลงในเว็บไซต์ของคุณ เลือกรูปแบบและปรับการแสดงผลได้',
+    widgetType: 'ประเภทวิดเจ็ต', buttonCustomization: 'ปรับแต่งปุ่ม', buttonText: 'ข้อความบนปุ่ม', position: 'ตำแหน่ง',
+    bottomRight: 'ล่างขวา', bottomLeft: 'ล่างซ้าย', topRight: 'บนขวา', topLeft: 'บนซ้าย',
+    buttonColor: 'สีปุ่ม', textColor: 'สีข้อความ', preview: 'ตัวอย่าง',
+    sizeConfig: 'ขนาด', width: 'ความกว้าง', widthHint: 'เช่น 100%, 600px, 80vw', height: 'ความสูง', heightHint: 'เช่น 700px, 80vh',
+    embedCode: 'โค้ดสำหรับฝัง', copied: 'คัดลอกแล้ว', copyCode: 'คัดลอกโค้ด', directLink: 'ลิงก์จองโดยตรง', directLinkHint: 'แชร์ลิงก์นี้ให้ลูกค้าได้โดยตรง:',
+    copyLink: 'คัดลอกลิงก์', openLink: 'เปิดหน้าจอง',
+    howTo: 'วิธีใช้', step1: 'เลือกประเภทวิดเจ็ตที่ต้องการด้านบน', step2: 'ปรับการแสดงผลตามต้องการ',
+    step3: 'คัดลอกโค้ดด้วยปุ่ม "คัดลอกโค้ด"', step4: 'วางโค้ดใน HTML ของเว็บไซต์ตรงตำแหน่งที่ต้องการให้วิดเจ็ตแสดง',
+    step5Before: 'สำหรับปุ่มลอย ให้วางโค้ดก่อนแท็กปิด', step5After: '',
+  },
+};
 
 type WidgetType = 'full-page' | 'floating-button' | 'inline';
 type ButtonPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
@@ -22,6 +100,7 @@ interface WidgetConfig {
 export default function WidgetEmbed() {
   const { businessId } = useTenant();
   const premiumFeatures = usePremiumFeatures();
+  const { t } = useAdminText(TEXT);
   const [copied, setCopied] = useState<string | null>(null);
   const [bookingUrl, setBookingUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -231,20 +310,20 @@ export default function WidgetEmbed() {
   const widgetTypes = [
     {
       id: 'floating-button' as WidgetType,
-      name: 'Floating Button',
-      description: 'A button that floats on the page and opens a booking popup',
+      name: t.floatingName,
+      description: t.floatingDesc,
       icon: MessageSquare,
     },
     {
       id: 'full-page' as WidgetType,
-      name: 'Full Page Embed',
-      description: 'Embed the full booking page directly on your website',
+      name: t.fullPageName,
+      description: t.fullPageDesc,
       icon: Monitor,
     },
     {
       id: 'inline' as WidgetType,
-      name: 'Inline Widget',
-      description: 'A compact widget that fits within your page content',
+      name: t.inlineName,
+      description: t.inlineDesc,
       icon: Layout,
     },
   ];
@@ -253,7 +332,7 @@ export default function WidgetEmbed() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-stone-500">Loading...</div>
+        <div className="text-stone-500">{t.loading}</div>
       </div>
     );
   }
@@ -266,21 +345,20 @@ export default function WidgetEmbed() {
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-amber-600" />
           </div>
-          <h3 className="text-xl font-semibold text-stone-800 mb-2">Premium Feature</h3>
+          <h3 className="text-xl font-semibold text-stone-800 mb-2">{t.premiumTitle}</h3>
           <p className="text-stone-600 mb-6 max-w-md mx-auto">
-            Embeddable widgets allow you to add booking functionality directly to your website. 
-            Upgrade to Pro to unlock this feature.
+            {t.premiumBody}
           </p>
           <div className="flex items-center justify-center gap-2 text-amber-700 font-medium">
             <Crown className="w-5 h-5" />
-            <span>Available on Pro Plan</span>
+            <span>{t.proPlan}</span>
           </div>
         </div>
 
         {/* Preview of what they'll get */}
         <div className="opacity-50 pointer-events-none">
           <div className="border border-stone-200 rounded-xl p-6">
-            <h4 className="font-medium text-stone-800 mb-4">Widget Types Available with Pro:</h4>
+            <h4 className="font-medium text-stone-800 mb-4">{t.typesWithPro}</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {widgetTypes.map((type) => (
                 <div key={type.id} className="p-4 border border-stone-200 rounded-lg">
@@ -301,18 +379,18 @@ export default function WidgetEmbed() {
     return (
       <div className="space-y-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2">Booking URL Not Found</h3>
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">{t.notFoundTitle}</h3>
           <p className="text-sm text-yellow-700 mb-4">
-            We couldn't find your booking page URL. Please ensure your subdomain is configured in <strong>Store Profile</strong>.
+            {t.notFoundBefore}<strong>{t.profileName}</strong>{t.notFoundAfter}
           </p>
           <p className="text-sm text-yellow-600">
-            If you've already set up your subdomain, try refreshing the page.
+            {t.notFoundRefresh}
           </p>
         </div>
         
         {/* Manual URL input as fallback */}
         <div className="border border-stone-200 rounded-xl p-6">
-          <h4 className="font-medium text-stone-800 mb-3">Enter Your Booking URL Manually</h4>
+          <h4 className="font-medium text-stone-800 mb-3">{t.manualTitle}</h4>
           <div className="flex gap-2">
             <input
               type="url"
@@ -323,7 +401,7 @@ export default function WidgetEmbed() {
             />
           </div>
           <p className="text-xs text-stone-500 mt-2">
-            Enter your full booking page URL (e.g., {shopUrl('my-business')})
+            {fillText(t.manualHint, { example: shopUrl('my-business') })}
           </p>
         </div>
       </div>
@@ -335,20 +413,20 @@ export default function WidgetEmbed() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-lg font-semibold text-stone-800">Embed Booking Widget</h3>
+          <h3 className="text-lg font-semibold text-stone-800">{t.heading}</h3>
           <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full flex items-center gap-1">
             <Crown className="w-3 h-3" />
             Pro
           </span>
         </div>
         <p className="text-sm text-stone-600">
-          Add a booking widget to your website. Choose from different styles and customize the appearance.
+          {t.intro}
         </p>
       </div>
 
       {/* Widget Type Selection */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-3">Widget Type</label>
+        <label className="block text-sm font-medium text-stone-700 mb-3">{t.widgetType}</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {widgetTypes.map((type) => (
             <button
@@ -373,12 +451,12 @@ export default function WidgetEmbed() {
         <div className="space-y-4 p-4 bg-stone-50 rounded-xl border border-stone-200">
           <h4 className="font-medium text-stone-800 flex items-center gap-2">
             <Palette className="w-4 h-4" />
-            Button Customization
+            {t.buttonCustomization}
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Button Text</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.buttonText}</label>
               <input
                 type="text"
                 value={config.buttonText}
@@ -389,21 +467,21 @@ export default function WidgetEmbed() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Position</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.position}</label>
               <select
                 value={config.buttonPosition}
                 onChange={(e) => setConfig({ ...config, buttonPosition: e.target.value as ButtonPosition })}
                 className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-800"
               >
-                <option value="bottom-right">Bottom Right</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="top-right">Top Right</option>
-                <option value="top-left">Top Left</option>
+                <option value="bottom-right">{t.bottomRight}</option>
+                <option value="bottom-left">{t.bottomLeft}</option>
+                <option value="top-right">{t.topRight}</option>
+                <option value="top-left">{t.topLeft}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Button Color</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.buttonColor}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -421,7 +499,7 @@ export default function WidgetEmbed() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Text Color</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.textColor}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -441,7 +519,7 @@ export default function WidgetEmbed() {
 
           {/* Button Preview */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-stone-700 mb-2">Preview</label>
+            <label className="block text-sm font-medium text-stone-700 mb-2">{t.preview}</label>
             <div className="bg-white border border-stone-200 rounded-lg p-8 flex items-center justify-center min-h-[100px] relative">
               <button
                 style={{
@@ -467,12 +545,12 @@ export default function WidgetEmbed() {
         <div className="space-y-4 p-4 bg-stone-50 rounded-xl border border-stone-200">
           <h4 className="font-medium text-stone-800 flex items-center gap-2">
             <Layout className="w-4 h-4" />
-            Size Configuration
+            {t.sizeConfig}
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Width</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.width}</label>
               <input
                 type="text"
                 value={config.width}
@@ -480,11 +558,11 @@ export default function WidgetEmbed() {
                 className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-800"
                 placeholder="100%"
               />
-              <p className="text-xs text-stone-500 mt-1">e.g., 100%, 600px, 80vw</p>
+              <p className="text-xs text-stone-500 mt-1">{t.widthHint}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Height</label>
+              <label className="block text-sm font-medium text-stone-700 mb-2">{t.height}</label>
               <input
                 type="text"
                 value={config.height}
@@ -492,7 +570,7 @@ export default function WidgetEmbed() {
                 className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-800"
                 placeholder="700px"
               />
-              <p className="text-xs text-stone-500 mt-1">e.g., 700px, 80vh</p>
+              <p className="text-xs text-stone-500 mt-1">{t.heightHint}</p>
             </div>
           </div>
         </div>
@@ -503,7 +581,7 @@ export default function WidgetEmbed() {
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-stone-700 flex items-center gap-2">
             <Code className="w-4 h-4" />
-            Embed Code
+            {t.embedCode}
           </label>
           <button
             onClick={() => copyToClipboard(getEmbedCode(), 'embed')}
@@ -512,12 +590,12 @@ export default function WidgetEmbed() {
             {copied === 'embed' ? (
               <>
                 <Check className="w-4 h-4" />
-                Copied!
+                {t.copied}
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                Copy Code
+                {t.copyCode}
               </>
             )}
           </button>
@@ -534,10 +612,10 @@ export default function WidgetEmbed() {
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
         <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-2">
           <ExternalLink className="w-4 h-4" />
-          Direct Booking Link
+          {t.directLink}
         </h4>
         <p className="text-sm text-blue-700 mb-3">
-          Share this link directly with your customers:
+          {t.directLinkHint}
         </p>
         <div className="flex items-center gap-2">
           <input
@@ -548,6 +626,8 @@ export default function WidgetEmbed() {
           />
           <button
             onClick={() => copyToClipboard(getBookingUrl(), 'link')}
+            aria-label={t.copyLink}
+            title={t.copyLink}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
           >
             {copied === 'link' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -556,6 +636,8 @@ export default function WidgetEmbed() {
             href={getBookingUrl()}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={t.openLink}
+            title={t.openLink}
             className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
           >
             <ExternalLink className="w-4 h-4" />
@@ -565,13 +647,13 @@ export default function WidgetEmbed() {
 
       {/* Instructions */}
       <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl">
-        <h4 className="font-medium text-stone-800 mb-3">How to Use</h4>
+        <h4 className="font-medium text-stone-800 mb-3">{t.howTo}</h4>
         <ol className="text-sm text-stone-600 space-y-2 list-decimal list-inside">
-          <li>Choose your preferred widget type above</li>
-          <li>Customize the appearance if needed</li>
-          <li>Copy the embed code using the "Copy Code" button</li>
-          <li>Paste the code into your website's HTML where you want the widget to appear</li>
-          <li>For the floating button, paste it just before the closing <code className="bg-stone-200 px-1 rounded">&lt;/body&gt;</code> tag</li>
+          <li>{t.step1}</li>
+          <li>{t.step2}</li>
+          <li>{t.step3}</li>
+          <li>{t.step4}</li>
+          <li>{t.step5Before} <code className="bg-stone-200 px-1 rounded">&lt;/body&gt;</code>{t.step5After}</li>
         </ol>
       </div>
     </div>

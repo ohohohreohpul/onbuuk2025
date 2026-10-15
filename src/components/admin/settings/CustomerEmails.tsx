@@ -4,16 +4,25 @@ import EmailSettings from './EmailSettings';
 import BookingNotificationSettings from './BookingNotificationSettings';
 import EmailTemplates from './EmailTemplates';
 import EmailLogs from './EmailLogs';
+import { useAdminText } from '../../../lib/adminLanguage';
+import type { Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{ settings: string; templates: string; logs: string }> = {
+  en: { settings: 'Settings', templates: 'Templates', logs: 'Email Logs' },
+  de: { settings: 'Einstellungen', templates: 'Vorlagen', logs: 'E-Mail-Protokoll' },
+  th: { settings: 'การตั้งค่า', templates: 'เทมเพลต', logs: 'ประวัติอีเมล' },
+};
 
 type EmailTab = 'settings' | 'templates' | 'logs';
 
 export default function CustomerEmails() {
+  const { t } = useAdminText(TEXT);
   const [activeTab, setActiveTab] = useState<EmailTab>('settings');
 
   const tabs = [
-    { id: 'settings' as EmailTab, name: 'Settings', icon: Settings },
-    { id: 'templates' as EmailTab, name: 'Templates', icon: FileText },
-    { id: 'logs' as EmailTab, name: 'Email Logs', icon: History },
+    { id: 'settings' as EmailTab, name: t.settings, icon: Settings },
+    { id: 'templates' as EmailTab, name: t.templates, icon: FileText },
+    { id: 'logs' as EmailTab, name: t.logs, icon: History },
   ];
 
   return (

@@ -3,6 +3,76 @@ import { supabase } from '../../../lib/supabase';
 import { Palette, Save, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { useTheme } from '../../../lib/themeContext';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { type Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  loading: string; heading: string; intro: string; reset: string; error: string;
+  loadFailed: string; saveFailed: string; noBusiness: string; saved: string; resetDone: string; confirmReset: string;
+  brandColors: string; backgroundText: string; saving: string; save: string;
+  primary: string; primaryDesc: string; primaryPreview: string;
+  primaryHover: string; primaryHoverDesc: string; hoverPreview: string;
+  secondary: string; secondaryDesc: string; secondaryPreview: string;
+  secondaryHover: string; secondaryHoverDesc: string;
+  accent: string; accentDesc: string; accentPreview: string;
+  background: string; backgroundDesc: string;
+  backgroundSecondary: string; backgroundSecondaryDesc: string;
+  textPrimary: string; textPrimaryDesc: string; textPrimaryPreview: string;
+  textSecondary: string; textSecondaryDesc: string; textSecondaryPreview: string;
+  border: string; borderDesc: string;
+}> = {
+  en: {
+    loading: 'Loading colors...', heading: 'Color Customization', intro: 'Customize your booking form colors. Changes apply immediately after saving.',
+    reset: 'Reset to Defaults', error: 'Error', loadFailed: 'Failed to load colors', saveFailed: 'Failed to save colors', noBusiness: 'Business ID not found',
+    saved: 'Colors saved successfully!', resetDone: 'Colors reset. Click "Save Changes" to apply.', confirmReset: 'Are you sure you want to reset all colors to defaults?',
+    brandColors: 'Brand Colors', backgroundText: 'Background & Text', saving: 'Saving...', save: 'Save Changes',
+    primary: 'Primary Color', primaryDesc: 'Main buttons and primary actions', primaryPreview: 'Book Now',
+    primaryHover: 'Primary Hover', primaryHoverDesc: 'Hover state for primary buttons', hoverPreview: 'Hover State',
+    secondary: 'Secondary Color', secondaryDesc: 'Secondary buttons and accents', secondaryPreview: 'Secondary',
+    secondaryHover: 'Secondary Hover', secondaryHoverDesc: 'Hover state for secondary buttons',
+    accent: 'Accent Color', accentDesc: 'Links and highlights', accentPreview: 'Accent',
+    background: 'Background', backgroundDesc: 'Main page background',
+    backgroundSecondary: 'Secondary Background', backgroundSecondaryDesc: 'Cards and panels',
+    textPrimary: 'Primary Text', textPrimaryDesc: 'Main headings and important text', textPrimaryPreview: 'Heading',
+    textSecondary: 'Secondary Text', textSecondaryDesc: 'Body text and descriptions', textSecondaryPreview: 'Body Text',
+    border: 'Border', borderDesc: 'Input borders and dividers',
+  },
+  de: {
+    loading: 'Farben werden geladen…', heading: 'Farben anpassen', intro: 'Farben des Buchungsformulars anpassen. Änderungen gelten sofort nach dem Speichern.',
+    reset: 'Auf Standard zurücksetzen', error: 'Fehler', loadFailed: 'Farben konnten nicht geladen werden', saveFailed: 'Farben konnten nicht gespeichert werden', noBusiness: 'Betrieb nicht gefunden',
+    saved: 'Farben gespeichert', resetDone: 'Farben zurückgesetzt. Zum Übernehmen auf „Speichern“ klicken.', confirmReset: 'Alle Farben wirklich auf die Standardwerte zurücksetzen?',
+    brandColors: 'Markenfarben', backgroundText: 'Hintergrund & Text', saving: 'Wird gespeichert…', save: 'Speichern',
+    primary: 'Hauptfarbe', primaryDesc: 'Haupt-Buttons und wichtige Aktionen', primaryPreview: 'Jetzt buchen',
+    primaryHover: 'Hauptfarbe (Hover)', primaryHoverDesc: 'Hover-Zustand der Haupt-Buttons', hoverPreview: 'Hover',
+    secondary: 'Zweitfarbe', secondaryDesc: 'Sekundäre Buttons und Akzente', secondaryPreview: 'Sekundär',
+    secondaryHover: 'Zweitfarbe (Hover)', secondaryHoverDesc: 'Hover-Zustand der sekundären Buttons',
+    accent: 'Akzentfarbe', accentDesc: 'Links und Hervorhebungen', accentPreview: 'Akzent',
+    background: 'Hintergrund', backgroundDesc: 'Seitenhintergrund',
+    backgroundSecondary: 'Zweiter Hintergrund', backgroundSecondaryDesc: 'Karten und Bereiche',
+    textPrimary: 'Haupttext', textPrimaryDesc: 'Überschriften und wichtiger Text', textPrimaryPreview: 'Überschrift',
+    textSecondary: 'Nebentext', textSecondaryDesc: 'Fließtext und Beschreibungen', textSecondaryPreview: 'Fließtext',
+    border: 'Rahmen', borderDesc: 'Eingabefeld-Rahmen und Trennlinien',
+  },
+  th: {
+    loading: 'กำลังโหลดสี…', heading: 'ปรับแต่งสี', intro: 'ปรับแต่งสีของแบบฟอร์มจอง มีผลทันทีหลังบันทึก',
+    reset: 'รีเซ็ตเป็นค่าเริ่มต้น', error: 'ข้อผิดพลาด', loadFailed: 'โหลดสีไม่สำเร็จ', saveFailed: 'บันทึกสีไม่สำเร็จ', noBusiness: 'ไม่พบข้อมูลร้าน',
+    saved: 'บันทึกสีแล้ว', resetDone: 'รีเซ็ตสีแล้ว กด "บันทึก" เพื่อใช้งาน', confirmReset: 'ต้องการรีเซ็ตสีทั้งหมดเป็นค่าเริ่มต้นหรือไม่',
+    brandColors: 'สีแบรนด์', backgroundText: 'พื้นหลังและข้อความ', saving: 'กำลังบันทึก…', save: 'บันทึก',
+    primary: 'สีหลัก', primaryDesc: 'ปุ่มหลักและการกระทำหลัก', primaryPreview: 'จองเลย',
+    primaryHover: 'สีหลัก (เมื่อชี้)', primaryHoverDesc: 'สีของปุ่มหลักเมื่อเอาเมาส์ชี้', hoverPreview: 'เมื่อชี้',
+    secondary: 'สีรอง', secondaryDesc: 'ปุ่มรองและส่วนเน้น', secondaryPreview: 'รอง',
+    secondaryHover: 'สีรอง (เมื่อชี้)', secondaryHoverDesc: 'สีของปุ่มรองเมื่อเอาเมาส์ชี้',
+    accent: 'สีเน้น', accentDesc: 'ลิงก์และไฮไลต์', accentPreview: 'เน้น',
+    background: 'พื้นหลัง', backgroundDesc: 'พื้นหลังหลักของหน้า',
+    backgroundSecondary: 'พื้นหลังรอง', backgroundSecondaryDesc: 'การ์ดและแผง',
+    textPrimary: 'ข้อความหลัก', textPrimaryDesc: 'หัวข้อและข้อความสำคัญ', textPrimaryPreview: 'หัวข้อ',
+    textSecondary: 'ข้อความรอง', textSecondaryDesc: 'เนื้อหาและคำอธิบาย', textSecondaryPreview: 'เนื้อหา',
+    border: 'เส้นขอบ', borderDesc: 'ขอบช่องกรอกและเส้นแบ่ง',
+  },
+};
+
+type ErrorKey = '' | 'loadFailed' | 'saveFailed' | 'noBusiness';
+type NoticeKey = '' | 'saved' | 'resetDone';
 
 interface ColorPickerProps {
   label: string;
@@ -41,7 +111,7 @@ const ColorPicker = ({ label, description, value, onChange, previewType, preview
             className="px-4 py-2 rounded-lg text-white font-medium text-sm whitespace-nowrap transition-colors"
             style={{ backgroundColor: localValue }}
           >
-            {previewText || 'Preview'}
+            {previewText}
           </div>
         );
       case 'swatch':
@@ -57,7 +127,7 @@ const ColorPicker = ({ label, description, value, onChange, previewType, preview
             className="px-4 py-2 rounded font-bold whitespace-nowrap transition-colors"
             style={{ color: localValue, backgroundColor: backgroundColor || '#ffffff' }}
           >
-            {previewText || 'Text'}
+            {previewText}
           </div>
         );
     }
@@ -110,11 +180,12 @@ const DEFAULT_COLORS = {
 export default function ColorCustomization() {
   const { businessId } = useTenant();
   const { refreshTheme } = useTheme();
+  const { t } = useAdminText(TEXT);
   const [colors, setColors] = useState(DEFAULT_COLORS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [savedMessage, setSavedMessage] = useState('');
+  const [error, setError] = useState<ErrorKey>('');
+  const [savedMessage, setSavedMessage] = useState<NoticeKey>('');
 
   useEffect(() => {
     if (businessId) {
@@ -150,7 +221,7 @@ export default function ColorCustomization() {
       }
     } catch (err) {
       console.error('Error loading colors:', err);
-      setError('Failed to load colors');
+      setError('loadFailed');
     } finally {
       setLoading(false);
     }
@@ -162,7 +233,7 @@ export default function ColorCustomization() {
 
   const handleSave = async () => {
     if (!businessId) {
-      setError('Business ID not found');
+      setError('noBusiness');
       return;
     }
 
@@ -206,30 +277,30 @@ export default function ColorCustomization() {
 
       await refreshTheme();
 
-      setSavedMessage('Colors saved successfully!');
+      setSavedMessage('saved');
       setTimeout(() => setSavedMessage(''), 3000);
     } catch (err) {
       console.error('Save error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save colors');
+      setError('saveFailed');
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = async () => {
-    if (!confirm('Are you sure you want to reset all colors to defaults?')) {
+    if (!confirm(t.confirmReset)) {
       return;
     }
 
     setColors(DEFAULT_COLORS);
-    setSavedMessage('Colors reset. Click "Save Changes" to apply.');
+    setSavedMessage('resetDone');
     setTimeout(() => setSavedMessage(''), 5000);
   };
 
   if (loading) {
     return (
       <div className="p-6">
-        <div className="text-center text-stone-600">Loading colors...</div>
+        <div className="text-center text-stone-600">{t.loading}</div>
       </div>
     );
   }
@@ -240,10 +311,10 @@ export default function ColorCustomization() {
         <div>
           <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
             <Palette className="w-6 h-6" />
-            Color Customization
+            {t.heading}
           </h2>
           <p className="text-stone-600 mt-1">
-            Customize your booking form colors. Changes apply immediately after saving.
+            {t.intro}
           </p>
         </div>
         <button
@@ -251,7 +322,7 @@ export default function ColorCustomization() {
           className="flex items-center gap-2 px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          Reset to Defaults
+          {t.reset}
         </button>
       </div>
 
@@ -259,8 +330,8 @@ export default function ColorCustomization() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-red-900">Error</p>
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="font-medium text-red-900">{t.error}</p>
+            <p className="text-sm text-red-700">{t[error]}</p>
           </div>
         </div>
       )}
@@ -268,101 +339,101 @@ export default function ColorCustomization() {
       {savedMessage && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-green-900">{savedMessage}</p>
+          <p className="text-green-900">{t[savedMessage]}</p>
         </div>
       )}
 
       <div className="border border-stone-200 rounded-lg p-6 space-y-6">
-        <h3 className="text-lg font-semibold text-stone-900">Brand Colors</h3>
+        <h3 className="text-lg font-semibold text-stone-900">{t.brandColors}</h3>
 
         <ColorPicker
-          label="Primary Color"
-          description="Main buttons and primary actions"
+          label={t.primary}
+          description={t.primaryDesc}
           value={colors.primary}
           onChange={(value) => updateColor('primary', value)}
           previewType="button"
-          previewText="Book Now"
+          previewText={t.primaryPreview}
         />
 
         <ColorPicker
-          label="Primary Hover"
-          description="Hover state for primary buttons"
+          label={t.primaryHover}
+          description={t.primaryHoverDesc}
           value={colors.primary_hover}
           onChange={(value) => updateColor('primary_hover', value)}
           previewType="button"
-          previewText="Hover State"
+          previewText={t.hoverPreview}
         />
 
         <ColorPicker
-          label="Secondary Color"
-          description="Secondary buttons and accents"
+          label={t.secondary}
+          description={t.secondaryDesc}
           value={colors.secondary}
           onChange={(value) => updateColor('secondary', value)}
           previewType="button"
-          previewText="Secondary"
+          previewText={t.secondaryPreview}
         />
 
         <ColorPicker
-          label="Secondary Hover"
-          description="Hover state for secondary buttons"
+          label={t.secondaryHover}
+          description={t.secondaryHoverDesc}
           value={colors.secondary_hover}
           onChange={(value) => updateColor('secondary_hover', value)}
           previewType="button"
-          previewText="Hover State"
+          previewText={t.hoverPreview}
         />
 
         <ColorPicker
-          label="Accent Color"
-          description="Links and highlights"
+          label={t.accent}
+          description={t.accentDesc}
           value={colors.accent}
           onChange={(value) => updateColor('accent', value)}
           previewType="button"
-          previewText="Accent"
+          previewText={t.accentPreview}
         />
       </div>
 
       <div className="border border-stone-200 rounded-lg p-6 space-y-6">
-        <h3 className="text-lg font-semibold text-stone-900">Background & Text</h3>
+        <h3 className="text-lg font-semibold text-stone-900">{t.backgroundText}</h3>
 
         <ColorPicker
-          label="Background"
-          description="Main page background"
+          label={t.background}
+          description={t.backgroundDesc}
           value={colors.background}
           onChange={(value) => updateColor('background', value)}
           previewType="swatch"
         />
 
         <ColorPicker
-          label="Secondary Background"
-          description="Cards and panels"
+          label={t.backgroundSecondary}
+          description={t.backgroundSecondaryDesc}
           value={colors.background_secondary}
           onChange={(value) => updateColor('background_secondary', value)}
           previewType="swatch"
         />
 
         <ColorPicker
-          label="Primary Text"
-          description="Main headings and important text"
+          label={t.textPrimary}
+          description={t.textPrimaryDesc}
           value={colors.text_primary}
           onChange={(value) => updateColor('text_primary', value)}
           previewType="text"
-          previewText="Heading"
+          previewText={t.textPrimaryPreview}
           backgroundColor={colors.background}
         />
 
         <ColorPicker
-          label="Secondary Text"
-          description="Body text and descriptions"
+          label={t.textSecondary}
+          description={t.textSecondaryDesc}
           value={colors.text_secondary}
           onChange={(value) => updateColor('text_secondary', value)}
           previewType="text"
-          previewText="Body Text"
+          previewText={t.textSecondaryPreview}
           backgroundColor={colors.background}
         />
 
         <ColorPicker
-          label="Border"
-          description="Input borders and dividers"
+          label={t.border}
+          description={t.borderDesc}
           value={colors.border}
           onChange={(value) => updateColor('border', value)}
           previewType="swatch"
@@ -378,12 +449,12 @@ export default function ColorCustomization() {
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              Saving...
+              {t.saving}
             </>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              Save Changes
+              {t.save}
             </>
           )}
         </button>

@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAdminAuth } from '../../../hooks/useAdminAuth';
@@ -8,6 +9,58 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WELCOME_ICON_NAMES, welcomeIcon } from '../../../lib/welcomeIcons';
 import { Plus, Trash2, GripVertical, Save, Upload, AlertCircle, Eye, Code } from 'lucide-react';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { fillText, type Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  loading: string; heading: string; intro: string; showPreview: string; hidePreview: string; customHtml: string;
+  loadFailed: string; saveFailed: string; saved: string; uploadFailed: string;
+  displayCards: string; displayCardsHint: string; enabled: string; disabled: string;
+  useCustomHtml: string; useCustomHtmlHint: string; customHtmlCode: string; customHtmlPlaceholder: string; customHtmlHint: string;
+  cardsCount: string; addCard: string; lucideIcon: string; customImage: string; deleteCard: string; iconAlt: string;
+  titleLabel: string; titlePlaceholder: string; descriptionLabel: string; descriptionPlaceholder: string;
+  preview: string; customHtmlPreview: string; saving: string; save: string;
+}> = {
+  en: {
+    loading: 'Loading...', heading: 'Welcome Features', intro: 'Customize the feature cards displayed on your booking welcome page',
+    showPreview: 'Show Preview', hidePreview: 'Hide Preview', customHtml: 'Custom HTML',
+    loadFailed: 'Failed to load settings', saveFailed: 'Failed to save settings', saved: 'Settings saved successfully!', uploadFailed: 'Failed to upload icon',
+    displayCards: 'Display Feature Cards', displayCardsHint: 'Show feature cards on the welcome page', enabled: 'Enabled', disabled: 'Disabled',
+    useCustomHtml: 'Use Custom HTML', useCustomHtmlHint: 'Replace feature cards with custom HTML code', customHtmlCode: 'Custom HTML Code',
+    customHtmlPlaceholder: '<div>Your custom HTML here...</div>', customHtmlHint: 'HTML will be sanitized for security. Use inline styles or Tailwind classes.',
+    cardsCount: 'Feature Cards ({count}/{max})', addCard: 'Add Card', lucideIcon: 'Lucide Icon', customImage: 'Custom Image', deleteCard: 'Delete card', iconAlt: 'icon',
+    titleLabel: 'Title (max {max} chars)', titlePlaceholder: 'Feature title', descriptionLabel: 'Description (max {max} chars)', descriptionPlaceholder: 'Feature description',
+    preview: 'Preview', customHtmlPreview: 'Custom HTML Preview', saving: 'Saving...', save: 'Save Changes',
+  },
+  de: {
+    loading: 'Wird geladen…', heading: 'Info-Karten der Willkommensseite', intro: 'Info-Karten auf der Willkommensseite der Buchungsseite anpassen',
+    showPreview: 'Vorschau anzeigen', hidePreview: 'Vorschau ausblenden', customHtml: 'Eigenes HTML',
+    loadFailed: 'Einstellungen konnten nicht geladen werden', saveFailed: 'Einstellungen konnten nicht gespeichert werden', saved: 'Einstellungen gespeichert', uploadFailed: 'Symbol konnte nicht hochgeladen werden',
+    displayCards: 'Info-Karten anzeigen', displayCardsHint: 'Info-Karten auf der Willkommensseite anzeigen', enabled: 'Aktiv', disabled: 'Inaktiv',
+    useCustomHtml: 'Eigenes HTML verwenden', useCustomHtmlHint: 'Info-Karten durch eigenen HTML-Code ersetzen', customHtmlCode: 'Eigener HTML-Code',
+    customHtmlPlaceholder: '<div>Ihr HTML hier…</div>', customHtmlHint: 'HTML wird aus Sicherheitsgründen bereinigt. Inline-Styles oder Tailwind-Klassen verwenden.',
+    cardsCount: 'Info-Karten ({count}/{max})', addCard: 'Karte hinzufügen', lucideIcon: 'Lucide-Symbol', customImage: 'Eigenes Bild', deleteCard: 'Karte löschen', iconAlt: 'Symbol',
+    titleLabel: 'Titel (max. {max} Zeichen)', titlePlaceholder: 'Titel der Karte', descriptionLabel: 'Beschreibung (max. {max} Zeichen)', descriptionPlaceholder: 'Beschreibung der Karte',
+    preview: 'Vorschau', customHtmlPreview: 'Vorschau eigenes HTML', saving: 'Wird gespeichert…', save: 'Speichern',
+  },
+  th: {
+    loading: 'กำลังโหลด…', heading: 'การ์ดแนะนำในหน้าต้อนรับ', intro: 'ปรับแต่งการ์ดแนะนำที่แสดงในหน้าต้อนรับของหน้าจอง',
+    showPreview: 'แสดงตัวอย่าง', hidePreview: 'ซ่อนตัวอย่าง', customHtml: 'HTML กำหนดเอง',
+    loadFailed: 'โหลดการตั้งค่าไม่สำเร็จ', saveFailed: 'บันทึกการตั้งค่าไม่สำเร็จ', saved: 'บันทึกการตั้งค่าแล้ว', uploadFailed: 'อัปโหลดไอคอนไม่สำเร็จ',
+    displayCards: 'แสดงการ์ดแนะนำ', displayCardsHint: 'แสดงการ์ดแนะนำในหน้าต้อนรับ', enabled: 'เปิดใช้', disabled: 'ปิดใช้',
+    useCustomHtml: 'ใช้ HTML กำหนดเอง', useCustomHtmlHint: 'แทนที่การ์ดแนะนำด้วยโค้ด HTML ของคุณเอง', customHtmlCode: 'โค้ด HTML กำหนดเอง',
+    customHtmlPlaceholder: '<div>ใส่ HTML ของคุณที่นี่…</div>', customHtmlHint: 'ระบบจะกรอง HTML เพื่อความปลอดภัย ใช้ inline style หรือคลาส Tailwind ได้',
+    cardsCount: 'การ์ดแนะนำ ({count}/{max})', addCard: 'เพิ่มการ์ด', lucideIcon: 'ไอคอน Lucide', customImage: 'รูปภาพของร้าน', deleteCard: 'ลบการ์ด', iconAlt: 'ไอคอน',
+    titleLabel: 'หัวข้อ (ไม่เกิน {max} ตัวอักษร)', titlePlaceholder: 'หัวข้อการ์ด', descriptionLabel: 'คำอธิบาย (ไม่เกิน {max} ตัวอักษร)', descriptionPlaceholder: 'คำอธิบายการ์ด',
+    preview: 'ตัวอย่าง', customHtmlPreview: 'ตัวอย่าง HTML กำหนดเอง', saving: 'กำลังบันทึก…', save: 'บันทึก',
+  },
+};
+
+type MessageKey = 'loadFailed' | 'saveFailed' | 'saved' | 'uploadFailed';
+
+const MAX_CARDS = 5;
+const MAX_TITLE_LENGTH = 50;
+const MAX_DESCRIPTION_LENGTH = 200;
 
 interface WelcomeCard {
   id: string;
@@ -23,13 +76,14 @@ interface WelcomeCard {
 export default function WelcomeFeaturesSettings() {
   const adminUser = useAdminAuth();
   const businessId = adminUser?.business_id;
+  const { t } = useAdminText(TEXT);
   const [cards, setCards] = useState<WelcomeCard[]>([]);
   const [showFeatures, setShowFeatures] = useState(true);
   const [useCustomHTML, setUseCustomHTML] = useState(false);
   const [customHTML, setCustomHTML] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', key: MessageKey } | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showHTMLEditor, setShowHTMLEditor] = useState(false);
@@ -66,7 +120,7 @@ export default function WelcomeFeaturesSettings() {
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setMessage({ type: 'error', text: 'Failed to load settings' });
+      setMessage({ type: 'error', key: 'loadFailed' });
     } finally {
       setLoading(false);
     }
@@ -101,11 +155,11 @@ export default function WelcomeFeaturesSettings() {
         }
       }
 
-      setMessage({ type: 'success', text: 'Settings saved successfully!' });
+      setMessage({ type: 'success', key: 'saved' });
       await fetchSettings();
     } catch (error) {
       console.error('Error saving:', error);
-      setMessage({ type: 'error', text: 'Failed to save settings' });
+      setMessage({ type: 'error', key: 'saveFailed' });
     } finally {
       setSaving(false);
     }
@@ -193,29 +247,29 @@ export default function WelcomeFeaturesSettings() {
       });
     } catch (error) {
       console.error('Error uploading icon:', error);
-      setMessage({ type: 'error', text: 'Failed to upload icon' });
+      setMessage({ type: 'error', key: 'uploadFailed' });
     }
   };
 
   const renderIcon = (card: WelcomeCard, size: string = 'w-5 h-5') => {
     if (card.icon_type === 'custom' && card.icon_url) {
-      return <img src={card.icon_url} alt="icon" className={size} />;
+      return <img src={card.icon_url} alt={t.iconAlt} className={size} />;
     }
     const IconComponent = welcomeIcon(card.icon_type === 'lucide' ? card.icon_name : null);
     return <IconComponent className={size} />;
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6">{t.loading}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Welcome Features</h3>
+          <h3 className="text-lg font-medium">{t.heading}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Customize the feature cards displayed on your booking welcome page
+            {t.intro}
           </p>
         </div>
         <div className="flex gap-2">
@@ -224,14 +278,14 @@ export default function WelcomeFeaturesSettings() {
             onClick={() => setShowPreview(!showPreview)}
           >
             <Eye className="w-4 h-4 mr-2" />
-            {showPreview ? 'Hide' : 'Show'} Preview
+            {showPreview ? t.hidePreview : t.showPreview}
           </Button>
           <Button
             variant="outline"
             onClick={() => setShowHTMLEditor(!showHTMLEditor)}
           >
             <Code className="w-4 h-4 mr-2" />
-            Custom HTML
+            {t.customHtml}
           </Button>
         </div>
       </div>
@@ -239,7 +293,7 @@ export default function WelcomeFeaturesSettings() {
       {message && (
         <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{message.text}</AlertDescription>
+          <AlertDescription>{t[message.key]}</AlertDescription>
         </Alert>
       )}
 
@@ -247,9 +301,9 @@ export default function WelcomeFeaturesSettings() {
         <CardContent className="pt-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Display Feature Cards</Label>
+              <Label>{t.displayCards}</Label>
               <p className="text-sm text-muted-foreground">
-                Show feature cards on the welcome page
+                {t.displayCardsHint}
               </p>
             </div>
             <Button
@@ -257,7 +311,7 @@ export default function WelcomeFeaturesSettings() {
               size="sm"
               onClick={() => setShowFeatures(!showFeatures)}
             >
-              {showFeatures ? 'Enabled' : 'Disabled'}
+              {showFeatures ? t.enabled : t.disabled}
             </Button>
           </div>
 
@@ -265,9 +319,9 @@ export default function WelcomeFeaturesSettings() {
             <div className="space-y-4 border-t pt-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Use Custom HTML</Label>
+                  <Label>{t.useCustomHtml}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Replace feature cards with custom HTML code
+                    {t.useCustomHtmlHint}
                   </p>
                 </div>
                 <Button
@@ -275,21 +329,21 @@ export default function WelcomeFeaturesSettings() {
                   size="sm"
                   onClick={() => setUseCustomHTML(!useCustomHTML)}
                 >
-                  {useCustomHTML ? 'Enabled' : 'Disabled'}
+                  {useCustomHTML ? t.enabled : t.disabled}
                 </Button>
               </div>
 
               {useCustomHTML && (
                 <div className="space-y-2">
-                  <Label>Custom HTML Code</Label>
+                  <Label>{t.customHtmlCode}</Label>
                   <textarea
                     value={customHTML}
                     onChange={(e) => setCustomHTML(e.target.value)}
                     className="w-full h-48 p-3 border rounded-md font-mono text-sm"
-                    placeholder="<div>Your custom HTML here...</div>"
+                    placeholder={t.customHtmlPlaceholder}
                   />
                   <p className="text-xs text-muted-foreground">
-                    HTML will be sanitized for security. Use inline styles or Tailwind classes.
+                    {t.customHtmlHint}
                   </p>
                 </div>
               )}
@@ -299,14 +353,14 @@ export default function WelcomeFeaturesSettings() {
           {!useCustomHTML && showFeatures && (
             <div className="space-y-4 border-t pt-6">
               <div className="flex items-center justify-between">
-                <Label>Feature Cards ({cards.length}/5)</Label>
+                <Label>{fillText(t.cardsCount, { count: cards.length, max: MAX_CARDS })}</Label>
                 <Button
                   onClick={addCard}
                   size="sm"
-                  disabled={cards.length >= 5}
+                  disabled={cards.length >= MAX_CARDS}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Card
+                  {t.addCard}
                 </Button>
               </div>
 
@@ -339,8 +393,8 @@ export default function WelcomeFeaturesSettings() {
                               })}
                               className="px-3 py-1.5 border rounded-md text-sm"
                             >
-                              <option value="lucide">Lucide Icon</option>
-                              <option value="custom">Custom Image</option>
+                              <option value="lucide">{t.lucideIcon}</option>
+                              <option value="custom">{t.customImage}</option>
                             </select>
 
                             {card.icon_type === 'lucide' ? (
@@ -374,12 +428,14 @@ export default function WelcomeFeaturesSettings() {
                               size="sm"
                               onClick={() => updateCard(index, { is_enabled: !card.is_enabled })}
                             >
-                              {card.is_enabled ? 'Enabled' : 'Disabled'}
+                              {card.is_enabled ? t.enabled : t.disabled}
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => deleteCard(index)}
+                              aria-label={t.deleteCard}
+                              title={t.deleteCard}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -388,21 +444,21 @@ export default function WelcomeFeaturesSettings() {
 
                         <div className="grid gap-3">
                           <div>
-                            <Label className="text-xs">Title (max 50 chars)</Label>
+                            <Label className="text-xs">{fillText(t.titleLabel, { max: MAX_TITLE_LENGTH })}</Label>
                             <Input
                               value={card.title}
-                              onChange={(e) => updateCard(index, { title: e.target.value.slice(0, 50) })}
-                              placeholder="Feature title"
-                              maxLength={50}
+                              onChange={(e) => updateCard(index, { title: e.target.value.slice(0, MAX_TITLE_LENGTH) })}
+                              placeholder={t.titlePlaceholder}
+                              maxLength={MAX_TITLE_LENGTH}
                             />
                           </div>
                           <div>
-                            <Label className="text-xs">Description (max 200 chars)</Label>
+                            <Label className="text-xs">{fillText(t.descriptionLabel, { max: MAX_DESCRIPTION_LENGTH })}</Label>
                             <textarea
                               value={card.description}
-                              onChange={(e) => updateCard(index, { description: e.target.value.slice(0, 200) })}
-                              placeholder="Feature description"
-                              maxLength={200}
+                              onChange={(e) => updateCard(index, { description: e.target.value.slice(0, MAX_DESCRIPTION_LENGTH) })}
+                              placeholder={t.descriptionPlaceholder}
+                              maxLength={MAX_DESCRIPTION_LENGTH}
                               className="w-full px-3 py-2 border rounded-md text-sm resize-none"
                               rows={2}
                             />
@@ -421,7 +477,7 @@ export default function WelcomeFeaturesSettings() {
       {showPreview && showFeatures && !useCustomHTML && (
         <Card>
           <CardContent className="pt-6">
-            <Label className="mb-4 block">Preview</Label>
+            <Label className="mb-4 block">{t.preview}</Label>
             <div className="grid gap-4">
               {cards.filter(c => c.is_enabled).map((card) => (
                 <Card key={card.id} className="border-muted">
@@ -448,10 +504,10 @@ export default function WelcomeFeaturesSettings() {
       {showPreview && useCustomHTML && customHTML && (
         <Card>
           <CardContent className="pt-6">
-            <Label className="mb-4 block">Custom HTML Preview</Label>
+            <Label className="mb-4 block">{t.customHtmlPreview}</Label>
             <div
               className="p-4 border rounded-md"
-              dangerouslySetInnerHTML={{ __html: customHTML }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(customHTML) }}
             />
           </CardContent>
         </Card>
@@ -460,7 +516,7 @@ export default function WelcomeFeaturesSettings() {
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>
           <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? t.saving : t.save}
         </Button>
       </div>
     </div>

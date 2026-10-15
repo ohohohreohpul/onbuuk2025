@@ -2,15 +2,35 @@ import { useEffect, useState } from 'react';
 import { Languages } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../lib/tenantContext';
-import { BOOKING_LANGUAGES, type BookingLanguage } from '../../../lib/bookingLanguage';
+import { BOOKING_LANGUAGES, type BookingLanguage, type Translations } from '../../../lib/bookingLanguage';
 import { ADMIN_SELECT } from '../adminUi';
+import { useAdminText } from '../../../lib/adminLanguage';
+
+const TEXT: Translations<{ label: string; help: string; saved: string; saveFailed: string }> = {
+  en: {
+    label: 'Language of booking page and emails',
+    help: 'Booking page, voucher shop, cancel page and the emails your customers get.',
+    saved: 'Saved. Customers see the new language on their next visit.', saveFailed: 'Could not save. Please try again.',
+  },
+  de: {
+    label: 'Sprache von Buchungsseite und E-Mails',
+    help: 'Buchungsseite, Gutschein-Shop, Stornoseite und die E-Mails an Ihre Kunden.',
+    saved: 'Gespeichert. Kunden sehen die neue Sprache beim nächsten Besuch.', saveFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
+  },
+  th: {
+    label: 'ภาษาของหน้าจองและอีเมล',
+    help: 'หน้าจอง, ร้านบัตรของขวัญ, หน้ายกเลิก และอีเมลที่ลูกค้าได้รับ',
+    saved: 'บันทึกแล้ว ลูกค้าจะเห็นภาษาใหม่ในการเข้าชมครั้งถัดไป', saveFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง',
+  },
+};
 
 /** Language of the customer-facing pages (booking, vouchers, cancel) and booking emails. */
 export default function BookingLanguageSetting() {
   const { businessId } = useTenant();
+  const { t } = useAdminText(TEXT);
   const [language, setLanguage] = useState<BookingLanguage>('en');
   const [isLoading, setIsLoading] = useState(true);
-  const [status, setStatus] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [status, setStatus] = useState<'saved' | 'saveFailed' | null>(null);
 
   useEffect(() => {
     if (!businessId) return;
@@ -35,10 +55,10 @@ export default function BookingLanguageSetting() {
     if (error) {
       console.error('Could not save the booking language:', error);
       setLanguage(previous);
-      setStatus({ tone: 'error', text: 'Could not save. Please try again.' });
+      setStatus('saveFailed');
       return;
     }
-    setStatus({ tone: 'success', text: 'Saved. Customers see the new language on their next visit.' });
+    setStatus('saved');
   };
 
   return (
@@ -46,8 +66,8 @@ export default function BookingLanguageSetting() {
       <div className="flex items-start gap-3">
         <Languages className="mt-0.5 h-5 w-5 text-stone-600" aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <label htmlFor="booking-language" className="font-semibold text-stone-900">Language of booking page and emails</label>
-          <p className="text-sm text-stone-500">Booking page, voucher shop, cancel page and the emails your customers get.</p>
+          <label htmlFor="booking-language" className="font-semibold text-stone-900">{t.label}</label>
+          <p className="text-sm text-stone-500">{t.help}</p>
           <select
             id="booking-language"
             className={`${ADMIN_SELECT} mt-3 sm:w-64`}
@@ -58,7 +78,7 @@ export default function BookingLanguageSetting() {
             {BOOKING_LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
           {status && (
-            <p role={status.tone === 'error' ? 'alert' : 'status'} className={`mt-2 text-sm ${status.tone === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>{status.text}</p>
+            <p role={status === 'saveFailed' ? 'alert' : 'status'} className={`mt-2 text-sm ${status === 'saveFailed' ? 'text-red-600' : 'text-emerald-700'}`}>{t[status]}</p>
           )}
         </div>
       </div>

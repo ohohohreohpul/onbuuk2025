@@ -7,14 +7,35 @@ import {
   isSpecialistChoiceAllowed,
   serializeSpecialistChoice,
 } from '../../lib/specialistChoice';
+import { useAdminText } from '../../lib/adminLanguage';
+import type { Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{ title: string; allowedHelp: string; assignedHelp: string; loadFailed: string; saveFailed: string }> = {
+  en: {
+    title: 'Customers choose their therapist', allowedHelp: 'The booking page asks who should do the treatment.',
+    assignedHelp: 'The booking page skips this step. Every online booking goes to a free therapist on shift; you can reassign it later.',
+    loadFailed: 'Could not load this setting.', saveFailed: 'Could not save. Please try again.',
+  },
+  de: {
+    title: 'Kunden wählen ihre Therapeut:in', allowedHelp: 'Die Buchungsseite fragt, wer die Behandlung durchführen soll.',
+    assignedHelp: 'Die Buchungsseite überspringt diesen Schritt. Jede Online-Buchung geht an eine freie Therapeut:in im Dienst; Sie können sie später neu zuweisen.',
+    loadFailed: 'Einstellung konnte nicht geladen werden.', saveFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
+  },
+  th: {
+    title: 'ลูกค้าเลือกพนักงานบริการเอง', allowedHelp: 'หน้าจองจะถามว่าต้องการให้ใครเป็นผู้ให้บริการ',
+    assignedHelp: 'หน้าจองจะข้ามขั้นตอนนี้ การจองออนไลน์ทุกรายการจะไปที่พนักงานบริการที่ว่างในกะ และเปลี่ยนผู้รับผิดชอบได้ภายหลัง',
+    loadFailed: 'โหลดการตั้งค่านี้ไม่สำเร็จ', saveFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง',
+  },
+};
 
 /** Switch: do customers pick their therapist online, or does the shop assign staff? */
 export default function SpecialistChoiceSetting() {
   const { businessId } = useTenant();
+  const { t } = useAdminText(TEXT);
   const [isAllowed, setIsAllowed] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'loadFailed' | 'saveFailed' | null>(null);
 
   useEffect(() => {
     if (!businessId) return;
@@ -27,7 +48,7 @@ export default function SpecialistChoiceSetting() {
       .then(({ data, error: loadError }) => {
         if (loadError) {
           console.error('Could not load the therapist choice setting:', loadError);
-          setError('Could not load this setting.');
+          setError('loadFailed');
         }
         setIsAllowed(isSpecialistChoiceAllowed(data?.value));
         setIsLoading(false);
@@ -48,7 +69,7 @@ export default function SpecialistChoiceSetting() {
     setIsSaving(false);
     if (saveError) {
       console.error('Could not save the therapist choice setting:', saveError);
-      setError('Could not save. Please try again.');
+      setError('saveFailed');
       return;
     }
     setIsAllowed(next);
@@ -59,13 +80,13 @@ export default function SpecialistChoiceSetting() {
       <div className="flex min-w-0 items-start gap-3">
         <UserCheck className="mt-0.5 h-5 w-5 shrink-0 text-stone-600" aria-hidden="true" />
         <div className="min-w-0">
-          <h2 id="specialist-choice-label" className="font-medium text-[#1A1714]">Customers choose their therapist</h2>
+          <h2 id="specialist-choice-label" className="font-medium text-[#1A1714]">{t.title}</h2>
           <p className="text-sm text-stone-500">
             {isAllowed
-              ? 'The booking page asks who should do the treatment.'
-              : 'The booking page skips this step. Every online booking goes to a free therapist on shift; you can reassign it later.'}
+              ? t.allowedHelp
+              : t.assignedHelp}
           </p>
-          {error && <p role="alert" className="mt-1 text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="mt-1 text-sm text-red-600">{t[error]}</p>}
         </div>
       </div>
       <button

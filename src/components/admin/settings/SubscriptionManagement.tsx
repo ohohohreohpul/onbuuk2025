@@ -4,6 +4,8 @@ import { Crown, Calendar, CreditCard, Check, Loader, AlertCircle, Tag } from 'lu
 import { useTenant } from '../../../lib/tenantContext';
 import { useCurrency } from '../../../lib/currencyContext';
 import { adminAccessToken } from '../../../lib/functionAuth';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { fillText, type Translations } from '../../../lib/bookingLanguage';
 
 interface Business {
   id: string;
@@ -15,63 +17,151 @@ interface Business {
   stripe_subscription_id: string | null;
 }
 
+type FeatureKey =
+  | 'fOneAdmin' | 'f50Bookings' | 'f3Services' | 'fOneSpecialist' | 'fEmailNotifications' | 'f3Admins'
+  | 'fUnlimitedBookings' | 'f10Services' | 'f3Specialists' | 'fGiftCards' | 'fBasicLoyalty' | 'fCustomLogo'
+  | 'fUnlimitedAdmins' | 'fUnlimitedServices' | 'fUnlimitedSpecialists' | 'fAdvancedGiftCards'
+  | 'fAdvancedLoyalty' | 'fFullBranding' | 'fRemoveBadge' | 'fPrioritySupport';
+
+type SubscriptionText = Record<FeatureKey, string> & {
+  upgradeSuccess: string; upgradeCancelled: string; signInAgain: string; invalidCoupon: string; upgradeFailed: string;
+  portalFailed: string; businessNotFound: string; title: string; subtitle: string; trialActive: string;
+  trialEndsInDay: string; trialEndsInDays: string; currentPlan: string; freeTrialActive: string; statusLabel: string;
+  active: string; freeForever: string; perMonth: string; includes: string; manageBilling: string; upgradePlan: string;
+  upgradeTo: string; couponLabel: string; couponPlaceholder: string; couponHint: string; processing: string;
+  onPlan: string; onPlanHint: string; mostPopular: string; moreFeature: string; moreFeatures: string;
+  statusPastDue: string; statusCanceled: string; statusUnpaid: string; statusIncompleteExpired: string; statusPaused: string;
+};
+
+const TEXT: Translations<SubscriptionText> = {
+  en: {
+    fOneAdmin: '1 admin user (owner only)', f50Bookings: 'Up to 50 bookings per month', f3Services: 'Up to 3 services',
+    fOneSpecialist: '1 specialist', fEmailNotifications: 'Email notifications', f3Admins: 'Up to 3 admin users',
+    fUnlimitedBookings: 'Unlimited bookings', f10Services: 'Up to 10 services', f3Specialists: 'Up to 3 specialists',
+    fGiftCards: 'Gift cards enabled', fBasicLoyalty: 'Basic loyalty program', fCustomLogo: 'Custom logo',
+    fUnlimitedAdmins: 'Unlimited admin users', fUnlimitedServices: 'Unlimited services', fUnlimitedSpecialists: 'Unlimited specialists',
+    fAdvancedGiftCards: 'Advanced gift cards', fAdvancedLoyalty: 'Advanced loyalty program', fFullBranding: 'Full custom branding',
+    fRemoveBadge: 'Remove "Powered by Zenno" badge', fPrioritySupport: 'Priority support',
+    upgradeSuccess: 'Successfully upgraded! Your subscription will be activated shortly.',
+    upgradeCancelled: 'Upgrade cancelled. You can try again anytime.', signInAgain: 'Please sign in again to continue',
+    invalidCoupon: 'Invalid or expired coupon code. Please check and try again.',
+    upgradeFailed: 'Failed to start upgrade process. Please try again or contact support.',
+    portalFailed: 'Failed to open subscription management. Please try again.', businessNotFound: 'Business not found',
+    title: 'Subscription Management', subtitle: 'Manage your plan and billing', trialActive: 'Trial Active',
+    trialEndsInDay: 'Your free trial ends in {count} day', trialEndsInDays: 'Your free trial ends in {count} days',
+    currentPlan: 'Current Plan', freeTrialActive: '🎉 Free Trial Active', statusLabel: 'Status: {status}', active: 'Active',
+    freeForever: 'Free forever', perMonth: 'starting at / month', includes: 'Current Plan Includes:', manageBilling: 'Manage Billing',
+    upgradePlan: 'Upgrade Your Plan', upgradeTo: 'Upgrade to {plan}', couponLabel: 'Coupon Code (Optional)',
+    couponPlaceholder: 'Enter coupon code', couponHint: 'You can also enter or apply a coupon code during checkout',
+    processing: 'Processing...', onPlan: "You're on the {plan} Plan!",
+    onPlanHint: 'You have access to all features and unlimited usage. Thank you for being a {plan} member!',
+    mostPopular: 'Most Popular', moreFeature: '+ {count} more feature', moreFeatures: '+ {count} more features',
+    statusPastDue: 'Past due', statusCanceled: 'Canceled', statusUnpaid: 'Unpaid', statusIncompleteExpired: 'Expired', statusPaused: 'Paused',
+  },
+  de: {
+    fOneAdmin: '1 Admin-Benutzer (nur Inhaber)', f50Bookings: 'Bis zu 50 Buchungen pro Monat', f3Services: 'Bis zu 3 Leistungen',
+    fOneSpecialist: '1 Mitarbeiter', fEmailNotifications: 'E-Mail-Benachrichtigungen', f3Admins: 'Bis zu 3 Admin-Benutzer',
+    fUnlimitedBookings: 'Unbegrenzte Buchungen', f10Services: 'Bis zu 10 Leistungen', f3Specialists: 'Bis zu 3 Mitarbeiter',
+    fGiftCards: 'Gutscheine aktiviert', fBasicLoyalty: 'Einfaches Treueprogramm', fCustomLogo: 'Eigenes Logo',
+    fUnlimitedAdmins: 'Unbegrenzte Admin-Benutzer', fUnlimitedServices: 'Unbegrenzte Leistungen', fUnlimitedSpecialists: 'Unbegrenzte Mitarbeiter',
+    fAdvancedGiftCards: 'Erweiterte Gutscheine', fAdvancedLoyalty: 'Erweitertes Treueprogramm', fFullBranding: 'Vollständig eigenes Branding',
+    fRemoveBadge: 'Hinweis „Powered by Zenno“ entfernen', fPrioritySupport: 'Bevorzugter Support',
+    upgradeSuccess: 'Upgrade erfolgreich. Ihr Abo wird in Kürze aktiviert.',
+    upgradeCancelled: 'Upgrade abgebrochen. Sie können es jederzeit erneut versuchen.', signInAgain: 'Bitte erneut anmelden, um fortzufahren',
+    invalidCoupon: 'Ungültiger oder abgelaufener Gutscheincode. Bitte prüfen und erneut versuchen.',
+    upgradeFailed: 'Upgrade konnte nicht gestartet werden. Bitte erneut versuchen oder den Support kontaktieren.',
+    portalFailed: 'Abo-Verwaltung konnte nicht geöffnet werden. Bitte erneut versuchen.', businessNotFound: 'Geschäft nicht gefunden',
+    title: 'Abo-Verwaltung', subtitle: 'Tarif und Abrechnung verwalten', trialActive: 'Testphase aktiv',
+    trialEndsInDay: 'Ihre kostenlose Testphase endet in {count} Tag', trialEndsInDays: 'Ihre kostenlose Testphase endet in {count} Tagen',
+    currentPlan: 'Aktueller Tarif', freeTrialActive: '🎉 Kostenlose Testphase aktiv', statusLabel: 'Status: {status}', active: 'Aktiv',
+    freeForever: 'Dauerhaft kostenlos', perMonth: 'ab / Monat', includes: 'Ihr Tarif enthält:', manageBilling: 'Abrechnung verwalten',
+    upgradePlan: 'Tarif upgraden', upgradeTo: 'Upgrade auf {plan}', couponLabel: 'Gutscheincode (optional)',
+    couponPlaceholder: 'Gutscheincode eingeben', couponHint: 'Ein Gutscheincode kann auch beim Bezahlen eingegeben werden',
+    processing: 'Wird verarbeitet...', onPlan: 'Sie nutzen den Tarif {plan}!',
+    onPlanHint: 'Sie haben Zugriff auf alle Funktionen ohne Nutzungslimit. Danke, dass Sie {plan} nutzen!',
+    mostPopular: 'Am beliebtesten', moreFeature: '+ {count} weitere Funktion', moreFeatures: '+ {count} weitere Funktionen',
+    statusPastDue: 'Überfällig', statusCanceled: 'Gekündigt', statusUnpaid: 'Unbezahlt', statusIncompleteExpired: 'Abgelaufen', statusPaused: 'Pausiert',
+  },
+  th: {
+    fOneAdmin: 'ผู้ดูแล 1 คน (เฉพาะเจ้าของ)', f50Bookings: 'การจองสูงสุด 50 รายการต่อเดือน', f3Services: 'บริการสูงสุด 3 รายการ',
+    fOneSpecialist: 'พนักงาน 1 คน', fEmailNotifications: 'การแจ้งเตือนทางอีเมล', f3Admins: 'ผู้ดูแลสูงสุด 3 คน',
+    fUnlimitedBookings: 'การจองไม่จำกัด', f10Services: 'บริการสูงสุด 10 รายการ', f3Specialists: 'พนักงานสูงสุด 3 คน',
+    fGiftCards: 'เปิดใช้บัตรของขวัญ', fBasicLoyalty: 'โปรแกรมสะสมแต้มพื้นฐาน', fCustomLogo: 'ใช้โลโก้ของร้าน',
+    fUnlimitedAdmins: 'ผู้ดูแลไม่จำกัด', fUnlimitedServices: 'บริการไม่จำกัด', fUnlimitedSpecialists: 'พนักงานไม่จำกัด',
+    fAdvancedGiftCards: 'บัตรของขวัญขั้นสูง', fAdvancedLoyalty: 'โปรแกรมสะสมแต้มขั้นสูง', fFullBranding: 'ปรับแบรนด์ได้เต็มรูปแบบ',
+    fRemoveBadge: 'ลบป้าย "Powered by Zenno"', fPrioritySupport: 'ซัพพอร์ตแบบเร่งด่วน',
+    upgradeSuccess: 'อัปเกรดสำเร็จ แพ็กเกจสมาชิกจะเปิดใช้งานในไม่ช้า',
+    upgradeCancelled: 'ยกเลิกการอัปเกรดแล้ว ลองใหม่ได้ทุกเมื่อ', signInAgain: 'กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการต่อ',
+    invalidCoupon: 'รหัสคูปองไม่ถูกต้องหรือหมดอายุ กรุณาตรวจสอบแล้วลองอีกครั้ง',
+    upgradeFailed: 'เริ่มการอัปเกรดไม่สำเร็จ กรุณาลองอีกครั้งหรือติดต่อฝ่ายซัพพอร์ต',
+    portalFailed: 'เปิดหน้าจัดการแพ็กเกจสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง', businessNotFound: 'ไม่พบร้าน',
+    title: 'จัดการแพ็กเกจสมาชิก', subtitle: 'จัดการแพ็กเกจและการเรียกเก็บเงิน', trialActive: 'อยู่ในช่วงทดลองใช้',
+    trialEndsInDay: 'ช่วงทดลองใช้ฟรีจะสิ้นสุดใน {count} วัน', trialEndsInDays: 'ช่วงทดลองใช้ฟรีจะสิ้นสุดใน {count} วัน',
+    currentPlan: 'แพ็กเกจปัจจุบัน', freeTrialActive: '🎉 กำลังทดลองใช้ฟรี', statusLabel: 'สถานะ: {status}', active: 'ใช้งานอยู่',
+    freeForever: 'ฟรีตลอดไป', perMonth: 'เริ่มต้น / เดือน', includes: 'แพ็กเกจปัจจุบันประกอบด้วย:', manageBilling: 'จัดการการเรียกเก็บเงิน',
+    upgradePlan: 'อัปเกรดแพ็กเกจ', upgradeTo: 'อัปเกรดเป็น {plan}', couponLabel: 'รหัสคูปอง (ไม่บังคับ)',
+    couponPlaceholder: 'ใส่รหัสคูปอง', couponHint: 'ใส่รหัสคูปองตอนชำระเงินได้เช่นกัน',
+    processing: 'กำลังดำเนินการ...', onPlan: 'คุณใช้แพ็กเกจ {plan} อยู่',
+    onPlanHint: 'คุณใช้ได้ทุกฟีเจอร์แบบไม่จำกัด ขอบคุณที่เป็นสมาชิก {plan}',
+    mostPopular: 'ยอดนิยม', moreFeature: '+ อีก {count} ฟีเจอร์', moreFeatures: '+ อีก {count} ฟีเจอร์',
+    statusPastDue: 'เกินกำหนดชำระ', statusCanceled: 'ยกเลิกแล้ว', statusUnpaid: 'ยังไม่ชำระ', statusIncompleteExpired: 'หมดอายุ', statusPaused: 'หยุดชั่วคราว',
+  },
+};
+
+/** Stripe subscription status (DB value) to a label; unknown values are shown as stored. */
+function statusName(status: string, t: SubscriptionText): string {
+  const known: Record<string, string> = {
+    active: t.active,
+    trialing: t.trialActive,
+    past_due: t.statusPastDue,
+    canceled: t.statusCanceled,
+    unpaid: t.statusUnpaid,
+    incomplete_expired: t.statusIncompleteExpired,
+    paused: t.statusPaused,
+  };
+  return known[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 interface PlanDetails {
   name: string;
   priceCents: number;
-  features: string[];
+  features: FeatureKey[];
 }
+
+const VISIBLE_FEATURES = 5;
 
 const PLAN_DETAILS: Record<string, PlanDetails> = {
   free: {
     name: 'Free',
     priceCents: 0,
-    features: [
-      '1 admin user (owner only)',
-      'Up to 50 bookings per month',
-      'Up to 3 services',
-      '1 specialist',
-      'Email notifications',
-    ],
+    features: ['fOneAdmin', 'f50Bookings', 'f3Services', 'fOneSpecialist', 'fEmailNotifications'],
   },
   standard: {
     name: 'Standard',
     priceCents: 2900,
     features: [
-      'Up to 3 admin users',
-      'Unlimited bookings',
-      'Up to 10 services',
-      'Up to 3 specialists',
-      'Gift cards enabled',
-      'Basic loyalty program',
-      'Custom logo',
-      'Email notifications',
+      'f3Admins', 'fUnlimitedBookings', 'f10Services', 'f3Specialists', 'fGiftCards', 'fBasicLoyalty',
+      'fCustomLogo', 'fEmailNotifications',
     ],
   },
   pro: {
     name: 'Pro',
     priceCents: 4500,
     features: [
-      'Unlimited admin users',
-      'Unlimited bookings',
-      'Unlimited services',
-      'Unlimited specialists',
-      'Advanced gift cards',
-      'Advanced loyalty program',
-      'Full custom branding',
-      'Remove "Powered by Zenno" badge',
-      'Email notifications',
-      'Priority support',
+      'fUnlimitedAdmins', 'fUnlimitedBookings', 'fUnlimitedServices', 'fUnlimitedSpecialists', 'fAdvancedGiftCards',
+      'fAdvancedLoyalty', 'fFullBranding', 'fRemoveBadge', 'fEmailNotifications', 'fPrioritySupport',
     ],
   },
 };
 
 export default function SubscriptionManagement() {
+  const { t, locale } = useAdminText(TEXT);
   const { businessId } = useTenant();
   const { formatAmount } = useCurrency();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [upgradeResult, setUpgradeResult] = useState<'success' | 'cancelled' | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'standard' | 'pro' | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
@@ -81,10 +171,10 @@ export default function SubscriptionManagement() {
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgrade') === 'success') {
-      setSuccessMessage('Successfully upgraded! Your subscription will be activated shortly.');
+      setUpgradeResult('success');
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('upgrade') === 'cancelled') {
-      setSuccessMessage('Upgrade cancelled. You can try again anytime.');
+      setUpgradeResult('cancelled');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [businessId]);
@@ -114,7 +204,7 @@ export default function SubscriptionManagement() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        alert('Please sign in again to continue');
+        alert(t.signInAgain);
         setProcessing(false);
         return;
       }
@@ -148,7 +238,7 @@ export default function SubscriptionManagement() {
         console.error('Stripe checkout error:', errorData);
 
         if (errorData.error && errorData.error.toLowerCase().includes('coupon')) {
-          setCouponError('Invalid or expired coupon code. Please check and try again.');
+          setCouponError(t.invalidCoupon);
           setProcessing(false);
           return;
         }
@@ -165,7 +255,7 @@ export default function SubscriptionManagement() {
       window.location.href = data.url;
     } catch (error) {
       console.error('Upgrade error:', error);
-      alert('Failed to start upgrade process. Please try again or contact support.');
+      alert(t.upgradeFailed);
       setProcessing(false);
     }
   };
@@ -204,7 +294,7 @@ export default function SubscriptionManagement() {
       window.location.href = data.url;
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to open subscription management. Please try again.');
+      alert(t.portalFailed);
       setProcessing(false);
     }
   };
@@ -221,7 +311,7 @@ export default function SubscriptionManagement() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-stone-600">Business not found</p>
+        <p className="text-stone-600">{t.businessNotFound}</p>
       </div>
     );
   }
@@ -239,17 +329,17 @@ export default function SubscriptionManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-stone-800 mb-2">Subscription Management</h3>
-        <p className="text-sm text-stone-600">Manage your plan and billing</p>
+        <h3 className="text-lg font-medium text-stone-800 mb-2">{t.title}</h3>
+        <p className="text-sm text-stone-600">{t.subtitle}</p>
       </div>
 
-      {successMessage && (
+      {upgradeResult && (
         <div className={`border p-4 ${
-          successMessage.includes('cancelled')
+          upgradeResult === 'cancelled'
             ? 'bg-amber-50 border-amber-200 text-amber-800'
             : 'bg-green-50 border-green-200 text-green-800'
         }`}>
-          <p className="text-sm font-medium">{successMessage}</p>
+          <p className="text-sm font-medium">{upgradeResult === 'cancelled' ? t.upgradeCancelled : t.upgradeSuccess}</p>
         </div>
       )}
 
@@ -257,10 +347,10 @@ export default function SubscriptionManagement() {
         <div className="bg-blue-50 border border-blue-200 p-4 flex items-start space-x-3">
           <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="font-semibold text-blue-900">Trial Active</h4>
+            <h4 className="font-semibold text-blue-900">{t.trialActive}</h4>
             <p className="text-sm text-blue-800">
-              Your free trial ends in {daysUntilTrialEnd} day{daysUntilTrialEnd !== 1 ? 's' : ''}
-              {trialEndDate && ` (${trialEndDate.toLocaleDateString()})`}
+              {fillText(daysUntilTrialEnd === 1 ? t.trialEndsInDay : t.trialEndsInDays, { count: daysUntilTrialEnd })}
+              {trialEndDate && ` (${trialEndDate.toLocaleDateString(locale)})`}
             </p>
           </div>
         </div>
@@ -279,14 +369,14 @@ export default function SubscriptionManagement() {
               </div>
               <div>
                 <h4 className="text-xl font-bold text-stone-900">
-                  {PLAN_DETAILS[currentPlan]?.name || 'Current Plan'}
+                  {PLAN_DETAILS[currentPlan]?.name || t.currentPlan}
                 </h4>
                 <p className={`text-sm font-medium ${isTrialing ? 'text-blue-600' : 'text-stone-600'}`}>
                   {isTrialing
-                    ? '🎉 Free Trial Active'
+                    ? t.freeTrialActive
                     : business.subscription_status && business.subscription_status !== 'incomplete'
-                      ? `Status: ${business.subscription_status.charAt(0).toUpperCase() + business.subscription_status.slice(1)}`
-                      : 'Active'
+                      ? fillText(t.statusLabel, { status: statusName(business.subscription_status, t) })
+                      : t.active
                   }
                 </p>
               </div>
@@ -295,17 +385,17 @@ export default function SubscriptionManagement() {
               <p className="text-2xl font-bold text-stone-900">
                 {formatAmount((PLAN_DETAILS[currentPlan]?.priceCents || 0) / 100)}
               </p>
-              <p className="text-sm text-stone-600">{isFree ? 'Free forever' : 'starting at / month'}</p>
+              <p className="text-sm text-stone-600">{isFree ? t.freeForever : t.perMonth}</p>
             </div>
           </div>
 
           <div className="border-t border-stone-200 pt-6 mb-6">
-            <h5 className="font-semibold text-stone-900 mb-3">Current Plan Includes:</h5>
+            <h5 className="font-semibold text-stone-900 mb-3">{t.includes}</h5>
             <div className="space-y-2">
-              {PLAN_DETAILS[currentPlan]?.features.map((feature, index) => (
-                <div key={index} className="flex items-start space-x-2">
+              {PLAN_DETAILS[currentPlan]?.features.map((feature) => (
+                <div key={feature} className="flex items-start space-x-2">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-stone-700">{feature}</span>
+                  <span className="text-sm text-stone-700">{t[feature]}</span>
                 </div>
               ))}
             </div>
@@ -319,7 +409,7 @@ export default function SubscriptionManagement() {
                 className="flex-1 bg-stone-100 text-stone-900 py-3 px-6 font-semibold hover:bg-stone-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 <CreditCard className="w-5 h-5" />
-                <span>Manage Billing</span>
+                <span>{t.manageBilling}</span>
               </button>
             </div>
           )}
@@ -329,7 +419,7 @@ export default function SubscriptionManagement() {
       {(isFree || isStandard) && (
         <div className="space-y-4">
           <h4 className="font-bold text-stone-900 text-lg">
-            {isFree ? 'Upgrade Your Plan' : 'Upgrade to Pro'}
+            {isFree ? t.upgradePlan : fillText(t.upgradeTo, { plan: PLAN_DETAILS.pro.name })}
           </h4>
 
           {isFree && (
@@ -370,7 +460,7 @@ export default function SubscriptionManagement() {
               <div>
                 <label className="flex items-center text-sm font-medium text-stone-700 mb-2">
                   <Tag className="w-4 h-4 mr-2" />
-                  Coupon Code (Optional)
+                  {t.couponLabel}
                 </label>
                 <input
                   type="text"
@@ -379,7 +469,7 @@ export default function SubscriptionManagement() {
                     setCouponCode(e.target.value);
                     setCouponError('');
                   }}
-                  placeholder="Enter coupon code"
+                  placeholder={t.couponPlaceholder}
                   disabled={processing}
                   className="w-full px-4 py-2 border border-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -387,7 +477,7 @@ export default function SubscriptionManagement() {
                   <p className="text-sm text-red-600 mt-1">{couponError}</p>
                 )}
                 <p className="text-xs text-stone-500 mt-1">
-                  You can also enter or apply a coupon code during checkout
+                  {t.couponHint}
                 </p>
               </div>
 
@@ -399,12 +489,12 @@ export default function SubscriptionManagement() {
                 {processing ? (
                   <>
                     <Loader className="w-5 h-5 animate-spin" />
-                    <span>Processing...</span>
+                    <span>{t.processing}</span>
                   </>
                 ) : (
                   <>
                     <Crown className="w-5 h-5" />
-                    <span>Upgrade to {PLAN_DETAILS[selectedPlan].name}</span>
+                    <span>{fillText(t.upgradeTo, { plan: PLAN_DETAILS[selectedPlan].name })}</span>
                   </>
                 )}
               </button>
@@ -420,9 +510,9 @@ export default function SubscriptionManagement() {
               <Crown className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h4 className="font-bold text-amber-900 text-lg mb-2">You're on the Pro Plan!</h4>
+              <h4 className="font-bold text-amber-900 text-lg mb-2">{fillText(t.onPlan, { plan: PLAN_DETAILS.pro.name })}</h4>
               <p className="text-sm text-amber-800">
-                You have access to all features and unlimited usage. Thank you for being a Pro member!
+                {fillText(t.onPlanHint, { plan: PLAN_DETAILS.pro.name })}
               </p>
             </div>
           </div>
@@ -442,7 +532,9 @@ interface PlanCardProps {
 }
 
 function PlanCard({ planType, selected, onSelect, processing, popular, formatAmount }: PlanCardProps) {
+  const { t } = useAdminText(TEXT);
   const plan = PLAN_DETAILS[planType];
+  const hiddenCount = plan.features.length - VISIBLE_FEATURES;
 
   return (
     <div
@@ -456,7 +548,7 @@ function PlanCard({ planType, selected, onSelect, processing, popular, formatAmo
       {popular && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <span className="bg-amber-600 text-white px-3 py-1 text-xs font-semibold">
-            Most Popular
+            {t.mostPopular}
           </span>
         </div>
       )}
@@ -465,20 +557,20 @@ function PlanCard({ planType, selected, onSelect, processing, popular, formatAmo
         <h5 className="text-xl font-bold text-stone-900 mb-1">{plan.name}</h5>
         <div className="flex items-baseline">
           <span className="text-3xl font-bold text-stone-900">{formatAmount(plan.priceCents / 100)}</span>
-          <span className="text-stone-600 ml-1 text-sm">starting at / month</span>
+          <span className="text-stone-600 ml-1 text-sm">{t.perMonth}</span>
         </div>
       </div>
 
       <ul className="space-y-2 mb-4">
-        {plan.features.slice(0, 5).map((feature, index) => (
-          <li key={index} className="flex items-start text-sm">
+        {plan.features.slice(0, VISIBLE_FEATURES).map((feature) => (
+          <li key={feature} className="flex items-start text-sm">
             <Check className="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-            <span className="text-stone-700">{feature}</span>
+            <span className="text-stone-700">{t[feature]}</span>
           </li>
         ))}
-        {plan.features.length > 5 && (
+        {hiddenCount > 0 && (
           <li className="text-sm text-stone-500 ml-6">
-            + {plan.features.length - 5} more features
+            {fillText(hiddenCount === 1 ? t.moreFeature : t.moreFeatures, { count: hiddenCount })}
           </li>
         )}
       </ul>
