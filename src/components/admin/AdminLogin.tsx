@@ -4,16 +4,42 @@ import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
 import { BRAND_LOGO, BRAND_NAME } from '../../lib/brand';
+import { useAdminText } from '../../lib/adminLanguage';
+import type { Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  portal: string; email: string; password: string; passwordPlaceholder: string; signingIn: string; signIn: string;
+  noAccount: string; signUp: string; invalidCredentials: string; loginFailed: string;
+}> = {
+  en: {
+    portal: 'Admin Portal', email: 'Email', password: 'Password', passwordPlaceholder: 'Enter your password',
+    signingIn: 'Logging in...', signIn: 'Login', noAccount: "Don't have an account?", signUp: 'Sign up',
+    invalidCredentials: 'Invalid credentials', loginFailed: 'Login failed. Please try again.',
+  },
+  de: {
+    portal: 'Admin-Bereich', email: 'E-Mail', password: 'Passwort', passwordPlaceholder: 'Passwort eingeben',
+    signingIn: 'Anmeldung läuft…', signIn: 'Anmelden', noAccount: 'Noch kein Konto?', signUp: 'Registrieren',
+    invalidCredentials: 'E-Mail oder Passwort ist falsch', loginFailed: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
+  },
+  th: {
+    portal: 'ระบบผู้ดูแล', email: 'อีเมล', password: 'รหัสผ่าน', passwordPlaceholder: 'กรอกรหัสผ่าน',
+    signingIn: 'กำลังเข้าสู่ระบบ…', signIn: 'เข้าสู่ระบบ', noAccount: 'ยังไม่มีบัญชี?', signUp: 'สมัครใช้งาน',
+    invalidCredentials: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', loginFailed: 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง',
+  },
+};
+
+type LoginError = '' | 'invalidCredentials' | 'loginFailed';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
 }
 
 export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
+  const { t } = useAdminText(TEXT);
   const tenant = useTenant();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<LoginError>('');
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -59,10 +85,10 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       if (user) {
         onLoginSuccess();
       } else {
-        setError('Invalid credentials');
+        setError('invalidCredentials');
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError('loginFailed');
     } finally {
       setLoading(false);
     }
@@ -78,12 +104,12 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 {tenant.businessName || BRAND_NAME}
               </div>
             </div>
-            <p className="text-stone-600 text-sm">Admin Portal</p>
+            <p className="text-stone-600 text-sm">{t.portal}</p>
           </div>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm">
-              {error}
+              {t[error]}
             </div>
           )}
 
@@ -92,7 +118,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <label className="block text-sm font-medium text-stone-700 mb-2">
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4" />
-                  <span>Email</span>
+                  <span>{t.email}</span>
                 </div>
               </label>
               <input
@@ -109,7 +135,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <label className="block text-sm font-medium text-stone-700 mb-2">
                 <div className="flex items-center space-x-2">
                   <Lock className="w-4 h-4" />
-                  <span>Password</span>
+                  <span>{t.password}</span>
                 </div>
               </label>
               <input
@@ -117,7 +143,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800 transition-colors"
-                placeholder="Enter your password"
+                placeholder={t.passwordPlaceholder}
                 required
               />
             </div>
@@ -127,15 +153,15 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               disabled={loading}
               className="w-full px-8 py-4 bg-stone-800 text-white text-sm tracking-wide hover:bg-stone-700 transition-colors duration-200 disabled:bg-stone-400 disabled:cursor-not-allowed"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t.signingIn : t.signIn}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-stone-600">
-              Don't have an account?{' '}
+              {t.noAccount}{' '}
               <a href="/register" className="text-stone-900 font-semibold hover:underline">
-                Sign up
+                {t.signUp}
               </a>
             </p>
           </div>

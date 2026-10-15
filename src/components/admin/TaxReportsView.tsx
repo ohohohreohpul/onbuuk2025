@@ -17,6 +17,8 @@ import { adminAuth } from '../../lib/adminAuth';
 import { useCurrency } from '../../lib/currencyContext';
 import { toLocalDateString } from '../../lib/localDateTime';
 import BookingPaymentsReport from './bookings/BookingPaymentsReport';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
 
 interface CashEntry {
   id: string;
@@ -38,12 +40,148 @@ const SURFACE =
   'bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]';
 const ICON_TILE = 'w-10 h-10 rounded-xl bg-stone-900/[6%] flex items-center justify-center shrink-0';
 
-const VAT_RATES = [
-  { bps: 1900, label: '19% — Standard rate' },
-  { bps: 700, label: '7% — Reduced rate' },
-  { bps: 0, label: 'No VAT — Kleinunternehmer (§19 UStG)' },
+type TaxText = {
+  title: string; subtitle: string; addRecord: string; tabRecords: string; tabPayments: string; tabReports: string; tabImport: string;
+  grossPeriod: string; vatCollected: string; vatBreakdown: string; recordsBySource: string;
+  setupTitle: string; setupBefore: string; setupMiddle: string; setupAfter: string;
+  cashBookEntries: string; colDate: string; colDescription: string; colSource: string; colMethod: string; colNet: string; colVat: string;
+  colGross: string; noRecords: string; delete: string; confirmDelete: string;
+  euerTitle: string; euerSubtitle: string; generateSummary: string; euerHint: string;
+  datevTitle: string; datevSubtitle: string; downloadDatev: string; datevHint: string;
+  defaultsTitle: string; defaultsSubtitle: string; defaultVat: string; cashAccount: string; revenueAccounts: string;
+  rev19Title: string; rev7Title: string; revNoVatTitle: string; saveDefaults: string; defaultsSaved: string;
+  documentsTitle: string; documentsSubtitle: string; colFile: string; colType: string; colPeriod: string; colCreated: string;
+  noDocuments: string; typeDatev: string; typeEuer: string;
+  importTitle: string; importSubtitle: string; dropFile: string; dropHint: string; mappingTitle: string; detectedSource: string;
+  genericCsv: string; uploadToMap: string; fieldDate: string; fieldDescription: string; fieldAmount: string; fieldMethod: string;
+  column: string; importRowsOne: string; importRowsMany: string; clear: string; historyTitle: string; colImported: string; colWhen: string;
+  noImports: string; noRowsInFile: string; importFailed: string; importedRows: string;
+  addEntryTitle: string; addEntrySubtitle: string; amountGross: string; descriptionPlaceholder: string; paymentMethod: string; vat: string;
+  cancel: string; saveEntry: string;
+  vat19: string; vat7: string; vat0: string;
+  sourceManual: string; sourceBooking: string; sourceImport: string;
+  methodCash: string; methodCard: string; methodOnline: string; methodGiftCard: string; methodOther: string;
+};
+
+const TEXT: Translations<TaxText> = {
+  en: {
+    title: 'Tax & Reports', subtitle: 'Kassenbuch, EÜR summaries, DATEV exports, and platform imports', addRecord: 'Add record',
+    tabRecords: 'Records', tabPayments: 'Booking payments', tabReports: 'Reports & Documents', tabImport: 'Import',
+    grossPeriod: 'Gross turnover (period)', vatCollected: 'VAT collected (19%/7%)', vatBreakdown: '{vat19} at 19% · {vat7} at 7% · {net} net',
+    recordsBySource: '{count} records · by source',
+    setupTitle: 'One-time database setup required', setupBefore: 'Create the', setupMiddle: 'tables by running the migration in',
+    setupAfter: 'in your Supabase SQL editor, then reload this page.',
+    cashBookEntries: 'Kassenbuch entries', colDate: 'Date', colDescription: 'Description', colSource: 'Source', colMethod: 'Method',
+    colNet: 'Net', colVat: 'VAT', colGross: 'Gross', noRecords: 'No records in this period.', delete: 'Delete', confirmDelete: 'Delete this entry?',
+    euerTitle: 'EÜR-style summary', euerSubtitle: 'German income-surplus statement (printable / PDF)', generateSummary: 'Generate summary document',
+    euerHint: 'Covers the EÜR line structure your tax adviser maps in Anlage EÜR. VAT split and payment-method totals are included.',
+    datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'Semicolon CSV for the Steuerberater', downloadDatev: 'Download DATEV CSV',
+    datevHint: 'EXTF_ filename, semicolon-separated, decimal comma, ISO-8859-1-safe. Map accounts in your tax software.',
+    defaultsTitle: 'Tax defaults & account mapping', defaultsSubtitle: 'Defaults for new records and DATEV export', defaultVat: 'Default VAT rate',
+    cashAccount: 'Kasse (cash account)', revenueAccounts: 'Revenue accounts (19% / 7% / no VAT)', rev19Title: '19% revenue', rev7Title: '7% revenue',
+    revNoVatTitle: 'No VAT', saveDefaults: 'Save defaults', defaultsSaved: 'Tax defaults saved.',
+    documentsTitle: 'Generated documents', documentsSubtitle: 'History of summaries and exports', colFile: 'File', colType: 'Type', colPeriod: 'Period',
+    colCreated: 'Created', noDocuments: 'No documents yet.', typeDatev: 'DATEV export', typeEuer: 'EÜR summary',
+    importTitle: 'Import revenue', importSubtitle: 'Treatwell Pro, Planity Pro, or any platform CSV', dropFile: 'Drop a CSV here or click to browse',
+    dropHint: 'Treatwell "Sale Proceeds" and Planity monthly reports detected automatically', mappingTitle: 'Column mapping',
+    detectedSource: 'Detected source:', genericCsv: 'Generic CSV', uploadToMap: 'Upload a file to map columns.',
+    fieldDate: 'Date', fieldDescription: 'Description', fieldAmount: 'Amount', fieldMethod: 'Method', column: 'Column {number}',
+    importRowsOne: 'Import {count} row', importRowsMany: 'Import {count} rows', clear: 'Clear', historyTitle: 'Import history',
+    colImported: 'Imported', colWhen: 'When', noImports: 'No imports yet.', noRowsInFile: 'No rows detected in this file.',
+    importFailed: 'Import batch failed', importedRows: 'Imported {count} rows ({skipped} skipped).',
+    addEntryTitle: 'Add cash entry', addEntrySubtitle: 'Record a walk-in or cash sale.', amountGross: 'Amount (gross)',
+    descriptionPlaceholder: 'Cut & Style — cash customer', paymentMethod: 'Payment method', vat: 'VAT', cancel: 'Cancel', saveEntry: 'Save entry',
+    vat19: '19% — Standard rate', vat7: '7% — Reduced rate', vat0: 'No VAT — Kleinunternehmer (§19 UStG)',
+    sourceManual: 'Manual', sourceBooking: 'Zenno booking', sourceImport: 'Import',
+    methodCash: 'Cash', methodCard: 'Card', methodOnline: 'Online', methodGiftCard: 'Gift card', methodOther: 'Other',
+  },
+  de: {
+    title: 'Steuern & Berichte', subtitle: 'Kassenbuch, EÜR-Übersichten, DATEV-Exporte und Plattform-Importe', addRecord: 'Eintrag hinzufügen',
+    tabRecords: 'Einträge', tabPayments: 'Zahlungen aus Buchungen', tabReports: 'Berichte & Dokumente', tabImport: 'Importieren',
+    grossPeriod: 'Bruttoumsatz (Zeitraum)', vatCollected: 'Vereinnahmte MwSt. (19 %/7 %)', vatBreakdown: '{vat19} zu 19 % · {vat7} zu 7 % · {net} netto',
+    recordsBySource: '{count} Einträge · nach Quelle',
+    setupTitle: 'Einmalige Datenbank-Einrichtung erforderlich', setupBefore: 'Legen Sie die Tabellen', setupMiddle: 'an, indem Sie die Migration',
+    setupAfter: 'im Supabase-SQL-Editor ausführen, und laden Sie die Seite neu.',
+    cashBookEntries: 'Kassenbuch-Einträge', colDate: 'Datum', colDescription: 'Beschreibung', colSource: 'Quelle', colMethod: 'Zahlart',
+    colNet: 'Netto', colVat: 'MwSt.', colGross: 'Brutto', noRecords: 'Keine Einträge in diesem Zeitraum.', delete: 'Löschen', confirmDelete: 'Diesen Eintrag löschen?',
+    euerTitle: 'EÜR-Übersicht', euerSubtitle: 'Einnahmen-Überschuss-Aufstellung (druckbar / PDF)', generateSummary: 'Übersicht erstellen',
+    euerHint: 'Folgt der Zeilenstruktur, die Ihre Steuerberatung in die Anlage EÜR überträgt. MwSt.-Aufteilung und Summen je Zahlart sind enthalten.',
+    datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'Semikolon-CSV für die Steuerberatung', downloadDatev: 'DATEV-CSV herunterladen',
+    datevHint: 'EXTF_-Dateiname, Semikolon-getrennt, Dezimalkomma, ISO-8859-1-kompatibel. Konten in Ihrer Steuersoftware zuordnen.',
+    defaultsTitle: 'Steuer-Standards & Kontenzuordnung', defaultsSubtitle: 'Standards für neue Einträge und den DATEV-Export', defaultVat: 'Standard-MwSt.-Satz',
+    cashAccount: 'Kasse (Kassenkonto)', revenueAccounts: 'Erlöskonten (19 % / 7 % / ohne MwSt.)', rev19Title: 'Erlöse 19 %', rev7Title: 'Erlöse 7 %',
+    revNoVatTitle: 'Ohne MwSt.', saveDefaults: 'Standards speichern', defaultsSaved: 'Steuer-Standards gespeichert.',
+    documentsTitle: 'Erstellte Dokumente', documentsSubtitle: 'Verlauf der Übersichten und Exporte', colFile: 'Datei', colType: 'Art', colPeriod: 'Zeitraum',
+    colCreated: 'Erstellt', noDocuments: 'Noch keine Dokumente.', typeDatev: 'DATEV-Export', typeEuer: 'EÜR-Übersicht',
+    importTitle: 'Umsätze importieren', importSubtitle: 'Treatwell Pro, Planity Pro oder CSV einer beliebigen Plattform', dropFile: 'CSV hierher ziehen oder klicken zum Auswählen',
+    dropHint: 'Treatwell „Sale Proceeds“ und Planity-Monatsberichte werden automatisch erkannt', mappingTitle: 'Spaltenzuordnung',
+    detectedSource: 'Erkannte Quelle:', genericCsv: 'Allgemeine CSV', uploadToMap: 'Datei hochladen, um Spalten zuzuordnen.',
+    fieldDate: 'Datum', fieldDescription: 'Beschreibung', fieldAmount: 'Betrag', fieldMethod: 'Zahlart', column: 'Spalte {number}',
+    importRowsOne: '{count} Zeile importieren', importRowsMany: '{count} Zeilen importieren', clear: 'Leeren', historyTitle: 'Import-Verlauf',
+    colImported: 'Importiert', colWhen: 'Wann', noImports: 'Noch keine Importe.', noRowsInFile: 'In dieser Datei wurden keine Zeilen erkannt.',
+    importFailed: 'Import fehlgeschlagen', importedRows: '{count} Zeilen importiert ({skipped} übersprungen).',
+    addEntryTitle: 'Kasseneintrag hinzufügen', addEntrySubtitle: 'Laufkundschaft oder Barverkauf erfassen.', amountGross: 'Betrag (brutto)',
+    descriptionPlaceholder: 'Schnitt & Styling — Barzahler', paymentMethod: 'Zahlart', vat: 'MwSt.', cancel: 'Abbrechen', saveEntry: 'Eintrag speichern',
+    vat19: '19 % — Regelsatz', vat7: '7 % — ermäßigter Satz', vat0: 'Ohne MwSt. — Kleinunternehmer (§19 UStG)',
+    sourceManual: 'Manuell', sourceBooking: 'Zenno-Buchung', sourceImport: 'Import',
+    methodCash: 'Bar', methodCard: 'Karte', methodOnline: 'Online', methodGiftCard: 'Gutschein', methodOther: 'Sonstiges',
+  },
+  th: {
+    title: 'ภาษีและรายงาน', subtitle: 'สมุดเงินสด สรุป EÜR ส่งออก DATEV และนำเข้าจากแพลตฟอร์ม', addRecord: 'เพิ่มรายการ',
+    tabRecords: 'รายการ', tabPayments: 'การชำระเงินจากการจอง', tabReports: 'รายงานและเอกสาร', tabImport: 'นำเข้า',
+    grossPeriod: 'รายได้รวมภาษี (ช่วงเวลา)', vatCollected: 'ภาษีมูลค่าเพิ่มที่เก็บได้ (19%/7%)', vatBreakdown: '{vat19} ที่ 19% · {vat7} ที่ 7% · ก่อนภาษี {net}',
+    recordsBySource: '{count} รายการ · ตามแหล่งที่มา',
+    setupTitle: 'ต้องตั้งค่าฐานข้อมูลครั้งแรก', setupBefore: 'สร้างตาราง', setupMiddle: 'โดยรัน migration ใน',
+    setupAfter: 'ที่ SQL editor ของ Supabase แล้วโหลดหน้านี้ใหม่',
+    cashBookEntries: 'รายการสมุดเงินสด', colDate: 'วันที่', colDescription: 'รายละเอียด', colSource: 'แหล่งที่มา', colMethod: 'วิธีชำระ',
+    colNet: 'ยอดก่อนภาษี', colVat: 'ภาษีมูลค่าเพิ่ม', colGross: 'ยอดรวมภาษี', noRecords: 'ไม่มีรายการในช่วงเวลานี้', delete: 'ลบ', confirmDelete: 'ลบรายการนี้?',
+    euerTitle: 'สรุปแบบ EÜR', euerSubtitle: 'งบรายรับ-รายจ่ายตามแบบเยอรมัน (พิมพ์ได้ / PDF)', generateSummary: 'สร้างเอกสารสรุป',
+    euerHint: 'ตรงกับโครงสร้างบรรทัดที่ที่ปรึกษาภาษีใช้กรอก Anlage EÜR มีการแยกภาษีมูลค่าเพิ่มและยอดรวมตามวิธีชำระ',
+    datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'CSV คั่นด้วยเซมิโคลอนสำหรับที่ปรึกษาภาษี', downloadDatev: 'ดาวน์โหลด DATEV CSV',
+    datevHint: 'ชื่อไฟล์ EXTF_ คั่นด้วยเซมิโคลอน ทศนิยมแบบจุลภาค รองรับ ISO-8859-1 กำหนดบัญชีในโปรแกรมภาษีของคุณ',
+    defaultsTitle: 'ค่าเริ่มต้นภาษีและการจับคู่บัญชี', defaultsSubtitle: 'ค่าเริ่มต้นสำหรับรายการใหม่และการส่งออก DATEV', defaultVat: 'อัตราภาษีมูลค่าเพิ่มเริ่มต้น',
+    cashAccount: 'Kasse (บัญชีเงินสด)', revenueAccounts: 'บัญชีรายได้ (19% / 7% / ไม่มีภาษี)', rev19Title: 'รายได้ 19%', rev7Title: 'รายได้ 7%',
+    revNoVatTitle: 'ไม่มีภาษีมูลค่าเพิ่ม', saveDefaults: 'บันทึกค่าเริ่มต้น', defaultsSaved: 'บันทึกค่าเริ่มต้นภาษีแล้ว',
+    documentsTitle: 'เอกสารที่สร้างแล้ว', documentsSubtitle: 'ประวัติสรุปและการส่งออก', colFile: 'ไฟล์', colType: 'ประเภท', colPeriod: 'ช่วงเวลา',
+    colCreated: 'สร้างเมื่อ', noDocuments: 'ยังไม่มีเอกสาร', typeDatev: 'ส่งออก DATEV', typeEuer: 'สรุป EÜR',
+    importTitle: 'นำเข้ารายได้', importSubtitle: 'Treatwell Pro, Planity Pro หรือ CSV จากแพลตฟอร์มใดก็ได้', dropFile: 'ลากไฟล์ CSV มาวางหรือคลิกเพื่อเลือก',
+    dropHint: 'ตรวจจับรายงาน "Sale Proceeds" ของ Treatwell และรายงานรายเดือนของ Planity อัตโนมัติ', mappingTitle: 'จับคู่คอลัมน์',
+    detectedSource: 'แหล่งที่ตรวจพบ:', genericCsv: 'CSV ทั่วไป', uploadToMap: 'อัปโหลดไฟล์เพื่อจับคู่คอลัมน์',
+    fieldDate: 'วันที่', fieldDescription: 'รายละเอียด', fieldAmount: 'จำนวนเงิน', fieldMethod: 'วิธีชำระ', column: 'คอลัมน์ {number}',
+    importRowsOne: 'นำเข้า {count} แถว', importRowsMany: 'นำเข้า {count} แถว', clear: 'ล้าง', historyTitle: 'ประวัติการนำเข้า',
+    colImported: 'นำเข้าแล้ว', colWhen: 'เมื่อ', noImports: 'ยังไม่มีการนำเข้า', noRowsInFile: 'ไม่พบข้อมูลในไฟล์นี้',
+    importFailed: 'นำเข้าไม่สำเร็จ', importedRows: 'นำเข้าแล้ว {count} แถว (ข้าม {skipped})',
+    addEntryTitle: 'เพิ่มรายการเงินสด', addEntrySubtitle: 'บันทึกลูกค้า walk-in หรือการขายเงินสด', amountGross: 'จำนวนเงิน (รวมภาษี)',
+    descriptionPlaceholder: 'ตัดและจัดทรง — ลูกค้าจ่ายเงินสด', paymentMethod: 'วิธีชำระ', vat: 'ภาษีมูลค่าเพิ่ม', cancel: 'ยกเลิก', saveEntry: 'บันทึกรายการ',
+    vat19: '19% — อัตรามาตรฐาน', vat7: '7% — อัตราลดหย่อน', vat0: 'ไม่มีภาษีมูลค่าเพิ่ม — Kleinunternehmer (§19 UStG)',
+    sourceManual: 'บันทึกเอง', sourceBooking: 'การจอง Zenno', sourceImport: 'นำเข้า',
+    methodCash: 'เงินสด', methodCard: 'บัตร', methodOnline: 'ออนไลน์', methodGiftCard: 'บัตรของขวัญ', methodOther: 'อื่นๆ',
+  },
+};
+
+/** Screen labels; the tax-advisor documents keep using the fixed SOURCE_LABELS / METHOD_LABELS below. */
+const VAT_RATE_KEYS: { bps: number; key: 'vat19' | 'vat7' | 'vat0' }[] = [
+  { bps: 1900, key: 'vat19' },
+  { bps: 700, key: 'vat7' },
+  { bps: 0, key: 'vat0' },
 ];
 
+const SCREEN_SOURCE_KEYS: Record<string, keyof TaxText> = { manual: 'sourceManual', booking: 'sourceBooking', import: 'sourceImport' };
+
+const SCREEN_METHOD_KEYS: { value: string; key: keyof TaxText }[] = [
+  { value: 'cash', key: 'methodCash' },
+  { value: 'card', key: 'methodCard' },
+  { value: 'online', key: 'methodOnline' },
+  { value: 'gift_card', key: 'methodGiftCard' },
+  { value: 'other', key: 'methodOther' },
+];
+
+const MAPPING_FIELD_KEYS = { date: 'fieldDate', description: 'fieldDescription', amount: 'fieldAmount', method: 'fieldMethod' } as const;
+
+/** Import/save status: a text key built at render, or a server message shown as-is. */
+type ImportMessage = { key: 'noRowsInFile' | 'importFailed' | 'defaultsSaved' | 'importedRows'; values?: Record<string, number> } | { text: string };
+
+// Fixed English labels used inside the generated EÜR document (kept unchanged).
 const SOURCE_LABELS: Record<string, string> = {
   manual: 'Manual',
   booking: 'Zenno booking',
@@ -118,6 +256,7 @@ export default function TaxReportsView() {
   const adminUser = adminAuth.getCurrentUser();
   const businessId = adminUser?.business_id;
   const { formatPrice, currency } = useCurrency();
+  const { t, locale } = useAdminText(TEXT);
   const [tab, setTab] = useState<Tab>('records');
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [imports, setImports] = useState<any[]>([]);
@@ -136,14 +275,14 @@ export default function TaxReportsView() {
   const [importSource, setImportSource] = useState<'treatwell' | 'planity' | 'generic'>('generic');
   const [mapping, setMapping] = useState({ date: 0, description: 1, amount: 2, method: 3 });
   const [importing, setImporting] = useState(false);
-  const [importMessage, setImportMessage] = useState('');
+  const [importMessage, setImportMessage] = useState<ImportMessage | null>(null);
   const [tablesMissing, setTablesMissing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const t = new Date();
-    const start = new Date(t.getFullYear(), t.getMonth(), 1);
-    const end = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     setPeriodStart(toLocalDateString(start));
     setPeriodEnd(toLocalDateString(end));
     setEntryForm(f => ({ ...f, date: toLocalDateString(new Date()) }));
@@ -228,7 +367,7 @@ export default function TaxReportsView() {
   };
 
   const deleteEntry = async (id: string) => {
-    if (!confirm('Delete this entry?')) return;
+    if (!confirm(t.confirmDelete)) return;
     await supabase.from('cash_entries').delete().eq('id', id);
     loadAll();
   };
@@ -374,10 +513,10 @@ export default function TaxReportsView() {
 
   // ---- Import flow ----
   const handleFile = async (file: File) => {
-    setImportMessage('');
+    setImportMessage(null);
     const text = await file.text();
     const rows = parseCSV(text);
-    if (rows.length < 2) { setImportMessage('No rows detected in this file.'); return; }
+    if (rows.length < 2) { setImportMessage({ key: 'noRowsInFile' }); return; }
     setImportRows(rows);
     setImportFileName(file.name);
     // Source sniff: Treatwell Pro exports typically have "Belegnr"/"Leistung"/"Betrag" German headers; Planity has "Prestation"/"Montant"
@@ -411,7 +550,7 @@ export default function TaxReportsView() {
       imported_by: adminUser?.id || null,
       status: 'completed',
     }).select().single();
-    if (bErr || !batch) { setImportMessage(bErr?.message || 'Import batch failed'); setImporting(false); return; }
+    if (bErr || !batch) { setImportMessage(bErr?.message ? { text: bErr.message } : { key: 'importFailed' }); setImporting(false); return; }
 
     const toDate = (v: string): string => {
       const s = v.trim();
@@ -446,9 +585,9 @@ export default function TaxReportsView() {
     }).filter(r => r.gross_cents !== 0);
 
     const { error: insErr } = await supabase.from('cash_entries').insert(inserts);
-    if (insErr) { setImportMessage(insErr.message); setImporting(false); return; }
+    if (insErr) { setImportMessage({ text: insErr.message }); setImporting(false); return; }
     await supabase.from('revenue_imports').update({ imported_count: inserts.length, skipped_count: dataRows.length - inserts.length }).eq('id', batch.id);
-    setImportMessage(`Imported ${inserts.length} rows (${dataRows.length - inserts.length} skipped).`);
+    setImportMessage({ key: 'importedRows', values: { count: inserts.length, skipped: dataRows.length - inserts.length } });
     setImporting(false);
     setImportRows([]);
     setTab('records');
@@ -465,6 +604,24 @@ export default function TaxReportsView() {
       {children}
     </button>
   );
+
+  const messageText = importMessage
+    ? ('key' in importMessage ? fillText(t[importMessage.key], importMessage.values ?? {}) : importMessage.text)
+    : '';
+  const sourceLabel = (source: string) => {
+    const key = SCREEN_SOURCE_KEYS[source];
+    return key ? t[key] : SOURCE_LABELS[source] || source;
+  };
+  const methodLabel = (method: string) => {
+    const option = SCREEN_METHOD_KEYS.find((item) => item.value === method);
+    return option ? t[option.key] : method;
+  };
+  const formatDay = (isoDate: string) => {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    if (!year || !month || !day) return isoDate;
+    return new Date(year, month - 1, day).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+  const vatOptions = VAT_RATE_KEYS.map((rate) => <option key={rate.bps} value={rate.bps}>{t[rate.key]}</option>);
 
   if (loading) {
     return (
@@ -485,22 +642,22 @@ export default function TaxReportsView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">Tax & Reports</h1>
-          <p className="text-sm text-stone-500">Kassenbuch, EÜR summaries, DATEV exports, and platform imports</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">{t.title}</h1>
+          <p className="text-sm text-stone-500">{t.subtitle}</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 bg-[#1A1714] hover:bg-[#2E2926] text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-[0_2px_12px_rgba(26,23,20,0.16)]"
         >
-          <Plus className="w-4 h-4" /> Add record
+          <Plus className="w-4 h-4" /> {t.addRecord}
         </button>
       </div>
 
       <div className="flex gap-2 border-b border-stone-200 pb-3">
-        <TabButton id="records">Records</TabButton>
-        <TabButton id="payments">Booking payments</TabButton>
-        <TabButton id="reports">Reports & Documents</TabButton>
-        <TabButton id="import">Import</TabButton>
+        <TabButton id="records">{t.tabRecords}</TabButton>
+        <TabButton id="payments">{t.tabPayments}</TabButton>
+        <TabButton id="reports">{t.tabReports}</TabButton>
+        <TabButton id="import">{t.tabImport}</TabButton>
       </div>
 
       {tab === 'payments' && <BookingPaymentsReport />}
@@ -512,22 +669,22 @@ export default function TaxReportsView() {
               <div className="flex items-center justify-between mb-3">
                 <div className={ICON_TILE}><Wallet className="w-4.5 h-4.5 h-[18px] w-[18px] text-stone-700" strokeWidth={1.75} /></div>
               </div>
-              <p className="text-[13px] font-medium text-stone-500 mb-1">Gross turnover (period)</p>
+              <p className="text-[13px] font-medium text-stone-500 mb-1">{t.grossPeriod}</p>
               <p className="text-2xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{formatPrice(totals.gross)}</p>
             </div>
             <div className={`${SURFACE} p-5`}>
               <div className={ICON_TILE}><Percent className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
-              <p className="text-[13px] font-medium text-stone-500 mb-1 mt-3">VAT collected (19%/7%)</p>
+              <p className="text-[13px] font-medium text-stone-500 mb-1 mt-3">{t.vatCollected}</p>
               <p className="text-2xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{formatPrice(totals.vat)}</p>
-              <p className="text-xs text-stone-400 mt-1">{formatPrice(totals.vat19)} at 19% · {formatPrice(totals.vat7)} at 7% · {formatPrice(totals.net)} net</p>
+              <p className="text-xs text-stone-400 mt-1">{fillText(t.vatBreakdown, { vat19: formatPrice(totals.vat19), vat7: formatPrice(totals.vat7), net: formatPrice(totals.net) })}</p>
             </div>
             <div className={`${SURFACE} p-5`}>
               <div className={ICON_TILE}><Receipt className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
-              <p className="text-[13px] font-medium text-stone-500 mb-1 mt-3">{periodEntries.length} records · by source</p>
+              <p className="text-[13px] font-medium text-stone-500 mb-1 mt-3">{fillText(t.recordsBySource, { count: periodEntries.length })}</p>
               <div className="text-xs text-stone-500 space-y-1 mt-1">
                 {(['manual','booking','treatwell','planity','import'] as const).map(src => {
                   const n = periodEntries.filter(e => e.source === src).length;
-                  return n > 0 ? <div key={src} className="flex justify-between"><span>{SOURCE_LABELS[src]}</span><span className="tabular-nums text-stone-700 font-medium">{n}</span></div> : null;
+                  return n > 0 ? <div key={src} className="flex justify-between"><span>{sourceLabel(src)}</span><span className="tabular-nums text-stone-700 font-medium">{n}</span></div> : null;
                 })}
               </div>
             </div>
@@ -538,15 +695,15 @@ export default function TaxReportsView() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-900">One-time database setup required</p>
-              <p className="text-xs text-amber-700 mt-1">Create the <code>cash_entries</code> / <code>revenue_imports</code> / <code>tax_documents</code> tables by running the migration in <code>supabase/migrations/20260922090020_tax_and_reporting.sql</code> in your Supabase SQL editor, then reload this page.</p>
+              <p className="text-sm font-semibold text-amber-900">{t.setupTitle}</p>
+              <p className="text-xs text-amber-700 mt-1">{t.setupBefore} <code>cash_entries</code> / <code>revenue_imports</code> / <code>tax_documents</code> {t.setupMiddle} <code>supabase/migrations/20260922090020_tax_and_reporting.sql</code> {t.setupAfter}</p>
             </div>
           </div>
         </div>
       )}
       <div className={SURFACE}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <h3 className="text-[15px] font-semibold text-[#1A1714]">Kassenbuch entries</h3>
+              <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.cashBookEntries}</h3>
               <input type="month" value={(periodEnd || '').slice(0, 7)} onChange={e => {
                 const [y, m] = e.target.value.split('-').map(Number);
                 const start = new Date(y, m - 1, 1); const end = new Date(y, m, 0);
@@ -557,32 +714,32 @@ export default function TaxReportsView() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-y border-stone-200 bg-stone-50/50">
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Date</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Description</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Source</th>
-                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Method</th>
-                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Net</th>
-                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">VAT</th>
-                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Gross</th>
+                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colDate}</th>
+                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colDescription}</th>
+                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colSource}</th>
+                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colMethod}</th>
+                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colNet}</th>
+                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colVat}</th>
+                    <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colGross}</th>
                     <th className="px-5 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {periodEntries.length === 0 && (
-                    <tr><td colSpan={8} className="text-center py-10 text-stone-400">No records in this period.</td></tr>
+                    <tr><td colSpan={8} className="text-center py-10 text-stone-400">{t.noRecords}</td></tr>
                   )}
                   {periodEntries.map(e => (
                     <tr key={e.id} className="border-b border-stone-100 hover:bg-stone-50/60">
-                      <td className="px-5 py-2.5 text-stone-600 tabular-nums">{e.entry_date}</td>
+                      <td className="px-5 py-2.5 text-stone-600 tabular-nums">{formatDay(e.entry_date)}</td>
                       <td className="px-5 py-2.5 text-stone-800">{e.description}</td>
-                      <td className="px-5 py-2.5 text-stone-500">{SOURCE_LABELS[e.source] || e.source}</td>
-                      <td className="px-5 py-2.5 text-stone-500">{METHOD_LABELS[e.payment_method] || e.payment_method}</td>
+                      <td className="px-5 py-2.5 text-stone-500">{sourceLabel(e.source)}</td>
+                      <td className="px-5 py-2.5 text-stone-500">{methodLabel(e.payment_method)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums text-stone-600">{formatPrice(e.net_cents)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums text-stone-500">{formatPrice(e.gross_cents - e.net_cents)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums font-medium text-stone-800">{formatPrice(e.gross_cents)}</td>
                       <td className="px-3 py-2.5 text-right">
                         {e.source === 'manual' && (
-                          <button onClick={() => deleteEntry(e.id)} className="text-xs text-red-500 hover:text-red-700">Delete</button>
+                          <button onClick={() => deleteEntry(e.id)} className="text-xs text-red-500 hover:text-red-700">{t.delete}</button>
                         )}
                       </td>
                     </tr>
@@ -601,8 +758,8 @@ export default function TaxReportsView() {
               <div className="flex items-center gap-3 mb-1">
                 <div className={ICON_TILE}><FileText className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[#1A1714]">EÜR-style summary</h3>
-                  <p className="text-xs text-stone-500">German income-surplus statement (printable / PDF)</p>
+                  <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.euerTitle}</h3>
+                  <p className="text-xs text-stone-500">{t.euerSubtitle}</p>
                 </div>
               </div>
               <div className="flex gap-2 mt-4 mb-3">
@@ -613,9 +770,9 @@ export default function TaxReportsView() {
                 }} className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 flex-1" />
               </div>
               <button onClick={openSummaryDocument} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1A1714] text-white hover:bg-[#2E2926]">
-                <FileText className="w-4 h-4" /> Generate summary document
+                <FileText className="w-4 h-4" /> {t.generateSummary}
               </button>
-              <p className="text-xs text-stone-400 mt-2">Covers the EÜR line structure your tax adviser maps in Anlage EÜR. VAT split and payment-method totals are included.</p>
+              <p className="text-xs text-stone-400 mt-2">{t.euerHint}</p>
             </div>
           </div>
 
@@ -624,14 +781,14 @@ export default function TaxReportsView() {
               <div className="flex items-center gap-3 mb-1">
                 <div className={ICON_TILE}><Building2 className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[#1A1714]">DATEV Buchungsstapel</h3>
-                  <p className="text-xs text-stone-500">Semicolon CSV for the Steuerberater</p>
+                  <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.datevTitle}</h3>
+                  <p className="text-xs text-stone-500">{t.datevSubtitle}</p>
                 </div>
               </div>
               <button onClick={exportDatevCsv} className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-stone-200 bg-white hover:bg-stone-50 text-stone-700">
-                <Download className="w-4 h-4" /> Download DATEV CSV
+                <Download className="w-4 h-4" /> {t.downloadDatev}
               </button>
-              <p className="text-xs text-stone-400 mt-2">EXTF_ filename, semicolon-separated, decimal comma, ISO-8859-1-safe. Map accounts in your tax software.</p>
+              <p className="text-xs text-stone-400 mt-2">{t.datevHint}</p>
             </div>
           </div>
 
@@ -640,27 +797,27 @@ export default function TaxReportsView() {
               <div className="flex items-center gap-3 mb-4">
                 <div className={ICON_TILE}><Percent className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[#1A1714]">Tax defaults & account mapping</h3>
-                  <p className="text-xs text-stone-500">Defaults for new records and DATEV export</p>
+                  <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.defaultsTitle}</h3>
+                  <p className="text-xs text-stone-500">{t.defaultsSubtitle}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Default VAT rate</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.defaultVat}</label>
                   <select value={defaultVatBps} onChange={e => setDefaultVatBps(Number(e.target.value))} className="w-full border border-stone-200 rounded-lg px-3 py-2">
-                    {VAT_RATES.map(r => <option key={r.bps} value={r.bps}>{r.label}</option>)}
+                    {vatOptions}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Kasse (cash account)</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.cashAccount}</label>
                   <input value={datevMap.konto} onChange={e => setDatevMap({ ...datevMap, konto: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2 tabular-nums" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Revenue accounts (19% / 7% / no VAT)</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.revenueAccounts}</label>
                   <div className="grid grid-cols-3 gap-1.5">
-                    <input value={datevMap.rev19} onChange={e => setDatevMap({ ...datevMap, rev19: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title="19% revenue"/>
-                    <input value={datevMap.rev7} onChange={e => setDatevMap({ ...datevMap, rev7: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title="7% revenue"/>
-                    <input value={datevMap.revnovat} onChange={e => setDatevMap({ ...datevMap, revnovat: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title="No VAT"/>
+                    <input value={datevMap.rev19} onChange={e => setDatevMap({ ...datevMap, rev19: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title={t.rev19Title}/>
+                    <input value={datevMap.rev7} onChange={e => setDatevMap({ ...datevMap, rev7: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title={t.rev7Title}/>
+                    <input value={datevMap.revnovat} onChange={e => setDatevMap({ ...datevMap, revnovat: e.target.value })} className="w-full border border-stone-200 rounded-lg px-2 py-2 tabular-nums" title={t.revNoVatTitle}/>
                   </div>
                 </div>
               </div>
@@ -682,43 +839,43 @@ export default function TaxReportsView() {
                       { onConflict: 'business_id,key' }
                     );
                     if (!error) {
-                      setImportMessage('Tax defaults saved.');
-                      setTimeout(() => setImportMessage(''), 2500);
+                      setImportMessage({ key: 'defaultsSaved' });
+                      setTimeout(() => setImportMessage(null), 2500);
                     }
                   }}
                   className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1A1714] text-white hover:bg-[#2E2926]"
                 >
-                  Save defaults
+                  {t.saveDefaults}
                 </button>
-                {importMessage && <p className="text-xs text-emerald-600">{importMessage}</p>}
+                {importMessage && <p className="text-xs text-emerald-600">{messageText}</p>}
               </div>
             </div>
           </div>
 
           <div className={`${SURFACE} lg:col-span-2`}>
             <div className="px-5 pt-5 pb-3">
-              <h3 className="text-[15px] font-semibold text-[#1A1714]">Generated documents</h3>
-              <p className="text-xs text-stone-500">History of summaries and exports</p>
+              <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.documentsTitle}</h3>
+              <p className="text-xs text-stone-500">{t.documentsSubtitle}</p>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-stone-200 bg-stone-50/50">
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">File</th>
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Type</th>
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Period</th>
-                  <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Gross</th>
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Created</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colFile}</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colType}</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colPeriod}</th>
+                  <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colGross}</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colCreated}</th>
                 </tr>
               </thead>
               <tbody>
-                {documents.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-stone-400">No documents yet.</td></tr>}
+                {documents.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-stone-400">{t.noDocuments}</td></tr>}
                 {documents.map(d => (
                   <tr key={d.id} className="border-b border-stone-100">
                     <td className="px-5 py-2.5 text-stone-800">{d.file_name}</td>
-                    <td className="px-5 py-2.5 text-stone-500">{d.document_type === 'datev_export' ? 'DATEV export' : 'EÜR summary'}</td>
-                    <td className="px-5 py-2.5 text-stone-500 tabular-nums">{d.period_start} – {d.period_end}</td>
+                    <td className="px-5 py-2.5 text-stone-500">{d.document_type === 'datev_export' ? t.typeDatev : t.typeEuer}</td>
+                    <td className="px-5 py-2.5 text-stone-500 tabular-nums">{formatDay(d.period_start)} – {formatDay(d.period_end)}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums text-stone-800">{formatPrice(d.totals?.gross ?? 0)}</td>
-                    <td className="px-5 py-2.5 text-stone-500">{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-2.5 text-stone-500">{new Date(d.created_at).toLocaleDateString(locale)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -734,8 +891,8 @@ export default function TaxReportsView() {
               <div className="flex items-center gap-3 mb-4">
                 <div className={ICON_TILE}><Upload className="w-[18px] h-[18px] text-stone-700" strokeWidth={1.75} /></div>
                 <div>
-                  <h3 className="text-[15px] font-semibold text-[#1A1714]">Import revenue</h3>
-                  <p className="text-xs text-stone-500">Treatwell Pro, Planity Pro, or any platform CSV</p>
+                  <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.importTitle}</h3>
+                  <p className="text-xs text-stone-500">{t.importSubtitle}</p>
                 </div>
               </div>
               <input
@@ -750,12 +907,12 @@ export default function TaxReportsView() {
                 className="w-full border-2 border-dashed border-stone-300 rounded-2xl p-8 text-center hover:border-stone-400 hover:bg-stone-50 transition-colors"
               >
                 <Upload className="w-6 h-6 text-stone-400 mx-auto mb-2" />
-                <p className="text-sm text-stone-700 font-medium">Drop a CSV here or click to browse</p>
-                <p className="text-xs text-stone-400 mt-1">Treatwell "Sale Proceeds" and Planity monthly reports detected automatically</p>
+                <p className="text-sm text-stone-700 font-medium">{t.dropFile}</p>
+                <p className="text-xs text-stone-400 mt-1">{t.dropHint}</p>
               </button>
               {importMessage && (
                 <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800 flex items-center gap-2">
-                  <Check className="w-4 h-4" /> {importMessage}
+                  <Check className="w-4 h-4" /> {messageText}
                 </div>
               )}
             </div>
@@ -763,30 +920,30 @@ export default function TaxReportsView() {
 
           <div className={SURFACE}>
             <div className="p-5">
-              <h3 className="text-[15px] font-semibold text-[#1A1714] mb-1">Column mapping</h3>
-              <p className="text-xs text-stone-500 mb-4">Detected source: <span className="font-medium text-stone-700">{importSource === 'treatwell' ? 'Treatwell Pro' : importSource === 'planity' ? 'Planity Pro' : 'Generic CSV'}</span></p>
+              <h3 className="text-[15px] font-semibold text-[#1A1714] mb-1">{t.mappingTitle}</h3>
+              <p className="text-xs text-stone-500 mb-4">{t.detectedSource} <span className="font-medium text-stone-700">{importSource === 'treatwell' ? 'Treatwell Pro' : importSource === 'planity' ? 'Planity Pro' : t.genericCsv}</span></p>
               {importRows.length === 0 ? (
-                <p className="text-sm text-stone-400 py-8 text-center">Upload a file to map columns.</p>
+                <p className="text-sm text-stone-400 py-8 text-center">{t.uploadToMap}</p>
               ) : (
                 <div className="space-y-3 text-sm">
                   {(['date', 'description', 'amount', 'method'] as const).map(key => (
                     <div key={key} className="flex items-center gap-3">
-                      <label className="w-28 text-stone-600 capitalize">{key}</label>
+                      <label className="w-28 text-stone-600">{t[MAPPING_FIELD_KEYS[key]]}</label>
                       <select
                         value={mapping[key]}
                         onChange={e => setMapping({ ...mapping, [key]: Number(e.target.value) })}
                         className="flex-1 border border-stone-200 rounded-lg px-2 py-1.5"
                       >
-                        {importRows[0].map((h, i) => <option key={i} value={i}>{h || `Column ${i + 1}`} {i === mapping[key] ? '✓' : ''}</option>)}
+                        {importRows[0].map((h, i) => <option key={i} value={i}>{h || fillText(t.column, { number: i + 1 })} {i === mapping[key] ? '✓' : ''}</option>)}
                       </select>
                     </div>
                   ))}
                   <div className="pt-2 flex gap-2">
                     <button onClick={commitImport} disabled={importing} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1A1714] text-white hover:bg-[#2E2926] disabled:opacity-50">
                       {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      Import {importRows.length - 1} rows
+                      {fillText(importRows.length - 1 === 1 ? t.importRowsOne : t.importRowsMany, { count: importRows.length - 1 })}
                     </button>
-                    <button onClick={() => setImportRows([])} className="px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-100">Clear</button>
+                    <button onClick={() => setImportRows([])} className="px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-100">{t.clear}</button>
                   </div>
                   <div className="mt-2 max-h-56 overflow-y-auto border border-stone-200 rounded-xl">
                     <table className="w-full text-xs">
@@ -803,25 +960,25 @@ export default function TaxReportsView() {
 
           <div className={`${SURFACE} lg:col-span-2`}>
             <div className="px-5 pt-5 pb-3">
-              <h3 className="text-[15px] font-semibold text-[#1A1714]">Import history</h3>
+              <h3 className="text-[15px] font-semibold text-[#1A1714]">{t.historyTitle}</h3>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-stone-200 bg-stone-50/50">
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">File</th>
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Source</th>
-                  <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">Imported</th>
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">When</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colFile}</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colSource}</th>
+                  <th className="text-right px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colImported}</th>
+                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-stone-500 uppercase tracking-wider">{t.colWhen}</th>
                 </tr>
               </thead>
               <tbody>
-                {imports.length === 0 && <tr><td colSpan={4} className="text-center py-8 text-stone-400">No imports yet.</td></tr>}
+                {imports.length === 0 && <tr><td colSpan={4} className="text-center py-8 text-stone-400">{t.noImports}</td></tr>}
                 {imports.map(imp => (
                   <tr key={imp.id} className="border-b border-stone-100">
                     <td className="px-5 py-2.5 text-stone-800">{imp.filename}</td>
-                    <td className="px-5 py-2.5 text-stone-500 capitalize">{imp.source}</td>
+                    <td className="px-5 py-2.5 text-stone-500 capitalize">{imp.source === 'generic' ? t.genericCsv : imp.source}</td>
                     <td className="px-5 py-2.5 text-right tabular-nums text-stone-800">{imp.imported_count}/{imp.row_count}</td>
-                    <td className="px-5 py-2.5 text-stone-500">{new Date(imp.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-2.5 text-stone-500">{new Date(imp.created_at).toLocaleDateString(locale)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -833,46 +990,42 @@ export default function TaxReportsView() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={() => setShowAddModal(false)}>
           <div className="bg-white/95 backdrop-blur-xl border border-stone-200/80 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">Add cash entry</h2>
-            <p className="text-xs text-stone-500 mb-4">Record a walk-in or cash sale.</p>
+            <h2 className="text-lg font-semibold tracking-tight text-[#1A1714] mb-1">{t.addEntryTitle}</h2>
+            <p className="text-xs text-stone-500 mb-4">{t.addEntrySubtitle}</p>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Date</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.colDate}</label>
                   <input type="date" value={entryForm.date} onChange={e => setEntryForm({ ...entryForm, date: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Amount (gross)</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.amountGross}</label>
                   <input value={entryForm.gross} onChange={e => setEntryForm({ ...entryForm, gross: e.target.value })} placeholder="65,00" className="w-full border border-stone-200 rounded-lg px-3 py-2 tabular-nums" inputMode="decimal" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Description</label>
-                <input value={entryForm.description} onChange={e => setEntryForm({ ...entryForm, description: e.target.value })} placeholder="Cut & Style — cash customer" className="w-full border border-stone-200 rounded-lg px-3 py-2" />
+                <label className="block text-xs font-medium text-stone-600 mb-1">{t.colDescription}</label>
+                <input value={entryForm.description} onChange={e => setEntryForm({ ...entryForm, description: e.target.value })} placeholder={t.descriptionPlaceholder} className="w-full border border-stone-200 rounded-lg px-3 py-2" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Payment method</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.paymentMethod}</label>
                   <select value={entryForm.payment_method} onChange={e => setEntryForm({ ...entryForm, payment_method: e.target.value })} className="w-full border border-stone-200 rounded-lg px-3 py-2">
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online</option>
-                    <option value="gift_card">Gift card</option>
-                    <option value="other">Other</option>
+                    {SCREEN_METHOD_KEYS.map((method) => <option key={method.value} value={method.value}>{t[method.key]}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">VAT</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">{t.vat}</label>
                   <select value={entryForm.vat_bps} onChange={e => setEntryForm({ ...entryForm, vat_bps: Number(e.target.value) })} className="w-full border border-stone-200 rounded-lg px-3 py-2">
-                    {VAT_RATES.map(r => <option key={r.bps} value={r.bps}>{r.label}</option>)}
+                    {vatOptions}
                   </select>
                 </div>
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-100">Cancel</button>
+              <button onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm text-stone-600 hover:bg-stone-100">{t.cancel}</button>
               <button onClick={addEntry} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1A1714] text-white hover:bg-[#2E2926] disabled:opacity-50 flex items-center justify-center gap-2">
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />} Save entry
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />} {t.saveEntry}
               </button>
             </div>
           </div>

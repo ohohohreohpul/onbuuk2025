@@ -3,6 +3,87 @@ import { X, Upload, Download, AlertCircle, CheckCircle, FileText } from 'lucide-
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string; subtitle: string; close: string; templateTitle: string; templateHint: string; downloadTemplate: string;
+  uploadPrompt: string; dragDrop: string; guideTitle: string; guideRequiredLabel: string; guideRequired: string;
+  guidePairLabel: string; guidePair: string; guidePricesLabel: string; guidePrices: string; guideDurationsLabel: string;
+  guideDurations: string; guideBuffersLabel: string; guideBuffers: string; validationErrors: string;
+  readyOne: string; readyMany: string; colName: string; colCategory: string; colDurations: string; colOptions: string;
+  minutesShort: string; couples: string; importing: string; percentComplete: string; complete: string;
+  importedOne: string; importedMany: string; failedCount: string; done: string; back: string; cancel: string;
+  importOne: string; importMany: string; errNoRows: string; errMissingColumns: string; errNameRequired: string;
+  errCategoryRequired: string; errDurationRequired: string;
+}> = {
+  en: {
+    title: 'Import services', subtitle: 'Import services from a CSV file', close: 'Close',
+    templateTitle: 'Download template', templateHint: 'Download the CSV template to see the required format and example data.',
+    downloadTemplate: 'Download template', uploadPrompt: 'Click to upload CSV file', dragDrop: 'or drag and drop',
+    guideTitle: 'CSV format guide', guideRequiredLabel: 'Required columns:', guideRequired: 'name, category, and at least one duration with price',
+    guidePairLabel: 'is_pair_massage:', guidePair: "Use 'true' or 'false' for couples availability",
+    guidePricesLabel: 'Prices:', guidePrices: 'Enter values in {currency} ({symbol}), using the business currency setting (e.g., 45.00)',
+    guideDurationsLabel: 'Durations:', guideDurations: 'You can have up to 5 duration/price pairs per service',
+    guideBuffersLabel: 'Buffer times:', guideBuffers: 'Enter in minutes', validationErrors: 'Validation errors',
+    readyOne: '1 service ready to import', readyMany: '{count} services ready to import',
+    colName: 'Name', colCategory: 'Category', colDurations: 'Durations & prices', colOptions: 'Options',
+    minutesShort: '{minutes} min', couples: 'Couples', importing: 'Importing services…', percentComplete: '{percent}% complete',
+    complete: 'Import complete', importedOne: 'Successfully imported 1 service', importedMany: 'Successfully imported {count} services',
+    failedCount: '({count} failed)', done: 'Done', back: 'Back', cancel: 'Cancel',
+    importOne: 'Import 1 service', importMany: 'Import {count} services',
+    errNoRows: 'The CSV file needs a header row and at least one data row.', errMissingColumns: 'Missing required columns: {columns}',
+    errNameRequired: 'Row {row}: Name is required', errCategoryRequired: 'Row {row}: Category is required',
+    errDurationRequired: 'Row {row}: At least one duration with price is required',
+  },
+  de: {
+    title: 'Leistungen importieren', subtitle: 'Leistungen aus einer CSV-Datei importieren', close: 'Schließen',
+    templateTitle: 'Vorlage herunterladen', templateHint: 'Laden Sie die CSV-Vorlage herunter, um Format und Beispieldaten zu sehen.',
+    downloadTemplate: 'Vorlage herunterladen', uploadPrompt: 'Klicken, um eine CSV-Datei hochzuladen', dragDrop: 'oder per Drag & Drop',
+    guideTitle: 'Hinweise zum CSV-Format', guideRequiredLabel: 'Pflichtspalten:', guideRequired: 'name, category und mindestens eine Dauer mit Preis',
+    guidePairLabel: 'is_pair_massage:', guidePair: "'true' oder 'false' für Paarbuchung angeben",
+    guidePricesLabel: 'Preise:', guidePrices: 'Beträge in {currency} ({symbol}) gemäß Währungseinstellung angeben (z. B. 45.00)',
+    guideDurationsLabel: 'Dauer:', guideDurations: 'Bis zu 5 Dauer/Preis-Paare pro Leistung möglich',
+    guideBuffersLabel: 'Pufferzeiten:', guideBuffers: 'In Minuten angeben', validationErrors: 'Fehler bei der Prüfung',
+    readyOne: '1 Leistung bereit zum Import', readyMany: '{count} Leistungen bereit zum Import',
+    colName: 'Name', colCategory: 'Kategorie', colDurations: 'Dauer & Preise', colOptions: 'Optionen',
+    minutesShort: '{minutes} Min.', couples: 'Paarbuchung', importing: 'Leistungen werden importiert…', percentComplete: '{percent} % erledigt',
+    complete: 'Import abgeschlossen', importedOne: '1 Leistung erfolgreich importiert', importedMany: '{count} Leistungen erfolgreich importiert',
+    failedCount: '({count} fehlgeschlagen)', done: 'Fertig', back: 'Zurück', cancel: 'Abbrechen',
+    importOne: '1 Leistung importieren', importMany: '{count} Leistungen importieren',
+    errNoRows: 'Die CSV-Datei braucht eine Kopfzeile und mindestens eine Datenzeile.', errMissingColumns: 'Fehlende Pflichtspalten: {columns}',
+    errNameRequired: 'Zeile {row}: Name fehlt', errCategoryRequired: 'Zeile {row}: Kategorie fehlt',
+    errDurationRequired: 'Zeile {row}: Mindestens eine Dauer mit Preis ist erforderlich',
+  },
+  th: {
+    title: 'นำเข้าบริการ', subtitle: 'นำเข้าบริการจากไฟล์ CSV', close: 'ปิด',
+    templateTitle: 'ดาวน์โหลดเทมเพลต', templateHint: 'ดาวน์โหลดเทมเพลต CSV เพื่อดูรูปแบบที่ต้องใช้และข้อมูลตัวอย่าง',
+    downloadTemplate: 'ดาวน์โหลดเทมเพลต', uploadPrompt: 'คลิกเพื่ออัปโหลดไฟล์ CSV', dragDrop: 'หรือลากไฟล์มาวาง',
+    guideTitle: 'คำแนะนำรูปแบบ CSV', guideRequiredLabel: 'คอลัมน์ที่ต้องมี:', guideRequired: 'name, category และอย่างน้อยหนึ่งระยะเวลาพร้อมราคา',
+    guidePairLabel: 'is_pair_massage:', guidePair: "ใส่ 'true' หรือ 'false' เพื่อกำหนดว่าจองคู่ได้หรือไม่",
+    guidePricesLabel: 'ราคา:', guidePrices: 'ใส่ราคาเป็น {currency} ({symbol}) ตามสกุลเงินของร้าน (เช่น 45.00)',
+    guideDurationsLabel: 'ระยะเวลา:', guideDurations: 'แต่ละบริการมีคู่ระยะเวลา/ราคาได้สูงสุด 5 คู่',
+    guideBuffersLabel: 'เวลาเผื่อ:', guideBuffers: 'ใส่เป็นนาที', validationErrors: 'ข้อผิดพลาดในการตรวจสอบ',
+    readyOne: 'บริการ 1 รายการพร้อมนำเข้า', readyMany: 'บริการ {count} รายการพร้อมนำเข้า',
+    colName: 'ชื่อ', colCategory: 'หมวดหมู่', colDurations: 'ระยะเวลาและราคา', colOptions: 'ตัวเลือก',
+    minutesShort: '{minutes} นาที', couples: 'จองคู่', importing: 'กำลังนำเข้าบริการ…', percentComplete: 'เสร็จแล้ว {percent}%',
+    complete: 'นำเข้าเสร็จสิ้น', importedOne: 'นำเข้าบริการสำเร็จ 1 รายการ', importedMany: 'นำเข้าบริการสำเร็จ {count} รายการ',
+    failedCount: '(ไม่สำเร็จ {count} รายการ)', done: 'เสร็จสิ้น', back: 'ย้อนกลับ', cancel: 'ยกเลิก',
+    importOne: 'นำเข้าบริการ 1 รายการ', importMany: 'นำเข้าบริการ {count} รายการ',
+    errNoRows: 'ไฟล์ CSV ต้องมีแถวหัวตารางและข้อมูลอย่างน้อยหนึ่งแถว', errMissingColumns: 'ไม่มีคอลัมน์ที่จำเป็น: {columns}',
+    errNameRequired: 'แถว {row}: ต้องระบุชื่อ', errCategoryRequired: 'แถว {row}: ต้องระบุหมวดหมู่',
+    errDurationRequired: 'แถว {row}: ต้องมีอย่างน้อยหนึ่งระยะเวลาพร้อมราคา',
+  },
+};
+
+type ParseErrorKey = 'errNoRows' | 'errMissingColumns' | 'errNameRequired' | 'errCategoryRequired' | 'errDurationRequired';
+
+/** Parse errors are stored as keys and turned into text at render, so they follow the admin language. */
+interface ParseError {
+  key: ParseErrorKey;
+  row?: number;
+  columns?: string;
+}
 
 interface ParsedService {
   name: string;
@@ -26,9 +107,10 @@ interface ImportServicesModalProps {
 export function ImportServicesModal({ onClose, onImportComplete }: ImportServicesModalProps) {
   const { businessId } = useTenant();
   const { currency, currencySymbol, formatPrice } = useCurrency();
+  const { t } = useAdminText(TEXT);
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
   const [parsedServices, setParsedServices] = useState<ParsedService[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<ParseError[]>([]);
   const [importProgress, setImportProgress] = useState(0);
   const [importResults, setImportResults] = useState<{ success: number; failed: number }>({ success: 0, failed: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,21 +164,21 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
     URL.revokeObjectURL(url);
   };
 
-  const parseCSV = (csvText: string): { services: ParsedService[]; errors: string[] } => {
+  const parseCSV = (csvText: string): { services: ParsedService[]; errors: ParseError[] } => {
     const lines = csvText.split(/\r?\n/).filter(line => line.trim());
     if (lines.length < 2) {
-      return { services: [], errors: ['CSV file must have a header row and at least one data row'] };
+      return { services: [], errors: [{ key: 'errNoRows' }] };
     }
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const services: ParsedService[] = [];
-    const errors: string[] = [];
+    const errors: ParseError[] = [];
 
     // Validate required headers
     const requiredHeaders = ['name', 'category'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
     if (missingHeaders.length > 0) {
-      return { services: [], errors: [`Missing required columns: ${missingHeaders.join(', ')}`] };
+      return { services: [], errors: [{ key: 'errMissingColumns', columns: missingHeaders.join(', ') }] };
     }
 
     for (let i = 1; i < lines.length; i++) {
@@ -110,11 +192,11 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
 
       // Validate required fields
       if (!row.name) {
-        errors.push(`Row ${i + 1}: Name is required`);
+        errors.push({ key: 'errNameRequired', row: i + 1 });
         continue;
       }
       if (!row.category) {
-        errors.push(`Row ${i + 1}: Category is required`);
+        errors.push({ key: 'errCategoryRequired', row: i + 1 });
         continue;
       }
 
@@ -132,7 +214,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
       }
 
       if (durations.length === 0) {
-        errors.push(`Row ${i + 1}: At least one duration with price is required`);
+        errors.push({ key: 'errDurationRequired', row: i + 1 });
         continue;
       }
 
@@ -255,10 +337,10 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Import Services</h2>
-            <p className="text-gray-600 mt-1">Import services from a CSV file</p>
+            <h2 className="text-2xl font-semibold text-gray-900">{t.title}</h2>
+            <p className="text-gray-600 mt-1">{t.subtitle}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} title={t.close} aria-label={t.close} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -272,16 +354,14 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                 <div className="flex items-start space-x-3">
                   <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div className="flex-1">
-                    <h3 className="font-medium text-blue-900">Download Template</h3>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Download the CSV template to see the required format and example data.
-                    </p>
+                    <h3 className="font-medium text-blue-900">{t.templateTitle}</h3>
+                    <p className="text-sm text-blue-700 mt-1">{t.templateHint}</p>
                     <button
                       onClick={downloadTemplate}
                       className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download Template</span>
+                      <span>{t.downloadTemplate}</span>
                     </button>
                   </div>
                 </div>
@@ -293,8 +373,8 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                 className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center cursor-pointer hover:border-gray-400 transition-colors"
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-700">Click to upload CSV file</p>
-                <p className="text-sm text-gray-500 mt-2">or drag and drop</p>
+                <p className="text-lg font-medium text-gray-700">{t.uploadPrompt}</p>
+                <p className="text-sm text-gray-500 mt-2">{t.dragDrop}</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -306,13 +386,13 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
 
               {/* Instructions */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">CSV Format Guide</h4>
+                <h4 className="font-medium text-gray-900 mb-2">{t.guideTitle}</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• <strong>Required columns:</strong> name, category, and at least one duration with price</li>
-                  <li>• <strong>is_pair_massage:</strong> Use 'true' or 'false' for couples availability</li>
-                  <li>• <strong>Prices:</strong> Enter values in {currency} ({currencySymbol}), using the business currency setting (e.g., 45.00)</li>
-                  <li>• <strong>Durations:</strong> You can have up to 5 duration/price pairs per service</li>
-                  <li>• <strong>Buffer times:</strong> Enter in minutes</li>
+                  <li>• <strong>{t.guideRequiredLabel}</strong> {t.guideRequired}</li>
+                  <li>• <strong>{t.guidePairLabel}</strong> {t.guidePair}</li>
+                  <li>• <strong>{t.guidePricesLabel}</strong> {fillText(t.guidePrices, { currency, symbol: currencySymbol })}</li>
+                  <li>• <strong>{t.guideDurationsLabel}</strong> {t.guideDurations}</li>
+                  <li>• <strong>{t.guideBuffersLabel}</strong> {t.guideBuffers}</li>
                 </ul>
               </div>
             </div>
@@ -325,10 +405,10 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                   <div className="flex items-start space-x-3">
                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                     <div>
-                      <h3 className="font-medium text-red-900">Validation Errors</h3>
+                      <h3 className="font-medium text-red-900">{t.validationErrors}</h3>
                       <ul className="text-sm text-red-700 mt-2 space-y-1">
                         {errors.map((error, i) => (
-                          <li key={i}>• {error}</li>
+                          <li key={i}>• {fillText(t[error.key], { row: error.row ?? '', columns: error.columns ?? '' })}</li>
                         ))}
                       </ul>
                     </div>
@@ -342,7 +422,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <span className="text-green-900 font-medium">
-                        {parsedServices.length} service(s) ready to import
+                        {parsedServices.length === 1 ? t.readyOne : fillText(t.readyMany, { count: parsedServices.length })}
                       </span>
                     </div>
                   </div>
@@ -351,10 +431,10 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Name</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Category</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Durations & Prices</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-700">Options</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-700">{t.colName}</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-700">{t.colCategory}</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-700">{t.colDurations}</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-700">{t.colOptions}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -365,13 +445,13 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                             <td className="px-4 py-3 text-gray-600">
                               {service.durations.map((d, j) => (
                                 <span key={j} className="inline-block mr-2 mb-1 px-2 py-1 bg-gray-100 rounded text-xs">
-                                  {d.duration_minutes}min - {formatPrice(d.price_cents)}
+                                  {fillText(t.minutesShort, { minutes: d.duration_minutes })} - {formatPrice(d.price_cents)}
                                 </span>
                               ))}
                             </td>
                             <td className="px-4 py-3 text-gray-600">
                               {service.is_pair_massage && (
-                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Couples</span>
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">{t.couples}</span>
                               )}
                             </td>
                           </tr>
@@ -387,25 +467,25 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
           {step === 'importing' && (
             <div className="text-center py-12">
               <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
-              <p className="text-lg font-medium text-gray-900">Importing services...</p>
+              <p className="text-lg font-medium text-gray-900">{t.importing}</p>
               <div className="mt-4 w-full max-w-xs mx-auto bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${importProgress}%` }}
                 ></div>
               </div>
-              <p className="text-sm text-gray-600 mt-2">{importProgress}% complete</p>
+              <p className="text-sm text-gray-600 mt-2">{fillText(t.percentComplete, { percent: importProgress })}</p>
             </div>
           )}
 
           {step === 'complete' && (
             <div className="text-center py-12">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Import Complete!</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.complete}</h3>
               <p className="text-gray-600 mb-6">
-                Successfully imported {importResults.success} service(s)
+                {importResults.success === 1 ? t.importedOne : fillText(t.importedMany, { count: importResults.success })}
                 {importResults.failed > 0 && (
-                  <span className="text-red-600"> ({importResults.failed} failed)</span>
+                  <span className="text-red-600"> {fillText(t.failedCount, { count: importResults.failed })}</span>
                 )}
               </p>
               <button
@@ -415,7 +495,7 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
                 }}
                 className="px-6 py-3 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
-                Done
+                {t.done}
               </button>
             </div>
           )}
@@ -428,14 +508,14 @@ export function ImportServicesModal({ onClose, onImportComplete }: ImportService
               onClick={() => step === 'preview' ? setStep('upload') : onClose()}
               className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              {step === 'preview' ? 'Back' : 'Cancel'}
+              {step === 'preview' ? t.back : t.cancel}
             </button>
             {step === 'preview' && parsedServices.length > 0 && (
               <button
                 onClick={handleImport}
                 className="px-6 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-colors"
               >
-                Import {parsedServices.length} Service(s)
+                {parsedServices.length === 1 ? t.importOne : fillText(t.importMany, { count: parsedServices.length })}
               </button>
             )}
           </div>

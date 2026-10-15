@@ -4,6 +4,56 @@ import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../lib/tenantContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { adminAuth } from '../../../lib/adminAuth';
+import { useAdminText } from '../../../lib/adminLanguage';
+import { categoryLabel, permissionLabel, roleLabel } from '../roleLabels';
+import type { Translations } from '../../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  systemLocked: string; allRequired: string; passwordTooShort: string; createFailed: string; loading: string;
+  title: string; rolesTab: string; assignmentsTab: string; roles: string; systemRole: string; permissions: string;
+  selectRole: string; addUser: string; user: string; email: string; assignedRoles: string; actions: string;
+  removeRole: string; addRole: string; addUserTitle: string; close: string; fullName: string; namePlaceholder: string;
+  password: string; passwordPlaceholder: string; initialRole: string; roleStaff: string; roleAdmin: string;
+  cancel: string; creating: string; createUser: string; noPermission: string;
+}> = {
+  en: {
+    systemLocked: 'System roles cannot be modified', allRequired: 'All fields are required',
+    passwordTooShort: 'Password must be at least 8 characters', createFailed: 'Failed to create user',
+    loading: 'Loading roles and permissions...', title: 'Role Management', rolesTab: 'Roles & Permissions',
+    assignmentsTab: 'User Assignments', roles: 'Roles', systemRole: 'System Role', permissions: 'Permissions',
+    selectRole: 'Select a role to view and manage permissions', addUser: 'Add User', user: 'User', email: 'Email',
+    assignedRoles: 'Assigned Roles', actions: 'Actions', removeRole: 'Remove role', addRole: 'Add role...',
+    addUserTitle: 'Add New User', close: 'Close', fullName: 'Full Name', namePlaceholder: 'John Doe', password: 'Password',
+    passwordPlaceholder: 'Minimum 8 characters', initialRole: 'Initial Role', roleStaff: 'Staff', roleAdmin: 'Admin',
+    cancel: 'Cancel', creating: 'Creating...', createUser: 'Create User',
+    noPermission: 'You do not have permission to manage roles and assignments.',
+  },
+  de: {
+    systemLocked: 'System-Rollen können nicht geändert werden', allRequired: 'Bitte alle Felder ausfüllen',
+    passwordTooShort: 'Das Passwort muss mindestens 8 Zeichen lang sein', createFailed: 'Benutzer konnte nicht angelegt werden',
+    loading: 'Rollen und Berechtigungen werden geladen…', title: 'Rollenverwaltung', rolesTab: 'Rollen & Berechtigungen',
+    assignmentsTab: 'Zuweisungen', roles: 'Rollen', systemRole: 'System-Rolle', permissions: 'Berechtigungen',
+    selectRole: 'Rolle auswählen, um ihre Berechtigungen zu sehen und zu verwalten', addUser: 'Benutzer hinzufügen', user: 'Benutzer', email: 'E-Mail',
+    assignedRoles: 'Zugewiesene Rollen', actions: 'Aktionen', removeRole: 'Rolle entfernen', addRole: 'Rolle hinzufügen…',
+    addUserTitle: 'Neuen Benutzer hinzufügen', close: 'Schließen', fullName: 'Vollständiger Name', namePlaceholder: 'Max Mustermann', password: 'Passwort',
+    passwordPlaceholder: 'Mindestens 8 Zeichen', initialRole: 'Anfangsrolle', roleStaff: 'Mitarbeiter:in', roleAdmin: 'Admin',
+    cancel: 'Abbrechen', creating: 'Wird angelegt…', createUser: 'Benutzer anlegen',
+    noPermission: 'Sie haben keine Berechtigung, Rollen und Zuweisungen zu verwalten.',
+  },
+  th: {
+    systemLocked: 'แก้ไขบทบาทของระบบไม่ได้', allRequired: 'กรุณากรอกข้อมูลให้ครบทุกช่อง',
+    passwordTooShort: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', createFailed: 'สร้างผู้ใช้ไม่สำเร็จ',
+    loading: 'กำลังโหลดบทบาทและสิทธิ์…', title: 'จัดการบทบาท', rolesTab: 'บทบาทและสิทธิ์',
+    assignmentsTab: 'การกำหนดบทบาทผู้ใช้', roles: 'บทบาท', systemRole: 'บทบาทของระบบ', permissions: 'สิทธิ์',
+    selectRole: 'เลือกบทบาทเพื่อดูและจัดการสิทธิ์', addUser: 'เพิ่มผู้ใช้', user: 'ผู้ใช้', email: 'อีเมล',
+    assignedRoles: 'บทบาทที่ได้รับ', actions: 'การดำเนินการ', removeRole: 'นำบทบาทออก', addRole: 'เพิ่มบทบาท…',
+    addUserTitle: 'เพิ่มผู้ใช้ใหม่', close: 'ปิด', fullName: 'ชื่อ-นามสกุล', namePlaceholder: 'สมชาย ใจดี', password: 'รหัสผ่าน',
+    passwordPlaceholder: 'อย่างน้อย 8 ตัวอักษร', initialRole: 'บทบาทเริ่มต้น', roleStaff: 'พนักงาน', roleAdmin: 'ผู้ดูแล',
+    cancel: 'ยกเลิก', creating: 'กำลังสร้าง…', createUser: 'สร้างผู้ใช้',
+    noPermission: 'คุณไม่มีสิทธิ์จัดการบทบาทและการกำหนดบทบาท',
+  },
+};
+
 
 interface Role {
   id: string;
@@ -30,6 +80,7 @@ interface AdminUserWithRoles {
 }
 
 export default function RoleManagement() {
+  const { t, lang } = useAdminText(TEXT);
   const { businessId } = useTenant();
   const adminUser = adminAuth.getCurrentUser();
   const { hasPermission } = usePermissions(adminUser?.id || null);
@@ -124,7 +175,7 @@ export default function RoleManagement() {
 
     const role = roles.find(r => r.id === selectedRole);
     if (role?.is_system_role) {
-      alert('System roles cannot be modified');
+      alert(t.systemLocked);
       return;
     }
 
@@ -185,13 +236,13 @@ export default function RoleManagement() {
 
     try {
       if (!newUserForm.email || !newUserForm.password || !newUserForm.full_name) {
-        setAddUserError('All fields are required');
+        setAddUserError(t.allRequired);
         setAddingUser(false);
         return;
       }
 
       if (newUserForm.password.length < 8) {
-        setAddUserError('Password must be at least 8 characters');
+        setAddUserError(t.passwordTooShort);
         setAddingUser(false);
         return;
       }
@@ -211,7 +262,7 @@ export default function RoleManagement() {
       await loadData();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      setAddUserError(error.message || 'Failed to create user');
+      setAddUserError(error.message || t.createFailed);
     } finally {
       setAddingUser(false);
     }
@@ -224,14 +275,14 @@ export default function RoleManagement() {
   }, {} as Record<string, Permission[]>);
 
   if (loading) {
-    return <div className="text-stone-600">Loading roles and permissions...</div>;
+    return <div className="text-stone-600">{t.loading}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3">
         <Shield className="w-6 h-6 text-stone-700" />
-        <h2 className="text-2xl font-light text-stone-900">Role Management</h2>
+        <h2 className="text-2xl font-light text-stone-900">{t.title}</h2>
       </div>
 
       <div className="flex space-x-2 border-b border-stone-200">
@@ -243,7 +294,7 @@ export default function RoleManagement() {
               : 'text-stone-500 hover:text-stone-700'
           }`}
         >
-          Roles & Permissions
+          {t.rolesTab}
         </button>
         <button
           onClick={() => setActiveTab('assignments')}
@@ -253,14 +304,14 @@ export default function RoleManagement() {
               : 'text-stone-500 hover:text-stone-700'
           }`}
         >
-          User Assignments
+          {t.assignmentsTab}
         </button>
       </div>
 
       {activeTab === 'roles' && (
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-1 bg-white rounded-lg border border-stone-200 p-4">
-            <h3 className="text-lg font-medium text-stone-900 mb-4">Roles</h3>
+            <h3 className="text-lg font-medium text-stone-900 mb-4">{t.roles}</h3>
             <div className="space-y-2">
               {roles.map(role => (
                 <button
@@ -272,10 +323,10 @@ export default function RoleManagement() {
                       : 'bg-stone-50 text-stone-900 hover:bg-stone-100'
                   }`}
                 >
-                  <div className="font-medium">{role.display_name}</div>
-                  <div className="text-xs opacity-75 mt-1">{role.description}</div>
+                  <div className="font-medium">{roleLabel(role, lang)[0]}</div>
+                  <div className="text-xs opacity-75 mt-1">{roleLabel(role, lang)[1]}</div>
                   {role.is_system_role && (
-                    <div className="text-xs mt-1 opacity-60">System Role</div>
+                    <div className="text-xs mt-1 opacity-60">{t.systemRole}</div>
                   )}
                 </button>
               ))}
@@ -286,10 +337,10 @@ export default function RoleManagement() {
             {selectedRole ? (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-stone-900">Permissions</h3>
+                  <h3 className="text-lg font-medium text-stone-900">{t.permissions}</h3>
                   {roles.find(r => r.id === selectedRole)?.is_system_role && (
                     <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded">
-                      System roles cannot be modified
+                      {t.systemLocked}
                     </span>
                   )}
                 </div>
@@ -297,7 +348,7 @@ export default function RoleManagement() {
                   {Object.entries(permissionsByCategory).map(([category, perms]) => (
                     <div key={category}>
                       <h4 className="text-sm font-medium text-stone-700 uppercase tracking-wide mb-3">
-                        {category}
+                        {categoryLabel(category, lang)}
                       </h4>
                       <div className="space-y-2">
                         {perms.map(perm => (
@@ -313,8 +364,8 @@ export default function RoleManagement() {
                               className="mt-1"
                             />
                             <div className="flex-1">
-                              <div className="text-sm font-medium text-stone-900">{perm.name}</div>
-                              <div className="text-xs text-stone-500 mt-1">{perm.description}</div>
+                              <div className="text-sm font-medium text-stone-900">{permissionLabel(perm, lang)[0]}</div>
+                              <div className="text-xs text-stone-500 mt-1">{permissionLabel(perm, lang)[1]}</div>
                             </div>
                           </label>
                         ))}
@@ -325,7 +376,7 @@ export default function RoleManagement() {
               </>
             ) : (
               <div className="text-center text-stone-500 py-12">
-                Select a role to view and manage permissions
+                {t.selectRole}
               </div>
             )}
           </div>
@@ -341,7 +392,7 @@ export default function RoleManagement() {
                 className="flex items-center space-x-2 bg-stone-900 text-white px-4 py-2 rounded-lg hover:bg-stone-800 transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add User</span>
+                <span>{t.addUser}</span>
               </button>
             )}
           </div>
@@ -349,10 +400,10 @@ export default function RoleManagement() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-stone-200">
-                <th className="text-left p-4 text-sm font-medium text-stone-700">User</th>
-                <th className="text-left p-4 text-sm font-medium text-stone-700">Email</th>
-                <th className="text-left p-4 text-sm font-medium text-stone-700">Assigned Roles</th>
-                <th className="text-left p-4 text-sm font-medium text-stone-700">Actions</th>
+                <th className="text-left p-4 text-sm font-medium text-stone-700">{t.user}</th>
+                <th className="text-left p-4 text-sm font-medium text-stone-700">{t.email}</th>
+                <th className="text-left p-4 text-sm font-medium text-stone-700">{t.assignedRoles}</th>
+                <th className="text-left p-4 text-sm font-medium text-stone-700">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -367,11 +418,12 @@ export default function RoleManagement() {
                           key={role.id}
                           className="inline-flex items-center space-x-1 bg-stone-100 text-stone-700 px-3 py-1 rounded-full text-xs"
                         >
-                          <span>{role.display_name}</span>
+                          <span>{roleLabel(role, lang)[0]}</span>
                           {canAssignRoles && (
                             <button
                               onClick={() => removeRoleFromUser(user.id, role.id)}
                               className="ml-1 hover:text-red-600"
+                              aria-label={t.removeRole}
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -392,12 +444,12 @@ export default function RoleManagement() {
                         className="text-sm border border-stone-300 rounded-lg px-3 py-1"
                         defaultValue=""
                       >
-                        <option value="" disabled>Add role...</option>
+                        <option value="" disabled>{t.addRole}</option>
                         {roles
                           .filter(role => !user.roles.some(ur => ur.id === role.id))
                           .map(role => (
                             <option key={role.id} value={role.id}>
-                              {role.display_name}
+                              {roleLabel(role, lang)[0]}
                             </option>
                           ))}
                       </select>
@@ -415,7 +467,7 @@ export default function RoleManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-medium text-stone-900">Add New User</h3>
+              <h3 className="text-xl font-medium text-stone-900">{t.addUserTitle}</h3>
               <button
                 onClick={() => {
                   setShowAddUserModal(false);
@@ -423,6 +475,7 @@ export default function RoleManagement() {
                   setNewUserForm({ email: '', password: '', full_name: '', role: 'staff' });
                 }}
                 className="text-stone-400 hover:text-stone-600"
+                aria-label={t.close}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -437,20 +490,20 @@ export default function RoleManagement() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Full Name
+                  {t.fullName}
                 </label>
                 <input
                   type="text"
                   value={newUserForm.full_name}
                   onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
-                  placeholder="John Doe"
+                  placeholder={t.namePlaceholder}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Email
+                  {t.email}
                 </label>
                 <input
                   type="email"
@@ -463,29 +516,29 @@ export default function RoleManagement() {
 
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Password
+                  {t.password}
                 </label>
                 <input
                   type="password"
                   value={newUserForm.password}
                   onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
-                  placeholder="Minimum 8 characters"
+                  placeholder={t.passwordPlaceholder}
                 />
-                <p className="text-xs text-stone-500 mt-1">Password must be at least 8 characters</p>
+                <p className="text-xs text-stone-500 mt-1">{t.passwordTooShort}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">
-                  Initial Role
+                  {t.initialRole}
                 </label>
                 <select
                   value={newUserForm.role}
                   onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as 'admin' | 'staff' })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:border-transparent"
                 >
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
+                  <option value="staff">{t.roleStaff}</option>
+                  <option value="admin">{t.roleAdmin}</option>
                 </select>
               </div>
             </div>
@@ -500,14 +553,14 @@ export default function RoleManagement() {
                 className="flex-1 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition-colors"
                 disabled={addingUser}
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={createNewUser}
                 disabled={addingUser}
                 className="flex-1 px-4 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {addingUser ? 'Creating...' : 'Create User'}
+                {addingUser ? t.creating : t.createUser}
               </button>
             </div>
           </div>
@@ -516,7 +569,7 @@ export default function RoleManagement() {
 
       {!canAssignRoles && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
-          You do not have permission to manage roles and assignments.
+          {t.noPermission}
         </div>
       )}
     </div>

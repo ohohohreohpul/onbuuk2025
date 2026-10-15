@@ -6,6 +6,8 @@ import NoShowAnalytics from './noshow/NoShowAnalytics';
 import UnbilledNoShowRows, { type UnbilledNoShowRow } from './noshow/UnbilledNoShowRows';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { useCurrency } from '../../lib/currencyContext';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
 import {
   ADMIN_ICON_TILE,
   ADMIN_INPUT,
@@ -21,6 +23,121 @@ import {
 } from './adminUi';
 
 type FeeResolution = 'unpaid' | 'paid' | 'waived';
+
+type FeeText = {
+  noBusiness: string; loadFailed: string; title: string; subtitle: string; howItWorks: string; guideTitle: string;
+  guideCharge: string; guideChargeBody: string; guideMarkPaid: string; guideMarkPaidBody: string; guideWaive: string; guideWaiveBody: string;
+  closeGuide: string; outstanding: string; includesUnbilled: string; collected: string; waived: string; searchPlaceholder: string;
+  all: string; unpaid: string; paid: string; colCustomer: string; colReason: string; colAmount: string; colBilledOn: string;
+  colStatus: string; colActions: string; noFees: string; unknown: string; noShow: string; lateCancel: string; updating: string;
+  reopen: string; chargeCard: string; chargeRecorded: string; noSavedCard: string; markPaid: string; waive: string; noCardHint: string;
+  showing: string; thisCustomer: string; confirmWaive: string; confirmCharge: string;
+  feeAdded: string; markedPaid: string; markPaidFailed: string; reopened: string; reopenFailed: string; feeWaived: string;
+  waiveFailed: string; cardCharged: string; noCardOnFile: string; paymentsNotConnected: string; noFeeConfigured: string;
+  alreadyCharged: string; chargeFailed: string; chargeFailedGeneric: string;
+};
+
+const TEXT: Translations<FeeText> = {
+  en: {
+    noBusiness: 'Unable to determine your business. Please try logging in again.', loadFailed: 'Failed to load no-show fees.',
+    title: 'No-Show Fees', subtitle: 'Collect, record, or waive each fee. Resolved fees leave the Action Centre automatically.',
+    howItWorks: 'How does this work?', guideTitle: 'How to clear an unpaid fee',
+    guideCharge: 'Charge card', guideChargeBody: 'charges the card the customer saved at booking through Stripe.',
+    guideMarkPaid: 'Mark paid', guideMarkPaidBody: "only records money you already received (cash, bank transfer, terminal) — it doesn't charge anyone.",
+    guideWaive: 'Waive', guideWaiveBody: 'closes the fee without collecting it.',
+    closeGuide: 'Close guide', outstanding: 'Outstanding', includesUnbilled: 'Includes {amount} not billed yet', collected: 'Collected',
+    waived: 'Waived', searchPlaceholder: 'Search by customer name or email...', all: 'All', unpaid: 'Unpaid', paid: 'Paid',
+    colCustomer: 'Customer', colReason: 'Reason', colAmount: 'Amount', colBilledOn: 'Billed on', colStatus: 'Status', colActions: 'Actions',
+    noFees: 'No fees found', unknown: 'Unknown', noShow: 'No-Show', lateCancel: 'Late Cancel', updating: 'Updating fee…',
+    reopen: 'Reopen', chargeCard: 'Charge card', chargeRecorded: 'Charge recorded', noSavedCard: 'No saved card', markPaid: 'Mark paid',
+    waive: 'Waive', noCardHint: 'No card was saved, so collect it yourself, then “Mark paid”.',
+    showing: 'Showing {shown} of {total} no-shows', thisCustomer: 'this customer',
+    confirmWaive: 'Waive {amount} for {name}? The fee will be closed without recording payment.',
+    confirmCharge: 'Charge {amount} to the saved card for {name}?',
+    feeAdded: 'Fee added for {name}. Now charge the card, mark it paid, or waive it.',
+    markedPaid: 'Fee marked paid. It has left the Action Centre.', markPaidFailed: 'We could not mark this fee paid. Please try again.',
+    reopened: 'Fee reopened and returned to the Action Centre.', reopenFailed: 'We could not reopen this fee. Please try again.',
+    feeWaived: 'Fee waived. It has left the Action Centre.', waiveFailed: 'We could not waive this fee. Please try again.',
+    cardCharged: 'Card charged {amount}. The fee is resolved.',
+    noCardOnFile: 'This booking has no saved card. Record an external payment or waive the fee.',
+    paymentsNotConnected: 'Connect Stripe in Settings → Payments before charging saved cards.',
+    noFeeConfigured: 'This service no longer has a no-show fee configured.',
+    alreadyCharged: 'This booking was already charged. Refreshing its fee status now.',
+    chargeFailed: 'The saved card could not be charged. Ask the customer to pay another way or waive the fee.',
+    chargeFailedGeneric: 'The saved card could not be charged.',
+  },
+  de: {
+    noBusiness: 'Ihr Betrieb konnte nicht ermittelt werden. Bitte melden Sie sich erneut an.', loadFailed: 'No-Show-Gebühren konnten nicht geladen werden.',
+    title: 'No-Show-Gebühren', subtitle: 'Jede Gebühr belasten, als bezahlt erfassen oder erlassen. Erledigte Gebühren verschwinden automatisch aus dem Action Centre.',
+    howItWorks: 'Wie funktioniert das?', guideTitle: 'So erledigen Sie eine offene Gebühr',
+    guideCharge: 'Karte belasten', guideChargeBody: 'belastet die Karte, die der Kunde bei der Buchung über Stripe hinterlegt hat.',
+    guideMarkPaid: 'Als bezahlt markieren', guideMarkPaidBody: 'erfasst nur Geld, das Sie bereits erhalten haben (bar, Überweisung, Terminal) — es wird nichts belastet.',
+    guideWaive: 'Erlassen', guideWaiveBody: 'schließt die Gebühr, ohne sie einzuziehen.',
+    closeGuide: 'Hinweis schließen', outstanding: 'Offen', includesUnbilled: 'Davon {amount} noch nicht berechnet', collected: 'Eingenommen',
+    waived: 'Erlassen', searchPlaceholder: 'Nach Kundenname oder E-Mail suchen...', all: 'Alle', unpaid: 'Offen', paid: 'Bezahlt',
+    colCustomer: 'Kunde', colReason: 'Grund', colAmount: 'Betrag', colBilledOn: 'Berechnet am', colStatus: 'Status', colActions: 'Aktionen',
+    noFees: 'Keine Gebühren gefunden', unknown: 'Unbekannt', noShow: 'No-Show', lateCancel: 'Späte Absage', updating: 'Gebühr wird aktualisiert…',
+    reopen: 'Wieder öffnen', chargeCard: 'Karte belasten', chargeRecorded: 'Belastung erfasst', noSavedCard: 'Keine Karte hinterlegt', markPaid: 'Als bezahlt markieren',
+    waive: 'Erlassen', noCardHint: 'Keine Karte hinterlegt: Betrag selbst kassieren, dann „Als bezahlt markieren“.',
+    showing: '{shown} von {total} No-Shows', thisCustomer: 'diesen Kunden',
+    confirmWaive: '{amount} für {name} erlassen? Die Gebühr wird ohne Zahlung geschlossen.',
+    confirmCharge: '{amount} von der hinterlegten Karte von {name} abbuchen?',
+    feeAdded: 'Gebühr für {name} angelegt. Jetzt Karte belasten, als bezahlt markieren oder erlassen.',
+    markedPaid: 'Gebühr als bezahlt markiert. Sie ist nicht mehr im Action Centre.', markPaidFailed: 'Die Gebühr konnte nicht als bezahlt markiert werden. Bitte erneut versuchen.',
+    reopened: 'Gebühr wieder geöffnet und zurück im Action Centre.', reopenFailed: 'Die Gebühr konnte nicht wieder geöffnet werden. Bitte erneut versuchen.',
+    feeWaived: 'Gebühr erlassen. Sie ist nicht mehr im Action Centre.', waiveFailed: 'Die Gebühr konnte nicht erlassen werden. Bitte erneut versuchen.',
+    cardCharged: 'Karte mit {amount} belastet. Die Gebühr ist erledigt.',
+    noCardOnFile: 'Für diese Buchung ist keine Karte hinterlegt. Externe Zahlung erfassen oder Gebühr erlassen.',
+    paymentsNotConnected: 'Verbinden Sie Stripe unter Einstellungen → Zahlungen, bevor Sie hinterlegte Karten belasten.',
+    noFeeConfigured: 'Für diese Leistung ist keine No-Show-Gebühr mehr eingerichtet.',
+    alreadyCharged: 'Diese Buchung wurde bereits belastet. Der Gebührenstatus wird aktualisiert.',
+    chargeFailed: 'Die hinterlegte Karte konnte nicht belastet werden. Bitten Sie den Kunden um eine andere Zahlart oder erlassen Sie die Gebühr.',
+    chargeFailedGeneric: 'Die hinterlegte Karte konnte nicht belastet werden.',
+  },
+  th: {
+    noBusiness: 'ไม่พบข้อมูลร้านของคุณ กรุณาเข้าสู่ระบบอีกครั้ง', loadFailed: 'โหลดค่าธรรมเนียมไม่มาตามนัดไม่สำเร็จ',
+    title: 'ค่าธรรมเนียมไม่มาตามนัด', subtitle: 'เรียกเก็บ บันทึกการชำระ หรือยกเว้นค่าธรรมเนียมแต่ละรายการ รายการที่จัดการแล้วจะออกจาก Action Centre อัตโนมัติ',
+    howItWorks: 'ทำงานอย่างไร?', guideTitle: 'วิธีจัดการค่าธรรมเนียมที่ยังไม่ชำระ',
+    guideCharge: 'เรียกเก็บจากบัตร', guideChargeBody: 'ตัดเงินจากบัตรที่ลูกค้าบันทึกไว้ตอนจองผ่าน Stripe',
+    guideMarkPaid: 'ทำเครื่องหมายว่าชำระแล้ว', guideMarkPaidBody: 'บันทึกเฉพาะเงินที่ได้รับแล้ว (เงินสด โอนเงิน เครื่องรูดบัตร) — ไม่มีการเรียกเก็บเงินจากใคร',
+    guideWaive: 'ยกเว้น', guideWaiveBody: 'ปิดค่าธรรมเนียมโดยไม่เรียกเก็บ',
+    closeGuide: 'ปิดคำแนะนำ', outstanding: 'ค้างชำระ', includesUnbilled: 'รวม {amount} ที่ยังไม่เรียกเก็บ', collected: 'เก็บได้แล้ว',
+    waived: 'ยกเว้นแล้ว', searchPlaceholder: 'ค้นหาด้วยชื่อหรืออีเมลลูกค้า...', all: 'ทั้งหมด', unpaid: 'ยังไม่ชำระ', paid: 'ชำระแล้ว',
+    colCustomer: 'ลูกค้า', colReason: 'เหตุผล', colAmount: 'จำนวนเงิน', colBilledOn: 'วันที่เรียกเก็บ', colStatus: 'สถานะ', colActions: 'การดำเนินการ',
+    noFees: 'ไม่พบค่าธรรมเนียม', unknown: 'ไม่ทราบชื่อ', noShow: 'ไม่มาตามนัด', lateCancel: 'ยกเลิกกระชั้นชิด', updating: 'กำลังอัปเดตค่าธรรมเนียม…',
+    reopen: 'เปิดใหม่', chargeCard: 'เรียกเก็บจากบัตร', chargeRecorded: 'บันทึกการเรียกเก็บแล้ว', noSavedCard: 'ไม่มีบัตรที่บันทึกไว้', markPaid: 'ทำเครื่องหมายว่าชำระแล้ว',
+    waive: 'ยกเว้น', noCardHint: 'ไม่มีบัตรที่บันทึกไว้ ให้เก็บเงินเอง แล้วกด “ทำเครื่องหมายว่าชำระแล้ว”',
+    showing: 'แสดง {shown} จาก {total} รายการไม่มาตามนัด', thisCustomer: 'ลูกค้ารายนี้',
+    confirmWaive: 'ยกเว้น {amount} ให้ {name}? ค่าธรรมเนียมจะถูกปิดโดยไม่บันทึกการชำระ',
+    confirmCharge: 'เรียกเก็บ {amount} จากบัตรที่บันทึกไว้ของ {name}?',
+    feeAdded: 'เพิ่มค่าธรรมเนียมให้ {name} แล้ว ต่อไปเรียกเก็บจากบัตร ทำเครื่องหมายว่าชำระแล้ว หรือยกเว้น',
+    markedPaid: 'ทำเครื่องหมายว่าชำระแล้ว รายการออกจาก Action Centre แล้ว', markPaidFailed: 'ทำเครื่องหมายว่าชำระแล้วไม่สำเร็จ กรุณาลองอีกครั้ง',
+    reopened: 'เปิดค่าธรรมเนียมใหม่และกลับไปที่ Action Centre แล้ว', reopenFailed: 'เปิดค่าธรรมเนียมใหม่ไม่สำเร็จ กรุณาลองอีกครั้ง',
+    feeWaived: 'ยกเว้นค่าธรรมเนียมแล้ว รายการออกจาก Action Centre แล้ว', waiveFailed: 'ยกเว้นค่าธรรมเนียมไม่สำเร็จ กรุณาลองอีกครั้ง',
+    cardCharged: 'เรียกเก็บจากบัตร {amount} แล้ว ค่าธรรมเนียมนี้เสร็จสิ้น',
+    noCardOnFile: 'การจองนี้ไม่มีบัตรที่บันทึกไว้ ให้บันทึกการชำระจากช่องทางอื่นหรือยกเว้นค่าธรรมเนียม',
+    paymentsNotConnected: 'เชื่อมต่อ Stripe ที่ การตั้งค่า → การชำระเงิน ก่อนเรียกเก็บจากบัตรที่บันทึกไว้',
+    noFeeConfigured: 'บริการนี้ไม่ได้ตั้งค่าธรรมเนียมไม่มาตามนัดแล้ว',
+    alreadyCharged: 'การจองนี้ถูกเรียกเก็บไปแล้ว กำลังรีเฟรชสถานะค่าธรรมเนียม',
+    chargeFailed: 'เรียกเก็บจากบัตรที่บันทึกไว้ไม่สำเร็จ ให้ลูกค้าชำระด้วยวิธีอื่นหรือยกเว้นค่าธรรมเนียม',
+    chargeFailedGeneric: 'เรียกเก็บจากบัตรที่บันทึกไว้ไม่สำเร็จ',
+  },
+};
+
+type NoticeKey = 'feeAdded' | 'markedPaid' | 'markPaidFailed' | 'reopened' | 'reopenFailed' | 'feeWaived' | 'waiveFailed'
+  | 'cardCharged' | 'noCardOnFile' | 'paymentsNotConnected' | 'noFeeConfigured' | 'alreadyCharged' | 'chargeFailed' | 'chargeFailedGeneric';
+
+/** A notice is built from a text key at render (so it follows the language), or carries a server message as-is. */
+type Notice = { tone: 'success' | 'warning' | 'error' } & ({ key: NoticeKey; values?: Record<string, string> } | { text: string });
+
+const CHARGE_REASON_KEYS: Record<string, NoticeKey> = {
+  no_card_on_file: 'noCardOnFile',
+  payments_not_connected: 'paymentsNotConnected',
+  no_fee_configured: 'noFeeConfigured',
+  already_charged: 'alreadyCharged',
+  charge_failed: 'chargeFailed',
+};
+
 
 const GUIDE_DISMISSED_KEY = 'zenno.noShowFees.guideDismissed';
 
@@ -64,16 +181,17 @@ interface NoShowFee {
 
 export default function NoShowFeesView() {
   const { formatPrice } = useCurrency();
+  const { t, locale } = useAdminText(TEXT);
   const adminUser = adminAuth.getCurrentUser();
   const businessId = adminUser?.business_id || null;
   const [fees, setFees] = useState<NoShowFee[]>([]);
   const [filteredFees, setFilteredFees] = useState<NoShowFee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'noBusiness' | 'loadFailed' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | FeeResolution>('unpaid');
   const [activeFeeId, setActiveFeeId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [unbilled, setUnbilled] = useState<UnbilledNoShowRow[]>([]);
   const [isGuideDismissed, setIsGuideDismissed] = useState(readGuideDismissed);
 
@@ -92,7 +210,7 @@ export default function NoShowFeesView() {
 
   const fetchFees = async () => {
     if (!businessId) {
-      setError('Unable to determine your business. Please try logging in again.');
+      setError('noBusiness');
       setLoading(false);
       return;
     }
@@ -113,7 +231,7 @@ export default function NoShowFeesView() {
 
     if (fetchError) {
       console.error('Error fetching no-show fees:', fetchError);
-      setError('Failed to load no-show fees.');
+      setError('loadFailed');
     } else {
       const normalizedFees = (data || []).map((row) => ({
         ...row,
@@ -170,7 +288,7 @@ export default function NoShowFeesView() {
     if (addError) {
       setNotice({ tone: 'error', text: addError });
     } else {
-      setNotice({ tone: 'success', text: `Fee added for ${row.customer_name}. Now charge the card, mark it paid, or waive it.` });
+      setNotice({ tone: 'success', key: 'feeAdded', values: { name: row.customer_name } });
       await fetchFees();
     }
     setActiveFeeId(null);
@@ -210,10 +328,10 @@ export default function NoShowFeesView() {
       .eq('id', feeId);
 
     if (!error) {
-      setNotice({ tone: 'success', text: 'Fee marked paid. It has left the Action Centre.' });
+      setNotice({ tone: 'success', key: 'markedPaid' });
       await fetchFees();
     } else {
-      setNotice({ tone: 'error', text: 'We could not mark this fee paid. Please try again.' });
+      setNotice({ tone: 'error', key: 'markPaidFailed' });
     }
     setActiveFeeId(null);
   };
@@ -233,16 +351,16 @@ export default function NoShowFeesView() {
       .eq('id', feeId);
 
     if (!error) {
-      setNotice({ tone: 'warning', text: 'Fee reopened and returned to the Action Centre.' });
+      setNotice({ tone: 'warning', key: 'reopened' });
       await fetchFees();
     } else {
-      setNotice({ tone: 'error', text: 'We could not reopen this fee. Please try again.' });
+      setNotice({ tone: 'error', key: 'reopenFailed' });
     }
     setActiveFeeId(null);
   };
 
   const waiveFee = async (fee: NoShowFee) => {
-    if (!confirm(`Waive ${formatPrice(fee.amount)} for ${fee.customer?.name || 'this customer'}? The fee will be closed without recording payment.`)) return;
+    if (!confirm(fillText(t.confirmWaive, { amount: formatPrice(fee.amount), name: fee.customer?.name || t.thisCustomer }))) return;
 
     setActiveFeeId(fee.id);
     setNotice(null);
@@ -259,21 +377,21 @@ export default function NoShowFeesView() {
       .eq('id', fee.id);
 
     if (!error) {
-      setNotice({ tone: 'success', text: 'Fee waived. It has left the Action Centre.' });
+      setNotice({ tone: 'success', key: 'feeWaived' });
       await fetchFees();
     } else {
-      setNotice({ tone: 'error', text: 'We could not waive this fee. Please try again.' });
+      setNotice({ tone: 'error', key: 'waiveFailed' });
     }
     setActiveFeeId(null);
   };
 
   const chargeSavedCard = async (fee: NoShowFee) => {
     if (!fee.booking?.stripe_payment_method_id) {
-      setNotice({ tone: 'warning', text: 'This booking has no saved card. Record an external payment or waive the fee.' });
+      setNotice({ tone: 'warning', key: 'noCardOnFile' });
       return;
     }
 
-    if (!confirm(`Charge ${formatPrice(fee.amount)} to the saved card for ${fee.customer?.name || 'this customer'}?`)) return;
+    if (!confirm(fillText(t.confirmCharge, { amount: formatPrice(fee.amount), name: fee.customer?.name || t.thisCustomer }))) return;
 
     setActiveFeeId(fee.id);
     setNotice(null);
@@ -282,30 +400,24 @@ export default function NoShowFeesView() {
     });
 
     if (!error && data?.charged) {
-      setNotice({ tone: 'success', text: `Card charged ${formatPrice(Number(data.amount) || fee.amount)}. The fee is resolved.` });
+      setNotice({ tone: 'success', key: 'cardCharged', values: { amount: formatPrice(Number(data.amount) || fee.amount) } });
       await fetchFees();
       setActiveFeeId(null);
       return;
     }
 
-    const reasonMessages: Record<string, string> = {
-      no_card_on_file: 'This booking has no saved card. Record an external payment or waive the fee.',
-      payments_not_connected: 'Connect Stripe in Settings → Payments before charging saved cards.',
-      no_fee_configured: 'This service no longer has a no-show fee configured.',
-      already_charged: 'This booking was already charged. Refreshing its fee status now.',
-      charge_failed: 'The saved card could not be charged. Ask the customer to pay another way or waive the fee.',
-    };
-    setNotice({
-      tone: data?.reason === 'charge_failed' || error ? 'error' : 'warning',
-      text: reasonMessages[data?.reason] || error?.message || 'The saved card could not be charged.',
-    });
+    const tone = data?.reason === 'charge_failed' || error ? 'error' : 'warning';
+    const reasonKey = CHARGE_REASON_KEYS[data?.reason];
+    if (reasonKey) setNotice({ tone, key: reasonKey });
+    else if (error?.message) setNotice({ tone, text: error.message });
+    else setNotice({ tone, key: 'chargeFailedGeneric' });
     await fetchFees();
     setActiveFeeId(null);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -347,7 +459,7 @@ export default function NoShowFeesView() {
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-red-200/80 bg-red-50/70 p-4 text-red-700">
         <AlertCircle className="w-5 h-5 flex-shrink-0" />
-        <p className="text-sm">{error}</p>
+        <p className="text-sm">{t[error]}</p>
       </div>
     );
   }
@@ -356,13 +468,13 @@ export default function NoShowFeesView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">No-Show Fees</h1>
-          <p className="text-sm text-stone-500">Collect, record, or waive each fee. Resolved fees leave the Action Centre automatically.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
+          <p className="text-sm text-stone-500">{t.subtitle}</p>
         </div>
         {isGuideDismissed && (
           <button type="button" onClick={() => toggleGuide(false)} className={`${ADMIN_TERTIARY_BUTTON} text-xs`}>
             <HelpCircle className="h-3.5 w-3.5" />
-            How does this work?
+            {t.howItWorks}
           </button>
         )}
       </div>
@@ -373,17 +485,17 @@ export default function NoShowFeesView() {
             <HelpCircle className="h-5 w-5" strokeWidth={1.75} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#1A1714]">How to clear an unpaid fee</h2>
+            <h2 className="text-sm font-semibold text-[#1A1714]">{t.guideTitle}</h2>
             <p className="mt-1 max-w-3xl text-xs leading-5 text-stone-500">
-              <span className="font-medium text-stone-700">Charge card</span> charges the card the customer saved at booking through Stripe.{' '}
-              <span className="font-medium text-stone-700">Mark paid</span> only records money you already received (cash, bank transfer, terminal) — it doesn't charge anyone.{' '}
-              <span className="font-medium text-stone-700">Waive</span> closes the fee without collecting it.
+              <span className="font-medium text-stone-700">{t.guideCharge}</span> {t.guideChargeBody}{' '}
+              <span className="font-medium text-stone-700">{t.guideMarkPaid}</span> {t.guideMarkPaidBody}{' '}
+              <span className="font-medium text-stone-700">{t.guideWaive}</span> {t.guideWaiveBody}
             </p>
           </div>
           <button
             type="button"
             onClick={() => toggleGuide(true)}
-            aria-label="Close guide"
+            aria-label={t.closeGuide}
             className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition hover:bg-stone-900/[0.05] hover:text-stone-700"
           >
             <X className="h-4 w-4" />
@@ -402,7 +514,7 @@ export default function NoShowFeesView() {
                 : 'border-red-200/80 bg-red-50/75 text-red-700'
           }`}
         >
-          {notice.text}
+          {'key' in notice ? fillText(t[notice.key], notice.values ?? {}) : notice.text}
         </div>
       )}
 
@@ -411,20 +523,20 @@ export default function NoShowFeesView() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
           <div className="flex items-start justify-between mb-4">
-            <span className="text-[13px] font-medium text-stone-500">Outstanding</span>
+            <span className="text-[13px] font-medium text-stone-500">{t.outstanding}</span>
             <div className={ADMIN_ICON_TILE}>
               <DollarSign className="h-5 w-5" strokeWidth={1.75} />
             </div>
           </div>
           <div className="text-3xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{formatPrice(getTotalUnpaid())}</div>
           {unbilled.length > 0 && (
-            <p className="mt-1 text-xs text-amber-700">Includes {formatPrice(getTotalUnbilled())} not billed yet</p>
+            <p className="mt-1 text-xs text-amber-700">{fillText(t.includesUnbilled, { amount: formatPrice(getTotalUnbilled()) })}</p>
           )}
         </div>
 
         <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
           <div className="flex items-start justify-between mb-4">
-            <span className="text-[13px] font-medium text-stone-500">Collected</span>
+            <span className="text-[13px] font-medium text-stone-500">{t.collected}</span>
             <div className={ADMIN_ICON_TILE}>
               <Check className="h-5 w-5" strokeWidth={1.75} />
             </div>
@@ -434,7 +546,7 @@ export default function NoShowFeesView() {
 
         <div className={`${ADMIN_SURFACE_INTERACTIVE} p-5`}>
           <div className="flex items-start justify-between mb-4">
-            <span className="text-[13px] font-medium text-stone-500">Waived</span>
+            <span className="text-[13px] font-medium text-stone-500">{t.waived}</span>
             <div className={ADMIN_ICON_TILE}>
               <DollarSign className="h-5 w-5" strokeWidth={1.75} />
             </div>
@@ -448,7 +560,7 @@ export default function NoShowFeesView() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-stone-400" />
           <input
             type="text"
-            placeholder="Search by customer name or email..."
+            placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`${ADMIN_INPUT} pl-10`}
@@ -463,7 +575,7 @@ export default function NoShowFeesView() {
                 : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            All
+            {t.all}
           </button>
           <button
             onClick={() => setStatusFilter('unpaid')}
@@ -473,7 +585,7 @@ export default function NoShowFeesView() {
                 : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            Unpaid
+            {t.unpaid}
           </button>
           <button
             onClick={() => setStatusFilter('paid')}
@@ -483,7 +595,7 @@ export default function NoShowFeesView() {
                 : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            Paid
+            {t.paid}
           </button>
           <button
             onClick={() => setStatusFilter('waived')}
@@ -493,7 +605,7 @@ export default function NoShowFeesView() {
                 : ADMIN_SEGMENT_INACTIVE
             }`}
           >
-            Waived
+            {t.waived}
           </button>
         </div>
       </div>
@@ -504,22 +616,22 @@ export default function NoShowFeesView() {
             <thead className="bg-stone-50/60 border-b border-stone-200/70">
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Customer
+                  {t.colCustomer}
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Reason
+                  {t.colReason}
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Amount
+                  {t.colAmount}
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Billed on
+                  {t.colBilledOn}
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Status
+                  {t.colStatus}
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                  Actions
+                  {t.colActions}
                 </th>
               </tr>
             </thead>
@@ -536,7 +648,7 @@ export default function NoShowFeesView() {
               {filteredFees.length === 0 && !(showUnbilled && visibleUnbilled.length > 0) ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-stone-500">
-                    No fees found
+                    {t.noFees}
                   </td>
                 </tr>
               ) : filteredFees.length === 0 ? null : (
@@ -544,7 +656,7 @@ export default function NoShowFeesView() {
                   <tr key={fee.id} className="hover:bg-stone-50/60 transition-colors">
                     <td className="px-6 py-4">
                       <div className="text-sm text-stone-800 font-medium">
-                        {fee.customer?.name || 'Unknown'}
+                        {fee.customer?.name || t.unknown}
                       </div>
                       <div className="text-xs text-stone-500">{fee.customer?.email}</div>
                     </td>
@@ -556,7 +668,7 @@ export default function NoShowFeesView() {
                             : 'bg-stone-100 text-stone-600'
                         }`}
                       >
-                        {fee.reason === 'no_show' ? 'No-Show' : 'Late Cancel'}
+                        {fee.reason === 'no_show' ? t.noShow : t.lateCancel}
                       </span>
                       {fee.notes && (
                         <div className="text-xs text-stone-500 mt-1">{fee.notes}</div>
@@ -572,7 +684,7 @@ export default function NoShowFeesView() {
                       {fee.resolution_status === 'paid' ? (
                         <div>
                           <span className={`${ADMIN_STATUS_PILL} bg-emerald-50 text-emerald-700`}>
-                            Paid
+                            {t.paid}
                           </span>
                           {fee.paid_at && (
                             <div className="text-xs text-stone-500 mt-1">
@@ -583,7 +695,7 @@ export default function NoShowFeesView() {
                       ) : fee.resolution_status === 'waived' ? (
                         <div>
                           <span className={`${ADMIN_STATUS_PILL} bg-stone-100 text-stone-600`}>
-                            Waived
+                            {t.waived}
                           </span>
                           {fee.resolved_at && (
                             <div className="mt-1 text-xs text-stone-500">{formatDate(fee.resolved_at)}</div>
@@ -591,7 +703,7 @@ export default function NoShowFeesView() {
                         </div>
                       ) : (
                         <span className={`${ADMIN_STATUS_PILL} bg-amber-50 text-amber-700`}>
-                          Unpaid
+                          {t.unpaid}
                         </span>
                       )}
                     </td>
@@ -599,7 +711,7 @@ export default function NoShowFeesView() {
                       {activeFeeId === fee.id ? (
                         <div className="flex items-center gap-2 text-sm text-stone-500">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Updating fee…
+                          {t.updating}
                         </div>
                       ) : fee.resolution_status !== 'unpaid' ? (
                         <button
@@ -608,7 +720,7 @@ export default function NoShowFeesView() {
                           className={ADMIN_TERTIARY_BUTTON}
                         >
                           <RotateCcw className="h-4 w-4" />
-                          Reopen
+                          {t.reopen}
                         </button>
                       ) : (
                         <div>
@@ -620,11 +732,11 @@ export default function NoShowFeesView() {
                                 className={`${ADMIN_PRIMARY_BUTTON} px-3 py-2 text-xs`}
                               >
                                 <CreditCard className="h-3.5 w-3.5" />
-                                Charge card
+                                {t.chargeCard}
                               </button>
                             ) : (
                               <span className="rounded-lg bg-stone-100 px-2.5 py-2 text-xs text-stone-500">
-                                {fee.booking?.no_show_fee_charged ? 'Charge recorded' : 'No saved card'}
+                                {fee.booking?.no_show_fee_charged ? t.chargeRecorded : t.noSavedCard}
                               </span>
                             )}
                             <button
@@ -633,7 +745,7 @@ export default function NoShowFeesView() {
                               className={`${ADMIN_SECONDARY_BUTTON} px-3 py-2 text-xs`}
                             >
                               <Check className="h-3.5 w-3.5" />
-                              Mark paid
+                              {t.markPaid}
                             </button>
                             <button
                               type="button"
@@ -641,11 +753,11 @@ export default function NoShowFeesView() {
                               className={`${ADMIN_TERTIARY_BUTTON} px-2.5 py-2 text-xs`}
                             >
                               <Ban className="h-3.5 w-3.5" />
-                              Waive
+                              {t.waive}
                             </button>
                           </div>
                           {!fee.booking?.stripe_payment_method_id && !fee.booking?.no_show_fee_charged && (
-                            <p className="mt-2 text-[11px] leading-4 text-stone-400">No card was saved, so collect it yourself, then “Mark paid”.</p>
+                            <p className="mt-2 text-[11px] leading-4 text-stone-400">{t.noCardHint}</p>
                           )}
                         </div>
                       )}
@@ -659,7 +771,7 @@ export default function NoShowFeesView() {
       </div>
 
       <div className="text-xs text-stone-400">
-        Showing {filteredFees.length + (showUnbilled ? visibleUnbilled.length : 0)} of {fees.length + unbilled.length} no-shows
+        {fillText(t.showing, { shown: filteredFees.length + (showUnbilled ? visibleUnbilled.length : 0), total: fees.length + unbilled.length })}
       </div>
     </div>
   );

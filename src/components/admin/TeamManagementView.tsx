@@ -18,6 +18,10 @@ import {
   ADMIN_SURFACE,
   ADMIN_TERTIARY_BUTTON,
 } from './adminUi';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText } from '../../lib/bookingLanguage';
+import { categoryLabel, permissionLabel, roleLabel } from './roleLabels';
+import { PRIMARY_ROLE_KEY, TEXT, type FeedbackKey } from './teamManagementText';
 
 interface StaffMember {
   id: string;
@@ -66,6 +70,8 @@ interface AdminUserWithRoles {
 }
 
 export default function TeamManagementView() {
+  const { t, lang, locale } = useAdminText(TEXT);
+  const primaryRoleLabel = (role: string) => (PRIMARY_ROLE_KEY[role] ? t[PRIMARY_ROLE_KEY[role]] : role.replace('_', ' '));
   const { businessId } = useTenant();
   const currentUser = adminAuth.getCurrentUser();
   const { hasPermission } = usePermissions(currentUser?.id || null);
@@ -86,7 +92,7 @@ export default function TeamManagementView() {
   });
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
-  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; key: FeedbackKey; email?: string } | null>(null);
 
   const canAssignRoles = hasPermission('assign_roles');
 
@@ -172,7 +178,7 @@ export default function TeamManagementView() {
 
     const role = roles.find(r => r.id === selectedRole);
     if (role?.is_system_role) {
-      setFeedback({ tone: 'error', text: 'System roles cannot be modified.' });
+      setFeedback({ tone: 'error', key: 'systemLocked' });
       return;
     }
 
@@ -255,10 +261,10 @@ export default function TeamManagementView() {
       setInviteForm({ email: '', full_name: '', role: 'staff' });
       await fetchData();
 
-      setFeedback({ tone: 'success', text: `Invitation sent to ${inviteForm.email}.` });
+      setFeedback({ tone: 'success', key: 'inviteSent', email: inviteForm.email });
     } catch (err: any) {
       console.error('Error sending invitation:', err);
-      setInviteError(err.message || 'Failed to send invitation');
+      setInviteError(err.message || t.inviteFailed);
     } finally {
       setInviting(false);
     }
@@ -322,15 +328,15 @@ export default function TeamManagementView() {
   const handleResendInvitation = async (invitation: Invitation) => {
     try {
       await sendInvitationEmail(invitation.email, invitation.full_name, invitation.invite_token);
-      setFeedback({ tone: 'success', text: `Invitation resent to ${invitation.email}.` });
+      setFeedback({ tone: 'success', key: 'resent', email: invitation.email });
     } catch (err) {
       console.error('Error resending invitation:', err);
-      setFeedback({ tone: 'error', text: 'The invitation could not be resent.' });
+      setFeedback({ tone: 'error', key: 'resendFailed' });
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
-    if (!confirm('Are you sure you want to cancel this invitation?')) return;
+    if (!confirm(t.confirmCancel)) return;
 
     try {
       const { error } = await supabase
@@ -341,10 +347,10 @@ export default function TeamManagementView() {
       if (error) throw error;
 
       await fetchData();
-      setFeedback({ tone: 'success', text: 'Invitation cancelled.' });
+      setFeedback({ tone: 'success', key: 'inviteCancelled' });
     } catch (err) {
       console.error('Error cancelling invitation:', err);
-      setFeedback({ tone: 'error', text: 'The invitation could not be cancelled.' });
+      setFeedback({ tone: 'error', key: 'cancelFailed' });
     }
   };
 
@@ -358,10 +364,10 @@ export default function TeamManagementView() {
       if (error) throw error;
 
       await fetchData();
-      setFeedback({ tone: 'success', text: currentStatus ? 'Team member deactivated.' : 'Team member activated.' });
+      setFeedback({ tone: 'success', key: currentStatus ? 'deactivated' : 'activated' });
     } catch (err) {
       console.error('Error updating staff status:', err);
-      setFeedback({ tone: 'error', text: 'The team member status could not be updated.' });
+      setFeedback({ tone: 'error', key: 'statusFailed' });
     }
   };
 
@@ -382,7 +388,7 @@ export default function TeamManagementView() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -398,6 +404,8 @@ export default function TeamManagementView() {
     acc[perm.category].push(perm);
     return acc;
   }, {} as Record<string, Permission[]>);
+
+  const selectedRoleRecord = roles.find(role => role.id === selectedRole);
 
   if (loading) {
     return (
@@ -418,8 +426,8 @@ export default function TeamManagementView() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[#1A1714]">Team & Permissions</h1>
-          <p className="text-sm text-stone-500">Manage your team members, invitations, and role-based permissions</p>
+          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[#1A1714]">{t.title}</h1>
+          <p className="text-sm text-stone-500">{t.subtitle}</p>
         </div>
         <button
           type="button"
@@ -427,7 +435,7 @@ export default function TeamManagementView() {
           className={ADMIN_PRIMARY_BUTTON}
         >
           <Plus className="h-4 w-4" />
-          Invite Team Member
+          {t.inviteMember}
         </button>
       </div>
 
@@ -440,8 +448,8 @@ export default function TeamManagementView() {
               : 'border-red-200/80 bg-red-50/70 text-red-800'
           }`}
         >
-          <span>{feedback.text}</span>
-          <button type="button" onClick={() => setFeedback(null)} className="rounded-lg p-1 transition hover:bg-black/5" aria-label="Dismiss message">
+          <span>{fillText(t[feedback.key], { email: feedback.email ?? '' })}</span>
+          <button type="button" onClick={() => setFeedback(null)} className="rounded-lg p-1 transition hover:bg-black/5" aria-label={t.dismiss}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -450,9 +458,9 @@ export default function TeamManagementView() {
       <div className="overflow-x-auto pb-1">
         <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
           {[
-            { id: 'team' as const, label: 'Team members', count: staff.length, icon: Users },
-            { id: 'invitations' as const, label: 'Invitations', count: invitations.filter(inv => !inv.is_used).length, icon: Mail },
-            { id: 'roles' as const, label: 'Roles & permissions', count: roles.length, icon: Shield },
+            { id: 'team' as const, label: t.tabTeam, count: staff.length, icon: Users },
+            { id: 'invitations' as const, label: t.tabInvitations, count: invitations.filter(inv => !inv.is_used).length, icon: Mail },
+            { id: 'roles' as const, label: t.tabRoles, count: roles.length, icon: Shield },
           ].map((tab) => (
             <button
               type="button"
@@ -479,16 +487,16 @@ export default function TeamManagementView() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-900/[0.05]">
                 <Users className="h-5 w-5 text-stone-500" strokeWidth={1.75} />
               </div>
-              <h3 className="font-semibold text-[#1A1714]">Build your team</h3>
-              <p className="mt-1 max-w-sm text-sm text-stone-500">Invite the people who manage bookings, customers, and daily operations.</p>
+              <h3 className="font-semibold text-[#1A1714]">{t.emptyTeamTitle}</h3>
+              <p className="mt-1 max-w-sm text-sm text-stone-500">{t.emptyTeamBody}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px]">
                 <thead className="border-b border-stone-200/70 bg-stone-900/[0.025]">
                   <tr>
-                    {['Member', 'Primary role', 'Additional roles', 'Last login', 'Status', ''].map((heading) => (
-                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">
+                    {[t.colMember, t.colPrimaryRole, t.colAdditionalRoles, t.colLastLogin, t.colStatus, ''].map((heading, headingIndex) => (
+                      <th key={headingIndex} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">
                         {heading}
                       </th>
                     ))}
@@ -519,16 +527,16 @@ export default function TeamManagementView() {
                         </td>
                         <td className="px-5 py-4">
                           <span className={`${ADMIN_STATUS_PILL} ${getRoleBadgeColor(member.role)}`}>
-                            {member.role.replace('_', ' ')}
+                            {primaryRoleLabel(member.role)}
                           </span>
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex max-w-xs flex-wrap items-center gap-1.5">
                             {userWithRoles?.roles.map(role => (
                               <span key={role.id} className={`${ADMIN_STATUS_PILL} bg-stone-900/[0.05] text-stone-600`}>
-                                {role.display_name}
+                                {roleLabel(role, lang)[0]}
                                 {canAssignRoles && member.id !== currentUser?.id && (
-                                  <button type="button" onClick={() => removeRoleFromUser(member.id, role.id)} className="rounded-full p-0.5 hover:bg-stone-900/10" aria-label={`Remove ${role.display_name}`}>
+                                  <button type="button" onClick={() => removeRoleFromUser(member.id, role.id)} className="rounded-full p-0.5 hover:bg-stone-900/10" aria-label={fillText(t.removeRole, { role: roleLabel(role, lang)[0] })}>
                                     <X className="h-3 w-3" />
                                   </button>
                                 )}
@@ -545,27 +553,27 @@ export default function TeamManagementView() {
                                 className="rounded-lg border border-stone-200/80 bg-white/70 px-2 py-1 text-xs text-stone-600 outline-none focus:border-stone-400"
                                 defaultValue=""
                               >
-                                <option value="" disabled>+ Add role</option>
+                                <option value="" disabled>{t.addRole}</option>
                                 {roles
                                   .filter(role => !userWithRoles?.roles.some(userRole => userRole.id === role.id))
-                                  .map(role => <option key={role.id} value={role.id}>{role.display_name}</option>)}
+                                  .map(role => <option key={role.id} value={role.id}>{roleLabel(role, lang)[0]}</option>)}
                               </select>
                             )}
                           </div>
                         </td>
                         <td className="px-5 py-4 text-sm text-stone-500">
-                          {member.last_login ? formatDate(member.last_login) : 'Never'}
+                          {member.last_login ? formatDate(member.last_login) : t.never}
                         </td>
                         <td className="px-5 py-4">
                           <span className={`${ADMIN_STATUS_PILL} ${member.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${member.is_active ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            {member.is_active ? 'Active' : 'Inactive'}
+                            {member.is_active ? t.active : t.inactive}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
                           {member.id !== currentUser?.id && (
                             <button type="button" onClick={() => handleToggleStaffStatus(member.id, member.is_active)} className={ADMIN_TERTIARY_BUTTON}>
-                              {member.is_active ? 'Deactivate' : 'Activate'}
+                              {member.is_active ? t.deactivate : t.activate}
                             </button>
                           )}
                         </td>
@@ -586,8 +594,8 @@ export default function TeamManagementView() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-900/[0.05]">
                 <Mail className="h-5 w-5 text-stone-500" strokeWidth={1.75} />
               </div>
-              <h3 className="font-semibold text-[#1A1714]">No pending invitations</h3>
-              <p className="mt-1 text-sm text-stone-500">New invitations will appear here until they are accepted.</p>
+              <h3 className="font-semibold text-[#1A1714]">{t.noInvitations}</h3>
+              <p className="mt-1 text-sm text-stone-500">{t.noInvitationsBody}</p>
             </div>
           ) : (
             <div className="divide-y divide-stone-200/60">
@@ -596,22 +604,22 @@ export default function TeamManagementView() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-semibold text-[#1A1714]">{invitation.full_name}</h3>
-                      <span className={`${ADMIN_STATUS_PILL} ${getRoleBadgeColor(invitation.role)}`}>{invitation.role}</span>
+                      <span className={`${ADMIN_STATUS_PILL} ${getRoleBadgeColor(invitation.role)}`}>{primaryRoleLabel(invitation.role)}</span>
                       {isExpired(invitation.expires_at) && (
-                        <span className={`${ADMIN_STATUS_PILL} bg-red-50 text-red-700`}>Expired</span>
+                        <span className={`${ADMIN_STATUS_PILL} bg-red-50 text-red-700`}>{t.expired}</span>
                       )}
                     </div>
                     <p className="mt-1 text-sm text-stone-500">{invitation.email}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-stone-400">
-                      <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Sent {formatDate(invitation.created_at)}</span>
-                      <span>Expires {formatDate(invitation.expires_at)}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {fillText(t.sent, { date: formatDate(invitation.created_at) })}</span>
+                      <span>{fillText(t.expires, { date: formatDate(invitation.expires_at) })}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => handleResendInvitation(invitation)} className={ADMIN_SECONDARY_BUTTON}>
-                      <RefreshCw className="h-4 w-4" /> Resend
+                      <RefreshCw className="h-4 w-4" /> {t.resend}
                     </button>
-                    <button type="button" onClick={() => handleCancelInvitation(invitation.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-600 transition hover:bg-red-50" aria-label="Cancel invitation">
+                    <button type="button" onClick={() => handleCancelInvitation(invitation.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-600 transition hover:bg-red-50" aria-label={t.cancelInvite}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -625,12 +633,12 @@ export default function TeamManagementView() {
       {activeTab === 'roles' && (
         !canAssignRoles ? (
           <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-sm text-amber-800">
-            You do not have permission to manage roles and permissions.
+            {t.noRolePermission}
           </div>
         ) : (
           <div className={`${ADMIN_SURFACE} grid overflow-hidden lg:grid-cols-[300px_1fr]`}>
             <aside className="border-b border-stone-200/70 bg-stone-900/[0.025] p-4 lg:border-b-0 lg:border-r">
-              <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Roles</p>
+              <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{t.roles}</p>
               <div className="space-y-1.5">
                 {roles.map(role => (
                   <button
@@ -644,10 +652,10 @@ export default function TeamManagementView() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">{role.display_name}</span>
+                      <span className="text-sm font-medium">{roleLabel(role, lang)[0]}</span>
                       {role.is_system_role && <LockKeyhole className="h-3.5 w-3.5 opacity-55" />}
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-60">{role.description}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 opacity-60">{roleLabel(role, lang)[1]}</p>
                   </button>
                 ))}
               </div>
@@ -659,20 +667,20 @@ export default function TeamManagementView() {
                   <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                     <div>
                       <h3 className="text-base font-semibold tracking-tight text-[#1A1714]">
-                        {roles.find(role => role.id === selectedRole)?.display_name} permissions
+                        {fillText(t.rolePermissions, { role: selectedRoleRecord ? roleLabel(selectedRoleRecord, lang)[0] : '' })}
                       </h3>
-                      <p className="mt-1 text-sm text-stone-500">Choose what this role can see and change.</p>
+                      <p className="mt-1 text-sm text-stone-500">{t.roleHint}</p>
                     </div>
                     {roles.find(role => role.id === selectedRole)?.is_system_role && (
                       <span className={`${ADMIN_STATUS_PILL} bg-amber-50 text-amber-700`}>
-                        <LockKeyhole className="h-3.5 w-3.5" /> System role
+                        <LockKeyhole className="h-3.5 w-3.5" /> {t.systemRole}
                       </span>
                     )}
                   </div>
                   <div className="space-y-7">
                     {Object.entries(permissionsByCategory).map(([category, perms]) => (
                       <div key={category}>
-                        <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{category}</h4>
+                        <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{categoryLabel(category, lang)}</h4>
                         <div className="divide-y divide-stone-200/60 rounded-xl bg-stone-900/[0.025] px-3">
                           {perms.map(permission => (
                             <label key={permission.id} className="flex cursor-pointer items-start gap-3 px-1 py-3.5">
@@ -684,8 +692,8 @@ export default function TeamManagementView() {
                                 className="mt-0.5 h-4 w-4 rounded border-stone-300 accent-[#1A1714] disabled:opacity-40"
                               />
                               <span className="min-w-0">
-                                <span className="block text-sm font-medium text-[#1A1714]">{permission.name}</span>
-                                <span className="mt-0.5 block text-xs leading-5 text-stone-400">{permission.description}</span>
+                                <span className="block text-sm font-medium text-[#1A1714]">{permissionLabel(permission, lang)[0]}</span>
+                                <span className="mt-0.5 block text-xs leading-5 text-stone-400">{permissionLabel(permission, lang)[1]}</span>
                               </span>
                             </label>
                           ))}
@@ -697,8 +705,8 @@ export default function TeamManagementView() {
               ) : (
                 <div className="flex min-h-64 flex-col items-center justify-center text-center">
                   <Shield className="mb-3 h-6 w-6 text-stone-300" strokeWidth={1.5} />
-                  <p className="text-sm font-medium text-[#1A1714]">Select a role</p>
-                  <p className="mt-1 text-xs text-stone-400">Its permissions will appear here.</p>
+                  <p className="text-sm font-medium text-[#1A1714]">{t.selectRole}</p>
+                  <p className="mt-1 text-xs text-stone-400">{t.selectRoleHint}</p>
                 </div>
               )}
             </section>
@@ -711,10 +719,10 @@ export default function TeamManagementView() {
           <div className={`${ADMIN_MODAL} max-w-lg p-6 sm:p-7`} role="dialog" aria-modal="true" aria-labelledby="invite-team-title">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <h2 id="invite-team-title" className="text-lg font-semibold tracking-tight text-[#1A1714]">Invite a team member</h2>
-                <p className="mt-1 text-sm text-stone-500">They will receive a secure link to create their account.</p>
+                <h2 id="invite-team-title" className="text-lg font-semibold tracking-tight text-[#1A1714]">{t.inviteTitle}</h2>
+                <p className="mt-1 text-sm text-stone-500">{t.inviteBody}</p>
               </div>
-              <button type="button" onClick={() => setShowInviteModal(false)} className="rounded-xl p-2 text-stone-500 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]" aria-label="Close">
+              <button type="button" onClick={() => setShowInviteModal(false)} className="rounded-xl p-2 text-stone-500 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]" aria-label={t.close}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -727,7 +735,7 @@ export default function TeamManagementView() {
 
             <form onSubmit={handleInviteStaff} className="space-y-4">
               <div>
-                <label htmlFor="invite-full-name" className="mb-2 block text-sm font-medium text-stone-700">Full name</label>
+                <label htmlFor="invite-full-name" className="mb-2 block text-sm font-medium text-stone-700">{t.fullName}</label>
                 <input
                   id="invite-full-name"
                   type="text"
@@ -739,7 +747,7 @@ export default function TeamManagementView() {
               </div>
 
               <div>
-                <label htmlFor="invite-email" className="mb-2 block text-sm font-medium text-stone-700">Email address</label>
+                <label htmlFor="invite-email" className="mb-2 block text-sm font-medium text-stone-700">{t.emailAddress}</label>
                 <input
                   id="invite-email"
                   type="email"
@@ -751,18 +759,18 @@ export default function TeamManagementView() {
               </div>
 
               <div>
-                <label htmlFor="invite-role" className="mb-2 block text-sm font-medium text-stone-700">Primary role</label>
+                <label htmlFor="invite-role" className="mb-2 block text-sm font-medium text-stone-700">{t.primaryRole}</label>
                 <select
                   id="invite-role"
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
                   className={ADMIN_SELECT}
                 >
-                  <option value="staff">Staff</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="cashier">Cashier</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
+                  <option value="staff">{t.roleStaff}</option>
+                  <option value="receptionist">{t.roleReceptionist}</option>
+                  <option value="cashier">{t.roleCashier}</option>
+                  <option value="manager">{t.roleManager}</option>
+                  <option value="admin">{t.roleAdmin}</option>
                 </select>
               </div>
 
@@ -773,14 +781,14 @@ export default function TeamManagementView() {
                   className={`${ADMIN_SECONDARY_BUTTON} flex-1`}
                   disabled={inviting}
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className={`${ADMIN_PRIMARY_BUTTON} flex-1`}
                   disabled={inviting}
                 >
-                  {inviting ? 'Sending…' : 'Send invitation'}
+                  {inviting ? t.sending : t.sendInvite}
                 </button>
               </div>
             </form>

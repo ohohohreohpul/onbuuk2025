@@ -3,6 +3,103 @@ import { supabase } from '../../lib/supabase';
 import { Plus, Edit2, Trash2, X, Package, LayoutList, LayoutGrid, Image } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  title: string; subtitle: string; allCategories: string; listView: string; gridView: string; addProduct: string;
+  productCountOne: string; productCountMany: string; selectOneOnly: string; uncategorized: string; emptyTitle: string;
+  emptyHint: string; emptyCategory: string; editProduct: string; newProduct: string; close: string; productName: string;
+  productNamePlaceholder: string; description: string; descriptionPlaceholder: string; category: string;
+  selectCategory: string; createCategory: string; newCategoryPlaceholder: string; backToCategories: string; price: string;
+  exclusiveTitle: string; exclusiveHint: string; productImage: string; imageAlt: string; noImage: string; uploading: string;
+  uploadImage: string; removeImage: string; imageHint: string; maxQuantity: string; maxQuantityPlaceholder: string;
+  maxQuantityHint: string; statusTitle: string; statusHint: string; availableFor: string; allServices: string;
+  allServicesHint: string; specificServices: string; specificServicesHint: string; noServices: string;
+  updateProduct: string; createProduct: string; cancel: string; inactive: string; exclusive: string; edit: string;
+  delete: string; maxPerBooking: string; maxShort: string; imageTooLarge: string; uploadFailed: string;
+  businessNotFound: string; nameRequired: string; descriptionRequired: string; updateFailed: string; createFailed: string;
+  saveFailed: string; unknownError: string; confirmDelete: string; deleteFailed: string;
+}> = {
+  en: {
+    title: 'Add-on products', subtitle: 'Manage products that can be added to bookings', allCategories: 'All categories',
+    listView: 'List view', gridView: 'Grid view', addProduct: 'Add product', productCountOne: '1 product',
+    productCountMany: '{count} products', selectOneOnly: 'Select one only', uncategorized: 'Uncategorized',
+    emptyTitle: 'No products yet', emptyHint: 'Create your first add-on product.', emptyCategory: 'No products in this category',
+    editProduct: 'Edit product', newProduct: 'New product', close: 'Close', productName: 'Product name',
+    productNamePlaceholder: 'e.g. Aromatherapy oil', description: 'Description', descriptionPlaceholder: 'Describe your product…',
+    category: 'Category', selectCategory: 'Select a category…', createCategory: '+ Create new category',
+    newCategoryPlaceholder: 'Enter new category name', backToCategories: '← Back to existing categories', price: 'Price',
+    exclusiveTitle: 'Exclusive selection', exclusiveHint: 'Only one product from this category can be selected per booking',
+    productImage: 'Product image (optional)', imageAlt: 'Product', noImage: 'No image', uploading: 'Uploading…',
+    uploadImage: 'Upload image', removeImage: 'Remove image', imageHint: 'Max 2 MB. JPG, PNG or WebP recommended.',
+    maxQuantity: 'Maximum quantity per booking', maxQuantityPlaceholder: 'Leave empty for unlimited',
+    maxQuantityHint: 'How many times can this be added per booking?', statusTitle: 'Product status',
+    statusHint: "Inactive products won't be shown to customers", availableFor: 'Available for', allServices: 'All services',
+    allServicesHint: 'This product will be available for all services', specificServices: 'Specific services',
+    specificServicesHint: 'Choose which services can offer this product', noServices: 'No services available',
+    updateProduct: 'Update product', createProduct: 'Create product', cancel: 'Cancel', inactive: 'Inactive',
+    exclusive: 'Exclusive', edit: 'Edit', delete: 'Delete', maxPerBooking: 'Max {count} per booking', maxShort: 'Max: {count}',
+    imageTooLarge: 'The image must be smaller than 2 MB.', uploadFailed: 'Could not upload the image. Please try again.',
+    businessNotFound: 'Business not found. Please refresh the page.', nameRequired: 'Please enter a product name.',
+    descriptionRequired: 'Please enter a product description.', updateFailed: 'Could not update the product: {message}',
+    createFailed: 'Could not create the product: {message}', saveFailed: 'An error occurred while saving the product: {message}',
+    unknownError: 'Unknown error', confirmDelete: 'Are you sure you want to delete this product?',
+    deleteFailed: 'Could not delete the product: {message}',
+  },
+  de: {
+    title: 'Zusatzprodukte', subtitle: 'Produkte verwalten, die zu Buchungen hinzugefügt werden können', allCategories: 'Alle Kategorien',
+    listView: 'Listenansicht', gridView: 'Rasteransicht', addProduct: 'Produkt hinzufügen', productCountOne: '1 Produkt',
+    productCountMany: '{count} Produkte', selectOneOnly: 'Nur eine Auswahl', uncategorized: 'Ohne Kategorie',
+    emptyTitle: 'Noch keine Produkte', emptyHint: 'Legen Sie Ihr erstes Zusatzprodukt an.', emptyCategory: 'Keine Produkte in dieser Kategorie',
+    editProduct: 'Produkt bearbeiten', newProduct: 'Neues Produkt', close: 'Schließen', productName: 'Produktname',
+    productNamePlaceholder: 'z. B. Aromaöl', description: 'Beschreibung', descriptionPlaceholder: 'Produkt beschreiben…',
+    category: 'Kategorie', selectCategory: 'Kategorie auswählen…', createCategory: '+ Neue Kategorie anlegen',
+    newCategoryPlaceholder: 'Name der neuen Kategorie', backToCategories: '← Zurück zu bestehenden Kategorien', price: 'Preis',
+    exclusiveTitle: 'Exklusive Auswahl', exclusiveHint: 'Pro Buchung kann nur ein Produkt dieser Kategorie gewählt werden',
+    productImage: 'Produktbild (optional)', imageAlt: 'Produkt', noImage: 'Kein Bild', uploading: 'Wird hochgeladen…',
+    uploadImage: 'Bild hochladen', removeImage: 'Bild entfernen', imageHint: 'Max. 2 MB. JPG, PNG oder WebP empfohlen.',
+    maxQuantity: 'Höchstmenge pro Buchung', maxQuantityPlaceholder: 'Leer lassen für unbegrenzt',
+    maxQuantityHint: 'Wie oft kann das Produkt pro Buchung hinzugefügt werden?', statusTitle: 'Produktstatus',
+    statusHint: 'Inaktive Produkte werden Kunden nicht angezeigt', availableFor: 'Verfügbar für', allServices: 'Alle Leistungen',
+    allServicesHint: 'Dieses Produkt ist für alle Leistungen verfügbar', specificServices: 'Bestimmte Leistungen',
+    specificServicesHint: 'Wählen Sie, bei welchen Leistungen das Produkt angeboten wird', noServices: 'Keine Leistungen vorhanden',
+    updateProduct: 'Produkt speichern', createProduct: 'Produkt anlegen', cancel: 'Abbrechen', inactive: 'Inaktiv',
+    exclusive: 'Exklusiv', edit: 'Bearbeiten', delete: 'Löschen', maxPerBooking: 'Max. {count} pro Buchung', maxShort: 'Max.: {count}',
+    imageTooLarge: 'Das Bild muss kleiner als 2 MB sein.', uploadFailed: 'Bild konnte nicht hochgeladen werden. Bitte erneut versuchen.',
+    businessNotFound: 'Unternehmen nicht gefunden. Bitte Seite neu laden.', nameRequired: 'Bitte einen Produktnamen eingeben.',
+    descriptionRequired: 'Bitte eine Produktbeschreibung eingeben.', updateFailed: 'Produkt konnte nicht gespeichert werden: {message}',
+    createFailed: 'Produkt konnte nicht angelegt werden: {message}', saveFailed: 'Beim Speichern des Produkts ist ein Fehler aufgetreten: {message}',
+    unknownError: 'Unbekannter Fehler', confirmDelete: 'Dieses Produkt wirklich löschen?',
+    deleteFailed: 'Produkt konnte nicht gelöscht werden: {message}',
+  },
+  th: {
+    title: 'สินค้าเสริม', subtitle: 'จัดการสินค้าที่เพิ่มในการจองได้', allCategories: 'ทุกหมวดหมู่',
+    listView: 'มุมมองรายการ', gridView: 'มุมมองตาราง', addProduct: 'เพิ่มสินค้า', productCountOne: '1 สินค้า',
+    productCountMany: '{count} สินค้า', selectOneOnly: 'เลือกได้เพียงหนึ่ง', uncategorized: 'ไม่มีหมวดหมู่',
+    emptyTitle: 'ยังไม่มีสินค้า', emptyHint: 'สร้างสินค้าเสริมรายการแรกของคุณ', emptyCategory: 'ไม่มีสินค้าในหมวดหมู่นี้',
+    editProduct: 'แก้ไขสินค้า', newProduct: 'สินค้าใหม่', close: 'ปิด', productName: 'ชื่อสินค้า',
+    productNamePlaceholder: 'เช่น น้ำมันอโรมา', description: 'รายละเอียด', descriptionPlaceholder: 'อธิบายสินค้าของคุณ…',
+    category: 'หมวดหมู่', selectCategory: 'เลือกหมวดหมู่…', createCategory: '+ สร้างหมวดหมู่ใหม่',
+    newCategoryPlaceholder: 'ใส่ชื่อหมวดหมู่ใหม่', backToCategories: '← กลับไปที่หมวดหมู่ที่มีอยู่', price: 'ราคา',
+    exclusiveTitle: 'เลือกได้รายการเดียว', exclusiveHint: 'ลูกค้าเลือกสินค้าในหมวดหมู่นี้ได้เพียงหนึ่งรายการต่อการจอง',
+    productImage: 'รูปสินค้า (ไม่บังคับ)', imageAlt: 'สินค้า', noImage: 'ไม่มีรูปภาพ', uploading: 'กำลังอัปโหลด…',
+    uploadImage: 'อัปโหลดรูปภาพ', removeImage: 'ลบรูปภาพ', imageHint: 'ไม่เกิน 2 MB แนะนำ JPG, PNG หรือ WebP',
+    maxQuantity: 'จำนวนสูงสุดต่อการจอง', maxQuantityPlaceholder: 'เว้นว่างไว้หากไม่จำกัด',
+    maxQuantityHint: 'เพิ่มสินค้านี้ได้กี่ครั้งต่อการจอง', statusTitle: 'สถานะสินค้า',
+    statusHint: 'สินค้าที่ปิดใช้งานจะไม่แสดงให้ลูกค้าเห็น', availableFor: 'ใช้ได้กับ', allServices: 'ทุกบริการ',
+    allServicesHint: 'สินค้านี้ใช้ได้กับทุกบริการ', specificServices: 'บางบริการ',
+    specificServicesHint: 'เลือกบริการที่จะเสนอสินค้านี้', noServices: 'ยังไม่มีบริการ',
+    updateProduct: 'บันทึกสินค้า', createProduct: 'สร้างสินค้า', cancel: 'ยกเลิก', inactive: 'ปิดใช้งาน',
+    exclusive: 'เลือกได้รายการเดียว', edit: 'แก้ไข', delete: 'ลบ', maxPerBooking: 'สูงสุด {count} ต่อการจอง', maxShort: 'สูงสุด: {count}',
+    imageTooLarge: 'รูปภาพต้องมีขนาดไม่เกิน 2 MB', uploadFailed: 'อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองอีกครั้ง',
+    businessNotFound: 'ไม่พบข้อมูลร้าน กรุณารีเฟรชหน้า', nameRequired: 'กรุณาใส่ชื่อสินค้า',
+    descriptionRequired: 'กรุณาใส่รายละเอียดสินค้า', updateFailed: 'อัปเดตสินค้าไม่สำเร็จ: {message}',
+    createFailed: 'สร้างสินค้าไม่สำเร็จ: {message}', saveFailed: 'เกิดข้อผิดพลาดขณะบันทึกสินค้า: {message}',
+    unknownError: 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ', confirmDelete: 'ต้องการลบสินค้านี้ใช่หรือไม่',
+    deleteFailed: 'ลบสินค้าไม่สำเร็จ: {message}',
+  },
+};
 
 interface Product {
   id: string;
@@ -25,6 +122,7 @@ interface Service {
 export default function ProductsView() {
   const { businessId } = useTenant();
   const { formatAmount } = useCurrency();
+  const { t } = useAdminText(TEXT);
   const [products, setProducts] = useState<Product[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +255,7 @@ export default function ProductsView() {
     if (!file || !businessId) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be less than 2MB');
+      alert(t.imageTooLarge);
       return;
     }
 
@@ -180,7 +278,7 @@ export default function ProductsView() {
       setFormData({ ...formData, image_url: publicUrl });
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(t.uploadFailed);
     } finally {
       setUploadingImage(false);
     }
@@ -189,7 +287,7 @@ export default function ProductsView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessId) {
-      alert('Business ID not found. Please refresh the page.');
+      alert(t.businessNotFound);
       return;
     }
 
@@ -197,11 +295,11 @@ export default function ProductsView() {
 
     // Validation
     if (!formData.name.trim()) {
-      alert('Please enter a product name.');
+      alert(t.nameRequired);
       return;
     }
     if (!formData.description.trim()) {
-      alert('Please enter a product description.');
+      alert(t.descriptionRequired);
       return;
     }
 
@@ -224,7 +322,7 @@ export default function ProductsView() {
 
         if (updateError) {
           console.error('Update error:', updateError);
-          alert(`Failed to update product: ${updateError.message}`);
+          alert(fillText(t.updateFailed, { message: updateError.message }));
           return;
         }
 
@@ -272,7 +370,7 @@ export default function ProductsView() {
 
         if (insertError) {
           console.error('Insert error:', insertError);
-          alert(`Failed to create product: ${insertError.message}`);
+          alert(fillText(t.createFailed, { message: insertError.message }));
           return;
         }
 
@@ -300,18 +398,21 @@ export default function ProductsView() {
       await fetchProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
-      alert(`An error occurred while saving the product: ${error?.message || 'Unknown error'}`);
+      alert(fillText(t.saveFailed, { message: error?.message || t.unknownError }));
     }
   };
 
   const deleteProduct = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm(t.confirmDelete)) return;
 
     const { error } = await supabase.from('products').delete().eq('id', productId);
 
-    if (!error) {
-      fetchProducts();
+    if (error) {
+      console.error('Error deleting product:', error);
+      alert(fillText(t.deleteFailed, { message: error.message }));
+      return;
     }
+    fetchProducts();
   };
 
   const toggleServiceSelection = (serviceId: string) => {
@@ -334,7 +435,7 @@ export default function ProductsView() {
 
   // Group products by category
   const groupedProducts = products.reduce((acc, product) => {
-    const category = product.category || 'Uncategorized';
+    const category = product.category || t.uncategorized;
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -344,7 +445,7 @@ export default function ProductsView() {
 
   const filteredProducts = selectedCategory === 'all' 
     ? products 
-    : products.filter(p => (p.category || 'Uncategorized') === selectedCategory);
+    : products.filter(p => (p.category || t.uncategorized) === selectedCategory);
 
   if (loading) {
     return (
@@ -359,8 +460,8 @@ export default function ProductsView() {
       {/* Header - Matches ServicesView */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Add-On Products</h1>
-          <p className="text-gray-600">Manage products that can be added to bookings</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
+          <p className="text-gray-600">{t.subtitle}</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
@@ -368,7 +469,7 @@ export default function ProductsView() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1714] focus:border-transparent transition-all"
           >
-            <option value="all">All Categories</option>
+            <option value="all">{t.allCategories}</option>
             {existingCategories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
@@ -379,14 +480,16 @@ export default function ProductsView() {
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-              title="List view"
+              title={t.listView}
+              aria-label={t.listView}
             >
               <LayoutList className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-              title="Grid view"
+              title={t.gridView}
+              aria-label={t.gridView}
             >
               <LayoutGrid className="w-5 h-5" />
             </button>
@@ -396,7 +499,7 @@ export default function ProductsView() {
             className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
-            <span className="font-medium">Add Product</span>
+            <span className="font-medium">{t.addProduct}</span>
           </button>
         </div>
       </div>
@@ -414,11 +517,11 @@ export default function ProductsView() {
                 <div className="flex items-center space-x-3">
                   <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{category}</h2>
                   <span className="text-sm px-3 py-1 bg-white rounded-full text-gray-600 font-medium shadow-sm">
-                    {categoryProducts.length} {categoryProducts.length === 1 ? 'product' : 'products'}
+                    {categoryProducts.length === 1 ? t.productCountOne : fillText(t.productCountMany, { count: categoryProducts.length })}
                   </span>
                   {categoryProducts.some(p => p.is_exclusive_in_category) && (
                     <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
-                      Select one only
+                      {t.selectOneOnly}
                     </span>
                   )}
                 </div>
@@ -460,14 +563,14 @@ export default function ProductsView() {
           {products.length === 0 && (
             <div className="text-center py-16 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-xl font-medium text-gray-700 mb-2">No products yet</p>
-              <p className="text-gray-500 mb-6">Create your first add-on product!</p>
+              <p className="text-xl font-medium text-gray-700 mb-2">{t.emptyTitle}</p>
+              <p className="text-gray-500 mb-6">{t.emptyHint}</p>
               <button
                 onClick={openCreateModal}
                 className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all"
               >
                 <Plus className="w-5 h-5" />
-                <span>Add Product</span>
+                <span>{t.addProduct}</span>
               </button>
             </div>
           )}
@@ -503,7 +606,7 @@ export default function ProductsView() {
           {filteredProducts.length === 0 && (
             <div className="text-center py-16 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-xl font-medium text-gray-700">No products in this category</p>
+              <p className="text-xl font-medium text-gray-700">{t.emptyCategory}</p>
             </div>
           )}
         </div>
@@ -515,9 +618,9 @@ export default function ProductsView() {
           <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">
-                {editingProduct ? 'Edit Product' : 'New Product'}
+                {editingProduct ? t.editProduct : t.newProduct}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowModal(false)} title={t.close} aria-label={t.close} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -525,26 +628,26 @@ export default function ProductsView() {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Product Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.productName}</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
-                  placeholder="e.g., Aromatherapy Oil"
+                  placeholder={t.productNamePlaceholder}
                   required
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.description}</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714] resize-none"
-                  placeholder="Describe your product..."
+                  placeholder={t.descriptionPlaceholder}
                   required
                 />
               </div>
@@ -552,7 +655,7 @@ export default function ProductsView() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.category}</label>
                   {!isCreatingNewCategory ? (
                     <div className="space-y-2">
                       <select
@@ -567,11 +670,11 @@ export default function ProductsView() {
                         }}
                         className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
                       >
-                        <option value="">Select a category...</option>
+                        <option value="">{t.selectCategory}</option>
                         {existingCategories.map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
-                        <option value="__create_new__">+ Create New Category</option>
+                        <option value="__create_new__">{t.createCategory}</option>
                       </select>
                     </div>
                   ) : (
@@ -581,7 +684,7 @@ export default function ProductsView() {
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
-                        placeholder="Enter new category name"
+                        placeholder={t.newCategoryPlaceholder}
                         autoFocus
                       />
                       <button
@@ -592,7 +695,7 @@ export default function ProductsView() {
                         }}
                         className="text-sm text-gray-600 hover:text-gray-800"
                       >
-                        ← Back to existing categories
+                        {t.backToCategories}
                       </button>
                     </div>
                   )}
@@ -600,7 +703,7 @@ export default function ProductsView() {
 
                 {/* Price */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.price}</label>
                   <input
                     type="number"
                     min="0"
@@ -619,9 +722,9 @@ export default function ProductsView() {
               {(formData.category || isCreatingNewCategory) && (
                 <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200">
                   <div>
-                    <p className="font-medium text-gray-700">Exclusive Selection</p>
+                    <p className="font-medium text-gray-700">{t.exclusiveTitle}</p>
                     <p className="text-sm text-gray-500">
-                      Only one product from this category can be selected per booking
+                      {t.exclusiveHint}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -638,16 +741,16 @@ export default function ProductsView() {
 
               {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Image (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.productImage}</label>
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
                     {formData.image_url ? (
                       <div className="w-24 h-24 border border-gray-200 overflow-hidden">
-                        <img src={formData.image_url} alt="Product" className="w-full h-full object-cover" />
+                        <img src={formData.image_url} alt={t.imageAlt} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-24 h-24 border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                        <span className="text-xs text-gray-400 text-center px-2">No image</span>
+                        <span className="text-xs text-gray-400 text-center px-2">{t.noImage}</span>
                       </div>
                     )}
                   </div>
@@ -662,7 +765,7 @@ export default function ProductsView() {
                       />
                       <span className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors">
                         <Image className="w-4 h-4 mr-2" />
-                        {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                        {uploadingImage ? t.uploading : t.uploadImage}
                       </span>
                     </label>
                     {formData.image_url && (
@@ -671,10 +774,10 @@ export default function ProductsView() {
                         onClick={() => setFormData({ ...formData, image_url: '' })}
                         className="text-sm text-red-600 hover:text-red-700"
                       >
-                        Remove image
+                        {t.removeImage}
                       </button>
                     )}
-                    <p className="text-xs text-gray-500">Max 2MB. JPG, PNG or WebP recommended.</p>
+                    <p className="text-xs text-gray-500">{t.imageHint}</p>
                   </div>
                 </div>
               </div>
@@ -682,7 +785,7 @@ export default function ProductsView() {
               {/* Max Quantity */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maximum Quantity Per Booking
+                  {t.maxQuantity}
                 </label>
                 <input
                   type="number"
@@ -695,18 +798,18 @@ export default function ProductsView() {
                     })
                   }
                   className="w-full px-4 py-3 border border-gray-200 focus:outline-none focus:border-[#1A1714] focus:ring-1 focus:ring-[#1A1714]"
-                  placeholder="Leave empty for unlimited"
+                  placeholder={t.maxQuantityPlaceholder}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  How many times can this be added per booking?
+                  {t.maxQuantityHint}
                 </p>
               </div>
 
               {/* Active Status */}
               <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200">
                 <div>
-                  <p className="font-medium text-gray-700">Product Status</p>
-                  <p className="text-sm text-gray-500">Inactive products won't be shown to customers</p>
+                  <p className="font-medium text-gray-700">{t.statusTitle}</p>
+                  <p className="text-sm text-gray-500">{t.statusHint}</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -721,7 +824,7 @@ export default function ProductsView() {
 
               {/* Service Availability */}
               <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-4">Available For</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-4">{t.availableFor}</h3>
                 <div className="space-y-3">
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
                     <input
@@ -731,8 +834,8 @@ export default function ProductsView() {
                       className="w-4 h-4 text-[#1A1714] focus:ring-[#1A1714]"
                     />
                     <div>
-                      <p className="font-medium text-gray-700">All Services</p>
-                      <p className="text-xs text-gray-500">This product will be available for all services</p>
+                      <p className="font-medium text-gray-700">{t.allServices}</p>
+                      <p className="text-xs text-gray-500">{t.allServicesHint}</p>
                     </div>
                   </label>
                   <label className="flex items-center space-x-3 p-3 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
@@ -743,8 +846,8 @@ export default function ProductsView() {
                       className="w-4 h-4 text-[#1A1714] focus:ring-[#1A1714]"
                     />
                     <div>
-                      <p className="font-medium text-gray-700">Specific Services</p>
-                      <p className="text-xs text-gray-500">Choose which services can offer this product</p>
+                      <p className="font-medium text-gray-700">{t.specificServices}</p>
+                      <p className="text-xs text-gray-500">{t.specificServicesHint}</p>
                     </div>
                   </label>
 
@@ -762,7 +865,7 @@ export default function ProductsView() {
                         </label>
                       ))}
                       {services.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-2">No services available</p>
+                        <p className="text-sm text-gray-500 text-center py-2">{t.noServices}</p>
                       )}
                     </div>
                   )}
@@ -775,14 +878,14 @@ export default function ProductsView() {
                   type="submit"
                   className="flex-1 px-6 py-3 bg-[#1A1714] text-white hover:bg-[#2E2926] transition-colors font-medium"
                 >
-                  {editingProduct ? 'Update Product' : 'Create Product'}
+                  {editingProduct ? t.updateProduct : t.createProduct}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
               </div>
             </form>
@@ -805,6 +908,7 @@ function ProductCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useAdminText(TEXT);
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl p-6 hover:border-gray-300 hover:shadow-lg transition-all">
       <div className="flex items-start justify-between mb-4">
@@ -822,12 +926,12 @@ function ProductCard({
               {product.name}
               {!product.is_active && (
                 <span className="ml-2 text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded-full font-medium">
-                  Inactive
+                  {t.inactive}
                 </span>
               )}
               {product.is_exclusive_in_category && (
                 <span className="ml-2 text-xs px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
-                  Exclusive
+                  {t.exclusive}
                 </span>
               )}
             </h3>
@@ -837,12 +941,16 @@ function ProductCard({
         <div className="flex space-x-2 ml-4">
           <button
             onClick={onEdit}
+            title={t.edit}
+            aria-label={t.edit}
             className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={onDelete}
+            title={t.delete}
+            aria-label={t.delete}
             className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
           >
             <Trash2 className="w-4 h-4" />
@@ -852,12 +960,12 @@ function ProductCard({
 
       <div className="pt-4 border-t border-gray-100">
         <div className="flex justify-between items-center py-2.5 px-3 bg-gray-50 rounded-lg">
-          <span className="text-gray-700 font-medium">Price</span>
+          <span className="text-gray-700 font-medium">{t.price}</span>
           <span className="text-gray-900 font-semibold text-lg">{formatAmount(product.price_cents / 100)}</span>
         </div>
         {product.max_quantity_per_booking && (
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Max {product.max_quantity_per_booking} per booking
+            {fillText(t.maxPerBooking, { count: product.max_quantity_per_booking })}
           </p>
         )}
       </div>
@@ -877,6 +985,7 @@ function ProductGridCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useAdminText(TEXT);
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl overflow-hidden transition-all group hover:border-gray-300 hover:shadow-lg rounded-xl">
       {product.image_url ? (
@@ -885,12 +994,16 @@ function ProductGridCard({
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
             <button
               onClick={onEdit}
+              title={t.edit}
+              aria-label={t.edit}
               className="p-2 bg-white rounded-lg shadow-lg text-gray-600 hover:text-[#1A1714]"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button
               onClick={onDelete}
+              title={t.delete}
+              aria-label={t.delete}
               className="p-2 bg-white rounded-lg shadow-lg text-red-600 hover:text-red-800"
             >
               <Trash2 className="w-4 h-4" />
@@ -898,12 +1011,12 @@ function ProductGridCard({
           </div>
           {!product.is_active && (
             <div className="absolute top-2 left-2">
-              <span className="text-xs px-2 py-1 bg-gray-800/70 text-white rounded-full">Inactive</span>
+              <span className="text-xs px-2 py-1 bg-gray-800/70 text-white rounded-full">{t.inactive}</span>
             </div>
           )}
           {product.is_exclusive_in_category && (
             <div className="absolute bottom-2 left-2">
-              <span className="text-xs px-2 py-1 bg-amber-500/90 text-white rounded-full">Exclusive</span>
+              <span className="text-xs px-2 py-1 bg-amber-500/90 text-white rounded-full">{t.exclusive}</span>
             </div>
           )}
         </div>
@@ -919,12 +1032,16 @@ function ProductGridCard({
             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={onEdit}
+                title={t.edit}
+                aria-label={t.edit}
                 className="p-1.5 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
                 onClick={onDelete}
+                title={t.delete}
+                aria-label={t.delete}
                 className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
               >
                 <Trash2 className="w-4 h-4" />
@@ -933,10 +1050,10 @@ function ProductGridCard({
           </div>
           <div className="flex gap-2 mt-2">
             {!product.is_active && (
-              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Inactive</span>
+              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{t.inactive}</span>
             )}
             {product.is_exclusive_in_category && (
-              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">Exclusive</span>
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">{t.exclusive}</span>
             )}
           </div>
         </div>
@@ -954,7 +1071,7 @@ function ProductGridCard({
         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
           <span className="text-lg font-semibold tracking-tight text-[#1A1714]">{formatAmount(product.price_cents / 100)}</span>
           {product.max_quantity_per_booking && (
-            <span className="text-xs text-gray-500">Max: {product.max_quantity_per_booking}</span>
+            <span className="text-xs text-gray-500">{fillText(t.maxShort, { count: product.max_quantity_per_booking })}</span>
           )}
         </div>
       </div>

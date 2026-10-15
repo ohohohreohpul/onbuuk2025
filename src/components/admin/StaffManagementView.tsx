@@ -3,6 +3,73 @@ import { Users, Plus, Mail, Clock, CheckCircle, X, Trash2, RefreshCw } from 'luc
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { adminAuth } from '../../lib/adminAuth';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
+
+type StaffText = {
+  inviteSent: string; inviteFailed: string; resent: string; resendFailed: string; confirmCancel: string;
+  inviteCancelled: string; cancelFailed: string; statusFailed: string; loading: string; title: string; subtitle: string;
+  inviteStaff: string; staffTab: string; invitationsTab: string; noStaff: string; name: string; email: string;
+  role: string; lastLogin: string; status: string; actions: string; never: string; active: string; inactive: string;
+  deactivate: string; activate: string; noInvitations: string; expired: string; sent: string; expires: string;
+  resend: string; cancelInvite: string; inviteTitle: string; close: string; fullName: string; cancel: string;
+  sending: string; sendInvite: string;
+  roleOwner: string; roleAdmin: string; roleManager: string; roleReceptionist: string; roleCashier: string; roleStaff: string;
+};
+
+const TEXT: Translations<StaffText> = {
+  en: {
+    inviteSent: 'Invitation sent successfully!', inviteFailed: 'Failed to send invitation', resent: 'Invitation resent to {email}',
+    resendFailed: 'Failed to resend invitation', confirmCancel: 'Are you sure you want to cancel this invitation?',
+    inviteCancelled: 'Invitation cancelled', cancelFailed: 'Failed to cancel invitation', statusFailed: 'Failed to update staff status',
+    loading: 'Loading staff...', title: 'Team Management', subtitle: 'Manage your staff members and invitations',
+    inviteStaff: 'Invite Staff', staffTab: 'Staff Members ({count})', invitationsTab: 'Invitations ({count})',
+    noStaff: 'No staff members yet. Invite your first team member!', name: 'Name', email: 'Email', role: 'Role',
+    lastLogin: 'Last Login', status: 'Status', actions: 'Actions', never: 'Never', active: 'Active', inactive: 'Inactive',
+    deactivate: 'Deactivate', activate: 'Activate', noInvitations: 'No pending invitations', expired: 'Expired',
+    sent: 'Sent {date}', expires: 'Expires {date}', resend: 'Resend invitation', cancelInvite: 'Cancel invitation',
+    inviteTitle: 'Invite Team Member', close: 'Close', fullName: 'Full Name', cancel: 'Cancel', sending: 'Sending...',
+    sendInvite: 'Send Invitation',
+    roleOwner: 'Owner', roleAdmin: 'Admin', roleManager: 'Manager', roleReceptionist: 'Receptionist', roleCashier: 'Cashier', roleStaff: 'Staff',
+  },
+  de: {
+    inviteSent: 'Einladung wurde gesendet.', inviteFailed: 'Einladung konnte nicht gesendet werden', resent: 'Einladung erneut an {email} gesendet',
+    resendFailed: 'Einladung konnte nicht erneut gesendet werden', confirmCancel: 'Diese Einladung wirklich zurückziehen?',
+    inviteCancelled: 'Einladung zurückgezogen', cancelFailed: 'Einladung konnte nicht zurückgezogen werden', statusFailed: 'Status konnte nicht geändert werden',
+    loading: 'Team wird geladen…', title: 'Teamverwaltung', subtitle: 'Mitarbeiter:innen und Einladungen verwalten',
+    inviteStaff: 'Mitarbeiter:in einladen', staffTab: 'Mitarbeiter:innen ({count})', invitationsTab: 'Einladungen ({count})',
+    noStaff: 'Noch keine Mitarbeiter:innen. Laden Sie die erste Person ins Team ein.', name: 'Name', email: 'E-Mail', role: 'Rolle',
+    lastLogin: 'Letzte Anmeldung', status: 'Status', actions: 'Aktionen', never: 'Nie', active: 'Aktiv', inactive: 'Inaktiv',
+    deactivate: 'Deaktivieren', activate: 'Aktivieren', noInvitations: 'Keine offenen Einladungen', expired: 'Abgelaufen',
+    sent: 'Gesendet am {date}', expires: 'Läuft ab am {date}', resend: 'Einladung erneut senden', cancelInvite: 'Einladung zurückziehen',
+    inviteTitle: 'Teammitglied einladen', close: 'Schließen', fullName: 'Vollständiger Name', cancel: 'Abbrechen', sending: 'Wird gesendet…',
+    sendInvite: 'Einladung senden',
+    roleOwner: 'Inhaber:in', roleAdmin: 'Admin', roleManager: 'Manager:in', roleReceptionist: 'Empfang', roleCashier: 'Kasse', roleStaff: 'Mitarbeiter:in',
+  },
+  th: {
+    inviteSent: 'ส่งคำเชิญเรียบร้อยแล้ว', inviteFailed: 'ส่งคำเชิญไม่สำเร็จ', resent: 'ส่งคำเชิญอีกครั้งถึง {email} แล้ว',
+    resendFailed: 'ส่งคำเชิญอีกครั้งไม่สำเร็จ', confirmCancel: 'ต้องการยกเลิกคำเชิญนี้ใช่หรือไม่?',
+    inviteCancelled: 'ยกเลิกคำเชิญแล้ว', cancelFailed: 'ยกเลิกคำเชิญไม่สำเร็จ', statusFailed: 'เปลี่ยนสถานะพนักงานไม่สำเร็จ',
+    loading: 'กำลังโหลดพนักงาน…', title: 'จัดการทีม', subtitle: 'จัดการพนักงานและคำเชิญ',
+    inviteStaff: 'เชิญพนักงาน', staffTab: 'พนักงาน ({count})', invitationsTab: 'คำเชิญ ({count})',
+    noStaff: 'ยังไม่มีพนักงาน เชิญสมาชิกคนแรกเข้าทีมได้เลย', name: 'ชื่อ', email: 'อีเมล', role: 'บทบาท',
+    lastLogin: 'เข้าสู่ระบบล่าสุด', status: 'สถานะ', actions: 'การดำเนินการ', never: 'ไม่เคย', active: 'ใช้งาน', inactive: 'ไม่ใช้งาน',
+    deactivate: 'ปิดการใช้งาน', activate: 'เปิดการใช้งาน', noInvitations: 'ไม่มีคำเชิญที่รอตอบรับ', expired: 'หมดอายุ',
+    sent: 'ส่งเมื่อ {date}', expires: 'หมดอายุ {date}', resend: 'ส่งคำเชิญอีกครั้ง', cancelInvite: 'ยกเลิกคำเชิญ',
+    inviteTitle: 'เชิญสมาชิกทีม', close: 'ปิด', fullName: 'ชื่อ-นามสกุล', cancel: 'ยกเลิก', sending: 'กำลังส่ง…',
+    sendInvite: 'ส่งคำเชิญ',
+    roleOwner: 'เจ้าของร้าน', roleAdmin: 'ผู้ดูแล', roleManager: 'ผู้จัดการ', roleReceptionist: 'พนักงานต้อนรับ', roleCashier: 'แคชเชียร์', roleStaff: 'พนักงาน',
+  },
+};
+
+const ROLE_LABEL_KEY: Record<string, keyof StaffText> = {
+  owner: 'roleOwner',
+  admin: 'roleAdmin',
+  manager: 'roleManager',
+  receptionist: 'roleReceptionist',
+  cashier: 'roleCashier',
+  staff: 'roleStaff',
+};
 
 interface StaffMember {
   id: string;
@@ -27,6 +94,8 @@ interface Invitation {
 }
 
 export default function StaffManagementView() {
+  const { t, locale } = useAdminText(TEXT);
+  const roleLabel = (role: string) => (ROLE_LABEL_KEY[role] ? t[ROLE_LABEL_KEY[role]] : role);
   const { businessId } = useTenant();
   const currentUser = adminAuth.getCurrentUser();
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -105,10 +174,10 @@ export default function StaffManagementView() {
       setInviteForm({ email: '', full_name: '', role: 'staff' });
       await fetchData();
 
-      alert('Invitation sent successfully!');
+      alert(t.inviteSent);
     } catch (err: any) {
       console.error('Error sending invitation:', err);
-      setInviteError(err.message || 'Failed to send invitation');
+      setInviteError(err.message || t.inviteFailed);
     } finally {
       setInviting(false);
     }
@@ -172,15 +241,15 @@ export default function StaffManagementView() {
   const handleResendInvitation = async (invitation: Invitation) => {
     try {
       await sendInvitationEmail(invitation.email, invitation.full_name, invitation.invite_token);
-      alert(`Invitation resent to ${invitation.email}`);
+      alert(fillText(t.resent, { email: invitation.email }));
     } catch (err) {
       console.error('Error resending invitation:', err);
-      alert('Failed to resend invitation');
+      alert(t.resendFailed);
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
-    if (!confirm('Are you sure you want to cancel this invitation?')) return;
+    if (!confirm(t.confirmCancel)) return;
 
     try {
       const { error } = await supabase
@@ -191,10 +260,10 @@ export default function StaffManagementView() {
       if (error) throw error;
 
       await fetchData();
-      alert('Invitation cancelled');
+      alert(t.inviteCancelled);
     } catch (err) {
       console.error('Error cancelling invitation:', err);
-      alert('Failed to cancel invitation');
+      alert(t.cancelFailed);
     }
   };
 
@@ -210,7 +279,7 @@ export default function StaffManagementView() {
       await fetchData();
     } catch (err) {
       console.error('Error updating staff status:', err);
-      alert('Failed to update staff status');
+      alert(t.statusFailed);
     }
   };
 
@@ -231,7 +300,7 @@ export default function StaffManagementView() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -245,7 +314,7 @@ export default function StaffManagementView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-stone-600">Loading staff...</div>
+        <div className="text-stone-600">{t.loading}</div>
       </div>
     );
   }
@@ -254,15 +323,15 @@ export default function StaffManagementView() {
     <div className="max-w-6xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900 mb-2">Team Management</h1>
-          <p className="text-stone-600">Manage your staff members and invitations</p>
+          <h1 className="text-3xl font-bold text-stone-900 mb-2">{t.title}</h1>
+          <p className="text-stone-600">{t.subtitle}</p>
         </div>
         <button
           onClick={() => setShowInviteModal(true)}
           className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          Invite Staff
+          {t.inviteStaff}
         </button>
       </div>
 
@@ -279,7 +348,7 @@ export default function StaffManagementView() {
             >
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Staff Members ({staff.length})
+                {fillText(t.staffTab, { count: staff.length })}
               </div>
             </button>
             <button
@@ -292,7 +361,7 @@ export default function StaffManagementView() {
             >
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5" />
-                Invitations ({invitations.filter(inv => !inv.is_used).length})
+                {fillText(t.invitationsTab, { count: invitations.filter(inv => !inv.is_used).length })}
               </div>
             </button>
           </div>
@@ -304,19 +373,19 @@ export default function StaffManagementView() {
               {staff.length === 0 ? (
                 <div className="text-center py-12 text-stone-500">
                   <Users className="w-16 h-16 mx-auto mb-4 text-stone-300" />
-                  <p>No staff members yet. Invite your first team member!</p>
+                  <p>{t.noStaff}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-stone-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Name</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Email</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Role</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Last Login</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">Status</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-stone-700">Actions</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">{t.name}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">{t.email}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">{t.role}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">{t.lastLogin}</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-stone-700">{t.status}</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-stone-700">{t.actions}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -328,11 +397,11 @@ export default function StaffManagementView() {
                           <td className="py-4 px-4 text-stone-600">{member.email}</td>
                           <td className="py-4 px-4">
                             <span className={`px-3 py-1 text-xs font-semibold uppercase ${getRoleBadgeColor(member.role)}`}>
-                              {member.role}
+                              {roleLabel(member.role)}
                             </span>
                           </td>
                           <td className="py-4 px-4 text-sm text-stone-600">
-                            {member.last_login ? formatDate(member.last_login) : 'Never'}
+                            {member.last_login ? formatDate(member.last_login) : t.never}
                           </td>
                           <td className="py-4 px-4">
                             <span
@@ -342,7 +411,7 @@ export default function StaffManagementView() {
                                   : 'bg-red-100 text-red-800'
                               }`}
                             >
-                              {member.is_active ? 'Active' : 'Inactive'}
+                              {member.is_active ? t.active : t.inactive}
                             </span>
                           </td>
                           <td className="py-4 px-4 text-right">
@@ -351,7 +420,7 @@ export default function StaffManagementView() {
                                 onClick={() => handleToggleStaffStatus(member.id, member.is_active)}
                                 className="text-sm text-stone-600 hover:text-stone-900"
                               >
-                                {member.is_active ? 'Deactivate' : 'Activate'}
+                                {member.is_active ? t.deactivate : t.activate}
                               </button>
                             )}
                           </td>
@@ -369,7 +438,7 @@ export default function StaffManagementView() {
               {invitations.filter(inv => !inv.is_used).length === 0 ? (
                 <div className="text-center py-12 text-stone-500">
                   <Mail className="w-16 h-16 mx-auto mb-4 text-stone-300" />
-                  <p>No pending invitations</p>
+                  <p>{t.noInvitations}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -384,11 +453,11 @@ export default function StaffManagementView() {
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-stone-900">{invitation.full_name}</h3>
                             <span className={`px-3 py-1 text-xs font-semibold uppercase ${getRoleBadgeColor(invitation.role)}`}>
-                              {invitation.role}
+                              {roleLabel(invitation.role)}
                             </span>
                             {isExpired(invitation.expires_at) && (
                               <span className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-800">
-                                Expired
+                                {t.expired}
                               </span>
                             )}
                           </div>
@@ -396,23 +465,23 @@ export default function StaffManagementView() {
                           <div className="flex items-center gap-4 text-xs text-stone-500">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              Sent {formatDate(invitation.created_at)}
+                              {fillText(t.sent, { date: formatDate(invitation.created_at) })}
                             </span>
-                            <span>Expires {formatDate(invitation.expires_at)}</span>
+                            <span>{fillText(t.expires, { date: formatDate(invitation.expires_at) })}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleResendInvitation(invitation)}
                             className="p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100"
-                            title="Resend invitation"
+                            title={t.resend}
                           >
                             <RefreshCw className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleCancelInvitation(invitation.id)}
                             className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-                            title="Cancel invitation"
+                            title={t.cancelInvite}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -430,8 +499,8 @@ export default function StaffManagementView() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 max-w-md w-full shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-stone-900">Invite Team Member</h2>
-              <button onClick={() => setShowInviteModal(false)} className="text-stone-500 hover:text-stone-700">
+              <h2 className="text-2xl font-bold text-stone-900">{t.inviteTitle}</h2>
+              <button onClick={() => setShowInviteModal(false)} aria-label={t.close} className="text-stone-500 hover:text-stone-700">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -444,7 +513,7 @@ export default function StaffManagementView() {
 
             <form onSubmit={handleInviteStaff} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.fullName}</label>
                 <input
                   type="text"
                   value={inviteForm.full_name}
@@ -455,7 +524,7 @@ export default function StaffManagementView() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Email</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.email}</label>
                 <input
                   type="email"
                   value={inviteForm.email}
@@ -466,17 +535,17 @@ export default function StaffManagementView() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Role</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.role}</label>
                 <select
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
                   className="w-full px-4 py-2 border border-stone-300 focus:ring-2 focus:ring-stone-500 focus:border-transparent"
                 >
-                  <option value="staff">Staff</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="cashier">Cashier</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
+                  <option value="staff">{t.roleStaff}</option>
+                  <option value="receptionist">{t.roleReceptionist}</option>
+                  <option value="cashier">{t.roleCashier}</option>
+                  <option value="manager">{t.roleManager}</option>
+                  <option value="admin">{t.roleAdmin}</option>
                 </select>
               </div>
 
@@ -487,14 +556,14 @@ export default function StaffManagementView() {
                   className="flex-1 px-4 py-3 border border-stone-300 text-stone-700 hover:bg-stone-50"
                   disabled={inviting}
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-3 bg-stone-900 text-white hover:bg-stone-800 disabled:opacity-50"
                   disabled={inviting}
                 >
-                  {inviting ? 'Sending...' : 'Send Invitation'}
+                  {inviting ? t.sending : t.sendInvite}
                 </button>
               </div>
             </form>

@@ -22,11 +22,11 @@ export const PAYMENT_METHOD_LABELS: Translations<Record<PaymentMethod, string>> 
     stripe: 'Online (Stripe)', paypal: 'PayPal', other: 'Other',
   },
   de: {
-    cash: 'Bar', card: 'Karte (Terminal)', gift_card: 'Gutschein', service_pass: 'Mehrfachkarte',
+    cash: 'Bar', card: 'Karte (Terminal)', gift_card: 'Gutschein', service_pass: 'Behandlungsgutschein',
     stripe: 'Online (Stripe)', paypal: 'PayPal', other: 'Sonstiges',
   },
   th: {
-    cash: 'เงินสด', card: 'บัตร (เครื่องรูดบัตร)', gift_card: 'บัตรของขวัญ', service_pass: 'บัตรแพ็กเกจ',
+    cash: 'เงินสด', card: 'บัตร (เครื่องรูดบัตร)', gift_card: 'บัตรของขวัญ', service_pass: 'บัตรบริการ',
     stripe: 'ออนไลน์ (Stripe)', paypal: 'PayPal', other: 'อื่น ๆ',
   },
 };

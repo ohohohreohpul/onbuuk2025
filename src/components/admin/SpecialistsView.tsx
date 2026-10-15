@@ -6,6 +6,50 @@ import WorkingHoursModal from './WorkingHoursModal';
 import TimeBlocksModal from './TimeBlocksModal';
 import SpecialistChoiceSetting from './SpecialistChoiceSetting';
 import { usePremiumFeatures } from '../../hooks/usePremiumFeatures';
+import { useAdminText } from '../../lib/adminLanguage';
+import { fillText, type Translations } from '../../lib/bookingLanguage';
+
+const TEXT: Translations<{
+  staffLimit: string; businessNotFound: string; confirmDelete: string; title: string; subtitle: string;
+  allSpecialists: string; closedDays: string; addSpecialist: string; inactive: string; workingHours: string;
+  timeBlocks: string; edit: string; delete: string; services: string; noServices: string; editTitle: string;
+  newTitle: string; close: string; fullName: string; bio: string; bioPlaceholder: string; imageUrl: string;
+  activeLabel: string; servicesOffered: string; update: string; create: string; cancel: string;
+}> = {
+  en: {
+    staffLimit: "You've reached the maximum number of staff ({max}) for your {plan} plan. Upgrade to Pro for unlimited staff.",
+    businessNotFound: 'Business not found', confirmDelete: 'Are you sure you want to delete this specialist?',
+    title: 'Specialists', subtitle: 'Manage massage therapists', allSpecialists: 'Applies to every specialist',
+    closedDays: 'Shop closed days', addSpecialist: 'Add Specialist', inactive: 'Inactive', workingHours: 'Working Hours',
+    timeBlocks: 'Time Blocks', edit: 'Edit', delete: 'Delete', services: 'Services', noServices: 'No services assigned',
+    editTitle: 'Edit Specialist', newTitle: 'New Specialist', close: 'Close', fullName: 'Full Name', bio: 'Bio',
+    bioPlaceholder: 'Brief description of expertise and experience...', imageUrl: 'Image URL (optional)',
+    activeLabel: 'Active (available for bookings)', servicesOffered: 'Services Offered', update: 'Update Specialist',
+    create: 'Create Specialist', cancel: 'Cancel',
+  },
+  de: {
+    staffLimit: 'Sie haben die maximale Anzahl an Mitarbeiter:innen ({max}) für Ihren {plan}-Tarif erreicht. Mit Pro sind unbegrenzt viele möglich.',
+    businessNotFound: 'Betrieb nicht gefunden', confirmDelete: 'Diese:n Therapeut:in wirklich löschen?',
+    title: 'Therapeut:innen', subtitle: 'Massagetherapeut:innen verwalten', allSpecialists: 'Gilt für alle Therapeut:innen',
+    closedDays: 'Schließtage', addSpecialist: 'Therapeut:in hinzufügen', inactive: 'Inaktiv', workingHours: 'Arbeitszeiten',
+    timeBlocks: 'Zeitblöcke', edit: 'Bearbeiten', delete: 'Löschen', services: 'Leistungen', noServices: 'Keine Leistungen zugewiesen',
+    editTitle: 'Therapeut:in bearbeiten', newTitle: 'Neue:r Therapeut:in', close: 'Schließen', fullName: 'Vollständiger Name', bio: 'Kurzprofil',
+    bioPlaceholder: 'Kurze Beschreibung von Fachgebiet und Erfahrung…', imageUrl: 'Bild-URL (optional)',
+    activeLabel: 'Aktiv (für Buchungen verfügbar)', servicesOffered: 'Angebotene Leistungen', update: 'Änderungen speichern',
+    create: 'Therapeut:in anlegen', cancel: 'Abbrechen',
+  },
+  th: {
+    staffLimit: 'คุณมีพนักงานครบจำนวนสูงสุด ({max} คน) ของแพ็กเกจ {plan} แล้ว อัปเกรดเป็น Pro เพื่อเพิ่มพนักงานได้ไม่จำกัด',
+    businessNotFound: 'ไม่พบธุรกิจ', confirmDelete: 'ต้องการลบพนักงานบริการคนนี้ใช่หรือไม่?',
+    title: 'พนักงานบริการ', subtitle: 'จัดการพนักงานนวด', allSpecialists: 'ใช้กับพนักงานบริการทุกคน',
+    closedDays: 'วันปิดร้าน', addSpecialist: 'เพิ่มพนักงานบริการ', inactive: 'ไม่ใช้งาน', workingHours: 'เวลาทำงาน',
+    timeBlocks: 'ช่วงเวลาที่ไม่ว่าง', edit: 'แก้ไข', delete: 'ลบ', services: 'บริการ', noServices: 'ยังไม่ได้กำหนดบริการ',
+    editTitle: 'แก้ไขพนักงานบริการ', newTitle: 'พนักงานบริการใหม่', close: 'ปิด', fullName: 'ชื่อ-นามสกุล', bio: 'ประวัติย่อ',
+    bioPlaceholder: 'อธิบายความเชี่ยวชาญและประสบการณ์สั้นๆ…', imageUrl: 'URL รูปภาพ (ไม่บังคับ)',
+    activeLabel: 'ใช้งาน (รับการจองได้)', servicesOffered: 'บริการที่ให้', update: 'บันทึกการแก้ไข',
+    create: 'เพิ่มพนักงานบริการ', cancel: 'ยกเลิก',
+  },
+};
 
 interface Specialist {
   id: string;
@@ -21,6 +65,7 @@ interface Service {
 }
 
 export default function SpecialistsView() {
+  const { t } = useAdminText(TEXT);
   const tenant = useTenant();
   const premiumFeatures = usePremiumFeatures();
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
@@ -96,7 +141,7 @@ export default function SpecialistsView() {
       const { limits } = premiumFeatures;
 
       if (limits && limits.maxStaff !== null && limits.currentStaff >= limits.maxStaff) {
-        alert(`You've reached the maximum number of staff (${limits.maxStaff}) for your ${premiumFeatures.planType.toUpperCase()} plan. Upgrade to Pro for unlimited staff.`);
+        alert(fillText(t.staffLimit, { max: limits.maxStaff, plan: premiumFeatures.planType.toUpperCase() }));
         return;
       }
     }
@@ -128,7 +173,7 @@ export default function SpecialistsView() {
     e.preventDefault();
 
     if (!tenant.businessId) {
-      alert('Business not found');
+      alert(t.businessNotFound);
       return;
     }
 
@@ -190,7 +235,7 @@ export default function SpecialistsView() {
   };
 
   const deleteSpecialist = async (specialistId: string) => {
-    if (!confirm('Are you sure you want to delete this specialist?')) return;
+    if (!confirm(t.confirmDelete)) return;
     if (!tenant.businessId) return;
 
     const { error } = await supabase
@@ -224,23 +269,23 @@ export default function SpecialistsView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">Specialists</h1>
-          <p className="text-gray-600">Manage massage therapists</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
+          <p className="text-gray-600">{t.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setTimeBlocksModal({ id: null, name: 'Applies to every specialist' })}
+            onClick={() => setTimeBlocksModal({ id: null, name: t.allSpecialists })}
             className="flex items-center space-x-2 px-4 py-2.5 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition-all"
           >
             <CalendarOff className="w-5 h-5" />
-            <span className="font-medium">Shop closed days</span>
+            <span className="font-medium">{t.closedDays}</span>
           </button>
           <button
             onClick={openCreateModal}
             className="flex items-center space-x-2 px-5 py-2.5 bg-[#1A1714] text-white rounded-lg hover:bg-[#2E2926] transition-all shadow-sm hover:shadow-md"
           >
             <Plus className="w-5 h-5" />
-            <span className="font-medium">Add Specialist</span>
+            <span className="font-medium">{t.addSpecialist}</span>
           </button>
         </div>
       </div>
@@ -256,7 +301,7 @@ export default function SpecialistsView() {
                   {specialist.name}
                   {!specialist.is_active && (
                     <span className="ml-2 text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded-full font-medium">
-                      Inactive
+                      {t.inactive}
                     </span>
                   )}
                 </h3>
@@ -268,28 +313,28 @@ export default function SpecialistsView() {
                 <button
                   onClick={() => setWorkingHoursModal({ id: specialist.id, name: specialist.name })}
                   className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                  title="Working Hours"
+                  title={t.workingHours}
                 >
                   <Clock className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setTimeBlocksModal({ id: specialist.id, name: specialist.name })}
                   className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-[#1A1714] hover:bg-opacity-10 rounded-lg transition-all"
-                  title="Time Blocks"
+                  title={t.timeBlocks}
                 >
                   <Calendar className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => openEditModal(specialist)}
                   className="p-2 text-gray-500 hover:text-[#1A1714] hover:bg-gray-100 rounded-lg transition-all"
-                  title="Edit"
+                  title={t.edit}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => deleteSpecialist(specialist.id)}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                  title="Delete"
+                  title={t.delete}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -297,7 +342,7 @@ export default function SpecialistsView() {
             </div>
 
             <div className="space-y-2 pt-4 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Services</p>
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">{t.services}</p>
               <div className="flex flex-wrap gap-2">
                 {specialistServices[specialist.id]?.map(serviceId => {
                   const service = services.find(s => s.id === serviceId);
@@ -308,7 +353,7 @@ export default function SpecialistsView() {
                   ) : null;
                 })}
                 {(!specialistServices[specialist.id] || specialistServices[specialist.id].length === 0) && (
-                  <span className="text-xs text-gray-500 italic">No services assigned</span>
+                  <span className="text-xs text-gray-500 italic">{t.noServices}</span>
                 )}
               </div>
             </div>
@@ -337,16 +382,16 @@ export default function SpecialistsView() {
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white rounded-t-xl">
               <h2 className="text-2xl font-semibold text-gray-900">
-                {editingSpecialist ? 'Edit Specialist' : 'New Specialist'}
+                {editingSpecialist ? t.editTitle : t.newTitle}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-all">
+              <button onClick={() => setShowModal(false)} aria-label={t.close} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-all">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.fullName}</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -357,18 +402,18 @@ export default function SpecialistsView() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.bio}</label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   rows={3}
                   className="w-full px-4 py-3 border border-stone-200 focus:outline-none focus:border-stone-800 resize-none"
-                  placeholder="Brief description of expertise and experience..."
+                  placeholder={t.bioPlaceholder}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Image URL (optional)</label>
+                <label className="block text-sm font-medium text-stone-700 mb-2">{t.imageUrl}</label>
                 <input
                   type="url"
                   value={formData.image_url}
@@ -386,12 +431,12 @@ export default function SpecialistsView() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="w-4 h-4 text-stone-800 focus:ring-stone-500"
                   />
-                  <span className="text-sm text-stone-700">Active (available for bookings)</span>
+                  <span className="text-sm text-stone-700">{t.activeLabel}</span>
                 </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-3">Services Offered</label>
+                <label className="block text-sm font-medium text-stone-700 mb-3">{t.servicesOffered}</label>
                 <div className="space-y-2 max-h-64 overflow-y-auto border border-stone-200 p-4">
                   {services.map((service) => (
                     <label key={service.id} className="flex items-center space-x-2 cursor-pointer">
@@ -412,14 +457,14 @@ export default function SpecialistsView() {
                   type="submit"
                   className="flex-1 px-6 py-3 bg-stone-800 text-white hover:bg-stone-700 transition-colors"
                 >
-                  {editingSpecialist ? 'Update Specialist' : 'Create Specialist'}
+                  {editingSpecialist ? t.update : t.create}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="px-6 py-3 border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
               </div>
             </form>
