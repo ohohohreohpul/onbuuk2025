@@ -2,7 +2,7 @@
 // current voucher cards. Shared by the send-marketing edge function and the admin
 // live preview, so both render the same email. Works with any supabase-js client.
 
-import type { MarketingContent, MarketingLanguage, MarketingShop, MarketingVoucher } from "./marketingEmail.ts";
+import type { MarketingBlock, MarketingContent, MarketingLanguage, MarketingShop, MarketingVoucher } from "./marketingEmail.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = { from: (table: string) => any };
@@ -12,6 +12,7 @@ export const GIFT_LINK_PARAMS = { open: "gutschein", pass: "karte", set: "set" }
 
 export interface CampaignRow {
   subject: string;
+  blocks?: MarketingBlock[] | null;
   body: string;
   button_text: string | null;
   button_url: string | null;
@@ -50,28 +51,36 @@ const validity = (days: number | null | undefined, language: MarketingLanguage):
 };
 const MAX_VOUCHERS = 6;
 
+const BLOCK_TYPES = new Set(["hero", "heading", "text", "image", "button", "offer", "vouchers", "divider"]);
+const MAX_BLOCKS = 30;
+
+/** The stored blocks; campaigns from before the block editor are converted from their fields. */
 export function campaignToContent(row: CampaignRow): MarketingContent {
-  return {
-    subject: row.subject,
-    logoUrl: row.logo_url ?? null,
-    headline: row.headline ?? null,
-    heroImageUrl: row.hero_image_url ?? null,
-    heroCaption: row.hero_caption ?? null,
-    body: row.body,
-    buttonText: row.button_text,
-    buttonUrl: row.button_url,
-    offer: row.offer_enabled && row.offer_title ? {
-      title: row.offer_title,
-      text: row.offer_text ?? null,
-      imageUrl: row.offer_image_url ?? null,
-      priceCents: row.offer_price_cents ?? null,
-      compareCents: row.offer_compare_cents ?? null,
-      buttonText: row.offer_button_text ?? null,
-      buttonUrl: row.offer_button_url ?? null,
-    } : null,
-    vouchersTitle: row.vouchers_title ?? null,
-    closing: row.closing ?? null,
-  };
+  if (Array.isArray(row.blocks) && row.blocks.length > 0) {
+    return {
+      subject: row.subject,
+      blocks: row.blocks.filter((block) => block && BLOCK_TYPES.has(block.type)).slice(0, MAX_BLOCKS),
+    };
+  }
+  const blocks: MarketingBlock[] = [];
+  if (row.headline || row.hero_image_url || row.logo_url) {
+    blocks.push({
+      type: "hero", logoUrl: row.logo_url ?? null, imageUrl: row.hero_image_url ?? null, headline: row.headline ?? null,
+      buttonText: row.button_text, buttonUrl: row.button_url, caption: row.hero_caption ?? null,
+    });
+  }
+  if (row.body?.trim()) blocks.push({ type: "text", text: row.body });
+  if (!row.headline && row.button_text && row.button_url) blocks.push({ type: "button", text: row.button_text, url: row.button_url });
+  if (row.offer_enabled && row.offer_title) {
+    blocks.push({
+      type: "offer", title: row.offer_title, text: row.offer_text ?? null, imageUrl: row.offer_image_url ?? null,
+      priceCents: row.offer_price_cents ?? null, compareCents: row.offer_compare_cents ?? null,
+      buttonText: row.offer_button_text ?? null, buttonUrl: row.offer_button_url ?? null,
+    });
+  }
+  if (row.vouchers_enabled !== false) blocks.push({ type: "vouchers", title: row.vouchers_title ?? null, showImages: false });
+  if (row.closing?.trim()) blocks.push({ type: "text", text: row.closing });
+  return { subject: row.subject, blocks };
 }
 
 export async function loadMarketingShop(supabase: Client, businessId: string): Promise<MarketingShop> {

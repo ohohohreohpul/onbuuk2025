@@ -8,8 +8,11 @@ import {
 } from '../adminUi';
 import { MARKETING_TEXT } from './marketingText';
 import {
-  AudienceCounts, Campaign, CampaignDraft, EMPTY_DRAFT, deleteCampaign, saveCampaign, sendNow, sendTest,
+  AudienceCounts, Campaign, CampaignDraft, campaignToDraft, deleteCampaign, saveCampaign, sendNow, sendTest,
 } from './marketingApi';
+import type { MarketingBlock } from '../../../../supabase/functions/_shared/marketingEmail';
+import BlockList from './blocks/BlockList';
+import EmailPreview from './EmailPreview';
 
 const DAYS = Array.from({ length: 28 }, (_, index) => index + 1);
 const HOURS = Array.from({ length: 16 }, (_, index) => index + 6);
@@ -23,16 +26,19 @@ interface CampaignEditorProps {
   onQueued: () => void;
 }
 
-const toDraft = (campaign: Campaign | null): CampaignDraft => (campaign ? {
-  subject: campaign.subject, body: campaign.body, button_text: campaign.button_text, button_url: campaign.button_url,
-  audience: campaign.audience, day_of_month: campaign.day_of_month, send_hour: campaign.send_hour, is_active: campaign.is_active,
-} : EMPTY_DRAFT);
+/** Every link or image field filled in must be https, or email clients and our checks reject it. */
+const LINK_FIELDS = ['buttonUrl', 'url', 'link', 'imageUrl', 'logoUrl'] as const;
+const hasInvalidLink = (blocks: MarketingBlock[]): boolean =>
+  blocks.some((block) => LINK_FIELDS.some((field) => {
+    const value = (block as Record<string, unknown>)[field];
+    return typeof value === 'string' && value.trim() !== '' && !value.startsWith('https://');
+  }));
 
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 export default function CampaignEditor({ businessId, campaign, counts, onSaved, onDeleted, onQueued }: CampaignEditorProps) {
   const { t, locale } = useAdminText(MARKETING_TEXT);
-  const [draft, setDraft] = useState<CampaignDraft>(() => toDraft(campaign));
+  const [draft, setDraft] = useState<CampaignDraft>(() => campaignToDraft(campaign));
   const [testEmail, setTestEmail] = useState(() => adminAuth.getCurrentUser()?.email ?? '');
   const [busy, setBusy] = useState<'save' | 'test' | 'send' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
@@ -40,8 +46,8 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
   const update = (patch: Partial<CampaignDraft>) => setDraft((current) => ({ ...current, ...patch }));
 
   const validate = (): string | null => {
-    if (!draft.subject.trim() || !draft.body.trim()) return t.required;
-    if (draft.button_url && !draft.button_url.startsWith('https://')) return t.httpsOnly;
+    if (!draft.subject.trim() || draft.blocks.length === 0) return t.required;
+    if (hasInvalidLink(draft.blocks)) return t.httpsOnly;
     return null;
   };
 
@@ -110,25 +116,17 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
     : null;
 
   return (
-    <div className="space-y-5">
-      <section className={`${ADMIN_SURFACE} space-y-4 p-6`}>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="min-w-0 space-y-5">
+      <section className={`${ADMIN_SURFACE} p-6`}>
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-stone-700">{t.subject}</span>
           <input value={draft.subject} onChange={(e) => update({ subject: e.target.value })} maxLength={200} placeholder={t.subjectPlaceholder} className={ADMIN_INPUT} />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-stone-700">{t.body}</span>
-          <textarea value={draft.body} onChange={(e) => update({ body: e.target.value })} rows={11} maxLength={10000} placeholder={t.bodyPlaceholder} className={`${ADMIN_INPUT} leading-relaxed`} />
           <span className="mt-1.5 block text-xs text-stone-500">{t.bodyHint}</span>
         </label>
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-stone-700">{t.buttonOptional}</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input value={draft.button_text ?? ''} onChange={(e) => update({ button_text: e.target.value })} maxLength={60} placeholder={t.buttonText} aria-label={t.buttonText} className={ADMIN_INPUT} />
-            <input value={draft.button_url ?? ''} onChange={(e) => update({ button_url: e.target.value.trim() })} placeholder={t.buttonUrl} aria-label={t.buttonUrl} inputMode="url" className={ADMIN_INPUT} />
-          </div>
-        </fieldset>
       </section>
+
+      <BlockList blocks={draft.blocks} businessId={businessId} onChange={(blocks) => update({ blocks })} />
 
       <section className={`${ADMIN_SURFACE} grid gap-6 p-6 md:grid-cols-2`}>
         <fieldset>
@@ -192,6 +190,10 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
         </div>
       </div>
       <p className="text-xs text-stone-500">{t.legalNote}</p>
+    </div>
+    <aside className="xl:sticky xl:top-6 xl:self-start">
+      <EmailPreview businessId={businessId} subject={draft.subject} blocks={draft.blocks} />
+    </aside>
     </div>
   );
 }

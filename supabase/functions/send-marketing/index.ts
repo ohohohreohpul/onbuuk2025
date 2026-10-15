@@ -26,7 +26,6 @@ const corsHeaders = {
 interface Campaign extends CampaignRow {
   id: string;
   business_id: string;
-  vouchers_enabled: boolean;
 }
 
 interface ShopBundle {
@@ -86,7 +85,7 @@ async function sendOne(
     campaignToContent(campaign),
     firstNameOf(to.name),
     link,
-    campaign.vouchers_enabled ? bundle.vouchers : [],
+    bundle.vouchers,
   );
   const { data, error } = await supabase.functions.invoke("send-customer-email", {
     body: {

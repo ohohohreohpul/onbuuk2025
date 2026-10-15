@@ -1,14 +1,17 @@
 import { supabase } from '../../../lib/supabase';
+import type { MarketingBlock } from '../../../../supabase/functions/_shared/marketingEmail';
+import { campaignToContent, type CampaignRow } from '../../../../supabase/functions/_shared/marketingData';
 
 export type Audience = 'subscribers' | 'all';
 
-export interface Campaign {
+export interface Campaign extends CampaignRow {
   id: string;
   business_id: string;
   subject: string;
   body: string;
   button_text: string | null;
   button_url: string | null;
+  blocks: MarketingBlock[];
   audience: Audience;
   day_of_month: number;
   send_hour: number;
@@ -17,7 +20,14 @@ export interface Campaign {
   last_queued_at: string | null;
 }
 
-export type CampaignDraft = Omit<Campaign, 'id' | 'business_id' | 'next_send_at' | 'last_queued_at'>;
+export interface CampaignDraft {
+  subject: string;
+  blocks: MarketingBlock[];
+  audience: Audience;
+  day_of_month: number;
+  send_hour: number;
+  is_active: boolean;
+}
 
 export interface AudienceCounts {
   subscribers: number;
@@ -36,9 +46,11 @@ export interface RunSummary {
 
 export const EMPTY_DRAFT: CampaignDraft = {
   subject: '',
-  body: '',
-  button_text: null,
-  button_url: null,
+  blocks: [
+    { type: 'hero', logoUrl: null, imageUrl: null, headline: '', buttonText: '', buttonUrl: '', caption: '' },
+    { type: 'text', text: '' },
+    { type: 'vouchers', title: '', showImages: false },
+  ],
   audience: 'subscribers',
   day_of_month: 1,
   send_hour: 10,
@@ -61,9 +73,22 @@ export async function loadAudienceCounts(): Promise<AudienceCounts> {
   return { subscribers: 0, all: 0, unsubscribed: 0, ...(data as Partial<AudienceCounts>) };
 }
 
+/** A saved campaign as an editable draft; campaigns from before the block editor are converted. */
+export function campaignToDraft(campaign: Campaign | null): CampaignDraft {
+  if (!campaign) return EMPTY_DRAFT;
+  return {
+    subject: campaign.subject,
+    blocks: campaignToContent(campaign).blocks,
+    audience: campaign.audience,
+    day_of_month: campaign.day_of_month,
+    send_hour: campaign.send_hour,
+    is_active: campaign.is_active,
+  };
+}
+
 /** Insert or update; returns the saved row (next_send_at is computed by the database). */
 export async function saveCampaign(businessId: string, id: string | null, draft: CampaignDraft): Promise<Campaign> {
-  const row = { ...draft, business_id: businessId, button_text: draft.button_text || null, button_url: draft.button_url || null };
+  const row = { ...draft, business_id: businessId };
   const query = id
     ? supabase.from('marketing_campaigns').update(row).eq('id', id)
     : supabase.from('marketing_campaigns').insert(row);
