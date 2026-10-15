@@ -54,6 +54,26 @@ const TEXT = {
   },
 } as const;
 
+/** Zenno's original English default; shops that never edited it get readable German terms on German vouchers. */
+const DEFAULT_TERMS_EN_START = 'Gift Card Terms & Conditions:';
+const DEFAULT_TERMS_DE = [
+  '• Dieser Gutschein gilt für Leistungen in unserem Haus.',
+  '• Keine Barauszahlung des Gutscheinwerts.',
+  '• Bei Verlust oder Diebstahl kein Ersatz.',
+  '• Nicht mit anderen Aktionen kombinierbar.',
+  '• Bitte den Gutscheincode bei der Terminbuchung angeben.',
+].join('\n');
+
+function termsFor(card: GiftCardData): string | null {
+  const terms = card.termsAndConditions?.trim();
+  if (!terms) return null;
+  if (terms.startsWith(DEFAULT_TERMS_EN_START)) {
+    // The heading is printed separately ("Bedingungen"), so drop the default's own title line.
+    return card.language === 'de' ? DEFAULT_TERMS_DE : terms.slice(DEFAULT_TERMS_EN_START.length).trim();
+  }
+  return terms;
+}
+
 const fill = (text: string, values: Record<string, string | number>) =>
   text.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
 
@@ -119,102 +139,104 @@ async function drawCard(pdf: jsPDF, card: GiftCardData, design: Awaited<ReturnTy
     pdf.text(t.designMissing, half / 2, pageHeight / 2 + 6, { align: 'center' });
   }
 
-  // Right: details.
-  let y = 20;
+  // Right: details. One typeface (Helvetica), clear hierarchy, readable sizes.
+  let y = 22;
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
+  pdf.setFontSize(8.5);
   pdf.setTextColor(...MUTED);
-  pdf.text(pdfSafe(card.businessName).toUpperCase(), left, y, { charSpace: 1.2 });
-  y += 11;
+  pdf.text(pdfSafe(card.businessName).toUpperCase(), left, y, { charSpace: 0.8 });
+  y += 12;
 
-  pdf.setFont('times', 'italic');
-  pdf.setFontSize(20);
-  pdf.setTextColor(...ACCENT);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(11);
+  pdf.setTextColor(...MUTED);
   pdf.text(isServicePass ? t.pass : t.value, left, y);
-  y += 4;
-  pdf.setDrawColor(...RULE);
-  pdf.setLineWidth(0.3);
-  pdf.line(left, y, left + 40, y);
-  y += 10;
+  y += 9;
 
+  pdf.setTextColor(...INK);
   if (isServicePass) {
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(17);
-    pdf.setTextColor(...INK);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
     const nameLines = pdf.splitTextToSize(pdfSafe(card.servicePassName || t.pass), textWidth);
     pdf.text(nameLines, left, y);
-    y += nameLines.length * 7;
+    y += nameLines.length * 6.5;
     const visits = card.visits || 1;
     const entitlement = [
       fill(visits === 1 ? t.visitOne : t.visitMany, { count: visits }),
       card.durationMinutes ? fill(t.minutesEach, { minutes: card.durationMinutes }) : null,
     ].filter(Boolean).join(' · ');
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
+    pdf.setFontSize(10.5);
     pdf.setTextColor(...MUTED);
     pdf.text(entitlement, left, y);
-    y += 8;
+    y += 9;
   } else {
-    pdf.setFont('times', 'normal');
-    pdf.setFontSize(30);
-    pdf.setTextColor(...INK);
-    pdf.text(formatMoney(card), left, y + 4);
-    y += 13;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(24);
+    pdf.text(formatMoney(card), left, y + 2);
+    y += 11;
   }
 
   if (card.note) {
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(9);
     pdf.setTextColor(...ACCENT);
     const noteLines = pdf.splitTextToSize(pdfSafe(card.note), textWidth);
     pdf.text(noteLines, left, y);
-    y += noteLines.length * 4 + 3;
+    y += noteLines.length * 4.2 + 3;
   }
 
+  pdf.setDrawColor(...RULE);
+  pdf.setLineWidth(0.3);
+  pdf.line(left, y, pageWidth - 12, y);
+  y += 7;
+
+  const qrSize = 30;
   try {
     const qr = await QRCode.toDataURL(card.code, {
-      width: 240,
+      width: 300,
       margin: 0,
       errorCorrectionLevel: 'M',
-      color: { dark: '#3A332B', light: '#FFFFFF' },
+      color: { dark: '#2A241F', light: '#FFFFFF' },
     });
-    pdf.addImage(qr, 'PNG', left, y, 28, 28);
+    pdf.addImage(qr, 'PNG', left, y, qrSize, qrSize);
   } catch (error) {
     console.error('Error generating QR code:', error);
   }
 
+  const codeX = left + qrSize + 6;
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(7.5);
+  pdf.setFontSize(8.5);
   pdf.setTextColor(...MUTED);
-  pdf.text(t.code.toUpperCase(), left + 33, y + 8, { charSpace: 0.8 });
-  pdf.setFont('courier', 'bold');
-  pdf.setFontSize(10.5);
+  pdf.text(t.code, codeX, y + 6);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(15);
   pdf.setTextColor(...INK);
-  pdf.text(pdf.splitTextToSize(card.code, textWidth - 33), left + 33, y + 15);
+  pdf.text(pdf.splitTextToSize(card.code, textWidth - qrSize - 6), codeX, y + 14, { charSpace: 0.6 });
   if (card.expiresAt) {
     const locale = card.language === 'de' ? 'de-DE' : 'en-US';
     const date = new Date(card.expiresAt).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' });
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8.5);
+    pdf.setFontSize(9.5);
     pdf.setTextColor(...MUTED);
-    pdf.text(fill(t.validUntil, { date }), left + 33, y + 23);
+    pdf.text(fill(t.validUntil, { date }), codeX, y + 22);
   }
-  y += 36;
+  y += qrSize + 8;
 
-  if (card.termsAndConditions) {
-    pdf.setDrawColor(...RULE);
-    pdf.line(left, y, pageWidth - 12, y);
-    y += 5;
+  const terms = termsFor(card);
+  if (terms) {
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(7);
-    pdf.setTextColor(...MUTED);
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(...INK);
     pdf.text(t.terms, left, y);
-    y += 3.5;
+    y += 4.5;
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(6.5);
-    const lines = pdf.splitTextToSize(pdfSafe(card.termsAndConditions), textWidth);
-    const maxLines = Math.max(0, Math.floor((pageHeight - y - 8) / 2.8));
-    pdf.text(lines.slice(0, maxLines), left, y, { lineHeightFactor: 1.25 });
+    pdf.setFontSize(8);
+    pdf.setTextColor(...MUTED);
+    const lines = pdf.splitTextToSize(pdfSafe(terms), textWidth);
+    const lineHeight = 3.7;
+    const maxLines = Math.max(0, Math.floor((pageHeight - y - 8) / lineHeight));
+    pdf.text(lines.slice(0, maxLines), left, y, { lineHeightFactor: 1.3 });
   }
 }
 
