@@ -70,7 +70,7 @@ describe('buildCustomers', () => {
     const table = readCsvTable('First name,Last name,Email\nMax,Muster,MAX@example.de\nNo,Mail,\nMax,M,max@example.de');
     const result = buildCustomers(table, autoMap('customers', table.headers));
 
-    expect(result.rows).toEqual([{ name: 'Max Muster', email: 'max@example.de', phone: null }]);
+    expect(result.rows).toEqual([{ name: 'Max Muster', email: 'max@example.de', phone: null, newsletter_status: null }]);
     expect(result.errors).toEqual(['Row 3: no valid email', 'Row 4: duplicate email max@example.de']);
   });
 });

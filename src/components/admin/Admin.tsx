@@ -14,6 +14,7 @@ import NoShowFeesView from './NoShowFeesView';
 import TaxReportsView from './TaxReportsView';
 import ProductsView from './ProductsView';
 import AiAgentsView from './AiAgentsView';
+import MarketingView from './marketing/MarketingView';
 import { adminAuth } from '../../lib/adminAuth';
 import { AdminLanguageProvider } from '../../lib/adminLanguage';
 import { supabase } from '../../lib/supabase';
@@ -53,6 +54,7 @@ function AdminPanel() {
       'settings',
       'gift-cards',
       'agents',
+      'marketing',
     ]);
 
     if (requestedView && validViews.has(requestedView)) return requestedView;
@@ -389,6 +391,8 @@ function AdminPanel() {
         return <LoyaltyRewardsView />;
       case 'agents':
         return <AiAgentsView />;
+      case 'marketing':
+        return <MarketingView />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }

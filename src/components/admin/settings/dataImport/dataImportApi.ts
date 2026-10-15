@@ -82,7 +82,7 @@ function uniqueCustomers(rows: BookingImportRow[]): CustomerImportRow[] {
   const byEmail = new Map<string, CustomerImportRow>();
   for (const row of rows) {
     if (!byEmail.has(row.customer_email)) {
-      byEmail.set(row.customer_email, { name: row.customer_name, email: row.customer_email, phone: row.customer_phone || null });
+      byEmail.set(row.customer_email, { name: row.customer_name, email: row.customer_email, phone: row.customer_phone || null, newsletter_status: null });
     }
   }
   return [...byEmail.values()];

@@ -19,7 +19,11 @@ export interface CustomerImportRow {
   name: string;
   email: string;
   phone: string | null;
+  /** 'subscribed' when the export marks the customer as newsletter subscriber. */
+  newsletter_status: 'subscribed' | null;
 }
+
+const SUBSCRIBED = /^(ja|yes|y|true|1|x|abonniert|abonnieren|subscribed|opt-?in|angemeldet)$/i;
 
 export interface BookingImportRow {
   booking_date: string;
@@ -50,8 +54,15 @@ function cellReader(mapping: ColumnMapping) {
   };
 }
 
+/**
+ * Full name. Many German exports have "Vorname" + "Name", where "Name" is only
+ * the surname, so a first name not already in "Name" is put in front of it.
+ */
 function personName(get: (field: string) => string): string {
-  return get('name') || [get('firstName'), get('lastName')].filter(Boolean).join(' ');
+  const full = get('name');
+  const first = get('firstName');
+  if (full) return first && !key(full).startsWith(key(first)) ? `${first} ${full}` : full;
+  return [first, get('lastName')].filter(Boolean).join(' ');
 }
 
 /** Exact name, else unique first-name / prefix match ("Anna" -> "Anna Berg"). */
@@ -76,7 +87,12 @@ export function buildCustomers(table: CsvTable, mapping: ColumnMapping): BuildRe
     if (!EMAIL.test(email)) return errors.push(`Row ${line}: no valid email`);
     if (seen.has(email)) return errors.push(`Row ${line}: duplicate email ${email}`);
     seen.add(email);
-    rows.push({ name: personName(get) || email, email, phone: get('phone') || null });
+    rows.push({
+      name: personName(get) || email,
+      email,
+      phone: get('phone') || null,
+      newsletter_status: SUBSCRIBED.test(get('newsletter').trim()) ? 'subscribed' : null,
+    });
   });
   return { rows, errors };
 }

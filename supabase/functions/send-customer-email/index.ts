@@ -22,6 +22,8 @@ interface EmailRequest {
   body: string;
   customerId?: string;
   attachments?: Attachment[];
+  /** Extra headers (e.g. List-Unsubscribe for promotion emails); Resend only. */
+  headers?: Record<string, string>;
 }
 
 interface EmailSettings {
@@ -35,7 +37,7 @@ interface EmailSettings {
   from_name: string;
 }
 
-async function sendWithResend(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[]) {
+async function sendWithResend(settings: EmailSettings, toEmail: string, subject: string, body: string, attachments?: Attachment[], headers?: Record<string, string>) {
   const emailData: any = {
     from: `${settings.from_name} <${settings.from_email}>`,
     to: [toEmail],
@@ -48,6 +50,10 @@ async function sendWithResend(settings: EmailSettings, toEmail: string, subject:
       filename: att.filename,
       content: att.content,
     }));
+  }
+
+  if (headers && Object.keys(headers).length > 0) {
+    emailData.headers = headers;
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -167,7 +173,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { businessId, toEmail, subject, body, customerId, attachments }: EmailRequest = await req.json();
+    const { businessId, toEmail, subject, body, customerId, attachments, headers }: EmailRequest = await req.json();
 
     if (!businessId || !toEmail || !subject || !body) {
       return new Response(
@@ -198,7 +204,7 @@ Deno.serve(async (req: Request) => {
       // Send email based on provider
       switch (settings.provider) {
         case 'resend':
-          emailResult = await sendWithResend(settings, toEmail, subject, body, attachments);
+          emailResult = await sendWithResend(settings, toEmail, subject, body, attachments, headers);
           break;
         case 'sendgrid':
           emailResult = await sendWithSendGrid(settings, toEmail, subject, body, attachments);

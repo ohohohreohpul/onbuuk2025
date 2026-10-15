@@ -15,7 +15,7 @@ type ImportText = {
   previewSummary: string; importedSummary: string; notImported: string;
   importing: string; importCount: string;
   noRows: string; readFailed: string; importFailed: string;
-  field_name: string; field_firstName: string; field_lastName: string; field_email: string; field_phone: string;
+  field_name: string; field_firstName: string; field_lastName: string; field_email: string; field_phone: string; field_newsletter: string;
   field_date: string; field_time: string; field_duration: string; field_service: string; field_specialist: string; field_notes: string;
   field_start: string; field_end: string; field_specialistShop: string; field_reason: string;
 };
@@ -36,7 +36,7 @@ const TEXT: Translations<ImportText> = {
     importing: 'Importing {done}/{total}…', importCount: 'Import {count}',
     noRows: 'The file has no rows.', readFailed: 'Could not read the file. Export it as CSV.',
     importFailed: 'The import stopped unexpectedly. Rows already saved stay saved.',
-    field_name: 'Full name', field_firstName: 'First name', field_lastName: 'Last name', field_email: 'Email', field_phone: 'Phone',
+    field_name: 'Full name', field_firstName: 'First name', field_lastName: 'Last name', field_email: 'Email', field_phone: 'Phone', field_newsletter: 'Newsletter (subscribed)',
     field_date: 'Date', field_time: 'Start time', field_duration: 'Duration', field_service: 'Treatment', field_specialist: 'Therapist', field_notes: 'Notes',
     field_start: 'Start (date + time)', field_end: 'End (date + time)', field_specialistShop: 'Therapist (empty = whole shop)', field_reason: 'Reason',
   },
@@ -55,7 +55,7 @@ const TEXT: Translations<ImportText> = {
     importing: 'Importiere {done}/{total}…', importCount: '{count} importieren',
     noRows: 'Die Datei enthält keine Zeilen.', readFailed: 'Datei konnte nicht gelesen werden. Bitte als CSV exportieren.',
     importFailed: 'Der Import wurde unerwartet abgebrochen. Bereits gespeicherte Zeilen bleiben erhalten.',
-    field_name: 'Vollständiger Name', field_firstName: 'Vorname', field_lastName: 'Nachname', field_email: 'E-Mail', field_phone: 'Telefon',
+    field_name: 'Vollständiger Name', field_firstName: 'Vorname', field_lastName: 'Nachname', field_email: 'E-Mail', field_phone: 'Telefon', field_newsletter: 'Newsletter (abonniert)',
     field_date: 'Datum', field_time: 'Startzeit', field_duration: 'Dauer', field_service: 'Behandlung', field_specialist: 'Therapeut', field_notes: 'Notizen',
     field_start: 'Beginn (Datum + Uhrzeit)', field_end: 'Ende (Datum + Uhrzeit)', field_specialistShop: 'Therapeut (leer = ganzer Shop)', field_reason: 'Grund',
   },
@@ -74,7 +74,7 @@ const TEXT: Translations<ImportText> = {
     importing: 'กำลังนำเข้า {done}/{total}…', importCount: 'นำเข้า {count}',
     noRows: 'ไฟล์นี้ไม่มีข้อมูล', readFailed: 'อ่านไฟล์ไม่ได้ กรุณาส่งออกเป็น CSV',
     importFailed: 'การนำเข้าหยุดกะทันหัน แถวที่บันทึกแล้วยังคงอยู่',
-    field_name: 'ชื่อเต็ม', field_firstName: 'ชื่อ', field_lastName: 'นามสกุล', field_email: 'อีเมล', field_phone: 'โทรศัพท์',
+    field_name: 'ชื่อเต็ม', field_firstName: 'ชื่อ', field_lastName: 'นามสกุล', field_email: 'อีเมล', field_phone: 'โทรศัพท์', field_newsletter: 'รับนิวส์เลตเตอร์',
     field_date: 'วันที่', field_time: 'เวลาเริ่ม', field_duration: 'ระยะเวลา', field_service: 'ทรีตเมนต์', field_specialist: 'นักบำบัด', field_notes: 'หมายเหตุ',
     field_start: 'เริ่ม (วันที่ + เวลา)', field_end: 'สิ้นสุด (วันที่ + เวลา)', field_specialistShop: 'นักบำบัด (ว่าง = ทั้งร้าน)', field_reason: 'เหตุผล',
   },

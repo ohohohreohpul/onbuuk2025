@@ -298,3 +298,11 @@ verify_jwt = false
 
 [functions.process-notifications]
 verify_jwt = false
+
+[functions.send-marketing]
+# Cron calls it with x-cron-secret; test sends check the admin JWT in code.
+verify_jwt = false
+
+[functions.marketing-unsubscribe]
+# Public unsubscribe link in promotion emails.
+verify_jwt = false

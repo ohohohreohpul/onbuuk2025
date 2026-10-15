@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Languages
+  Languages,
+  Mail
 } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
@@ -39,14 +40,14 @@ import {
 
 const TEXT: Translations<{
   dashboard: string; today: string; calendar: string; bookings: string; customers: string;
-  business: string; services: string; products: string; specialists: string; team: string; agents: string;
+  business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string;
   money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
   documentation: string; help: string; logout: string; poweredBy: string; language: string; businessLogo: string;
 }> = {
   en: {
     dashboard: 'Dashboard', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
     business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
-    team: 'Team & Permissions', agents: 'AI booking', money: 'Money', fees: 'No-Show Fees',
+    team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', money: 'Money', fees: 'No-Show Fees',
     loyalty: 'Loyalty & Rewards', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
     documentation: 'Documentation', help: 'Get Help', logout: 'Logout', poweredBy: 'Powered by',
     language: 'Language', businessLogo: 'Business logo',
@@ -54,7 +55,7 @@ const TEXT: Translations<{
   de: {
     dashboard: 'Übersicht', today: 'Heute', calendar: 'Kalender', bookings: 'Buchungen', customers: 'Kunden',
     business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
-    team: 'Team & Berechtigungen', agents: 'KI-Buchung', money: 'Finanzen', fees: 'No-Show-Gebühren',
+    team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', money: 'Finanzen', fees: 'No-Show-Gebühren',
     loyalty: 'Treue & Prämien', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
     documentation: 'Dokumentation', help: 'Hilfe', logout: 'Abmelden', poweredBy: 'Powered by',
     language: 'Sprache', businessLogo: 'Firmenlogo',
@@ -62,7 +63,7 @@ const TEXT: Translations<{
   th: {
     dashboard: 'แดชบอร์ด', today: 'วันนี้', calendar: 'ปฏิทิน', bookings: 'การจอง', customers: 'ลูกค้า',
     business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
-    team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
+    team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
     loyalty: 'สะสมแต้มและรางวัล', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
     documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
     language: 'ภาษา', businessLogo: 'โลโก้ร้าน',
@@ -127,6 +128,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       label: t.customers,
       items: [
         { id: 'customers', label: t.customers, icon: Users, permissions: ['view_customers'] },
+        { id: 'marketing', label: t.marketing, icon: Mail, permissions: ['view_customers', 'view_settings'] },
       ]
     },
     {

@@ -44,8 +44,10 @@ const LAST: FieldSpec = { key: 'lastName', label: 'Last name', aliases: ['nachna
 const EMAIL: FieldSpec = { key: 'email', label: 'Email', aliases: ['email', 'e-mail', 'e mail', 'email address', 'e-mail-adresse', 'mail'] };
 const PHONE: FieldSpec = { key: 'phone', label: 'Phone', aliases: ['phone', 'telefon', 'telefonnummer', 'handy', 'mobil', 'mobile', 'phone number', 'tel'] };
 
+const NEWSLETTER: FieldSpec = { key: 'newsletter', label: 'Newsletter', aliases: ['newsletter', 'marketing', 'werbung', 'opt-in', 'optin', 'email marketing', 'marketing consent', 'e-mail-werbung'] };
+
 export const IMPORT_FIELDS: Record<ImportKind, FieldSpec[]> = {
-  customers: [NAME, FIRST, LAST, EMAIL, PHONE],
+  customers: [NAME, FIRST, LAST, EMAIL, PHONE, NEWSLETTER],
   bookings: [
     { key: 'date', label: 'Date', aliases: ['datum', 'date', 'termin', 'tag', 'appointment date', 'start date', 'startdatum'] },
     { key: 'time', label: 'Start time', aliases: ['uhrzeit', 'time', 'start', 'beginn', 'startzeit', 'start time', 'von'] },
