@@ -6,6 +6,7 @@ import { useCurrency } from '../lib/currencyContext';
 import { useGiftCardCustomization } from '../hooks/useGiftCardCustomization';
 import { useBookingText, fillText, type Translations } from '../lib/bookingLanguage';
 import PackagePicker from './giftCards/PackagePicker';
+import { readGiftCardLink } from '../lib/giftCardLink';
 import OrderPlaced from './giftCards/OrderPlaced';
 import PromoBanner from './giftCards/PromoBanner';
 import {
@@ -473,6 +474,15 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       })) as ServicePassOffer[];
       setServicePassOffers(normalizedOffers);
       setSelectedServicePassId(passesResult.data[0]?.id || '');
+    }
+    // A link from a promotion email can preselect a card or set.
+    const link = readGiftCardLink(window.location.search);
+    if (link.passId && passesResult.data?.some((offer) => offer.id === link.passId)) {
+      setPurchaseType('service_pass');
+      setSelectedServicePassId(link.passId);
+    } else if (link.setId && activePackages.some((pkg) => pkg.id === link.setId)) {
+      setPurchaseType('package');
+      setSelectedPackageId(link.setId);
     }
     setLoading(false);
   };

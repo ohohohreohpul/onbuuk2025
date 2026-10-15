@@ -10,7 +10,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { isServiceRoleRequest } from "../_shared/emailAccess.ts";
 import { authorizationErrorResponse, requireActiveAdmin } from "../_shared/adminAuthorization.ts";
-import { firstNameOf, renderMarketingEmail, type MarketingLanguage, type MarketingShop } from "../_shared/marketingEmail.ts";
+import { firstNameOf, renderMarketingEmail, type MarketingShop, type MarketingVoucher } from "../_shared/marketingEmail.ts";
+import { campaignToContent, loadMarketingShop, loadShopVouchers, type CampaignRow } from "../_shared/marketingData.ts";
 
 const BATCH_SIZE = 40;
 const PAUSE_BETWEEN_SENDS_MS = 600;
@@ -22,13 +23,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface Campaign {
+interface Campaign extends CampaignRow {
   id: string;
   business_id: string;
-  subject: string;
-  body: string;
-  button_text: string | null;
-  button_url: string | null;
+  vouchers_enabled: boolean;
+}
+
+interface ShopBundle {
+  shop: MarketingShop;
+  vouchers: MarketingVoucher[];
 }
 
 interface ClaimedSend {
@@ -66,35 +69,24 @@ const serviceClient = () => createClient(
 
 const unsubscribeUrl = (token: string) => `${Deno.env.get("SUPABASE_URL")}/functions/v1/marketing-unsubscribe?t=${token}`;
 
-async function loadShop(supabase: SupabaseClient, businessId: string): Promise<MarketingShop> {
-  const [{ data: business, error }, { data: color }] = await Promise.all([
-    supabase.from("businesses").select("name, address, phone, custom_logo_url, language").eq("id", businessId).single(),
-    supabase.from("booking_form_colors").select("color_value").eq("business_id", businessId).eq("color_key", "primary").maybeSingle(),
-  ]);
-  if (error || !business) throw new Error(`Shop ${businessId} not found`);
-  const language: MarketingLanguage = business.language === "en" || business.language === "th" ? business.language : "de";
-  return {
-    name: business.name ?? "",
-    address: business.address,
-    phone: business.phone,
-    logoUrl: business.custom_logo_url,
-    primaryColor: color?.color_value ?? null,
-    language,
-  };
+async function loadShopBundle(supabase: SupabaseClient, businessId: string): Promise<ShopBundle> {
+  const shop = await loadMarketingShop(supabase, businessId);
+  return { shop, vouchers: await loadShopVouchers(supabase, businessId, shop) };
 }
 
 async function sendOne(
   supabase: SupabaseClient,
-  shop: MarketingShop,
+  bundle: ShopBundle,
   campaign: Campaign,
   to: { email: string; name: string | null; token: string; customerId: string | null },
 ): Promise<string | null> {
   const link = unsubscribeUrl(to.token);
   const { subject, html } = renderMarketingEmail(
-    shop,
-    { subject: campaign.subject, body: campaign.body, buttonText: campaign.button_text, buttonUrl: campaign.button_url },
+    bundle.shop,
+    campaignToContent(campaign),
     firstNameOf(to.name),
     link,
+    campaign.vouchers_enabled ? bundle.vouchers : [],
   );
   const { data, error } = await supabase.functions.invoke("send-customer-email", {
     body: {
@@ -114,11 +106,11 @@ async function deliver(
   supabase: SupabaseClient,
   row: ClaimedSend,
   campaigns: Map<string, Campaign | null>,
-  shops: Map<string, MarketingShop>,
+  shops: Map<string, ShopBundle>,
 ): Promise<{ outcome: Outcome; note?: string }> {
   if (!campaigns.has(row.campaign_id)) {
     const { data } = await supabase.from("marketing_campaigns")
-      .select("id, business_id, subject, body, button_text, button_url").eq("id", row.campaign_id).maybeSingle();
+      .select("*").eq("id", row.campaign_id).maybeSingle();
     campaigns.set(row.campaign_id, (data as Campaign | null) ?? null);
   }
   const campaign = campaigns.get(row.campaign_id);
@@ -129,7 +121,7 @@ async function deliver(
   if (!customer) return { outcome: "skipped", note: "customer deleted" };
   if (customer.newsletter_status === "unsubscribed") return { outcome: "skipped", note: "unsubscribed" };
 
-  if (!shops.has(row.business_id)) shops.set(row.business_id, await loadShop(supabase, row.business_id));
+  if (!shops.has(row.business_id)) shops.set(row.business_id, await loadShopBundle(supabase, row.business_id));
   const failure = await sendOne(supabase, shops.get(row.business_id)!, campaign, {
     email: row.email, name: customer.name, token: customer.unsubscribe_token, customerId: row.customer_id,
   });
@@ -145,7 +137,7 @@ async function runBatch(): Promise<Response> {
   }
 
   const campaigns = new Map<string, Campaign | null>();
-  const shops = new Map<string, MarketingShop>();
+  const shops = new Map<string, ShopBundle>();
   const summary: Record<Outcome, number> = { sent: 0, skipped: 0, retry: 0 };
   for (const row of (claimed ?? []) as ClaimedSend[]) {
     let result: { outcome: Outcome; note?: string };
@@ -172,11 +164,11 @@ async function runTest(req: Request): Promise<Response> {
   }
   const { businessId, supabaseAdmin } = await requireActiveAdmin(req);
   const { data: campaign } = await supabaseAdmin.from("marketing_campaigns")
-    .select("id, business_id, subject, body, button_text, button_url").eq("id", campaignId).maybeSingle();
+    .select("*").eq("id", campaignId).maybeSingle();
   if (!campaign || campaign.business_id !== businessId) return json({ error: "Campaign not found" }, 404);
 
   // Test copies use a token that matches no customer, so their unsubscribe link changes nothing.
-  const failure = await sendOne(supabaseAdmin, await loadShop(supabaseAdmin, businessId), campaign as Campaign, {
+  const failure = await sendOne(supabaseAdmin, await loadShopBundle(supabaseAdmin, businessId), campaign as Campaign, {
     email: testEmail.trim(), name: null, token: crypto.randomUUID(), customerId: null,
   });
   return failure ? json({ error: failure }, 502) : json({ success: true });

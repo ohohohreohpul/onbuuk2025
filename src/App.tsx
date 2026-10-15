@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSpecialistChoice } from './hooks/useSpecialistChoice';
 import BookingLayout from './components/BookingLayout';
 import WelcomeStep from './components/WelcomeStep';
+import { readGiftCardLink } from './lib/giftCardLink';
 import ServiceStep from './components/ServiceStep';
 import DurationStep from './components/DurationStep';
 import AddOnsStep from './components/AddOnsStep';
@@ -176,7 +177,8 @@ function AppContent() {
       setCheckingSession(false);
     }
   };
-  const [currentStep, setCurrentStep] = useState<Step>('welcome');
+  // Promotion emails link to /?gutschein=1 to open the voucher page directly.
+  const [currentStep, setCurrentStep] = useState<Step>(() => (readGiftCardLink(window.location.search).open ? 'giftcard' : 'welcome'));
   const [bookingState, setBookingState] = useState<BookingState>({
     service: null,
     duration: null,

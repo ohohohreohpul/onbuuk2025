@@ -9,7 +9,10 @@ const shop: MarketingShop = {
   phone: '040 1234',
   logoUrl: '/defbuuklogo.png',
   primaryColor: '#5A1F4A',
+  accentColor: '#D2A647',
   language: 'de',
+  shopUrl: 'https://shop.example.de',
+  showZennoBadge: false,
 };
 
 describe('personalize', () => {
@@ -46,8 +49,23 @@ describe('renderMarketingEmail', () => {
     expect(html).toContain('Prakun Thai Massage');
     expect(html).toContain('href="https://shop.example.de"');
     expect(html).toContain('href="https://x.test/u?t=abc"');
-    expect(html).toContain('Vom Newsletter abmelden');
+    expect(html).toContain('Abmelden');
     expect(html).not.toMatch(/zenno/i);
+  });
+
+  it('shows "Gesendet mit Zenno" only when the shop shows the Zenno badge', () => {
+    const { html } = renderMarketingEmail({ ...shop, showZennoBadge: true }, content, '', 'https://x.test/u');
+    expect(html).toContain('Gesendet mit Zenno');
+  });
+
+  it('renders a two-tone headline and voucher cards with prices', () => {
+    const { html } = renderMarketingEmail(shop, { ...content, headline: 'Zeit für Sie.\nDer Alltag kann warten.' }, 'Anna', 'https://x.test/u', [
+      { name: '5er-Karte', detail: '5 × 60 Min', priceCents: 29000, compareCents: 31000, url: 'https://shop.example.de/?gutschein=1&karte=1' },
+    ]);
+    expect(html).toContain('Zeit für Sie.<br><span');
+    expect(html).toContain('5er-Karte');
+    expect(html).toMatch(/290\s?€/);
+    expect(html).toContain('href="https://shop.example.de/?gutschein=1&amp;karte=1"');
   });
 
   it('drops a button whose link is not https', () => {
