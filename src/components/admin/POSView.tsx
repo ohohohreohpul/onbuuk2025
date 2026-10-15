@@ -5,6 +5,7 @@ import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 import {
   ADMIN_INPUT,
+  ADMIN_SELECT,
   ADMIN_PRIMARY_BUTTON,
   ADMIN_SEGMENT_ACTIVE,
   ADMIN_SEGMENT_INACTIVE,
@@ -19,7 +20,7 @@ type PosText = {
   notFound: string; notUsable: string; statusExpired: string; statusFullyRedeemed: string; statusCancelled: string;
   statusPendingPayment: string; statusInactive: string; noVisitsLeft: string; zeroBalance: string; passRedeemFailed: string;
   visitRedeemedOne: string; visitRedeemedMany: string; amountRange: string; redeemedSuccess: string; redeemFailed: string;
-  confirmMarkPaid: string; bookingUpdateFailed: string; bookingMarkedPaid: string; title: string; subtitle: string;
+  confirmMarkPaid: string; forBooking: string; noBooking: string; linkedRedeemed: string; bookingUpdateFailed: string; bookingMarkedPaid: string; title: string; subtitle: string;
   pendingCountOne: string; pendingCountMany: string; tabRedeem: string; tabPending: string; findHeading: string;
   findHint: string; codeLabel: string; searching: string; findCard: string; serviceEntitlement: string;
   availableBalance: string; visitLeft: string; visitsLeft: string; minutes: string; passHint: string; processing: string;
@@ -37,7 +38,7 @@ const TEXT: Translations<PosText> = {
     passRedeemFailed: 'Failed to redeem service pass', visitRedeemedOne: 'Visit redeemed. 1 visit remains.',
     visitRedeemedMany: 'Visit redeemed. {count} visits remain.', amountRange: 'Amount must be between {min} and {max}',
     redeemedSuccess: 'Successfully redeemed {amount} from gift card!', redeemFailed: 'Failed to redeem gift card',
-    confirmMarkPaid: 'Mark this booking as paid?', bookingUpdateFailed: 'Failed to update booking',
+    confirmMarkPaid: 'Mark this booking as paid?', forBooking: 'Pays for booking', noBooking: 'No booking (voucher only)', linkedRedeemed: '{amount} redeemed for this booking. Record how the rest was paid.', bookingUpdateFailed: 'Failed to update booking',
     bookingMarkedPaid: 'Booking marked as paid!', title: 'Checkout desk',
     subtitle: 'Redeem value cards or service-pass visits and close pending in-person payments.',
     pendingCountOne: '1 pending payment', pendingCountMany: '{count} pending payments',
@@ -61,7 +62,7 @@ const TEXT: Translations<PosText> = {
     passRedeemFailed: 'Behandlungsgutschein konnte nicht eingelöst werden', visitRedeemedOne: 'Besuch eingelöst. 1 Besuch verbleibt.',
     visitRedeemedMany: 'Besuch eingelöst. {count} Besuche verbleiben.', amountRange: 'Der Betrag muss zwischen {min} und {max} liegen',
     redeemedSuccess: '{amount} vom Gutschein eingelöst.', redeemFailed: 'Gutschein konnte nicht eingelöst werden',
-    confirmMarkPaid: 'Diese Buchung als bezahlt markieren?', bookingUpdateFailed: 'Buchung konnte nicht aktualisiert werden',
+    confirmMarkPaid: 'Diese Buchung als bezahlt markieren?', forBooking: 'Bezahlt Buchung', noBooking: 'Keine Buchung (nur Gutschein)', linkedRedeemed: '{amount} für diese Buchung eingelöst. Restzahlung bitte erfassen.', bookingUpdateFailed: 'Buchung konnte nicht aktualisiert werden',
     bookingMarkedPaid: 'Buchung als bezahlt markiert.', title: 'Kasse',
     subtitle: 'Wertgutscheine oder Besuche von Behandlungsgutscheinen einlösen und offene Zahlungen vor Ort abschließen.',
     pendingCountOne: '1 offene Zahlung', pendingCountMany: '{count} offene Zahlungen',
@@ -85,7 +86,7 @@ const TEXT: Translations<PosText> = {
     passRedeemFailed: 'ใช้บัตรบริการไม่สำเร็จ', visitRedeemedOne: 'ใช้สิทธิ์แล้ว เหลืออีก 1 ครั้ง',
     visitRedeemedMany: 'ใช้สิทธิ์แล้ว เหลืออีก {count} ครั้ง', amountRange: 'จำนวนเงินต้องอยู่ระหว่าง {min} ถึง {max}',
     redeemedSuccess: 'ใช้บัตรของขวัญ {amount} สำเร็จ', redeemFailed: 'ใช้บัตรของขวัญไม่สำเร็จ',
-    confirmMarkPaid: 'ทำเครื่องหมายว่าการจองนี้ชำระแล้ว?', bookingUpdateFailed: 'อัปเดตการจองไม่สำเร็จ',
+    confirmMarkPaid: 'ทำเครื่องหมายว่าการจองนี้ชำระแล้ว?', forBooking: 'ใช้ชำระการจอง', noBooking: 'ไม่ผูกกับการจอง (ใช้บัตรอย่างเดียว)', linkedRedeemed: 'ใช้บัตร {amount} สำหรับการจองนี้แล้ว กรุณาบันทึกยอดที่เหลือ', bookingUpdateFailed: 'อัปเดตการจองไม่สำเร็จ',
     bookingMarkedPaid: 'ทำเครื่องหมายว่าชำระแล้ว', title: 'แคชเชียร์',
     subtitle: 'ใช้บัตรของขวัญแบบมูลค่าหรือบัตรบริการ และปิดยอดที่ชำระที่ร้าน',
     pendingCountOne: 'รอชำระ 1 รายการ', pendingCountMany: 'รอชำระ {count} รายการ',
@@ -161,6 +162,7 @@ export function POSView() {
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [payingBooking, setPayingBooking] = useState<PendingBooking | null>(null);
+  const [redeemForBookingId, setRedeemForBookingId] = useState('');
 
   useEffect(() => {
     loadPendingBookings();
@@ -228,8 +230,37 @@ export function POSView() {
     setSearchingCard(false);
   };
 
+  /** Voucher scanned for a booking: redeem it on the booking, then record the rest. */
+  const redeemForBooking = async (card: NonNullable<typeof foundCard>, booking: PendingBooking) => {
+    const amountCents = card.card_type === 'service_pass' ? null : Math.round(parseFloat(redeemAmount) * 100);
+    setRedeeming(true);
+    setError('');
+    const { data, error: redeemError } = await supabase.rpc('redeem_gift_card_for_booking', {
+      p_booking_id: booking.id,
+      p_code: card.code,
+      p_requested_amount_cents: amountCents,
+    });
+    setRedeeming(false);
+    if (redeemError) {
+      setError(redeemError.message || t.redeemFailed);
+      return;
+    }
+    setMessage(fillText(t.linkedRedeemed, { amount: formatAmount(Number(data?.amountUsedCents ?? 0) / 100) }));
+    setGiftCardCode('');
+    setFoundCard(null);
+    setRedeemForBookingId('');
+    loadPendingBookings();
+    setPayingBooking(booking);
+  };
+
   const handleRedeemGiftCard = async () => {
     if (!foundCard) return;
+
+    const linkedBooking = pendingBookings.find((booking) => booking.id === redeemForBookingId);
+    if (linkedBooking) {
+      await redeemForBooking(foundCard, linkedBooking);
+      return;
+    }
 
     if (foundCard.card_type === 'service_pass') {
       setRedeeming(true);
@@ -399,6 +430,17 @@ export function POSView() {
               </div>
 
               <div className="border-t border-emerald-200/70 bg-white/30 p-5">
+                <label className="mb-4 block">
+                  <span className="mb-2 block text-sm font-medium text-emerald-950">{t.forBooking}</span>
+                  <select value={redeemForBookingId} onChange={(e) => setRedeemForBookingId(e.target.value)} className={ADMIN_SELECT}>
+                    <option value="">{t.noBooking}</option>
+                    {pendingBookings.map((booking) => (
+                      <option key={booking.id} value={booking.id}>
+                        {booking.booking_date} {booking.start_time.slice(0, 5)} · {booking.customer_name} · {booking.service.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 {foundCard.card_type === 'service_pass' ? (
                   <div>
                     <p className="text-sm leading-6 text-emerald-900">{t.passHint}</p>
