@@ -8,7 +8,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // New versions wait until src/lib/appUpdates.ts applies them (on open or when the tab is left).
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['apple-touch-icon.png', 'zenno-mark.svg', 'zenno-logo.svg'],
       manifest: {
         name: 'Zenno',

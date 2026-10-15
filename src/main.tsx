@@ -5,6 +5,7 @@ import './index.css';
 import { Toaster } from '@/components/ui/toaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { captureAttribution } from './lib/attribution';
+import { keepAppUpdated } from './lib/appUpdates';
 
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', event.error);
@@ -15,6 +16,7 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 captureAttribution();
+keepAppUpdated();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
