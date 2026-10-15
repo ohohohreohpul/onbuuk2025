@@ -8,6 +8,7 @@ import BookingRowActions from './bookings/BookingRowActions';
 import RecordPaymentModal from './bookings/RecordPaymentModal';
 import PaymentSummary from './bookings/PaymentSummary';
 import QuickPay from './bookings/QuickPay';
+import { markBookingNoShow, setBookingStatus, type BookingStatus } from './bookings/bookingActions';
 import { openAmountCents, type BookingPayment } from './bookings/paymentMethods';
 import type { PaymentMethod } from './bookings/paymentMethods';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
@@ -259,15 +260,12 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
     if (!booking) return;
 
     setBusyId(bookingId);
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status: newStatus })
-      .eq('id', bookingId);
-
-    if (error) {
-      alert(t.updateFailed);
-    } else {
+    try {
+      await setBookingStatus(bookingId, newStatus as BookingStatus);
       await fetchBookings();
+    } catch (statusError) {
+      console.error('Could not update booking status:', statusError);
+      alert(t.updateFailed);
     }
     setBusyId(null);
   };
@@ -317,60 +315,12 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
     if (!confirm(fillText(t.noShowConfirm, { name: booking.customer_name }) + feeNote)) return;
     setBusyId(booking.id);
 
-    const { error: bookingError } = await supabase
-      .from('bookings')
-      .update({
-        no_show: true,
-        no_show_marked_at: new Date().toISOString(),
-        status: 'cancelled'
-      })
-      .eq('id', booking.id);
-
-    if (bookingError) {
-      alert(fillText(t.noShowFailed, { message: bookingError.message }));
-      setBusyId(null);
-      return;
-    }
-
-    // Treatwell model: if the customer left a card on file at checkout, charge the fee.
-    if (booking.service.no_show_fee > 0) {
-      try {
-        const { data: chargeResult, error: chargeError } = await supabase.functions.invoke('charge-no-show-fee', {
-          body: { booking_id: booking.id },
-        });
-
-        if (!chargeError && chargeResult?.charged) {
-          alert(fillText(t.noShowCharged, { amount: formatPrice(chargeResult.amount) }));
-          await fetchBookings();
-          setBusyId(null);
-          return;
-        }
-      } catch (e) {
-        console.error('Card charge attempt failed:', e);
-      }
-    }
-
-    if (booking.service.no_show_fee > 0) {
-      const { data: customer } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('email', booking.customer_email)
-        .eq('business_id', businessId!)
-        .maybeSingle();
-
-      const { error: feeError } = await supabase
-        .from('no_show_fees')
-        .insert({
-          booking_id: booking.id,
-          customer_id: customer?.id || null,
-          amount: booking.service.no_show_fee,
-          reason: 'no_show',
-          notes: `No-show for ${booking.service.name} on ${formatDate(booking.booking_date)} at ${booking.start_time}`
-        });
-
-      if (feeError) {
-        console.error('Failed to create no-show fee:', feeError);
-      }
+    try {
+      const { chargedAmount } = await markBookingNoShow(businessId!, booking,
+        `No-show for ${booking.service.name} on ${formatDate(booking.booking_date)} at ${booking.start_time}`);
+      if (chargedAmount !== null) alert(fillText(t.noShowCharged, { amount: formatPrice(chargedAmount) }));
+    } catch (noShowError) {
+      alert(fillText(t.noShowFailed, { message: noShowError instanceof Error ? noShowError.message : String(noShowError) }));
     }
 
     await fetchBookings();

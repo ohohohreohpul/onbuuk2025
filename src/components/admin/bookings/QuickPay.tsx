@@ -42,10 +42,14 @@ interface QuickPayProps {
   onOther: () => void;
   /** Called after every recorded payment so the list refreshes. */
   onPaid: () => void;
+  /** Inline use (dashboard step row): no "still open" line, no top margin. */
+  compact?: boolean;
+  /** Greyed out until earlier steps are done. */
+  disabled?: boolean;
 }
 
 /** One tap at the counter: how did the customer pay the open amount? */
-export default function QuickPay({ bookingId, openCents, onOther, onPaid }: QuickPayProps) {
+export default function QuickPay({ bookingId, openCents, onOther, onPaid, compact = false, disabled = false }: QuickPayProps) {
   const { t } = useAdminText(TEXT);
   const { formatPrice } = useCurrency();
   const [busy, setBusy] = useState(false);
@@ -123,7 +127,7 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid }: Quic
 
   if (askCode) {
     return (
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <div className={`${compact ? '' : 'mt-2 '}flex flex-wrap items-center gap-1.5`}>
         <input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && redeem()}
           placeholder={t.code} aria-label={t.code} autoFocus
           className="w-44 rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-stone-400" />
@@ -137,13 +141,13 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid }: Quic
   }
 
   return (
-    <div className="mt-2">
-      <p className="mb-1.5 text-[11px] font-medium text-amber-700">{fillText(t.open, { amount: formatPrice(openCents) })}</p>
+    <div className={compact ? '' : 'mt-2'}>
+      {!compact && <p className="mb-1.5 text-[11px] font-medium text-amber-700">{fillText(t.open, { amount: formatPrice(openCents) })}</p>}
       <div className="flex flex-wrap items-center gap-1.5">
-        <button type="button" onClick={() => pay('cash')} disabled={busy} className={DARK}><Banknote className="h-4 w-4" /> {t.cash}</button>
-        <button type="button" onClick={() => pay('card')} disabled={busy} className={DARK}><CreditCard className="h-4 w-4" /> {t.card}</button>
-        <button type="button" onClick={() => setAskCode(true)} disabled={busy} className={LIGHT}><Gift className="h-4 w-4" /> {t.voucher}</button>
-        <button type="button" onClick={onOther} disabled={busy} className="px-1.5 text-xs text-stone-500 underline-offset-2 hover:text-stone-800 hover:underline">{t.other}</button>
+        <button type="button" onClick={() => pay('cash')} disabled={busy || disabled} className={DARK}><Banknote className="h-4 w-4" /> {t.cash}</button>
+        <button type="button" onClick={() => pay('card')} disabled={busy || disabled} className={DARK}><CreditCard className="h-4 w-4" /> {t.card}</button>
+        <button type="button" onClick={() => setAskCode(true)} disabled={busy || disabled} className={LIGHT}><Gift className="h-4 w-4" /> {t.voucher}</button>
+        {!compact && <button type="button" onClick={onOther} disabled={busy || disabled} className="px-1.5 text-xs text-stone-500 underline-offset-2 hover:text-stone-800 hover:underline">{t.other}</button>}
       </div>
       {error && <p role="alert" className="mt-1 text-xs text-red-700">{error}</p>}
     </div>
