@@ -135,3 +135,9 @@ export async function loadRuns(campaignId: string): Promise<RunSummary[]> {
   }
   return [...runs.values()];
 }
+
+/** A paused copy of a promotion, as the starting point for a new one. */
+export async function duplicateCampaign(businessId: string, campaign: Campaign, subjectPrefix: string): Promise<Campaign> {
+  const draft = campaignToDraft(campaign);
+  return saveCampaign(businessId, null, { ...draft, subject: `${subjectPrefix}${draft.subject}`.slice(0, 200), is_active: false });
+}

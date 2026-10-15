@@ -184,7 +184,7 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
         ) : <span />}
         <div className="flex gap-2">
           <button type="button" onClick={runNow} disabled={busy !== null || recipients === 0} className={ADMIN_SECONDARY_BUTTON}>
-            <Send className="h-4 w-4" /> {t.sendNow}
+            <Send className="h-4 w-4" /> {fillText(t.sendNow, { count: recipients })}
           </button>
           <button type="button" onClick={save} disabled={busy !== null} className={ADMIN_PRIMARY_BUTTON}>{busy === 'save' ? t.saving : t.save}</button>
         </div>

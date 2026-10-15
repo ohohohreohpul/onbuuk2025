@@ -13,6 +13,7 @@ export const MARKETING_TEXT: Translations<{
   sent: string; failed: string; pending: string; skipped: string; edit: string; active: string; paused: string;
   loadFailed: string; saveFailed: string; testFailed: string; sendFailed: string; required: string; httpsOnly: string;
   legalNote: string;
+  back: string; duplicate: string; copyPrefix: string; noSubject: string; schedule_line: string; nextShort: string; lastSent: string; neverSent: string; open: string;
 }> = {
   en: {
     title: 'Email marketing', subtitle: 'Send your customers a promotion once a month, automatically and in your shop\'s name.',
@@ -28,12 +29,13 @@ export const MARKETING_TEXT: Translations<{
     nextSend: 'Next send: {date}', save: 'Save', saving: 'Saving…', saved: 'Saved', delete: 'Delete',
     confirmDelete: 'Delete this promotion? Its send history is deleted too.',
     testTitle: 'Send a test', testSend: 'Send test', testSending: 'Sending…', testSent: 'Test sent to {email}',
-    sendNow: 'Send now', confirmSendNow: 'Send this email now to {count} recipients?', queued: '{count} emails are being sent (in batches, a few minutes).',
+    sendNow: 'Send now to {count} recipients', confirmSendNow: 'Send this email now to {count} recipients?', queued: '{count} emails are being sent (in batches, a few minutes).',
     history: 'Sent so far', noHistory: 'Nothing sent yet.', runMonthly: 'Monthly · {month}', runNow: 'Sent manually · {day}', runTest: 'Test',
     sent: 'sent', failed: 'failed', pending: 'in progress', skipped: 'skipped', edit: 'Edit', active: 'Monthly', paused: 'Paused',
     loadFailed: 'Could not load email marketing.', saveFailed: 'Could not save: {reason}', testFailed: 'Test email failed: {reason}',
     sendFailed: 'Could not start sending: {reason}', required: 'Subject and text are required.', httpsOnly: 'The button link must start with https://',
     legalNote: 'Every email includes your address and an unsubscribe link. Unsubscribed customers never receive promotions again.',
+    back: 'All promotions', duplicate: 'Duplicate', copyPrefix: 'Copy: ', noSubject: '(no subject yet)', schedule_line: 'Every month on the {day}. at {hour}:00', nextShort: 'Next: {date}', lastSent: 'Last sent {date}', neverSent: 'Not sent yet', open: 'Open',
   },
   de: {
     title: 'E-Mail-Marketing', subtitle: 'Einmal im Monat ein Angebot an Ihre Kunden – automatisch und im Namen Ihres Shops.',
@@ -49,12 +51,13 @@ export const MARKETING_TEXT: Translations<{
     nextSend: 'Nächster Versand: {date}', save: 'Speichern', saving: 'Wird gespeichert…', saved: 'Gespeichert', delete: 'Löschen',
     confirmDelete: 'Diese Aktion löschen? Der Versandverlauf wird ebenfalls gelöscht.',
     testTitle: 'Test senden', testSend: 'Test senden', testSending: 'Wird gesendet…', testSent: 'Test an {email} gesendet',
-    sendNow: 'Jetzt senden', confirmSendNow: 'Diese E-Mail jetzt an {count} Empfänger senden?', queued: '{count} E-Mails werden versendet (in Paketen, einige Minuten).',
+    sendNow: 'Jetzt an {count} Empfänger senden', confirmSendNow: 'Diese E-Mail jetzt an {count} Empfänger senden?', queued: '{count} E-Mails werden versendet (in Paketen, einige Minuten).',
     history: 'Bisher versendet', noHistory: 'Noch nichts versendet.', runMonthly: 'Monatlich · {month}', runNow: 'Manuell · {day}', runTest: 'Test',
     sent: 'gesendet', failed: 'fehlgeschlagen', pending: 'in Arbeit', skipped: 'übersprungen', edit: 'Bearbeiten', active: 'Monatlich', paused: 'Pausiert',
     loadFailed: 'E-Mail-Marketing konnte nicht geladen werden.', saveFailed: 'Speichern fehlgeschlagen: {reason}', testFailed: 'Test-E-Mail fehlgeschlagen: {reason}',
     sendFailed: 'Versand konnte nicht gestartet werden: {reason}', required: 'Betreff und Text sind Pflichtfelder.', httpsOnly: 'Der Button-Link muss mit https:// beginnen.',
     legalNote: 'Jede E-Mail enthält Ihre Adresse und einen Abmeldelink. Abgemeldete Kunden erhalten nie wieder Angebote.',
+    back: 'Alle Aktionen', duplicate: 'Duplizieren', copyPrefix: 'Kopie: ', noSubject: '(noch kein Betreff)', schedule_line: 'Jeden Monat am {day}. um {hour}:00 Uhr', nextShort: 'Nächster Versand: {date}', lastSent: 'Zuletzt gesendet am {date}', neverSent: 'Noch nicht gesendet', open: 'Öffnen',
   },
   th: {
     title: 'อีเมลการตลาด', subtitle: 'ส่งโปรโมชันถึงลูกค้าเดือนละครั้ง อัตโนมัติ ในนามร้านของคุณ',
@@ -70,11 +73,12 @@ export const MARKETING_TEXT: Translations<{
     nextSend: 'ส่งครั้งถัดไป: {date}', save: 'บันทึก', saving: 'กำลังบันทึก…', saved: 'บันทึกแล้ว', delete: 'ลบ',
     confirmDelete: 'ลบโปรโมชันนี้? ประวัติการส่งจะถูกลบด้วย',
     testTitle: 'ส่งอีเมลทดสอบ', testSend: 'ส่งทดสอบ', testSending: 'กำลังส่ง…', testSent: 'ส่งอีเมลทดสอบไปที่ {email} แล้ว',
-    sendNow: 'ส่งตอนนี้', confirmSendNow: 'ส่งอีเมลนี้ตอนนี้ถึงผู้รับ {count} คน?', queued: 'กำลังส่ง {count} อีเมล (ทยอยส่ง ใช้เวลาไม่กี่นาที)',
+    sendNow: 'ส่งตอนนี้ถึง {count} คน', confirmSendNow: 'ส่งอีเมลนี้ตอนนี้ถึงผู้รับ {count} คน?', queued: 'กำลังส่ง {count} อีเมล (ทยอยส่ง ใช้เวลาไม่กี่นาที)',
     history: 'ประวัติการส่ง', noHistory: 'ยังไม่ได้ส่ง', runMonthly: 'รายเดือน · {month}', runNow: 'ส่งเอง · {day}', runTest: 'ทดสอบ',
     sent: 'ส่งแล้ว', failed: 'ไม่สำเร็จ', pending: 'กำลังส่ง', skipped: 'ข้าม', edit: 'แก้ไข', active: 'รายเดือน', paused: 'หยุดชั่วคราว',
     loadFailed: 'โหลดอีเมลการตลาดไม่สำเร็จ', saveFailed: 'บันทึกไม่สำเร็จ: {reason}', testFailed: 'ส่งอีเมลทดสอบไม่สำเร็จ: {reason}',
     sendFailed: 'เริ่มส่งไม่สำเร็จ: {reason}', required: 'ต้องกรอกหัวเรื่องและข้อความ', httpsOnly: 'ลิงก์ของปุ่มต้องขึ้นต้นด้วย https://',
     legalNote: 'ทุกอีเมลมีที่อยู่ร้านและลิงก์ยกเลิกรับ ลูกค้าที่ยกเลิกแล้วจะไม่ได้รับโปรโมชันอีก',
+    back: 'โปรโมชันทั้งหมด', duplicate: 'ทำสำเนา', copyPrefix: 'สำเนา: ', noSubject: '(ยังไม่มีหัวเรื่อง)', schedule_line: 'ทุกเดือนวันที่ {day} เวลา {hour}:00 น.', nextShort: 'ส่งครั้งถัดไป: {date}', lastSent: 'ส่งล่าสุด {date}', neverSent: 'ยังไม่เคยส่ง', open: 'เปิด',
   },
 };
