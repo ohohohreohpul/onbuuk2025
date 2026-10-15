@@ -15,6 +15,7 @@ import {
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import CreateBookingModal from './CreateBookingModal';
 import ActionCentre from './ActionCentre';
+import OpenPaymentsCard from './OpenPaymentsCard';
 import GiftCardStation from './GiftCardStation';
 import BookingSourcesCard from './BookingSourcesCard';
 import { supabase } from '../../lib/supabase';
@@ -523,6 +524,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
       <div className={`transform transition-all duration-500 delay-75 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
         <ActionCentre onNavigate={onNavigate} />
       </div>
+
+      <OpenPaymentsCard businessId={adminUser?.business_id || ''} onShowAll={() => onNavigate('bookings')} />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

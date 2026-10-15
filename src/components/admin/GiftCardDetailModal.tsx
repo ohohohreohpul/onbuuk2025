@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, CreditCard, Calendar, DollarSign, Download, Mail, Edit2, Save, User } from 'lucide-react';
+import { X, Trash2, Download, Mail, Edit2, Save, Banknote, CreditCard, Loader2 } from 'lucide-react';
+import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCardOrdersApi';
+import { ADMIN_INPUT, ADMIN_MODAL, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_TERTIARY_BUTTON } from './adminUi';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
 import { useTenant } from '../../lib/tenantContext';
@@ -22,6 +24,7 @@ type DetailText = {
   noTransactions: string; visitOne: string; visitMany: string; deleting: string; deleteCard: string; close: string;
   statusActive: string; statusFullyRedeemed: string; statusExpired: string; statusCancelled: string; statusPendingPayment: string;
   txnPurchase: string; txnRedemption: string; txnRefund: string;
+  notPaid: string; notPaidHint: string; paidWith: string; cash: string; card: string; payFailed: string; validUntil: string; of: string;
 };
 
 const TEXT: Translations<DetailText> = {
@@ -49,7 +52,8 @@ const TEXT: Translations<DetailText> = {
     redeemAmount: 'Redeem Amount', visitRedemption: 'Visit redemption',
     visitRedemptionHint: 'This pass is visit-based, so it is redeemed through checkout when the customer books the matching service. It is never deducted as a cash amount.',
     history: 'Transaction History', loading: 'Loading...', noTransactions: 'No transactions yet',
-    visitOne: '1 visit', visitMany: '{count} visits', deleting: 'Deleting...', deleteCard: 'Delete Gift Card', close: 'Close',
+    visitOne: '1 visit', visitMany: '{count} visits', deleting: 'Deleting...', deleteCard: 'Delete gift card', close: 'Close',
+    notPaid: 'Not paid yet', notPaidHint: 'The voucher becomes valid once it is paid.', paidWith: 'Paid with:', cash: 'Cash', card: 'Card', payFailed: 'Could not save the payment.', validUntil: 'Valid until', of: 'of {amount}',
     statusActive: 'Active', statusFullyRedeemed: 'Fully redeemed', statusExpired: 'Expired', statusCancelled: 'Cancelled',
     statusPendingPayment: 'Awaiting payment', txnPurchase: 'Purchase', txnRedemption: 'Redemption', txnRefund: 'Refund',
   },
@@ -80,6 +84,7 @@ const TEXT: Translations<DetailText> = {
     visitRedemptionHint: 'Dieser Gutschein gilt pro Besuch und wird an der Kasse eingelöst, wenn die Kund:in die passende Leistung bucht. Er wird nie als Geldbetrag abgezogen.',
     history: 'Transaktionsverlauf', loading: 'Wird geladen...', noTransactions: 'Noch keine Transaktionen',
     visitOne: '1 Besuch', visitMany: '{count} Besuche', deleting: 'Wird gelöscht...', deleteCard: 'Gutschein löschen', close: 'Schließen',
+    notPaid: 'Noch nicht bezahlt', notPaidHint: 'Der Gutschein ist nach der Zahlung gültig.', paidWith: 'Bezahlt mit:', cash: 'Bar', card: 'Karte', payFailed: 'Zahlung konnte nicht gespeichert werden.', validUntil: 'Gültig bis', of: 'von {amount}',
     statusActive: 'Aktiv', statusFullyRedeemed: 'Vollständig eingelöst', statusExpired: 'Abgelaufen', statusCancelled: 'Storniert',
     statusPendingPayment: 'Zahlung offen', txnPurchase: 'Kauf', txnRedemption: 'Einlösung', txnRefund: 'Erstattung',
   },
@@ -107,6 +112,7 @@ const TEXT: Translations<DetailText> = {
     visitRedemptionHint: 'บัตรนี้นับตามจำนวนครั้ง จะถูกใช้ตอนชำระเงินเมื่อลูกค้าจองบริการที่ตรงกัน และไม่ถูกหักเป็นยอดเงิน',
     history: 'ประวัติรายการ', loading: 'กำลังโหลด...', noTransactions: 'ยังไม่มีรายการ',
     visitOne: '1 ครั้ง', visitMany: '{count} ครั้ง', deleting: 'กำลังลบ...', deleteCard: 'ลบบัตรของขวัญ', close: 'ปิด',
+    notPaid: 'ยังไม่ชำระ', notPaidHint: 'บัตรจะใช้ได้หลังชำระเงิน', paidWith: 'ชำระด้วย:', cash: 'เงินสด', card: 'บัตร', payFailed: 'บันทึกการชำระเงินไม่สำเร็จ', validUntil: 'ใช้ได้ถึง', of: 'จาก {amount}',
     statusActive: 'ใช้งานได้', statusFullyRedeemed: 'ใช้ครบแล้ว', statusExpired: 'หมดอายุ', statusCancelled: 'ยกเลิกแล้ว',
     statusPendingPayment: 'รอชำระเงิน', txnPurchase: 'ซื้อ', txnRedemption: 'ใช้บัตร', txnRefund: 'คืนเงิน',
   },
@@ -138,6 +144,7 @@ interface GiftCard {
   original_visits?: number | null;
   remaining_visits?: number | null;
   status: string;
+  order_id?: string | null;
   purchased_at: string;
   expires_at: string | null;
   purchased_for_email: string | null;
@@ -447,6 +454,22 @@ export function GiftCardDetailModal({
     }
   };
 
+  const [paying, setPaying] = useState(false);
+  /** Vouchers ordered online and paid in the shop: one tap activates them and records the method. */
+  const handlePay = async (method: ShopPaymentMethod) => {
+    if (!giftCard.order_id) return;
+    setPaying(true);
+    try {
+      await markOrderPaid(giftCard.order_id, method);
+      onUpdate();
+      onClose();
+    } catch (error) {
+      console.error('Could not mark gift card order paid:', error);
+      alert(t.payFailed);
+      setPaying(false);
+    }
+  };
+
   const handleDownload = async () => {
     try {
       await downloadGiftCardPDF({
@@ -474,346 +497,167 @@ export function GiftCardDetailModal({
     ? ((giftCard.remaining_visits || 0) / Math.max(1, giftCard.original_visits || 1)) * 100
     : (giftCard.current_balance_cents / Math.max(1, giftCard.original_value_cents)) * 100;
 
+  const statusTone =
+    giftCard.status === 'active' ? 'bg-emerald-50 text-emerald-700'
+    : giftCard.status === 'pending_payment' ? 'bg-amber-50 text-amber-800'
+    : giftCard.status === 'fully_redeemed' ? 'bg-stone-900/[0.05] text-stone-600'
+    : 'bg-red-50 text-red-700';
+  const formatDate = (value: string) => new Date(value).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+  const sectionTitle = 'mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">{isServicePass ? t.passDetails : t.cardDetails}</h2>
-          <button
-            onClick={onClose}
-            aria-label={t.close}
-            title={t.close}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="col-span-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="w-6 h-6" />
-                  <span className="text-sm opacity-90">{isServicePass ? t.servicePass : t.valueCard}</span>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    giftCard.status === 'active'
-                      ? 'bg-green-500 text-white'
-                      : giftCard.status === 'fully_redeemed'
-                      ? 'bg-gray-500 text-white'
-                      : 'bg-red-500 text-white'
-                  }`}
-                >
-                  {(STATUS_KEYS[giftCard.status] ? t[STATUS_KEYS[giftCard.status]] : giftCard.status.replace('_', ' ')).toLocaleUpperCase(locale)}
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className="text-3xl font-bold">
-                  {isServicePass
-                    ? ((giftCard.remaining_visits || 0) === 1 ? t.visitLeft : fillText(t.visitsLeft, { count: giftCard.remaining_visits || 0 }))
-                    : formatAmount(giftCard.current_balance_cents / 100)}
-                </div>
-                <div className="text-sm opacity-90">
-                  {isServicePass
-                    ? fillText(t.passOriginally, { name: giftCard.service_pass_name || t.servicePass, count: giftCard.original_visits || 0 })
-                    : fillText(t.originalValue, { amount: formatAmount(giftCard.original_value_cents / 100) })}
-                </div>
-                <div className="w-full bg-blue-400 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-white h-2 rounded-full transition-all"
-                    style={{ width: `${balancePercentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div>
-                <span className="text-gray-600">{t.code}</span>
-                <div className="font-mono font-medium text-gray-800 mt-1">{giftCard.code}</div>
-              </div>
-              <div>
-                <span className="text-gray-600">{t.purchased}</span>
-                <div className="font-medium text-gray-800 mt-1">
-                  {new Date(giftCard.purchased_at).toLocaleDateString(locale, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              {giftCard.expires_at && (
-                <div>
-                  <span className="text-gray-600">{t.expires}</span>
-                  <div
-                    className={`font-medium mt-1 ${
-                      isExpired ? 'text-red-600' : 'text-gray-800'
-                    }`}
-                  >
-                    {new Date(giftCard.expires_at).toLocaleDateString(locale, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                    {isExpired && t.expiredSuffix}
-                  </div>
-                </div>
-              )}
-            </div>
+    <div className={ADMIN_MODAL_BACKDROP} role="dialog" aria-modal="true" aria-labelledby="gift-card-title">
+      <div className={`${ADMIN_MODAL} max-h-[90vh] max-w-2xl overflow-y-auto`}>
+        <header className="flex items-start justify-between gap-4 px-6 pt-6">
+          <div>
+            <p className="text-sm text-stone-500">{isServicePass ? giftCard.service_pass_name || t.servicePass : t.valueCard}</p>
+            <h2 id="gift-card-title" className="mt-0.5 font-mono text-2xl font-semibold tracking-wide text-[#1A1714]">{giftCard.code}</h2>
           </div>
+          <div className="flex items-center gap-2">
+            <span className={`${ADMIN_STATUS_PILL} ${statusTone}`}>
+              {STATUS_KEYS[giftCard.status] ? t[STATUS_KEYS[giftCard.status]] : giftCard.status.replace('_', ' ')}
+            </span>
+            <button type="button" onClick={onClose} aria-label={t.close} title={t.close} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-900/[0.05] hover:text-stone-700">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
 
-          {/* Email Management Section */}
-          <div className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                <User className="w-5 h-5" />
-                <span>{t.contactInfo}</span>
-              </h3>
+        <div className="space-y-5 p-6">
+          {giftCard.status === 'pending_payment' && (
+            <section className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200/70">
+              <p className="font-semibold text-amber-900">{t.notPaid}</p>
+              <p className="mt-0.5 text-sm text-amber-800">{t.notPaidHint}</p>
+              {giftCard.order_id && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-amber-900">{t.paidWith}</span>
+                  <button type="button" onClick={() => handlePay('cash')} disabled={paying} className={ADMIN_PRIMARY_BUTTON}>
+                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />} {t.cash}
+                  </button>
+                  <button type="button" onClick={() => handlePay('card')} disabled={paying} className={ADMIN_PRIMARY_BUTTON}>
+                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} {t.card}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          <section className="rounded-2xl bg-[#F7F5F2] p-5">
+            <p className="text-3xl font-semibold tracking-tight text-[#1A1714]">
+              {isServicePass
+                ? ((giftCard.remaining_visits || 0) === 1 ? t.visitLeft : fillText(t.visitsLeft, { count: giftCard.remaining_visits || 0 }))
+                : formatAmount(giftCard.current_balance_cents / 100)}
+            </p>
+            <p className="mt-1 text-sm text-stone-500">
+              {isServicePass
+                ? fillText(t.passOriginally, { name: giftCard.service_pass_name || t.servicePass, count: giftCard.original_visits || 0 })
+                : fillText(t.of, { amount: formatAmount(giftCard.original_value_cents / 100) })}
+            </p>
+            <div className="mt-3 h-1.5 w-full rounded-full bg-stone-900/[0.08]">
+              <div className="h-1.5 rounded-full bg-[#1A1714]" style={{ width: `${Math.max(0, Math.min(100, balancePercentage))}%` }} />
+            </div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div><dt className="text-stone-500">{t.purchased}</dt><dd className="font-medium text-stone-800">{formatDate(giftCard.purchased_at)}</dd></div>
+              {giftCard.expires_at && (
+                <div><dt className="text-stone-500">{t.validUntil}</dt><dd className={`font-medium ${isExpired ? 'text-red-600' : 'text-stone-800'}`}>{formatDate(giftCard.expires_at)}{isExpired && t.expiredSuffix}</dd></div>
+              )}
+            </dl>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">{t.contactInfo}</h3>
               {!isEditingEmails ? (
-                <button
-                  onClick={() => setIsEditingEmails(true)}
-                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  <span>{t.edit}</span>
-                </button>
+                <button type="button" onClick={() => setIsEditingEmails(true)} className={ADMIN_TERTIARY_BUTTON}><Edit2 className="h-4 w-4" /> {t.edit}</button>
               ) : (
-                <button
-                  onClick={handleSaveEmails}
-                  disabled={savingEmails}
-                  className="flex items-center space-x-1 text-green-600 hover:text-green-700 text-sm disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{savingEmails ? t.saving : t.save}</span>
-                </button>
+                <button type="button" onClick={handleSaveEmails} disabled={savingEmails} className={ADMIN_TERTIARY_BUTTON}><Save className="h-4 w-4" /> {savingEmails ? t.saving : t.save}</button>
               )}
             </div>
-
             {isEditingEmails ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t.buyerName}
-                    </label>
-                    <input
-                      type="text"
-                      value={buyerName}
-                      onChange={(e) => setBuyerName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      placeholder={t.buyerNamePlaceholder}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t.buyerEmail}
-                    </label>
-                    <input
-                      type="email"
-                      value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      placeholder="buyer@example.com"
-                    />
-                  </div>
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label><span className="mb-1 block text-sm text-stone-600">{t.buyerName}</span>
+                    <input type="text" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} className={ADMIN_INPUT} placeholder={t.buyerNamePlaceholder} /></label>
+                  <label><span className="mb-1 block text-sm text-stone-600">{t.buyerEmail}</span>
+                    <input type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} className={ADMIN_INPUT} /></label>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t.recipientEmail}
-                  </label>
-                  <input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    placeholder="recipient@example.com"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t.recipientHint}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsEditingEmails(false)}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  {t.cancel}
-                </button>
+                <label className="block"><span className="mb-1 block text-sm text-stone-600">{t.recipientEmail}</span>
+                  <input type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} className={ADMIN_INPUT} />
+                  <span className="mt-1 block text-xs text-stone-500">{t.recipientHint}</span></label>
+                <button type="button" onClick={() => setIsEditingEmails(false)} className={ADMIN_TERTIARY_BUTTON}>{t.cancel}</button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">{t.buyer}</div>
-                    <div className="font-medium text-gray-800">
-                      {buyerName || <span className="text-gray-400 italic">{t.noName}</span>}
+              <ul className="divide-y divide-stone-200/70 rounded-2xl ring-1 ring-stone-200/80">
+                {([['buyer', t.buyer, buyerName, buyerEmail], ['recipient', t.recipient, null, recipientEmail]] as const).map(([target, label, name, email]) => (
+                  <li key={target} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-stone-500">{label}</p>
+                      {name && <p className="truncate text-sm font-medium text-stone-800">{name}</p>}
+                      <p className="truncate text-sm text-stone-700">{email || <span className="text-stone-400">{t.noEmail}</span>}</p>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {buyerEmail || <span className="text-gray-400 italic">{t.noEmail}</span>}
-                    </div>
-                  </div>
-                  {buyerEmail && (
-                    <button
-                      onClick={() => handleSendEmail('buyer')}
-                      disabled={sendingEmail !== null}
-                      className="flex items-center space-x-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm disabled:opacity-50"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>{sendingEmail === 'buyer' ? t.sending : t.send}</span>
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">{t.recipient}</div>
-                    <div className="text-sm text-gray-600">
-                      {recipientEmail || <span className="text-gray-400 italic">{t.noEmail}</span>}
-                    </div>
-                  </div>
-                  {recipientEmail && (
-                    <button
-                      onClick={() => handleSendEmail('recipient')}
-                      disabled={sendingEmail !== null}
-                      className="flex items-center space-x-1 px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded text-sm disabled:opacity-50"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>{sendingEmail === 'recipient' ? t.sending : t.send}</span>
-                    </button>
-                  )}
-                </div>
-                {(buyerEmail || recipientEmail) && (
-                  <button
-                    onClick={() => handleSendEmail('both')}
-                    disabled={sendingEmail !== null || (!buyerEmail && !recipientEmail)}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>{sendingEmail === 'both' ? t.sending : t.sendBoth}</span>
-                  </button>
-                )}
-              </div>
+                    {email && (
+                      <button type="button" onClick={() => handleSendEmail(target)} disabled={sendingEmail !== null} className={ADMIN_SECONDARY_BUTTON}>
+                        <Mail className="h-4 w-4" /> {sendingEmail === target ? t.sending : t.send}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
+          </section>
 
-          <div className="flex items-center space-x-3 pt-3 border-t border-gray-200">
-            <button
-              onClick={handleDownload}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span>{t.downloadPdf}</span>
-            </button>
+          <div>
+            <button type="button" onClick={handleDownload} className={ADMIN_SECONDARY_BUTTON}><Download className="h-4 w-4" /> {t.downloadPdf}</button>
           </div>
 
           {giftCard.status === 'active' && !isExpired && !isServicePass && (
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
-                <DollarSign className="w-5 h-5" />
-                <span>{t.redeemHeading}</span>
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {fillText(t.amount, { symbol: currencySymbol })}
-                  </label>
-                  <input
-                    type="number"
-                    value={redeemAmount}
-                    onChange={(e) => setRedeemAmount(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    step="0.01"
-                    max={giftCard.current_balance_cents / 100}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.descriptionOptional}
-                  </label>
-                  <input
-                    type="text"
-                    value={redeemDescription}
-                    onChange={(e) => setRedeemDescription(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={t.descriptionPlaceholder}
-                  />
-                </div>
+            <section>
+              <h3 className={sectionTitle}>{t.redeemHeading}</h3>
+              <div className="grid gap-3 sm:grid-cols-[160px_1fr_auto] sm:items-end">
+                <label><span className="mb-1 block text-sm text-stone-600">{fillText(t.amount, { symbol: currencySymbol })}</span>
+                  <input type="number" value={redeemAmount} onChange={(e) => setRedeemAmount(e.target.value)} className={ADMIN_INPUT} placeholder="0,00" step="0.01" max={giftCard.current_balance_cents / 100} /></label>
+                <label><span className="mb-1 block text-sm text-stone-600">{t.descriptionOptional}</span>
+                  <input type="text" value={redeemDescription} onChange={(e) => setRedeemDescription(e.target.value)} className={ADMIN_INPUT} placeholder={t.descriptionPlaceholder} /></label>
+                <button type="button" onClick={handleRedeem} disabled={redeeming || !redeemAmount} className={ADMIN_PRIMARY_BUTTON}>{redeeming ? t.processing : t.redeemAmount}</button>
               </div>
-              <button
-                onClick={handleRedeem}
-                disabled={redeeming || !redeemAmount}
-                className="mt-4 w-full px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {redeeming ? t.processing : t.redeemAmount}
-              </button>
-            </div>
+            </section>
           )}
 
           {giftCard.status === 'active' && !isExpired && isServicePass && (
-            <div className="rounded-lg border border-violet-200 bg-violet-50/70 p-4">
-              <h3 className="font-semibold text-violet-950">{t.visitRedemption}</h3>
-              <p className="mt-1 text-sm leading-6 text-violet-800">
-                {t.visitRedemptionHint}
-              </p>
-            </div>
+            <p className="rounded-2xl bg-[#F7F5F2] p-4 text-sm text-stone-600"><span className="font-medium text-stone-800">{t.visitRedemption}.</span> {t.visitRedemptionHint}</p>
           )}
 
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
-              <Calendar className="w-5 h-5" />
-              <span>{t.history}</span>
-            </h3>
+          <section>
+            <h3 className={sectionTitle}>{t.history}</h3>
             {loading ? (
-              <div className="text-center py-4 text-gray-500">{t.loading}</div>
+              <p className="text-sm text-stone-500">{t.loading}</p>
             ) : transactions.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">{t.noTransactions}</div>
+              <p className="text-sm text-stone-500">{t.noTransactions}</p>
             ) : (
-              <div className="space-y-2">
+              <ul className="divide-y divide-stone-200/70 rounded-2xl ring-1 ring-stone-200/80">
                 {transactions.map((txn) => (
-                  <div
-                    key={txn.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
-                  >
-                    <div>
-                      <div className="font-medium text-gray-800">{txn.description}</div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(txn.created_at).toLocaleString(locale)}
-                      </div>
+                  <li key={txn.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate text-stone-800">{txn.description}</p>
+                      <p className="text-xs text-stone-500">{new Date(txn.created_at).toLocaleString(locale)}</p>
                     </div>
-                    <div className="text-right">
-                      <div
-                        className={`font-semibold ${
-                          txn.transaction_type === 'redemption'
-                            ? 'text-red-600'
-                            : 'text-green-600'
-                        }`}
-                      >
+                    <div className="shrink-0 text-right">
+                      <p className={`font-semibold tabular-nums ${txn.transaction_type === 'redemption' ? 'text-stone-800' : 'text-emerald-700'}`}>
                         {isServicePass && (txn.visit_count || 0) > 0
-                          ? `${txn.transaction_type === 'redemption' ? '-' : '+'}${txn.visit_count === 1 ? t.visitOne : fillText(t.visitMany, { count: txn.visit_count ?? 0 })}`
-                          : <>{txn.transaction_type === 'redemption' ? '-' : '+'}{formatAmount(Math.abs(txn.amount_cents / 100))}</>}
-                      </div>
-                      <div className="text-xs text-gray-500 capitalize">
-                        {TRANSACTION_KEYS[txn.transaction_type] ? t[TRANSACTION_KEYS[txn.transaction_type]] : txn.transaction_type}
-                      </div>
+                          ? `${txn.transaction_type === 'redemption' ? '−' : '+'}${txn.visit_count === 1 ? t.visitOne : fillText(t.visitMany, { count: txn.visit_count ?? 0 })}`
+                          : <>{txn.transaction_type === 'redemption' ? '−' : '+'}{formatAmount(Math.abs(txn.amount_cents / 100))}</>}
+                      </p>
+                      <p className="text-xs text-stone-500">{TRANSACTION_KEYS[txn.transaction_type] ? t[TRANSACTION_KEYS[txn.transaction_type]] : txn.transaction_type}</p>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
+          </section>
 
-          <div className="border-t border-gray-200 pt-4">
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded transition-colors disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>{deleting ? t.deleting : t.deleteCard}</span>
+          <div className="border-t border-stone-200/70 pt-4">
+            <button type="button" onClick={handleDelete} disabled={deleting} className={`${ADMIN_TERTIARY_BUTTON} text-red-700 hover:bg-red-50 hover:text-red-800`}>
+              <Trash2 className="h-4 w-4" /> {deleting ? t.deleting : t.deleteCard}
             </button>
           </div>
         </div>

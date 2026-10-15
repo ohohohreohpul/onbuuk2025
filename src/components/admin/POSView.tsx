@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Gift, Search, Check, DollarSign } from 'lucide-react';
+import { Gift, Search, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
@@ -7,15 +7,11 @@ import {
   ADMIN_INPUT,
   ADMIN_SELECT,
   ADMIN_PRIMARY_BUTTON,
-  ADMIN_SEGMENT_ACTIVE,
-  ADMIN_SEGMENT_INACTIVE,
-  ADMIN_SEGMENTED_CONTROL,
   ADMIN_SURFACE,
 } from './adminUi';
 import { useAdminText } from '../../lib/adminLanguage';
 import RecordPaymentModal from './bookings/RecordPaymentModal';
-import QuickPay from './bookings/QuickPay';
-import { openAmountCents, type BookingPayment, type PaymentMethod } from './bookings/paymentMethods';
+import type { PaymentMethod } from './bookings/paymentMethods';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 
 type PosText = {
@@ -150,8 +146,7 @@ interface PendingBooking {
 export function POSView() {
   const { businessId } = useTenant();
   const { formatAmount, currencySymbol } = useCurrency();
-  const { t, locale } = useAdminText(TEXT);
-  const [activeTab, setActiveTab] = useState<'gift_cards' | 'bookings'>('bookings');
+  const { t } = useAdminText(TEXT);
 
   // Gift card state
   const [giftCardCode, setGiftCardCode] = useState('');
@@ -164,7 +159,6 @@ export function POSView() {
 
   // Pending bookings state
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(true);
   const [payingBooking, setPayingBooking] = useState<PendingBooking | null>(null);
   const [redeemForBookingId, setRedeemForBookingId] = useState('');
 
@@ -173,7 +167,6 @@ export function POSView() {
   }, [businessId]);
 
   const loadPendingBookings = async () => {
-    setLoadingBookings(true);
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -193,7 +186,6 @@ export function POSView() {
     if (!error && data) {
       setPendingBookings(data);
     }
-    setLoadingBookings(false);
   };
 
   const handleSearchGiftCard = async (e: React.FormEvent) => {
@@ -341,7 +333,6 @@ export function POSView() {
           <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{t.title}</h2>
           <p className="mt-1 text-sm text-stone-500">{t.subtitle}</p>
         </div>
-        <span className="text-xs text-stone-400">{pendingBookings.length === 1 ? t.pendingCountOne : fillText(t.pendingCountMany, { count: pendingBookings.length })}</span>
       </div>
 
       {(message || error) && (
@@ -350,35 +341,6 @@ export function POSView() {
         </div>
       )}
 
-      <div className="overflow-x-auto pb-1">
-        <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('gift_cards')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
-              activeTab === 'gift_cards' ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
-            }`}
-          >
-            <Gift className="h-4 w-4" strokeWidth={1.75} />
-            {t.tabRedeem}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bookings')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
-              activeTab === 'bookings' ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE
-            }`}
-          >
-            <DollarSign className="h-4 w-4" strokeWidth={1.75} />
-            {t.tabPending}
-            <span className={`rounded-md px-1.5 py-0.5 text-[10px] tabular-nums ${activeTab === 'bookings' ? 'bg-white/[0.15]' : 'bg-stone-900/[0.05]'}`}>
-              {pendingBookings.length}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'gift_cards' && (
         <section className={`${ADMIN_SURFACE} p-6`}>
           <div className="mb-5 flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900/[0.06] text-[#1A1714]">
@@ -483,81 +445,7 @@ export function POSView() {
             </div>
           )}
         </section>
-      )}
 
-      {activeTab === 'bookings' && (
-        <section className={`${ADMIN_SURFACE} overflow-hidden`}>
-          <div className="border-b border-stone-200/70 px-5 py-4">
-            <h3 className="font-semibold text-[#1A1714]">{t.bookingsHeading}</h3>
-            <p className="mt-1 text-xs text-stone-400">{t.bookingsHint}</p>
-          </div>
-          {loadingBookings ? (
-            <div className="animate-pulse space-y-3 p-5">
-              {[0, 1, 2].map((row) => <div key={row} className="h-14 rounded-xl bg-stone-900/[0.035]" />)}
-            </div>
-          ) : pendingBookings.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <Check className="mx-auto h-6 w-6 text-emerald-500" strokeWidth={1.75} />
-              <p className="mt-3 text-sm font-medium text-stone-600">{t.emptyTitle}</p>
-              <p className="mt-1 text-xs text-stone-400">{t.emptyHint}</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px]">
-                <thead className="bg-stone-900/[0.025]">
-                  <tr>
-                    {[t.colDateTime, t.colCustomer, t.colService, t.colAmount].map((heading) => (
-                      <th key={heading} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400">{heading}</th>
-                    ))}
-                    <th className="px-5 py-3 text-right"><span className="sr-only">{t.colActions}</span></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-200/60">
-                  {pendingBookings.map((booking) => (
-                    <tr key={booking.id} className="transition-colors hover:bg-white/60">
-                      <td className="px-5 py-4">
-                        <div className="text-sm">
-                          <p className="font-medium text-[#1A1714]">
-                            {new Date(booking.booking_date).toLocaleDateString(locale)}
-                          </p>
-                          <p className="mt-0.5 text-xs text-stone-400">{booking.start_time}</p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="text-sm">
-                          <p className="font-medium text-[#1A1714]">{booking.customer_name}</p>
-                          <p className="mt-0.5 text-xs text-stone-400">{booking.customer_email}</p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="text-sm">
-                          <p className="font-medium text-[#1A1714]">{booking.service.name}</p>
-                          <p className="mt-0.5 text-xs text-stone-400">{fillText(t.minutes, { count: booking.duration.duration_minutes })}</p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-semibold text-[#1A1714]">
-                          {formatAmount(booking.duration.price_cents / 100)}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="inline-block text-left">
-                          <QuickPay
-                            bookingId={booking.id}
-                            openCents={openAmountCents(booking.final_amount_cents ?? booking.duration.price_cents, (booking.payments ?? []) as BookingPayment[])}
-                            onOther={() => setPayingBooking(booking)}
-                            onPaid={loadPendingBookings}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
       {payingBooking && (
         <RecordPaymentModal
           booking={payingBooking}
