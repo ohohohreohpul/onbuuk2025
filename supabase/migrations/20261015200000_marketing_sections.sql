@@ -21,3 +21,7 @@ ALTER TABLE public.marketing_campaigns
 -- Short line under the hero button ("3 Jahre gültig · online kaufen · sofort per E-Mail").
 ALTER TABLE public.marketing_campaigns
   ADD COLUMN IF NOT EXISTS hero_caption text CHECK (hero_caption IS NULL OR length(hero_caption) <= 120);
+
+-- Light logo for the dark email header (e.g. a white version of the shop logo).
+ALTER TABLE public.marketing_campaigns
+  ADD COLUMN IF NOT EXISTS logo_url text CHECK (logo_url IS NULL OR logo_url ~* '^https://');

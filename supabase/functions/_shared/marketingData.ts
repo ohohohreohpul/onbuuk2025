@@ -15,6 +15,7 @@ export interface CampaignRow {
   body: string;
   button_text: string | null;
   button_url: string | null;
+  logo_url?: string | null;
   headline?: string | null;
   hero_image_url?: string | null;
   hero_caption?: string | null;
@@ -52,6 +53,7 @@ const MAX_VOUCHERS = 6;
 export function campaignToContent(row: CampaignRow): MarketingContent {
   return {
     subject: row.subject,
+    logoUrl: row.logo_url ?? null,
     headline: row.headline ?? null,
     heroImageUrl: row.hero_image_url ?? null,
     heroCaption: row.hero_caption ?? null,

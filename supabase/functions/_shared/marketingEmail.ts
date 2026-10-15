@@ -1,7 +1,7 @@
 // Promotion email HTML, shared by the sender (edge function) and the admin live
-// preview. Zenno design language: full-bleed photo hero with a dark fade and a
-// two-tone headline, Geist type, black/white pill buttons, cream sections, real
-// shop photography. Table layout + inline styles for email clients. Pure: no I/O.
+// preview. Full-bleed photo hero with a dark fade, the shop logo and a two-tone
+// headline, IBM Plex Sans, black/white pill buttons, cream sections, real shop
+// photography. Table layout + inline styles for email clients. Pure: no I/O.
 
 export type MarketingLanguage = "de" | "en" | "th";
 
@@ -21,6 +21,8 @@ export interface MarketingShop {
 
 export interface MarketingContent {
   subject: string;
+  /** Logo for the dark header (light version); falls back to the shop logo, then the shop name. */
+  logoUrl?: string | null;
   /** Two-tone headline: first line bright, following lines muted. */
   headline?: string | null;
   heroImageUrl?: string | null;
@@ -72,8 +74,9 @@ const COPY = {
 
 const LOCALE: Record<MarketingLanguage, string> = { de: "de-DE", en: "en-GB", th: "th-TH" };
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-const SANS = "Geist,'Helvetica Neue',Helvetica,Arial,sans-serif";
-const MONO = "'Geist Mono',ui-monospace,Menlo,Consolas,monospace";
+// IBM Plex Sans (free, Google Fonts) where the email client loads web fonts; Gmail falls back to Helvetica/Arial.
+const SANS = "'IBM Plex Sans','Helvetica Neue',Helvetica,Arial,sans-serif";
+const FONT_LINK = "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap";
 const INK = "#1A1714";
 const MUTED = "#8A817A";
 const CREAM = "#F7F5F2";
@@ -134,7 +137,7 @@ function pill(text: string, url: string, background: string, color: string, bord
 }
 
 const label = (text: string, color = MUTED) =>
-  `<p style="margin:0 0 14px;font-family:${MONO};font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${color}">${escapeHtml(text)}</p>`;
+  `<p style="margin:0 0 14px;font-family:${SANS};font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:${color}">${escapeHtml(text)}</p>`;
 
 function priceLine(priceCents: number, compareCents: number | null, language: MarketingLanguage, size: number): string {
   const copy = COPY[language];
@@ -144,13 +147,16 @@ function priceLine(priceCents: number, compareCents: number | null, language: Ma
 }
 
 function renderHero(shop: MarketingShop, content: MarketingContent, firstName: string, dot: string): string {
-  const chip = `<span style="display:inline-block;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);font-family:${SANS};font-size:12px;font-weight:500;color:#ffffff"><span style="color:${dot}">&#9679;</span>&nbsp;&nbsp;${escapeHtml(shop.name)}</span>`;
+  const logo = content.logoUrl ?? shop.logoUrl;
+  const chip = isHttps(logo)
+    ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(shop.name)}" height="44" style="display:block;height:44px;width:auto;max-width:220px;border:0">`
+    : `<span style="display:inline-block;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);font-family:${SANS};font-size:12px;font-weight:500;color:#ffffff"><span style="color:${dot}">&#9679;</span>&nbsp;&nbsp;${escapeHtml(shop.name)}</span>`;
   const headline = content.headline?.trim()
     ? `<h1 style="margin:18px 0 0;font-family:${SANS};font-size:40px;line-height:1.08;font-weight:600;letter-spacing:-1.2px;color:#ffffff">${twoTone(personalize(content.headline, firstName), "#ffffff", "rgba(255,255,255,0.58)")}</h1>` : "";
   const cta = content.buttonText && isHttps(content.buttonUrl)
     ? `<div style="margin-top:26px">${pill(content.buttonText, content.buttonUrl, "#ffffff", INK)}</div>` : "";
   const caption = content.heroCaption?.trim()
-    ? `<p style="margin:14px 0 0;font-family:${MONO};font-size:11px;letter-spacing:.5px;color:rgba(255,255,255,0.62)">${escapeHtml(content.heroCaption)}</p>` : "";
+    ? `<p style="margin:14px 0 0;font-family:${SANS};font-size:13px;color:rgba(255,255,255,0.7)">${escapeHtml(content.heroCaption)}</p>` : "";
   const image = isHttps(content.heroImageUrl) ? content.heroImageUrl : null;
   const background = image
     ? `background-color:${INK};background-image:linear-gradient(180deg,rgba(26,23,20,0.05) 0%,rgba(26,23,20,0.35) 45%,rgba(26,23,20,0.88) 100%),url('${escapeHtml(image)}');background-size:cover;background-position:center`
@@ -228,11 +234,11 @@ export function renderMarketingEmail(
 <p style="margin:0 0 6px;font-family:${SANS};font-size:15px;font-weight:600;color:${INK}">${escapeHtml(shop.name)}</p>
 ${contact ? `<p style="margin:0 0 14px;font-family:${SANS};font-size:13px;line-height:1.6;color:${MUTED}">${contact}</p>` : ""}
 <p style="margin:0 0 14px;font-family:${SANS};font-size:13px">${links}</p>
-<p style="margin:0;font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTED}">${escapeHtml(copy.why.replace("{shop}", shop.name))}${shop.showZennoBadge ? `<br><span style="font-family:${MONO}">${escapeHtml(copy.sentWith)}</span>` : ""}</p>
+<p style="margin:0;font-family:${SANS};font-size:11px;line-height:1.6;color:${MUTED}">${escapeHtml(copy.why.replace("{shop}", shop.name))}${shop.showZennoBadge ? `<br>${escapeHtml(copy.sentWith)}` : ""}</p>
 </td></tr>`;
 
   const html = `<!doctype html><html lang="${shop.language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(subject)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono&display=swap" rel="stylesheet">
+<link href="${FONT_LINK}" rel="stylesheet">
 <style>@media (max-width:620px){.col{display:block!important;width:100%!important;padding:0 0 32px 0!important}h1{font-size:32px!important}}</style></head>
 <body style="margin:0;padding:0;background:#EFEBE6">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFEBE6"><tr><td align="center" style="padding:24px 10px">
