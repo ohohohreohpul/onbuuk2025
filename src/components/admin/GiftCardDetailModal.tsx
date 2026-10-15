@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Download, Mail, Edit2, Save, Banknote, CreditCard, Loader2 } from 'lucide-react';
+import { X, Trash2, Download, Mail, Edit2, Save } from 'lucide-react';
 import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCardOrdersApi';
+import OrderPaySelect from './giftCardOrders/OrderPaySelect';
 import { ADMIN_INPUT, ADMIN_MODAL, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_TERTIARY_BUTTON } from './adminUi';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
@@ -529,15 +530,7 @@ export function GiftCardDetailModal({
               <p className="font-semibold text-amber-900">{t.notPaid}</p>
               <p className="mt-0.5 text-sm text-amber-800">{t.notPaidHint}</p>
               {giftCard.order_id && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-amber-900">{t.paidWith}</span>
-                  <button type="button" onClick={() => handlePay('cash')} disabled={paying} className={ADMIN_PRIMARY_BUTTON}>
-                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />} {t.cash}
-                  </button>
-                  <button type="button" onClick={() => handlePay('card')} disabled={paying} className={ADMIN_PRIMARY_BUTTON}>
-                    {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} {t.card}
-                  </button>
-                </div>
+                <div className="mt-3"><OrderPaySelect busy={paying} onPaid={handlePay} /></div>
               )}
             </section>
           )}

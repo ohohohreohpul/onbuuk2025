@@ -463,7 +463,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                       <td className={`px-5 py-4 text-sm font-semibold tabular-nums ${isClosed ? 'text-stone-400' : 'text-[#1A1714]'}`}>
                         {formatPrice(booking.duration.price_cents)}
                         {openCentsOf(booking) > 0 && booking.status !== 'cancelled' && !booking.no_show ? (
-                          <QuickPay bookingId={booking.id} openCents={openCentsOf(booking)} onOther={() => setPayingBooking(booking)} onPaid={fetchBookings} />
+                          <div className="mt-2"><QuickPay asSelect bookingId={booking.id} openCents={openCentsOf(booking)} onOther={() => setPayingBooking(booking)} onPaid={fetchBookings} /></div>
                         ) : (
                           <PaymentSummary booking={booking} onOpen={() => setPayingBooking(booking)} />
                         )}

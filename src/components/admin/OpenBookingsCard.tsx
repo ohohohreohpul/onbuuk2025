@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Gift, Loader2 } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
 import { useAdminText } from '../../lib/adminLanguage';
@@ -12,6 +12,7 @@ import { markBookingNoShow, setBookingStatus } from './bookings/bookingActions';
 import type { BookingPayment } from './bookings/paymentMethods';
 import { openCentsOf, stepOf } from './bookings/bookingSteps';
 import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCardOrdersApi';
+import OrderPaySelect from './giftCardOrders/OrderPaySelect';
 
 const TEXT: Translations<{
   title: string; today: string; more: string; loadFailed: string; actionFailed: string;
@@ -245,14 +246,7 @@ export default function OpenBookingsCard({ businessId, onShowAll }: OpenBookings
                 )}
               </div>
             </div>
-            <Step label={t.payment}>
-              <select value="" disabled={busyId === order.id} onChange={(e) => onOrderPaid(order, e.target.value)} className={STEP_SELECT_OPEN}>
-                <option value="" disabled>{t.notPaid}</option>
-                <option value="cash">{t.paidCash}</option>
-                <option value="card">{t.paidCard}</option>
-              </select>
-              {busyId === order.id && <Loader2 className="h-4 w-4 animate-spin text-stone-400" />}
-            </Step>
+            <OrderPaySelect busy={busyId === order.id} onPaid={(method) => onOrderPaid(order, method)} />
           </li>
         ))}
       </ul>

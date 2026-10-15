@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Banknote, CreditCard, Download, Gift, Loader2, Mail, Phone, XCircle } from 'lucide-react';
+import { Download, Gift, Loader2, Mail, Phone, XCircle } from 'lucide-react';
 import { useCurrency } from '../../../lib/currencyContext';
 import {
-  ADMIN_PRIMARY_BUTTON,
   ADMIN_SECONDARY_BUTTON,
   ADMIN_STATUS_PILL,
   ADMIN_SURFACE,
   ADMIN_TERTIARY_BUTTON,
 } from '../adminUi';
 import type { GiftCardOrder, ShopPaymentMethod } from './giftCardOrdersApi';
+import OrderPaySelect from './OrderPaySelect';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText, Translations } from '../../../lib/bookingLanguage';
 
@@ -26,21 +26,21 @@ const TEXT: Translations<OrderCardText> = {
     valueVoucher: 'Value voucher · {amount}', treatment: 'Treatment', visits: '{count} visits',
     ordered: 'ordered {date}', markPaid: 'Paid with:', paidCash: 'Cash', paidCard: 'Card', cancel: 'Cancel',
     printVouchers: 'Print vouchers (PDF)', handedOverOn: 'Handed over {date}', tickWhenHanded: 'Tick when handed over',
-    recipientFor: 'For: {email}', voucherOne: '1 voucher', voucherMany: '{count} vouchers', afterPayment: '•••• after payment',
+    recipientFor: 'For: {email}', voucherOne: '1 voucher', voucherMany: '{count} vouchers', afterPayment: 'valid after payment',
   },
   de: {
     statusPending: 'Zahlung offen', statusPaid: 'Bezahlt', statusCancelled: 'Storniert',
     valueVoucher: 'Wertgutschein · {amount}', treatment: 'Behandlung', visits: '{count} Besuche',
     ordered: 'bestellt am {date}', markPaid: 'Bezahlt mit:', paidCash: 'Bar', paidCard: 'Karte', cancel: 'Stornieren',
     printVouchers: 'Gutscheine drucken (PDF)', handedOverOn: 'Übergeben am {date}', tickWhenHanded: 'Bei Übergabe abhaken',
-    recipientFor: 'Für: {email}', voucherOne: '1 Gutschein', voucherMany: '{count} Gutscheine', afterPayment: '•••• nach Zahlung',
+    recipientFor: 'Für: {email}', voucherOne: '1 Gutschein', voucherMany: '{count} Gutscheine', afterPayment: 'gültig nach Zahlung',
   },
   th: {
     statusPending: 'รอชำระเงิน', statusPaid: 'ชำระแล้ว', statusCancelled: 'ยกเลิกแล้ว',
     valueVoucher: 'บัตรของขวัญแบบมูลค่า · {amount}', treatment: 'ทรีตเมนต์', visits: '{count} ครั้ง',
     ordered: 'สั่งซื้อเมื่อ {date}', markPaid: 'ชำระด้วย:', paidCash: 'เงินสด', paidCard: 'บัตร', cancel: 'ยกเลิกคำสั่งซื้อ',
     printVouchers: 'พิมพ์บัตรของขวัญ (PDF)', handedOverOn: 'ส่งมอบแล้วเมื่อ {date}', tickWhenHanded: 'ติ๊กเมื่อส่งมอบแล้ว',
-    recipientFor: 'ผู้รับ: {email}', voucherOne: 'บัตรของขวัญ 1 ใบ', voucherMany: 'บัตรของขวัญ {count} ใบ', afterPayment: '•••• หลังชำระเงิน',
+    recipientFor: 'ผู้รับ: {email}', voucherOne: 'บัตรของขวัญ 1 ใบ', voucherMany: 'บัตรของขวัญ {count} ใบ', afterPayment: 'ใช้ได้หลังชำระเงิน',
   },
 };
 
@@ -94,13 +94,7 @@ export default function OrderCard({ order, isBusy, onMarkPaid, onCancel, onToggl
         <div className="flex flex-wrap items-center gap-2">
           {order.status === 'pending_payment' && (
             <>
-              <span className="text-sm font-medium text-stone-600">{t.markPaid}</span>
-              <button type="button" className={ADMIN_PRIMARY_BUTTON} disabled={isBusy} onClick={() => onMarkPaid('cash')}>
-                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />} {t.paidCash}
-              </button>
-              <button type="button" className={ADMIN_PRIMARY_BUTTON} disabled={isBusy} onClick={() => onMarkPaid('card')}>
-                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} {t.paidCard}
-              </button>
+              <OrderPaySelect busy={isBusy} onPaid={onMarkPaid} />
               <button type="button" className={`${ADMIN_TERTIARY_BUTTON} hover:text-red-600`} disabled={isBusy} onClick={onCancel}>
                 <XCircle className="h-4 w-4" /> {t.cancel}
               </button>
@@ -151,7 +145,10 @@ export default function OrderCard({ order, isBusy, onMarkPaid, onCancel, onToggl
               {order.gift_cards.map((card) => (
                 <li key={card.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/70 px-3 py-2">
                   <span className="truncate text-stone-700">{voucherLine(card, formatAmount, t)}</span>
-                  <span className="shrink-0 font-mono text-xs text-stone-500">{isPaid ? card.code : t.afterPayment}</span>
+                  <span className="shrink-0 text-right font-mono text-xs text-stone-500">
+                    {card.code}
+                    {!isPaid && order.status !== 'cancelled' && <span className="block font-sans text-[10px] text-amber-700">{t.afterPayment}</span>}
+                  </span>
                 </li>
               ))}
             </ul>
