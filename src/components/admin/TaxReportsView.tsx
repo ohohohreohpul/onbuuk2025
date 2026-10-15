@@ -32,6 +32,8 @@ interface CashEntry {
   gross_cents: number;
   booking_id: string | null;
   import_batch_id: string | null;
+  is_reversal?: boolean;
+  reverses_entry_id?: string | null;
 }
 
 type Tab = 'records' | 'payments' | 'reports' | 'import';
@@ -45,7 +47,7 @@ type TaxText = {
   grossPeriod: string; vatCollected: string; vatBreakdown: string; recordsBySource: string;
   setupTitle: string; setupBefore: string; setupMiddle: string; setupAfter: string;
   cashBookEntries: string; colDate: string; colDescription: string; colSource: string; colMethod: string; colNet: string; colVat: string;
-  colGross: string; noRecords: string; delete: string; confirmDelete: string;
+  colGross: string; noRecords: string; delete: string; confirmDelete: string; cancelled: string; cancelFailed: string;
   euerTitle: string; euerSubtitle: string; generateSummary: string; euerHint: string;
   datevTitle: string; datevSubtitle: string; downloadDatev: string; datevHint: string;
   defaultsTitle: string; defaultsSubtitle: string; defaultVat: string; cashAccount: string; revenueAccounts: string;
@@ -72,7 +74,7 @@ const TEXT: Translations<TaxText> = {
     setupTitle: 'One-time database setup required', setupBefore: 'Create the', setupMiddle: 'tables by running the migration in',
     setupAfter: 'in your Supabase SQL editor, then reload this page.',
     cashBookEntries: 'Kassenbuch entries', colDate: 'Date', colDescription: 'Description', colSource: 'Source', colMethod: 'Method',
-    colNet: 'Net', colVat: 'VAT', colGross: 'Gross', noRecords: 'No records in this period.', delete: 'Delete', confirmDelete: 'Delete this entry?',
+    colNet: 'Net', colVat: 'VAT', colGross: 'Gross', noRecords: 'No records in this period.', delete: 'Cancel entry', confirmDelete: 'Cancel this entry? It stays in the cash book and a minus line (“Storno”) is added, as tax law requires.', cancelled: 'Cancelled', cancelFailed: 'Could not cancel the entry.',
     euerTitle: 'EÜR-style summary', euerSubtitle: 'German income-surplus statement (printable / PDF)', generateSummary: 'Generate summary document',
     euerHint: 'Covers the EÜR line structure your tax adviser maps in Anlage EÜR. VAT split and payment-method totals are included.',
     datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'Semicolon CSV for the Steuerberater', downloadDatev: 'Download DATEV CSV',
@@ -103,7 +105,7 @@ const TEXT: Translations<TaxText> = {
     setupTitle: 'Einmalige Datenbank-Einrichtung erforderlich', setupBefore: 'Legen Sie die Tabellen', setupMiddle: 'an, indem Sie die Migration',
     setupAfter: 'im Supabase-SQL-Editor ausführen, und laden Sie die Seite neu.',
     cashBookEntries: 'Kassenbuch-Einträge', colDate: 'Datum', colDescription: 'Beschreibung', colSource: 'Quelle', colMethod: 'Zahlart',
-    colNet: 'Netto', colVat: 'MwSt.', colGross: 'Brutto', noRecords: 'Keine Einträge in diesem Zeitraum.', delete: 'Löschen', confirmDelete: 'Diesen Eintrag löschen?',
+    colNet: 'Netto', colVat: 'MwSt.', colGross: 'Brutto', noRecords: 'Keine Einträge in diesem Zeitraum.', delete: 'Stornieren', confirmDelete: 'Eintrag stornieren? Er bleibt im Kassenbuch stehen, und eine Minus-Zeile („Storno“) wird ergänzt – so verlangt es das Finanzamt.', cancelled: 'Storniert', cancelFailed: 'Stornieren fehlgeschlagen.',
     euerTitle: 'EÜR-Übersicht', euerSubtitle: 'Einnahmen-Überschuss-Aufstellung (druckbar / PDF)', generateSummary: 'Übersicht erstellen',
     euerHint: 'Folgt der Zeilenstruktur, die Ihre Steuerberatung in die Anlage EÜR überträgt. MwSt.-Aufteilung und Summen je Zahlart sind enthalten.',
     datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'Semikolon-CSV für die Steuerberatung', downloadDatev: 'DATEV-CSV herunterladen',
@@ -134,7 +136,7 @@ const TEXT: Translations<TaxText> = {
     setupTitle: 'ต้องตั้งค่าฐานข้อมูลครั้งแรก', setupBefore: 'สร้างตาราง', setupMiddle: 'โดยรัน migration ใน',
     setupAfter: 'ที่ SQL editor ของ Supabase แล้วโหลดหน้านี้ใหม่',
     cashBookEntries: 'รายการสมุดเงินสด', colDate: 'วันที่', colDescription: 'รายละเอียด', colSource: 'แหล่งที่มา', colMethod: 'วิธีชำระ',
-    colNet: 'ยอดก่อนภาษี', colVat: 'ภาษีมูลค่าเพิ่ม', colGross: 'ยอดรวมภาษี', noRecords: 'ไม่มีรายการในช่วงเวลานี้', delete: 'ลบ', confirmDelete: 'ลบรายการนี้?',
+    colNet: 'ยอดก่อนภาษี', colVat: 'ภาษีมูลค่าเพิ่ม', colGross: 'ยอดรวมภาษี', noRecords: 'ไม่มีรายการในช่วงเวลานี้', delete: 'ยกเลิกรายการ', confirmDelete: 'ยกเลิกรายการนี้? รายการเดิมยังคงอยู่ และจะเพิ่มรายการติดลบ (Storno) ตามกฎหมายภาษี', cancelled: 'ยกเลิกแล้ว', cancelFailed: 'ยกเลิกรายการไม่สำเร็จ',
     euerTitle: 'สรุปแบบ EÜR', euerSubtitle: 'งบรายรับ-รายจ่ายตามแบบเยอรมัน (พิมพ์ได้ / PDF)', generateSummary: 'สร้างเอกสารสรุป',
     euerHint: 'ตรงกับโครงสร้างบรรทัดที่ที่ปรึกษาภาษีใช้กรอก Anlage EÜR มีการแยกภาษีมูลค่าเพิ่มและยอดรวมตามวิธีชำระ',
     datevTitle: 'DATEV Buchungsstapel', datevSubtitle: 'CSV คั่นด้วยเซมิโคลอนสำหรับที่ปรึกษาภาษี', downloadDatev: 'ดาวน์โหลด DATEV CSV',
@@ -324,6 +326,11 @@ export default function TaxReportsView() {
     setLoading(false);
   };
 
+  const reversedIds = useMemo(
+    () => new Set(entries.map(e => e.reverses_entry_id).filter((id): id is string => Boolean(id))),
+    [entries]
+  );
+
   const periodEntries = useMemo(
     () => entries.filter(e => (!periodStart || e.entry_date >= periodStart) && (!periodEnd || e.entry_date <= periodEnd)),
     [entries, periodStart, periodEnd]
@@ -366,9 +373,15 @@ export default function TaxReportsView() {
     loadAll();
   };
 
-  const deleteEntry = async (id: string) => {
+  // GoBD: entries are never deleted; a "Storno" line cancels them.
+  const reverseEntry = async (id: string) => {
     if (!confirm(t.confirmDelete)) return;
-    await supabase.from('cash_entries').delete().eq('id', id);
+    const { error } = await supabase.rpc('reverse_cash_entry', { p_entry_id: id });
+    if (error) {
+      console.error('Could not cancel cash entry:', error);
+      alert(t.cancelFailed);
+      return;
+    }
     loadAll();
   };
 
@@ -738,8 +751,10 @@ export default function TaxReportsView() {
                       <td className="px-5 py-2.5 text-right tabular-nums text-stone-500">{formatPrice(e.gross_cents - e.net_cents)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums font-medium text-stone-800">{formatPrice(e.gross_cents)}</td>
                       <td className="px-3 py-2.5 text-right">
-                        {e.source === 'manual' && (
-                          <button onClick={() => deleteEntry(e.id)} className="text-xs text-red-500 hover:text-red-700">{t.delete}</button>
+                        {reversedIds.has(e.id) ? (
+                          <span className="text-xs text-stone-400">{t.cancelled}</span>
+                        ) : e.source !== 'booking' && !e.is_reversal && (
+                          <button onClick={() => reverseEntry(e.id)} className="text-xs text-red-500 hover:text-red-700">{t.delete}</button>
                         )}
                       </td>
                     </tr>
