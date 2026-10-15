@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Download, Mail, Edit2, Save } from 'lucide-react';
+import { X, Trash2, Download, Mail, Edit2, Save, Banknote, CreditCard } from 'lucide-react';
 import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCardOrdersApi';
-import OrderPaySelect from './giftCardOrders/OrderPaySelect';
 import { ADMIN_INPUT, ADMIN_MODAL, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_TERTIARY_BUTTON } from './adminUi';
 import { supabase } from '../../lib/supabase';
 import { useCurrency } from '../../lib/currencyContext';
@@ -54,7 +53,7 @@ const TEXT: Translations<DetailText> = {
     visitRedemptionHint: 'This pass is visit-based, so it is redeemed through checkout when the customer books the matching service. It is never deducted as a cash amount.',
     history: 'Transaction History', loading: 'Loading...', noTransactions: 'No transactions yet',
     visitOne: '1 visit', visitMany: '{count} visits', deleting: 'Deleting...', deleteCard: 'Delete gift card', close: 'Close',
-    notPaid: 'Not paid yet', notPaidHint: 'The voucher becomes valid once it is paid.', paidWith: 'Paid with:', cash: 'Cash', card: 'Card', payFailed: 'Could not save the payment.', validUntil: 'Valid until', of: 'of {amount}',
+    notPaid: 'Not paid yet', notPaidHint: 'The voucher becomes valid once it is paid.', paidWith: 'Paid with:', cash: 'Paid cash', card: 'Paid by card', payFailed: 'Could not save the payment.', validUntil: 'Valid until', of: 'of {amount}',
     statusActive: 'Active', statusFullyRedeemed: 'Fully redeemed', statusExpired: 'Expired', statusCancelled: 'Cancelled',
     statusPendingPayment: 'Awaiting payment', txnPurchase: 'Purchase', txnRedemption: 'Redemption', txnRefund: 'Refund',
   },
@@ -85,7 +84,7 @@ const TEXT: Translations<DetailText> = {
     visitRedemptionHint: 'Dieser Gutschein gilt pro Besuch und wird an der Kasse eingelöst, wenn die Kund:in die passende Leistung bucht. Er wird nie als Geldbetrag abgezogen.',
     history: 'Transaktionsverlauf', loading: 'Wird geladen...', noTransactions: 'Noch keine Transaktionen',
     visitOne: '1 Besuch', visitMany: '{count} Besuche', deleting: 'Wird gelöscht...', deleteCard: 'Gutschein löschen', close: 'Schließen',
-    notPaid: 'Noch nicht bezahlt', notPaidHint: 'Der Gutschein ist nach der Zahlung gültig.', paidWith: 'Bezahlt mit:', cash: 'Bar', card: 'Karte', payFailed: 'Zahlung konnte nicht gespeichert werden.', validUntil: 'Gültig bis', of: 'von {amount}',
+    notPaid: 'Noch nicht bezahlt', notPaidHint: 'Der Gutschein ist nach der Zahlung gültig.', paidWith: 'Bezahlt mit:', cash: 'Bar bezahlt', card: 'Mit Karte bezahlt', payFailed: 'Zahlung konnte nicht gespeichert werden.', validUntil: 'Gültig bis', of: 'von {amount}',
     statusActive: 'Aktiv', statusFullyRedeemed: 'Vollständig eingelöst', statusExpired: 'Abgelaufen', statusCancelled: 'Storniert',
     statusPendingPayment: 'Zahlung offen', txnPurchase: 'Kauf', txnRedemption: 'Einlösung', txnRefund: 'Erstattung',
   },
@@ -113,7 +112,7 @@ const TEXT: Translations<DetailText> = {
     visitRedemptionHint: 'บัตรนี้นับตามจำนวนครั้ง จะถูกใช้ตอนชำระเงินเมื่อลูกค้าจองบริการที่ตรงกัน และไม่ถูกหักเป็นยอดเงิน',
     history: 'ประวัติรายการ', loading: 'กำลังโหลด...', noTransactions: 'ยังไม่มีรายการ',
     visitOne: '1 ครั้ง', visitMany: '{count} ครั้ง', deleting: 'กำลังลบ...', deleteCard: 'ลบบัตรของขวัญ', close: 'ปิด',
-    notPaid: 'ยังไม่ชำระ', notPaidHint: 'บัตรจะใช้ได้หลังชำระเงิน', paidWith: 'ชำระด้วย:', cash: 'เงินสด', card: 'บัตร', payFailed: 'บันทึกการชำระเงินไม่สำเร็จ', validUntil: 'ใช้ได้ถึง', of: 'จาก {amount}',
+    notPaid: 'ยังไม่ชำระ', notPaidHint: 'บัตรจะใช้ได้หลังชำระเงิน', paidWith: 'ชำระด้วย:', cash: 'ชำระเงินสดแล้ว', card: 'ชำระด้วยบัตรแล้ว', payFailed: 'บันทึกการชำระเงินไม่สำเร็จ', validUntil: 'ใช้ได้ถึง', of: 'จาก {amount}',
     statusActive: 'ใช้งานได้', statusFullyRedeemed: 'ใช้ครบแล้ว', statusExpired: 'หมดอายุ', statusCancelled: 'ยกเลิกแล้ว',
     statusPendingPayment: 'รอชำระเงิน', txnPurchase: 'ซื้อ', txnRedemption: 'ใช้บัตร', txnRefund: 'คืนเงิน',
   },
@@ -530,7 +529,10 @@ export function GiftCardDetailModal({
               <p className="font-semibold text-amber-900">{t.notPaid}</p>
               <p className="mt-0.5 text-sm text-amber-800">{t.notPaidHint}</p>
               {giftCard.order_id && (
-                <div className="mt-3"><OrderPaySelect busy={paying} onPaid={handlePay} /></div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" disabled={paying} onClick={() => handlePay('cash')} className={ADMIN_PRIMARY_BUTTON}><Banknote className="h-4 w-4" /> {t.cash}</button>
+                  <button type="button" disabled={paying} onClick={() => handlePay('card')} className={ADMIN_PRIMARY_BUTTON}><CreditCard className="h-4 w-4" /> {t.card}</button>
+                </div>
               )}
             </section>
           )}

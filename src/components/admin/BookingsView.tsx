@@ -4,15 +4,14 @@ import { Search } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 import { BOOKING_STATE_TEXT, deriveBookingState, formatStartTime, type BookingState, type BookingStateText, type FeeResolution } from './bookings/bookingState';
-import BookingRowActions from './bookings/BookingRowActions';
-import RecordPaymentModal from './bookings/RecordPaymentModal';
+import BookingMoreActions from './bookings/BookingMoreActions';
+import BookingTaskModal from './bookings/BookingTaskModal';
 import PaymentSummary from './bookings/PaymentSummary';
-import QuickPay from './bookings/QuickPay';
-import { markBookingNoShow, setBookingStatus, type BookingStatus } from './bookings/bookingActions';
+import { setBookingStatus, type BookingStatus } from './bookings/bookingActions';
 import { openAmountCents, type BookingPayment } from './bookings/paymentMethods';
 import type { PaymentMethod } from './bookings/paymentMethods';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
-import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
+import { ADMIN_INPUT, ADMIN_SECONDARY_BUTTON, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
 import RescheduleModal from './bookings/RescheduleModal';
 import { useSpecialistNames } from '../../hooks/useSpecialistNames';
 import { therapistLabel } from '../../lib/therapistLabel';
@@ -64,7 +63,7 @@ const TEXT: Translations<{
   title: string; needsDecisionOne: string; needsDecisionMany: string; nothingNeedsDecision: string;
   filterLabel: string; searchPlaceholder: string;
   colCustomer: string; colAppointment: string; colPrice: string; colStatus: string; colNextStep: string;
-  allCaughtUp: string; noBookings: string; couples: string; minutes: string; showing: string;
+  allCaughtUp: string; noBookings: string; couples: string; minutes: string; edit: string; notPaid: string; showing: string;
   updateFailed: string; cancelConfirm: string; invoiceAddressPrompt: string; invoiceFailed: string;
   deleteConfirm: string; noShowConfirm: string; noShowFeeNote: string; noShowFailed: string; noShowCharged: string;
 }> = {
@@ -78,7 +77,7 @@ const TEXT: Translations<{
     filterLabel: 'Filter bookings', searchPlaceholder: 'Search by customer name or email...',
     colCustomer: 'Customer', colAppointment: 'Appointment', colPrice: 'Price', colStatus: 'Status', colNextStep: 'Next step',
     allCaughtUp: 'You’re all caught up — nothing needs a decision.', noBookings: 'No bookings found',
-    couples: 'Couples', minutes: '{count} min', showing: 'Showing {shown} of {total} bookings',
+    couples: 'Couples', minutes: '{count} min', edit: 'Open', notPaid: 'Not paid yet', showing: 'Showing {shown} of {total} bookings',
     updateFailed: 'Could not update this booking. Please try again.',
     cancelConfirm: 'Cancel {name}’s booking on {date}?',
     invoiceAddressPrompt: 'Customer address for the invoice of {name}:',
@@ -99,7 +98,7 @@ const TEXT: Translations<{
     filterLabel: 'Buchungen filtern', searchPlaceholder: 'Nach Kundenname oder E-Mail suchen …',
     colCustomer: 'Kunde', colAppointment: 'Termin', colPrice: 'Preis', colStatus: 'Status', colNextStep: 'Nächster Schritt',
     allCaughtUp: 'Alles erledigt – nichts wartet auf eine Entscheidung.', noBookings: 'Keine Buchungen gefunden',
-    couples: 'Paar', minutes: '{count} Min.', showing: '{shown} von {total} Buchungen',
+    couples: 'Paar', minutes: '{count} Min.', edit: 'Bearbeiten', notPaid: 'Noch nicht bezahlt', showing: '{shown} von {total} Buchungen',
     updateFailed: 'Die Buchung konnte nicht aktualisiert werden. Bitte erneut versuchen.',
     cancelConfirm: 'Buchung von {name} am {date} stornieren?',
     invoiceAddressPrompt: 'Kundenadresse für die Rechnung von {name}:',
@@ -120,7 +119,7 @@ const TEXT: Translations<{
     filterLabel: 'กรองการจอง', searchPlaceholder: 'ค้นหาตามชื่อหรืออีเมลลูกค้า...',
     colCustomer: 'ลูกค้า', colAppointment: 'นัดหมาย', colPrice: 'ราคา', colStatus: 'สถานะ', colNextStep: 'ขั้นตอนถัดไป',
     allCaughtUp: 'เรียบร้อยแล้ว ไม่มีอะไรรอการตัดสินใจ', noBookings: 'ไม่พบการจอง',
-    couples: 'คู่', minutes: '{count} นาที', showing: 'แสดง {shown} จาก {total} การจอง',
+    couples: 'คู่', minutes: '{count} นาที', edit: 'แก้ไข', notPaid: 'ยังไม่ชำระ', showing: 'แสดง {shown} จาก {total} การจอง',
     updateFailed: 'อัปเดตการจองไม่สำเร็จ กรุณาลองอีกครั้ง',
     cancelConfirm: 'ยกเลิกการจองของ {name} วันที่ {date} ใช่หรือไม่?',
     invoiceAddressPrompt: 'ที่อยู่ลูกค้าสำหรับใบแจ้งหนี้ของ {name}:',
@@ -196,7 +195,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const [hasChosenFilter, setHasChosenFilter] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [movingBooking, setMovingBooking] = useState<Booking | null>(null);
-  const [payingBooking, setPayingBooking] = useState<Booking | null>(null);
+  const [openBookingId, setOpenBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -270,11 +269,6 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
     setBusyId(null);
   };
 
-  const cancelBooking = (booking: Booking) => {
-    if (!confirm(fillText(t.cancelConfirm, { name: booking.customer_name, date: formatDate(booking.booking_date) }))) return;
-    updateBookingStatus(booking.id, 'cancelled');
-  };
-
   // Above 250 € (Kleinbetragsrechnung limit) a German invoice needs the customer's address.
   const downloadInvoice = async (booking: Booking) => {
     let address: string | undefined;
@@ -304,27 +298,9 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       .eq('id', bookingId);
 
     if (!error) {
+      setOpenBookingId(null);
       fetchBookings();
     }
-  };
-
-  const markAsNoShow = async (booking: Booking) => {
-    const feeNote = booking.service.no_show_fee > 0
-      ? ` ${fillText(t.noShowFeeNote, { fee: formatPrice(booking.service.no_show_fee) })}`
-      : '';
-    if (!confirm(fillText(t.noShowConfirm, { name: booking.customer_name }) + feeNote)) return;
-    setBusyId(booking.id);
-
-    try {
-      const { chargedAmount } = await markBookingNoShow(businessId!, booking,
-        `No-show for ${booking.service.name} on ${formatDate(booking.booking_date)} at ${booking.start_time}`);
-      if (chargedAmount !== null) alert(fillText(t.noShowCharged, { amount: formatPrice(chargedAmount) }));
-    } catch (noShowError) {
-      alert(fillText(t.noShowFailed, { message: noShowError instanceof Error ? noShowError.message : String(noShowError) }));
-    }
-
-    await fetchBookings();
-    setBusyId(null);
   };
 
   const addFee = async (booking: Booking) => {
@@ -356,6 +332,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
     });
   };
 
+  const openBooking = openBookingId ? bookings.find((b) => b.id === openBookingId) ?? null : null;
   const countFor = (filter: ViewFilter) => bookings.filter((b) => matchesFilter(filter, stateOf(b))).length;
 
   const chooseFilter = (filter: ViewFilter) => {
@@ -463,9 +440,9 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                       <td className={`px-5 py-4 text-sm font-semibold tabular-nums ${isClosed ? 'text-stone-400' : 'text-[#1A1714]'}`}>
                         {formatPrice(booking.duration.price_cents)}
                         {openCentsOf(booking) > 0 && booking.status !== 'cancelled' && !booking.no_show ? (
-                          <div className="mt-2"><QuickPay asSelect bookingId={booking.id} openCents={openCentsOf(booking)} onOther={() => setPayingBooking(booking)} onPaid={fetchBookings} /></div>
+                          <p className="mt-1 text-xs font-semibold text-amber-800">{t.notPaid}</p>
                         ) : (
-                          <PaymentSummary booking={booking} onOpen={() => setPayingBooking(booking)} />
+                          <PaymentSummary booking={booking} onOpen={() => setOpenBookingId(booking.id)} />
                         )}
                       </td>
                       <td className="px-5 py-4">
@@ -476,21 +453,9 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                         <div className="mt-1 text-[11px] text-stone-400">{state.hint}</div>
                       </td>
                       <td className="px-5 py-4">
-                        <BookingRowActions
-                          state={state}
-                          isBusy={busyId === booking.id}
-                          onConfirm={() => updateBookingStatus(booking.id, 'confirmed')}
-                          onComplete={() => updateBookingStatus(booking.id, 'completed')}
-                          onNoShow={() => markAsNoShow(booking)}
-                          onResolveFee={() => onNavigate?.('fees')}
-                          onAddFee={() => addFee(booking)}
-                          onCancel={() => cancelBooking(booking)}
-                          onRestore={() => updateBookingStatus(booking.id, 'confirmed')}
-                          onMove={() => setMovingBooking(booking)}
-                          onInvoice={() => downloadInvoice(booking)}
-                          onRecordPayment={() => setPayingBooking(booking)}
-                          onDelete={() => deleteBooking(booking.id)}
-                        />
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => setOpenBookingId(booking.id)} className={ADMIN_SECONDARY_BUTTON}>{t.edit}</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -504,11 +469,23 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       <div className="text-xs text-stone-400">
         {fillText(t.showing, { shown: filteredBookings.length, total: bookings.length })}
       </div>
-      {payingBooking && (
-        <RecordPaymentModal
-          booking={payingBooking}
-          onClose={() => setPayingBooking(null)}
+      {openBooking && (
+        <BookingTaskModal
+          bookingId={openBooking.id}
+          onClose={() => setOpenBookingId(null)}
           onChanged={fetchBookings}
+          moreActions={(
+            <BookingMoreActions
+              state={stateOf(openBooking, stateText)}
+              isBusy={busyId === openBooking.id}
+              onResolveFee={() => { setOpenBookingId(null); onNavigate?.('fees'); }}
+              onAddFee={() => addFee(openBooking)}
+              onRestore={() => updateBookingStatus(openBooking.id, 'confirmed')}
+              onMove={() => { setOpenBookingId(null); setMovingBooking(openBooking); }}
+              onInvoice={() => downloadInvoice(openBooking)}
+              onDelete={() => deleteBooking(openBooking.id)}
+            />
+          )}
         />
       )}
 

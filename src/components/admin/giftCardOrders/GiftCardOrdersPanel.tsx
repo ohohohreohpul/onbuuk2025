@@ -5,14 +5,12 @@ import { useCurrency } from '../../../lib/currencyContext';
 import { downloadGiftCardsPDF, type GiftCardData } from '../../../lib/giftCardPdfGenerator';
 import { ADMIN_INPUT, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_SEGMENTED_CONTROL, ADMIN_SURFACE } from '../adminUi';
 import OrderCard from './OrderCard';
+import OrderTaskModal from './OrderTaskModal';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText, Translations } from '../../../lib/bookingLanguage';
 import {
-  cancelOrder,
   loadOrders,
   loadPackages,
-  markOrderPaid,
-  type ShopPaymentMethod,
   setBonusHanded,
   setPackageActive,
   type GiftCardOrder,
@@ -85,6 +83,7 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
   const [packages, setPackages] = useState<PackageSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('open');
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
@@ -156,14 +155,6 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
   const handleDownload = (order: GiftCardOrder) =>
     run(order.id, () => downloadGiftCardsPDF(toPdfCards(order), `Gutscheine-${order.order_number}.pdf`));
 
-  // One tap at the counter: the button names the payment method, so no extra confirmation.
-  const handleMarkPaid = (order: GiftCardOrder, method: ShopPaymentMethod) =>
-    run(order.id, () => markOrderPaid(order.id, method), fillText(t.paidSuccess, { code: order.order_number }));
-
-  const handleCancel = (order: GiftCardOrder) => {
-    if (!window.confirm(fillText(t.confirmCancel, { code: order.order_number }))) return;
-    run(order.id, () => cancelOrder(order.id), fillText(t.cancelSuccess, { code: order.order_number }));
-  };
 
   return (
     <div className="space-y-6">
@@ -259,14 +250,14 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
               key={order.id}
               order={order}
               isBusy={busyId === order.id}
-              onMarkPaid={(method) => handleMarkPaid(order, method)}
-              onCancel={() => handleCancel(order)}
+              onOpen={() => setOpenOrderId(order.id)}
               onToggleBonus={(isHanded) => run(order.id, () => setBonusHanded(order.id, isHanded))}
               onDownload={() => handleDownload(order)}
             />
           ))}
         </div>
       </section>
+      {openOrderId && <OrderTaskModal orderId={openOrderId} onClose={() => setOpenOrderId(null)} onChanged={refresh} />}
     </div>
   );
 }

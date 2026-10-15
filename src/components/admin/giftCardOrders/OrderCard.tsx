@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import { Download, Gift, Loader2, Mail, Phone, XCircle } from 'lucide-react';
+import { Download, Gift, Loader2, Mail, Phone } from 'lucide-react';
 import { useCurrency } from '../../../lib/currencyContext';
 import {
   ADMIN_SECONDARY_BUTTON,
   ADMIN_STATUS_PILL,
   ADMIN_SURFACE,
-  ADMIN_TERTIARY_BUTTON,
 } from '../adminUi';
-import type { GiftCardOrder, ShopPaymentMethod } from './giftCardOrdersApi';
-import OrderPaySelect from './OrderPaySelect';
+import type { GiftCardOrder } from './giftCardOrdersApi';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText, Translations } from '../../../lib/bookingLanguage';
 
 type OrderCardText = {
   statusPending: string; statusPaid: string; statusCancelled: string;
   valueVoucher: string; treatment: string; visits: string;
-  ordered: string; markPaid: string; paidCash: string; paidCard: string; cancel: string; printVouchers: string;
+  ordered: string; edit: string; printVouchers: string;
   handedOverOn: string; tickWhenHanded: string; recipientFor: string;
   voucherOne: string; voucherMany: string; afterPayment: string;
 };
@@ -24,21 +22,21 @@ const TEXT: Translations<OrderCardText> = {
   en: {
     statusPending: 'Awaiting payment', statusPaid: 'Paid', statusCancelled: 'Cancelled',
     valueVoucher: 'Value voucher · {amount}', treatment: 'Treatment', visits: '{count} visits',
-    ordered: 'ordered {date}', markPaid: 'Paid with:', paidCash: 'Cash', paidCard: 'Card', cancel: 'Cancel',
+    ordered: 'ordered {date}', edit: 'Open',
     printVouchers: 'Print vouchers (PDF)', handedOverOn: 'Handed over {date}', tickWhenHanded: 'Tick when handed over',
     recipientFor: 'For: {email}', voucherOne: '1 voucher', voucherMany: '{count} vouchers', afterPayment: 'valid after payment',
   },
   de: {
     statusPending: 'Zahlung offen', statusPaid: 'Bezahlt', statusCancelled: 'Storniert',
     valueVoucher: 'Wertgutschein · {amount}', treatment: 'Behandlung', visits: '{count} Besuche',
-    ordered: 'bestellt am {date}', markPaid: 'Bezahlt mit:', paidCash: 'Bar', paidCard: 'Karte', cancel: 'Stornieren',
+    ordered: 'bestellt am {date}', edit: 'Bearbeiten',
     printVouchers: 'Gutscheine drucken (PDF)', handedOverOn: 'Übergeben am {date}', tickWhenHanded: 'Bei Übergabe abhaken',
     recipientFor: 'Für: {email}', voucherOne: '1 Gutschein', voucherMany: '{count} Gutscheine', afterPayment: 'gültig nach Zahlung',
   },
   th: {
     statusPending: 'รอชำระเงิน', statusPaid: 'ชำระแล้ว', statusCancelled: 'ยกเลิกแล้ว',
     valueVoucher: 'บัตรของขวัญแบบมูลค่า · {amount}', treatment: 'ทรีตเมนต์', visits: '{count} ครั้ง',
-    ordered: 'สั่งซื้อเมื่อ {date}', markPaid: 'ชำระด้วย:', paidCash: 'เงินสด', paidCard: 'บัตร', cancel: 'ยกเลิกคำสั่งซื้อ',
+    ordered: 'สั่งซื้อเมื่อ {date}', edit: 'แก้ไข',
     printVouchers: 'พิมพ์บัตรของขวัญ (PDF)', handedOverOn: 'ส่งมอบแล้วเมื่อ {date}', tickWhenHanded: 'ติ๊กเมื่อส่งมอบแล้ว',
     recipientFor: 'ผู้รับ: {email}', voucherOne: 'บัตรของขวัญ 1 ใบ', voucherMany: 'บัตรของขวัญ {count} ใบ', afterPayment: 'ใช้ได้หลังชำระเงิน',
   },
@@ -47,9 +45,8 @@ const TEXT: Translations<OrderCardText> = {
 interface OrderCardProps {
   order: GiftCardOrder;
   isBusy: boolean;
-  /** One tap: paid, vouchers active, payment method recorded. */
-  onMarkPaid: (method: ShopPaymentMethod) => void;
-  onCancel: () => void;
+  /** Opens the order popup (record payment, cancel). */
+  onOpen: () => void;
   onToggleBonus: (isHanded: boolean) => void;
   onDownload: () => void;
 }
@@ -70,7 +67,7 @@ function voucherLine(
   return `${card.service_pass_name ?? t.treatment}${visits > 1 ? ` · ${fillText(t.visits, { count: visits })}` : ''}`;
 }
 
-export default function OrderCard({ order, isBusy, onMarkPaid, onCancel, onToggleBonus, onDownload }: OrderCardProps) {
+export default function OrderCard({ order, isBusy, onOpen, onToggleBonus, onDownload }: OrderCardProps) {
   const { formatAmount } = useCurrency();
   const { t, locale } = useAdminText(TEXT);
   const [isExpanded, setIsExpanded] = useState(order.status === 'pending_payment');
@@ -93,12 +90,7 @@ export default function OrderCard({ order, isBusy, onMarkPaid, onCancel, onToggl
 
         <div className="flex flex-wrap items-center gap-2">
           {order.status === 'pending_payment' && (
-            <>
-              <OrderPaySelect busy={isBusy} onPaid={onMarkPaid} />
-              <button type="button" className={`${ADMIN_TERTIARY_BUTTON} hover:text-red-600`} disabled={isBusy} onClick={onCancel}>
-                <XCircle className="h-4 w-4" /> {t.cancel}
-              </button>
-            </>
+            <button type="button" className={ADMIN_SECONDARY_BUTTON} disabled={isBusy} onClick={onOpen}>{t.edit}</button>
           )}
           {isPaid && (
             <button type="button" className={ADMIN_SECONDARY_BUTTON} disabled={isBusy} onClick={onDownload}>
