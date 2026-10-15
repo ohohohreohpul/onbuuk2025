@@ -85,8 +85,11 @@ export async function setPackageActive(packageId: string, isActive: boolean): Pr
   if (error) throw error;
 }
 
-export async function markOrderPaid(orderId: string): Promise<void> {
-  const { error } = await supabase.rpc('mark_gift_card_order_paid', { p_order_id: orderId });
+export type ShopPaymentMethod = 'cash' | 'card';
+
+/** Marks the order paid, activates its vouchers and records how it was paid. */
+export async function markOrderPaid(orderId: string, method: ShopPaymentMethod): Promise<void> {
+  const { error } = await supabase.rpc('mark_gift_card_order_paid', { p_order_id: orderId, p_method: method });
   if (error) throw error;
 }
 

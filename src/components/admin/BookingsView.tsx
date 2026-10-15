@@ -7,6 +7,8 @@ import { BOOKING_STATE_TEXT, deriveBookingState, formatStartTime, type BookingSt
 import BookingRowActions from './bookings/BookingRowActions';
 import RecordPaymentModal from './bookings/RecordPaymentModal';
 import PaymentSummary from './bookings/PaymentSummary';
+import QuickPay from './bookings/QuickPay';
+import { openAmountCents, type BookingPayment } from './bookings/paymentMethods';
 import type { PaymentMethod } from './bookings/paymentMethods';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
@@ -39,7 +41,15 @@ interface Booking {
   specialist: { name: string } | null;
   fees: { resolution_status: FeeResolution } | { resolution_status: FeeResolution }[] | null;
   payment_status: string | null;
-  payments: { method: PaymentMethod; amount_cents: number; voided_at: string | null }[] | null;
+  final_amount_cents: number | null;
+  payments: { method: PaymentMethod; amount_cents: number; voided_at: string | null; gift_card_id: string | null }[] | null;
+}
+
+/** What is still to pay: paid bookings owe nothing; otherwise the price after vouchers minus payments. */
+function openCentsOf(booking: Booking): number {
+  if (booking.payment_status === 'completed') return 0;
+  const price = booking.final_amount_cents ?? booking.duration.price_cents;
+  return openAmountCents(price, (booking.payments ?? []) as BookingPayment[]);
 }
 
 type ViewFilter = 'needs-action' | 'upcoming' | 'past' | 'cancelled' | 'all';
@@ -209,7 +219,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
         duration:service_durations(duration_minutes, price_cents),
         specialist:specialists(name),
         fees:no_show_fees(resolution_status),
-        payments:booking_payments(method, amount_cents, voided_at)
+        payments:booking_payments(method, amount_cents, voided_at, gift_card_id)
       `)
       .eq('business_id', businessId)
       .order('booking_date', { ascending: false });
@@ -502,7 +512,11 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                       </td>
                       <td className={`px-5 py-4 text-sm font-semibold tabular-nums ${isClosed ? 'text-stone-400' : 'text-[#1A1714]'}`}>
                         {formatPrice(booking.duration.price_cents)}
-                        <PaymentSummary booking={booking} onOpen={() => setPayingBooking(booking)} />
+                        {openCentsOf(booking) > 0 && booking.status !== 'cancelled' && !booking.no_show ? (
+                          <QuickPay bookingId={booking.id} openCents={openCentsOf(booking)} onOther={() => setPayingBooking(booking)} onPaid={fetchBookings} />
+                        ) : (
+                          <PaymentSummary booking={booking} onOpen={() => setPayingBooking(booking)} />
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <span className={`${ADMIN_STATUS_PILL} ${TONE_CLASSES[state.tone]}`}>

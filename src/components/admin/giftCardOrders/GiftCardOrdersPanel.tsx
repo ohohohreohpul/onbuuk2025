@@ -12,6 +12,7 @@ import {
   loadOrders,
   loadPackages,
   markOrderPaid,
+  type ShopPaymentMethod,
   setBonusHanded,
   setPackageActive,
   type GiftCardOrder,
@@ -155,10 +156,9 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
   const handleDownload = (order: GiftCardOrder) =>
     run(order.id, () => downloadGiftCardsPDF(toPdfCards(order), `Gutscheine-${order.order_number}.pdf`));
 
-  const handleMarkPaid = (order: GiftCardOrder) => {
-    if (!window.confirm(fillText(t.confirmPaid, { name: order.buyer_name, amount: formatAmount(order.total_cents / 100) }))) return;
-    run(order.id, () => markOrderPaid(order.id), fillText(t.paidSuccess, { code: order.order_number }));
-  };
+  // One tap at the counter: the button names the payment method, so no extra confirmation.
+  const handleMarkPaid = (order: GiftCardOrder, method: ShopPaymentMethod) =>
+    run(order.id, () => markOrderPaid(order.id, method), fillText(t.paidSuccess, { code: order.order_number }));
 
   const handleCancel = (order: GiftCardOrder) => {
     if (!window.confirm(fillText(t.confirmCancel, { code: order.order_number }))) return;
@@ -259,7 +259,7 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
               key={order.id}
               order={order}
               isBusy={busyId === order.id}
-              onMarkPaid={() => handleMarkPaid(order)}
+              onMarkPaid={(method) => handleMarkPaid(order, method)}
               onCancel={() => handleCancel(order)}
               onToggleBonus={(isHanded) => run(order.id, () => setBonusHanded(order.id, isHanded))}
               onDownload={() => handleDownload(order)}

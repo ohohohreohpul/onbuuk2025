@@ -14,6 +14,8 @@ import {
 } from './adminUi';
 import { useAdminText } from '../../lib/adminLanguage';
 import RecordPaymentModal from './bookings/RecordPaymentModal';
+import QuickPay from './bookings/QuickPay';
+import { openAmountCents, type BookingPayment, type PaymentMethod } from './bookings/paymentMethods';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 
 type PosText = {
@@ -134,6 +136,8 @@ interface PendingBooking {
   customer_name: string;
   customer_email: string;
   payment_status: string;
+  final_amount_cents: number | null;
+  payments: { method: PaymentMethod; amount_cents: number; voided_at: string | null; gift_card_id: string | null }[] | null;
   service: {
     name: string;
   };
@@ -147,7 +151,7 @@ export function POSView() {
   const { businessId } = useTenant();
   const { formatAmount, currencySymbol } = useCurrency();
   const { t, locale } = useAdminText(TEXT);
-  const [activeTab, setActiveTab] = useState<'gift_cards' | 'bookings'>('gift_cards');
+  const [activeTab, setActiveTab] = useState<'gift_cards' | 'bookings'>('bookings');
 
   // Gift card state
   const [giftCardCode, setGiftCardCode] = useState('');
@@ -175,7 +179,8 @@ export function POSView() {
       .select(`
         *,
         service:services(name),
-        duration:service_durations(price_cents, duration_minutes)
+        duration:service_durations(price_cents, duration_minutes),
+        payments:booking_payments(method, amount_cents, voided_at, gift_card_id)
       `)
       .eq('business_id', businessId)
       .eq('payment_status', 'pending')
@@ -536,13 +541,14 @@ export function POSView() {
                         </p>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setPayingBooking(booking)}
-                          className={ADMIN_PRIMARY_BUTTON}
-                        >
-                          <Check className="h-4 w-4" /> {t.markPaid}
-                        </button>
+                        <div className="inline-block text-left">
+                          <QuickPay
+                            bookingId={booking.id}
+                            openCents={openAmountCents(booking.final_amount_cents ?? booking.duration.price_cents, (booking.payments ?? []) as BookingPayment[])}
+                            onOther={() => setPayingBooking(booking)}
+                            onPaid={loadPendingBookings}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
