@@ -5,6 +5,9 @@ import { useTenant } from '../../lib/tenantContext';
 import { useCurrency } from '../../lib/currencyContext';
 import { BOOKING_STATE_TEXT, deriveBookingState, formatStartTime, type BookingState, type BookingStateText, type FeeResolution } from './bookings/bookingState';
 import BookingRowActions from './bookings/BookingRowActions';
+import RecordPaymentModal from './bookings/RecordPaymentModal';
+import PaymentSummary from './bookings/PaymentSummary';
+import type { PaymentMethod } from './bookings/paymentMethods';
 import { createUnpaidNoShowFees } from '../../lib/noShowFees';
 import { ADMIN_INPUT, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_STATUS_PILL, ADMIN_SURFACE } from './adminUi';
 import RescheduleModal from './bookings/RescheduleModal';
@@ -35,6 +38,8 @@ interface Booking {
   duration: { duration_minutes: number; price_cents: number };
   specialist: { name: string } | null;
   fees: { resolution_status: FeeResolution } | { resolution_status: FeeResolution }[] | null;
+  payment_status: string | null;
+  payments: { method: PaymentMethod; amount_cents: number }[] | null;
 }
 
 type ViewFilter = 'needs-action' | 'upcoming' | 'past' | 'cancelled' | 'all';
@@ -180,6 +185,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const [hasChosenFilter, setHasChosenFilter] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [movingBooking, setMovingBooking] = useState<Booking | null>(null);
+  const [payingBooking, setPayingBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -202,7 +208,8 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
         service:services(name, no_show_fee),
         duration:service_durations(duration_minutes, price_cents),
         specialist:specialists(name),
-        fees:no_show_fees(resolution_status)
+        fees:no_show_fees(resolution_status),
+        payments:booking_payments(method, amount_cents)
       `)
       .eq('business_id', businessId)
       .order('booking_date', { ascending: false });
@@ -495,6 +502,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                       </td>
                       <td className={`px-5 py-4 text-sm font-semibold tabular-nums ${isClosed ? 'text-stone-400' : 'text-[#1A1714]'}`}>
                         {formatPrice(booking.duration.price_cents)}
+                        <PaymentSummary booking={booking} onOpen={() => setPayingBooking(booking)} />
                       </td>
                       <td className="px-5 py-4">
                         <span className={`${ADMIN_STATUS_PILL} ${TONE_CLASSES[state.tone]}`}>
@@ -516,6 +524,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                           onRestore={() => updateBookingStatus(booking.id, 'confirmed')}
                           onMove={() => setMovingBooking(booking)}
                           onInvoice={() => downloadInvoice(booking)}
+                          onRecordPayment={() => setPayingBooking(booking)}
                           onDelete={() => deleteBooking(booking.id)}
                         />
                       </td>
@@ -531,6 +540,14 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       <div className="text-xs text-stone-400">
         {fillText(t.showing, { shown: filteredBookings.length, total: bookings.length })}
       </div>
+      {payingBooking && (
+        <RecordPaymentModal
+          booking={payingBooking}
+          onClose={() => setPayingBooking(null)}
+          onChanged={fetchBookings}
+        />
+      )}
+
       {movingBooking && (
         <RescheduleModal
           booking={movingBooking}

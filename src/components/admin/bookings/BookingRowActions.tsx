@@ -1,26 +1,26 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock, Receipt } from 'lucide-react';
+import { Check, CheckCheck, MoreHorizontal, UserX, Banknote, XCircle, RotateCcw, Trash2, CalendarClock, Receipt, Wallet } from 'lucide-react';
 import type { BookingState } from './bookingState';
 import { useAdminText } from '../../../lib/adminLanguage';
 import type { Translations } from '../../../lib/bookingLanguage';
 
 const TEXT: Translations<{
   confirm: string; showedUp: string; noShow: string; addFee: string; resolveFee: string; moreActions: string;
-  move: string; cancelBooking: string; invoice: string; reopen: string; deletePermanently: string;
+  move: string; recordPayment: string; cancelBooking: string; invoice: string; reopen: string; deletePermanently: string;
 }> = {
   en: {
     confirm: 'Confirm', showedUp: 'Showed up', noShow: 'No-show', addFee: 'Add fee', resolveFee: 'Resolve fee',
-    moreActions: 'More actions', move: 'Move appointment', cancelBooking: 'Cancel booking', invoice: 'Invoice (PDF)',
+    moreActions: 'More actions', move: 'Move appointment', recordPayment: 'Record payment', cancelBooking: 'Cancel booking', invoice: 'Invoice (PDF)',
     reopen: 'Reopen as confirmed', deletePermanently: 'Delete permanently',
   },
   de: {
     confirm: 'Bestätigen', showedUp: 'Erschienen', noShow: 'No-Show', addFee: 'Gebühr anlegen', resolveFee: 'Gebühr klären',
-    moreActions: 'Weitere Aktionen', move: 'Termin verschieben', cancelBooking: 'Buchung stornieren', invoice: 'Rechnung (PDF)',
+    moreActions: 'Weitere Aktionen', move: 'Termin verschieben', recordPayment: 'Zahlung erfassen', cancelBooking: 'Buchung stornieren', invoice: 'Rechnung (PDF)',
     reopen: 'Als bestätigt wiederherstellen', deletePermanently: 'Endgültig löschen',
   },
   th: {
     confirm: 'ยืนยัน', showedUp: 'มาตามนัด', noShow: 'ไม่มาตามนัด', addFee: 'เพิ่มค่าธรรมเนียม', resolveFee: 'จัดการค่าธรรมเนียม',
-    moreActions: 'การดำเนินการเพิ่มเติม', move: 'เลื่อนนัด', cancelBooking: 'ยกเลิกการจอง', invoice: 'ใบแจ้งหนี้ (PDF)',
+    moreActions: 'การดำเนินการเพิ่มเติม', move: 'เลื่อนนัด', recordPayment: 'บันทึกการชำระเงิน', cancelBooking: 'ยกเลิกการจอง', invoice: 'ใบแจ้งหนี้ (PDF)',
     reopen: 'เปิดใหม่เป็นยืนยันแล้ว', deletePermanently: 'ลบถาวร',
   },
 };
@@ -37,6 +37,7 @@ interface BookingRowActionsProps {
   onRestore: () => void;
   onMove: () => void;
   onInvoice: () => void;
+  onRecordPayment: () => void;
   onDelete: () => void;
 }
 
@@ -99,6 +100,11 @@ export default function BookingRowActions(props: BookingRowActionsProps) {
             {!isClosed && (
               <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onCancel}>
                 <XCircle className="h-4 w-4 text-stone-400" /> {t.cancelBooking}
+              </DropdownMenu.Item>
+            )}
+            {state.stage !== 'cancelled' && (
+              <DropdownMenu.Item className={MENU_ITEM} onSelect={props.onRecordPayment}>
+                <Wallet className="h-4 w-4 text-stone-400" /> {t.recordPayment}
               </DropdownMenu.Item>
             )}
             {state.stage !== 'cancelled' && (

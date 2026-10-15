@@ -12,6 +12,7 @@ import {
   ADMIN_SURFACE,
 } from './adminUi';
 import { useAdminText } from '../../lib/adminLanguage';
+import RecordPaymentModal from './bookings/RecordPaymentModal';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 
 type PosText = {
@@ -159,6 +160,7 @@ export function POSView() {
   // Pending bookings state
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
+  const [payingBooking, setPayingBooking] = useState<PendingBooking | null>(null);
 
   useEffect(() => {
     loadPendingBookings();
@@ -293,25 +295,6 @@ export function POSView() {
       setError(err.message || t.redeemFailed);
     } finally {
       setRedeeming(false);
-    }
-  };
-
-  const handleMarkAsPaid = async (bookingId: string) => {
-    if (!confirm(t.confirmMarkPaid)) return;
-
-    const { error } = await supabase
-      .from('bookings')
-      // Records the payment only; the appointment status stays as it is.
-      .update({ payment_status: 'completed' })
-      .eq('id', bookingId);
-
-    if (error) {
-      setError(t.bookingUpdateFailed);
-    } else {
-      setError('');
-      setMessage(t.bookingMarkedPaid);
-      loadPendingBookings();
-      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -513,7 +496,7 @@ export function POSView() {
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleMarkAsPaid(booking.id)}
+                          onClick={() => setPayingBooking(booking)}
                           className={ADMIN_PRIMARY_BUTTON}
                         >
                           <Check className="h-4 w-4" /> {t.markPaid}
@@ -526,6 +509,13 @@ export function POSView() {
             </div>
           )}
         </section>
+      )}
+      {payingBooking && (
+        <RecordPaymentModal
+          booking={payingBooking}
+          onClose={() => setPayingBooking(null)}
+          onChanged={loadPendingBookings}
+        />
       )}
     </div>
   );

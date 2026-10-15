@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase';
 import { adminAuth } from '../../lib/adminAuth';
 import { useCurrency } from '../../lib/currencyContext';
 import { toLocalDateString } from '../../lib/localDateTime';
+import BookingPaymentsReport from './bookings/BookingPaymentsReport';
 
 interface CashEntry {
   id: string;
@@ -31,7 +32,7 @@ interface CashEntry {
   import_batch_id: string | null;
 }
 
-type Tab = 'records' | 'reports' | 'import';
+type Tab = 'records' | 'payments' | 'reports' | 'import';
 
 const SURFACE =
   'bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]';
@@ -497,9 +498,12 @@ export default function TaxReportsView() {
 
       <div className="flex gap-2 border-b border-stone-200 pb-3">
         <TabButton id="records">Records</TabButton>
+        <TabButton id="payments">Booking payments</TabButton>
         <TabButton id="reports">Reports & Documents</TabButton>
         <TabButton id="import">Import</TabButton>
       </div>
+
+      {tab === 'payments' && <BookingPaymentsReport />}
 
       {tab === 'records' && (
         <>
