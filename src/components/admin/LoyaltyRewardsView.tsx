@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Package,
   Clock,
+  Search,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../lib/tenantContext';
@@ -40,6 +41,7 @@ import {
   ADMIN_SURFACE,
   ADMIN_TERTIARY_BUTTON,
 } from './adminUi';
+import { filterGiftCards } from './giftCards/filterGiftCards';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 
@@ -72,7 +74,7 @@ type LoyaltyText = {
   activeCodes: string; totalIssued: string; outstandingBalance: string; outstandingBalanceNote: string; passVisitsRemaining: string;
   passVisitsNote: string; lifetimeSales: string; lifetimeSalesNote: string; issueHeading: string; issueHint: string; importCsv: string;
   valueCard: string; servicePass: string; amount: string; passOffer: string; chooseAPass: string; recipientEmail: string; buyer: string; buyerPlaceholder: string; colBuyer: string;
-  issuePass: string; createCard: string; allCards: string; allCardsHint: string; deleteSelected: string; deselectAll: string;
+  issuePass: string; createCard: string; allCards: string; allCardsHint: string; searchCards: string; noMatch: string; deleteSelected: string; deselectAll: string;
   selectAll: string; colCode: string; colProduct: string; colSoldFor: string; colRemaining: string; colStatus: string;
   colPurchased: string; colRecipient: string; noCards: string; noCardsHint: string; deselectCard: string; selectCard: string;
   viewDetails: string; viewAria: string; downloadPdf: string; downloadAria: string; emailRecipient: string; emailAria: string;
@@ -144,7 +146,7 @@ const TEXT: Translations<LoyaltyText> = {
     issueHeading: 'Issue a card or pass', issueHint: 'Create one manually or import existing value cards.', importCsv: 'Import CSV',
     valueCard: 'Value card', servicePass: 'Service pass', amount: 'Amount ({symbol})', passOffer: 'Pass offer', chooseAPass: 'Choose a pass',
     recipientEmail: 'Recipient email', buyer: 'Buyer (optional)', buyerPlaceholder: 'Name or email', colBuyer: 'Buyer', issuePass: 'Issue pass', createCard: 'Create card',
-    allCards: 'All cards and passes', allCardsHint: 'Money balances and visit entitlements in one place.',
+    allCards: 'All cards and passes', allCardsHint: 'Money balances and visit entitlements in one place.', searchCards: 'Search code, name or email', noMatch: 'No card matches “{query}”.',
     deleteSelected: 'Delete selected ({count})', deselectAll: 'Deselect all gift cards', selectAll: 'Select all gift cards',
     colCode: 'Code', colProduct: 'Product', colSoldFor: 'Sold for', colRemaining: 'Remaining', colStatus: 'Status',
     colPurchased: 'Purchased', colRecipient: 'Recipient', noCards: 'No cards or passes yet',
@@ -220,7 +222,7 @@ const TEXT: Translations<LoyaltyText> = {
     issueHeading: 'Gutschein oder Karte ausstellen', issueHint: 'Manuell anlegen oder bestehende Wertgutscheine importieren.', importCsv: 'CSV importieren',
     valueCard: 'Wertgutschein', servicePass: 'Behandlungsgutschein', amount: 'Betrag ({symbol})', passOffer: 'Kartenangebot', chooseAPass: 'Karte wählen',
     recipientEmail: 'E-Mail des Empfängers', buyer: 'Käufer (optional)', buyerPlaceholder: 'Name oder E-Mail', colBuyer: 'Käufer', issuePass: 'Karte ausstellen', createCard: 'Gutschein ausstellen',
-    allCards: 'Alle Gutscheine und Karten', allCardsHint: 'Guthaben und Besuchsansprüche an einem Ort.',
+    allCards: 'Alle Gutscheine und Karten', allCardsHint: 'Guthaben und Besuchsansprüche an einem Ort.', searchCards: 'Code, Name oder E-Mail suchen', noMatch: 'Kein Gutschein passt zu „{query}“.',
     deleteSelected: 'Auswahl löschen ({count})', deselectAll: 'Auswahl aller Gutscheine aufheben', selectAll: 'Alle Gutscheine auswählen',
     colCode: 'Code', colProduct: 'Produkt', colSoldFor: 'Verkauft für', colRemaining: 'Verbleibend', colStatus: 'Status',
     colPurchased: 'Gekauft', colRecipient: 'Empfänger', noCards: 'Noch keine Gutscheine oder Karten',
@@ -296,7 +298,7 @@ const TEXT: Translations<LoyaltyText> = {
     issueHeading: 'ออกบัตรของขวัญหรือบัตรบริการ', issueHint: 'สร้างเองหรือนำเข้าบัตรมูลค่าที่มีอยู่', importCsv: 'นำเข้า CSV',
     valueCard: 'บัตรมูลค่า', servicePass: 'บัตรบริการ', amount: 'จำนวนเงิน ({symbol})', passOffer: 'ข้อเสนอบัตรบริการ', chooseAPass: 'เลือกบัตรบริการ',
     recipientEmail: 'อีเมลผู้รับ', buyer: 'ผู้ซื้อ (ไม่บังคับ)', buyerPlaceholder: 'ชื่อหรืออีเมล', colBuyer: 'ผู้ซื้อ', issuePass: 'ออกบัตรบริการ', createCard: 'ออกบัตรของขวัญ',
-    allCards: 'บัตรทั้งหมด', allCardsHint: 'ยอดเงินคงเหลือและสิทธิ์จำนวนครั้งในที่เดียว',
+    allCards: 'บัตรทั้งหมด', allCardsHint: 'ยอดเงินคงเหลือและสิทธิ์จำนวนครั้งในที่เดียว', searchCards: 'ค้นหารหัส ชื่อ หรืออีเมล', noMatch: 'ไม่พบบัตรที่ตรงกับ “{query}”',
     deleteSelected: 'ลบที่เลือก ({count})', deselectAll: 'ยกเลิกการเลือกบัตรทั้งหมด', selectAll: 'เลือกบัตรทั้งหมด',
     colCode: 'โค้ด', colProduct: 'สินค้า', colSoldFor: 'ราคาขาย', colRemaining: 'คงเหลือ', colStatus: 'สถานะ',
     colPurchased: 'วันที่ซื้อ', colRecipient: 'ผู้รับ', noCards: 'ยังไม่มีบัตร',
@@ -470,6 +472,7 @@ export function LoyaltyRewardsView() {
   
   // Bulk selection state
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [cardQuery, setCardQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -913,12 +916,11 @@ export function LoyaltyRewardsView() {
     setSelectedCardIds(newSelected);
   };
 
+  const visibleCards = filterGiftCards(giftCards, cardQuery);
+  const allVisibleSelected = visibleCards.length > 0 && visibleCards.every((card) => selectedCardIds.has(card.id));
+
   const toggleSelectAll = () => {
-    if (selectedCardIds.size === giftCards.length) {
-      setSelectedCardIds(new Set());
-    } else {
-      setSelectedCardIds(new Set(giftCards.map(card => card.id)));
-    }
+    setSelectedCardIds(allVisibleSelected ? new Set() : new Set(visibleCards.map((card) => card.id)));
   };
 
   const handleBulkDelete = async () => {
@@ -1676,6 +1678,11 @@ export function LoyaltyRewardsView() {
                 <h2 className="font-semibold text-[#1A1714]">{t.allCards}</h2>
                 <p className="mt-1 text-xs text-stone-400">{t.allCardsHint}</p>
               </div>
+              <label className="relative w-full sm:ml-auto sm:w-72">
+                <span className="sr-only">{t.searchCards}</span>
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" aria-hidden="true" />
+                <input type="search" value={cardQuery} onChange={(event) => setCardQuery(event.target.value)} placeholder={t.searchCards} className={`${ADMIN_INPUT} pl-10`} />
+              </label>
               {selectedCardIds.size > 0 && (
                 <button
                   type="button"
@@ -1695,9 +1702,9 @@ export function LoyaltyRewardsView() {
                         type="button"
                         onClick={toggleSelectAll}
                         className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-900/[0.05] hover:text-[#1A1714]"
-                        aria-label={selectedCardIds.size === giftCards.length && giftCards.length > 0 ? t.deselectAll : t.selectAll}
+                        aria-label={allVisibleSelected ? t.deselectAll : t.selectAll}
                       >
-                        {selectedCardIds.size === giftCards.length && giftCards.length > 0 ? (
+                        {allVisibleSelected ? (
                           <CheckSquare className="h-4 w-4 text-[#1A1714]" />
                         ) : (
                           <Square className="h-4 w-4" />
@@ -1710,7 +1717,11 @@ export function LoyaltyRewardsView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200/60">
-                  {giftCards.length === 0 ? (
+                  {giftCards.length > 0 && visibleCards.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="px-6 py-10 text-center text-sm text-stone-500">{fillText(t.noMatch, { query: cardQuery.trim() })}</td>
+                    </tr>
+                  ) : giftCards.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="px-6 py-14 text-center">
                         <Gift className="mx-auto h-6 w-6 text-stone-300" strokeWidth={1.5} />
@@ -1719,7 +1730,7 @@ export function LoyaltyRewardsView() {
                       </td>
                     </tr>
                   ) : (
-                    giftCards.map((card) => (
+                    visibleCards.map((card) => (
                       <tr key={card.id} className={`transition-colors hover:bg-white/60 ${selectedCardIds.has(card.id) ? 'bg-stone-900/[0.035]' : ''}`}>
                         <td className="px-4 py-3.5">
                           <button
