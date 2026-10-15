@@ -24,6 +24,15 @@ describe('openAmountCents', () => {
     expect(openAmountCents(4500, [payment('gift_card', 3000), payment('cash', 1500)])).toBe(0);
   });
 
+  it('does not count corrected (voided) entries', () => {
+    const voided = { ...payment('cash', 4500), voided_at: '2026-10-15T11:00:00Z' };
+    expect(openAmountCents(4500, [voided, payment('card', 4000)])).toBe(500);
+  });
+
+  it('counts online payments so a paid booking does not look open', () => {
+    expect(openAmountCents(4500, [payment('paypal', 4500)])).toBe(0);
+  });
+
   it('never goes below zero', () => {
     expect(openAmountCents(1000, [payment('cash', 2000)])).toBe(0);
   });

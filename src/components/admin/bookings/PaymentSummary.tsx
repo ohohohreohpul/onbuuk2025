@@ -12,7 +12,7 @@ const TEXT: Translations<{ unpaid: string; paidNoMethod: string; edit: string }>
 interface PaymentSummaryProps {
   booking: {
     payment_status: string | null;
-    payments: { method: PaymentMethod; amount_cents: number }[] | null;
+    payments: { method: PaymentMethod; amount_cents: number; voided_at?: string | null }[] | null;
   };
   onOpen: () => void;
 }

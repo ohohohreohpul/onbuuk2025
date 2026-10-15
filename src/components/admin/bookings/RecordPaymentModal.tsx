@@ -9,6 +9,7 @@ import {
   ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE,
 } from '../adminUi';
 import { BookingPayment, PAYMENT_METHOD_LABELS, openAmountCents } from './paymentMethods';
+import PaymentRow from './PaymentRow';
 
 type Choice = 'cash' | 'card' | 'gift_card' | 'other';
 
@@ -83,7 +84,7 @@ export default function RecordPaymentModal({ booking, onClose, onChanged }: Reco
   const load = useCallback(async () => {
     const [bookingRes, paymentsRes] = await Promise.all([
       supabase.from('bookings').select('final_amount_cents, payment_status').eq('id', booking.id).maybeSingle(),
-      supabase.from('booking_payments').select('*').eq('booking_id', booking.id).order('created_at'),
+      supabase.from('booking_payments').select('*').eq('booking_id', booking.id).is('voided_at', null).order('created_at'),
     ]);
     if (bookingRes.error || paymentsRes.error) {
       console.error('Could not load booking payments:', bookingRes.error || paymentsRes.error);
@@ -194,13 +195,7 @@ export default function RecordPaymentModal({ booking, onClose, onChanged }: Reco
             {payments.length > 0 && (
               <ul className="mb-5 divide-y divide-stone-200/70 rounded-2xl bg-white/70 ring-1 ring-stone-900/[0.05]">
                 {payments.map((payment) => (
-                  <li key={payment.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                    <span className="text-stone-700">
-                      {methodLabels[payment.method]}
-                      {payment.reference && <span className="ml-2 font-mono text-xs text-stone-400">{payment.reference}</span>}
-                    </span>
-                    <span className="font-medium tabular-nums text-[#1A1714]">{formatPrice(payment.amount_cents)}</span>
-                  </li>
+                  <PaymentRow key={payment.id} payment={payment} onCorrected={() => { onChanged(); load(); }} />
                 ))}
               </ul>
             )}

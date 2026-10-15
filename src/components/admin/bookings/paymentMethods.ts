@@ -11,6 +11,7 @@ export interface BookingPayment {
   method: PaymentMethod;
   amount_cents: number;
   gift_card_id?: string | null;
+  voided_at?: string | null;
   reference: string | null;
   created_at: string;
 }
@@ -38,19 +39,21 @@ export const isCounterPayment = (payment: Pick<BookingPayment, 'method' | 'gift_
   payment.method === 'cash' || payment.method === 'card' || payment.method === 'other'
   || (payment.method === 'gift_card' && !payment.gift_card_id);
 
-/** Amount still open: the price after vouchers minus what was paid at the counter. */
+/** Payments that pay the price; Zenno voucher redemptions lowered the price instead. */
+const paysPrice = (payment: BookingPayment): boolean =>
+  !payment.voided_at && (isCounterPayment(payment) || payment.method === 'stripe' || payment.method === 'paypal');
+
+/** Amount still open: the price after vouchers minus what was paid (matches the database). */
 export function openAmountCents(finalAmountCents: number, payments: BookingPayment[]): number {
-  const paidAtCounter = payments
-    .filter(isCounterPayment)
-    .reduce((sum, payment) => sum + payment.amount_cents, 0);
-  return Math.max(0, finalAmountCents - paidAtCounter);
+  const paid = payments.filter(paysPrice).reduce((sum, payment) => sum + payment.amount_cents, 0);
+  return Math.max(0, finalAmountCents - paid);
 }
 
 /** Sum per method, in PAYMENT_METHODS order, leaving out methods with nothing paid. */
 export function totalsByMethod(payments: BookingPayment[]): { method: PaymentMethod; cents: number; count: number }[] {
   return PAYMENT_METHODS
     .map((method) => {
-      const rows = payments.filter((payment) => payment.method === method);
+      const rows = payments.filter((payment) => payment.method === method && !payment.voided_at);
       return { method, cents: rows.reduce((sum, row) => sum + row.amount_cents, 0), count: rows.length };
     })
     .filter((total) => total.count > 0);

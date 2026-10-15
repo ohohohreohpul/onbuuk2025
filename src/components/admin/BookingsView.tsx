@@ -39,7 +39,7 @@ interface Booking {
   specialist: { name: string } | null;
   fees: { resolution_status: FeeResolution } | { resolution_status: FeeResolution }[] | null;
   payment_status: string | null;
-  payments: { method: PaymentMethod; amount_cents: number }[] | null;
+  payments: { method: PaymentMethod; amount_cents: number; voided_at: string | null }[] | null;
 }
 
 type ViewFilter = 'needs-action' | 'upcoming' | 'past' | 'cancelled' | 'all';
@@ -209,7 +209,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
         duration:service_durations(duration_minutes, price_cents),
         specialist:specialists(name),
         fees:no_show_fees(resolution_status),
-        payments:booking_payments(method, amount_cents)
+        payments:booking_payments(method, amount_cents, voided_at)
       `)
       .eq('business_id', businessId)
       .order('booking_date', { ascending: false });

@@ -76,6 +76,7 @@ export default function BookingPaymentsReport() {
       .from('booking_payments')
       .select('*, booking:bookings(booking_date, start_time, customer_name, service:services(name))')
       .eq('business_id', businessId)
+      .is('voided_at', null)
       .gte('created_at', from)
       .lt('created_at', to)
       .order('created_at');
