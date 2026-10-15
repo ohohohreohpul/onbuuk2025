@@ -4,22 +4,29 @@ import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText, type Translations } from '../../../lib/bookingLanguage';
+import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+
+const UNDO_VISIBLE_MS = 10000;
 
 const TEXT: Translations<{
   cash: string; card: string; voucher: string; other: string; code: string; redeem: string; cancel: string;
-  open: string; failed: string; voucherFailed: string; paid: string;
+  open: string; failed: string; voucherFailed: string; paid: string; saved: string; undo: string; undone: string; undoFailed: string;
 }> = {
   en: {
     cash: 'Cash', card: 'Card', voucher: 'Gift card', other: 'Other / split…', code: 'Gift card code', redeem: 'Redeem', cancel: 'Back',
     open: '{amount} still open', failed: 'Could not save. Please try again.', voucherFailed: 'Gift card not accepted: {reason}', paid: 'Paid',
+    saved: '{method} · {amount} saved', undo: 'Undo', undone: 'Payment taken back.', undoFailed: 'Could not undo: {reason}',
   },
   de: {
     cash: 'Bar', card: 'Karte', voucher: 'Gutschein', other: 'Anders / geteilt…', code: 'Gutschein-Code', redeem: 'Einlösen', cancel: 'Zurück',
     open: 'Noch offen: {amount}', failed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', voucherFailed: 'Gutschein nicht angenommen: {reason}', paid: 'Bezahlt',
+    saved: '{method} · {amount} gespeichert', undo: 'Rückgängig', undone: 'Zahlung zurückgenommen.', undoFailed: 'Rückgängig nicht möglich: {reason}',
   },
   th: {
     cash: 'เงินสด', card: 'บัตร', voucher: 'บัตรของขวัญ', other: 'วิธีอื่น / แบ่งจ่าย…', code: 'รหัสบัตรของขวัญ', redeem: 'ใช้บัตร', cancel: 'กลับ',
     open: 'ค้างชำระ {amount}', failed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', voucherFailed: 'ใช้บัตรไม่ได้: {reason}', paid: 'ชำระแล้ว',
+    saved: '{method} · {amount} บันทึกแล้ว', undo: 'ย้อนกลับ', undone: 'ยกเลิกการชำระแล้ว', undoFailed: 'ย้อนกลับไม่ได้: {reason}',
   },
 };
 
@@ -46,17 +53,40 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid }: Quic
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
 
-  const record = async (method: 'cash' | 'card' | 'other', cents: number) => {
-    const { error: rpcError } = await supabase.rpc('record_shop_payment', { p_booking_id: bookingId, p_method: method, p_amount_cents: cents });
+  const record = async (method: 'cash' | 'card' | 'other', cents: number): Promise<string | null> => {
+    const { data, error: rpcError } = await supabase.rpc('record_shop_payment', { p_booking_id: bookingId, p_method: method, p_amount_cents: cents });
     if (rpcError) throw rpcError;
+    return (data?.paymentId as string | null) ?? null;
+  };
+
+  /** One tap has no confirmation, so every payment can be taken back for a few minutes. */
+  const offerUndo = (paymentId: string, method: 'cash' | 'card') => {
+    const shown = toast({
+      title: fillText(t.saved, { method: method === 'cash' ? t.cash : t.card, amount: formatPrice(openCents) }),
+      duration: UNDO_VISIBLE_MS,
+      action: (
+        <ToastAction altText={t.undo} onClick={async () => {
+          const { error: undoError } = await supabase.rpc('undo_shop_payment', { p_payment_id: paymentId });
+          if (undoError) {
+            console.error('Undo payment failed:', undoError);
+            toast({ title: fillText(t.undoFailed, { reason: undoError.message }), variant: 'destructive' });
+            return;
+          }
+          shown.dismiss();
+          toast({ title: t.undone, duration: UNDO_VISIBLE_MS / 2 });
+          onPaid();
+        }}>{t.undo}</ToastAction>
+      ),
+    });
   };
 
   const pay = async (method: 'cash' | 'card') => {
     setBusy(true);
     setError('');
     try {
-      await record(method, openCents);
+      const paymentId = await record(method, openCents);
       onPaid();
+      if (paymentId) offerUndo(paymentId, method);
     } catch (payError) {
       console.error('Quick payment failed:', payError);
       setError(t.failed);

@@ -71,7 +71,7 @@ type LoyaltyText = {
   chooseImage: string; removeArtwork: string; terms: string; termsPlaceholder: string; termsHint: string; savePdf: string;
   activeCodes: string; totalIssued: string; outstandingBalance: string; outstandingBalanceNote: string; passVisitsRemaining: string;
   passVisitsNote: string; lifetimeSales: string; lifetimeSalesNote: string; issueHeading: string; issueHint: string; importCsv: string;
-  valueCard: string; servicePass: string; amount: string; passOffer: string; chooseAPass: string; recipientEmail: string;
+  valueCard: string; servicePass: string; amount: string; passOffer: string; chooseAPass: string; recipientEmail: string; buyer: string; buyerPlaceholder: string; colBuyer: string;
   issuePass: string; createCard: string; allCards: string; allCardsHint: string; deleteSelected: string; deselectAll: string;
   selectAll: string; colCode: string; colProduct: string; colSoldFor: string; colRemaining: string; colStatus: string;
   colPurchased: string; colRecipient: string; noCards: string; noCardsHint: string; deselectCard: string; selectCard: string;
@@ -143,7 +143,7 @@ const TEXT: Translations<LoyaltyText> = {
     passVisitsNote: 'Service visits still owed', lifetimeSales: 'Lifetime sales value', lifetimeSalesNote: 'Cards and passes issued',
     issueHeading: 'Issue a card or pass', issueHint: 'Create one manually or import existing value cards.', importCsv: 'Import CSV',
     valueCard: 'Value card', servicePass: 'Service pass', amount: 'Amount ({symbol})', passOffer: 'Pass offer', chooseAPass: 'Choose a pass',
-    recipientEmail: 'Recipient email', issuePass: 'Issue pass', createCard: 'Create card',
+    recipientEmail: 'Recipient email', buyer: 'Buyer (optional)', buyerPlaceholder: 'Name or email', colBuyer: 'Buyer', issuePass: 'Issue pass', createCard: 'Create card',
     allCards: 'All cards and passes', allCardsHint: 'Money balances and visit entitlements in one place.',
     deleteSelected: 'Delete selected ({count})', deselectAll: 'Deselect all gift cards', selectAll: 'Select all gift cards',
     colCode: 'Code', colProduct: 'Product', colSoldFor: 'Sold for', colRemaining: 'Remaining', colStatus: 'Status',
@@ -219,7 +219,7 @@ const TEXT: Translations<LoyaltyText> = {
     passVisitsNote: 'Noch ausstehende Leistungsbesuche', lifetimeSales: 'Gesamtumsatz', lifetimeSalesNote: 'Ausgestellte Gutscheine und Karten',
     issueHeading: 'Gutschein oder Karte ausstellen', issueHint: 'Manuell anlegen oder bestehende Wertgutscheine importieren.', importCsv: 'CSV importieren',
     valueCard: 'Wertgutschein', servicePass: 'Behandlungsgutschein', amount: 'Betrag ({symbol})', passOffer: 'Kartenangebot', chooseAPass: 'Karte wählen',
-    recipientEmail: 'E-Mail des Empfängers', issuePass: 'Karte ausstellen', createCard: 'Gutschein ausstellen',
+    recipientEmail: 'E-Mail des Empfängers', buyer: 'Käufer (optional)', buyerPlaceholder: 'Name oder E-Mail', colBuyer: 'Käufer', issuePass: 'Karte ausstellen', createCard: 'Gutschein ausstellen',
     allCards: 'Alle Gutscheine und Karten', allCardsHint: 'Guthaben und Besuchsansprüche an einem Ort.',
     deleteSelected: 'Auswahl löschen ({count})', deselectAll: 'Auswahl aller Gutscheine aufheben', selectAll: 'Alle Gutscheine auswählen',
     colCode: 'Code', colProduct: 'Produkt', colSoldFor: 'Verkauft für', colRemaining: 'Verbleibend', colStatus: 'Status',
@@ -295,7 +295,7 @@ const TEXT: Translations<LoyaltyText> = {
     passVisitsNote: 'ครั้งบริการที่ยังค้างอยู่', lifetimeSales: 'ยอดขายทั้งหมด', lifetimeSalesNote: 'บัตรของขวัญและบัตรบริการที่ออกแล้ว',
     issueHeading: 'ออกบัตรของขวัญหรือบัตรบริการ', issueHint: 'สร้างเองหรือนำเข้าบัตรมูลค่าที่มีอยู่', importCsv: 'นำเข้า CSV',
     valueCard: 'บัตรมูลค่า', servicePass: 'บัตรบริการ', amount: 'จำนวนเงิน ({symbol})', passOffer: 'ข้อเสนอบัตรบริการ', chooseAPass: 'เลือกบัตรบริการ',
-    recipientEmail: 'อีเมลผู้รับ', issuePass: 'ออกบัตรบริการ', createCard: 'ออกบัตรของขวัญ',
+    recipientEmail: 'อีเมลผู้รับ', buyer: 'ผู้ซื้อ (ไม่บังคับ)', buyerPlaceholder: 'ชื่อหรืออีเมล', colBuyer: 'ผู้ซื้อ', issuePass: 'ออกบัตรบริการ', createCard: 'ออกบัตรของขวัญ',
     allCards: 'บัตรทั้งหมด', allCardsHint: 'ยอดเงินคงเหลือและสิทธิ์จำนวนครั้งในที่เดียว',
     deleteSelected: 'ลบที่เลือก ({count})', deselectAll: 'ยกเลิกการเลือกบัตรทั้งหมด', selectAll: 'เลือกบัตรทั้งหมด',
     colCode: 'โค้ด', colProduct: 'สินค้า', colSoldFor: 'ราคาขาย', colRemaining: 'คงเหลือ', colStatus: 'สถานะ',
@@ -366,6 +366,15 @@ interface GiftCard {
   purchased_at: string;
   expires_at: string | null;
   purchased_for_email: string | null;
+  purchased_by_name?: string | null;
+  purchased_by_email?: string | null;
+}
+
+/** One optional "buyer" field: an email goes to purchased_by_email, anything else is the name. */
+function buyerFields(value: string): { purchased_by_name: string | null; purchased_by_email: string | null } {
+  const buyer = value.trim();
+  if (!buyer) return { purchased_by_name: null, purchased_by_email: null };
+  return buyer.includes('@') ? { purchased_by_name: null, purchased_by_email: buyer } : { purchased_by_name: buyer, purchased_by_email: null };
 }
 
 interface ServiceOption {
@@ -438,6 +447,7 @@ export function LoyaltyRewardsView() {
   const [creatingGiftCard, setCreatingGiftCard] = useState(false);
   const [newGiftCardAmount, setNewGiftCardAmount] = useState('50');
   const [newGiftCardEmail, setNewGiftCardEmail] = useState('');
+  const [newGiftCardBuyer, setNewGiftCardBuyer] = useState('');
   const [newGiftCardType, setNewGiftCardType] = useState<'value' | 'service_pass'>('value');
   const [newServicePassOfferId, setNewServicePassOfferId] = useState('');
   const [selectedGiftCard, setSelectedGiftCard] = useState<GiftCard | null>(null);
@@ -766,6 +776,7 @@ export function LoyaltyRewardsView() {
           original_value_cents: 0,
           current_balance_cents: 0,
           purchased_for_email: trimmedEmail,
+          ...buyerFields(newGiftCardBuyer),
           expires_at: expiresAt,
         }
       : {
@@ -776,6 +787,7 @@ export function LoyaltyRewardsView() {
           original_value_cents: amountCents,
           current_balance_cents: amountCents,
           purchased_for_email: trimmedEmail,
+          ...buyerFields(newGiftCardBuyer),
           expires_at: expiresAt,
         };
 
@@ -803,6 +815,7 @@ export function LoyaltyRewardsView() {
       setMessage(fillText(newGiftCardType === 'service_pass' ? t.msgPassCreated : t.msgCardCreated, { code }));
       setNewGiftCardAmount('50');
       setNewGiftCardEmail('');
+      setNewGiftCardBuyer('');
       loadGiftCards();
       setTimeout(() => setMessage(''), 5000);
     }
@@ -1631,6 +1644,10 @@ export function LoyaltyRewardsView() {
                 </label>
               )}
               <label>
+                <span className="mb-2 block text-sm font-medium text-stone-700">{t.buyer}</span>
+                <input value={newGiftCardBuyer} onChange={(event) => setNewGiftCardBuyer(event.target.value)} className={ADMIN_INPUT} placeholder={t.buyerPlaceholder} maxLength={200} />
+              </label>
+              <label>
                 <span className="mb-2 block text-sm font-medium text-stone-700">{t.recipientEmail}</span>
                 <input
                   type="email"
@@ -1687,7 +1704,7 @@ export function LoyaltyRewardsView() {
                         )}
                       </button>
                     </th>
-                    {[t.colCode, t.colProduct, t.colSoldFor, t.colRemaining, t.colStatus, t.colPurchased, t.colRecipient, ''].map((heading, index) => (
+                    {[t.colCode, t.colProduct, t.colSoldFor, t.colRemaining, t.colStatus, t.colPurchased, t.colBuyer, t.colRecipient, ''].map((heading, index) => (
                       <th key={index} className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-400 last:text-right">{heading}</th>
                     ))}
                   </tr>
@@ -1695,7 +1712,7 @@ export function LoyaltyRewardsView() {
                 <tbody className="divide-y divide-stone-200/60">
                   {giftCards.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-14 text-center">
+                      <td colSpan={10} className="px-6 py-14 text-center">
                         <Gift className="mx-auto h-6 w-6 text-stone-300" strokeWidth={1.5} />
                         <p className="mt-3 text-sm font-medium text-stone-600">{t.noCards}</p>
                         <p className="mt-1 text-xs text-stone-400">{t.noCardsHint}</p>
@@ -1742,8 +1759,16 @@ export function LoyaltyRewardsView() {
                         <td className="px-4 py-3.5 text-sm text-stone-500">
                           {new Date(card.purchased_at).toLocaleDateString(locale)}
                         </td>
+                        <td className="max-w-[200px] px-4 py-3.5 text-sm text-stone-600">
+                          {card.purchased_by_name || card.purchased_by_email ? (
+                            <>
+                              {card.purchased_by_name && <span className="block truncate font-medium text-stone-700">{card.purchased_by_name}</span>}
+                              {card.purchased_by_email && <span className="block truncate text-xs text-stone-500">{card.purchased_by_email}</span>}
+                            </>
+                          ) : <span className="text-stone-400">–</span>}
+                        </td>
                         <td className="max-w-[220px] truncate px-4 py-3.5 text-sm text-stone-500">
-                          {card.purchased_for_email || '-'}
+                          {card.purchased_for_email || '–'}
                         </td>
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1">
