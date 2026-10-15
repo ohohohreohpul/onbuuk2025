@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Banknote, CreditCard, Loader2, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
@@ -88,7 +89,8 @@ export default function OrderTaskModal({ orderId, onClose, onChanged }: OrderTas
   const pay = (method: ShopPaymentMethod) => order && run(() => markOrderPaid(order.id, method));
   const cancel = () => order && confirm(fillText(t.cancelConfirm, { code: order.order_number })) && run(() => cancelOrder(order.id));
 
-  return (
+  // Portal to <body>: inside dashboard cards the popup would sit under later cards.
+  return createPortal(
     <div className={ADMIN_MODAL_BACKDROP} role="dialog" aria-modal="true" aria-labelledby="order-task-title">
       <div className={`${ADMIN_MODAL} max-h-[90vh] max-w-lg overflow-y-auto`}>
         <header className="flex items-start justify-between gap-4 px-6 pt-6">
@@ -134,6 +136,7 @@ export default function OrderTaskModal({ orderId, onClose, onChanged }: OrderTas
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

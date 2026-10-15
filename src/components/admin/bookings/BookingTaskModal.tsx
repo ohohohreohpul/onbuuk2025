@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
@@ -136,7 +137,8 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
     <p className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700"><Check className="h-4 w-4" aria-hidden="true" />{text}</p>
   );
 
-  return (
+  // Portal to <body>: inside dashboard cards the popup would sit under later cards.
+  return createPortal(
     <div className={ADMIN_MODAL_BACKDROP} role="dialog" aria-modal="true" aria-labelledby="booking-task-title">
       <div className={`${ADMIN_MODAL} max-h-[90vh] max-w-lg overflow-y-auto`}>
         <header className="flex items-start justify-between gap-4 px-6 pt-6">
@@ -221,6 +223,7 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
       {paymentWindow && booking && (
         <RecordPaymentModal booking={booking} onClose={() => setPaymentWindow(false)} onChanged={() => { load(); onChanged(); }} />
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
