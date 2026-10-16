@@ -169,7 +169,7 @@
     var color = /^#[0-9A-Fa-f]{6}$/.test(cfg.color || '') ? cfg.color : '#1A1714';
     fab.style.background = color; sendBtn.style.background = color; $('.head').style.background = color;
     $('.title').textContent = cfg.shop || 'Chat';
-    $('.sub').textContent = (cfg.assistant || '') + ' · ' + t.ai;
+    $('.sub').textContent = cfg.assistant ? cfg.assistant + ' · ' + t.ai : t.ai;
     input.placeholder = t.placeholder; sendBtn.textContent = t.send;
     fab.setAttribute('aria-label', t.open); $('.close').setAttribute('aria-label', t.close);
     add(cfg.greeting || t.hello, 'ai');

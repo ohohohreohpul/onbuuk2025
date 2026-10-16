@@ -152,7 +152,7 @@ export default function KnowledgePanel({ overview, onOverview, onNavigate }: Kno
         </Section>
 
         <Section icon={MessageSquareText} title={t.secStyle} action={editButton('style')}>
-          <p>{settings.assistant_name} · {addressForm === 'du' ? t.formDu : t.formSie}</p>
+          <p>{settings.assistant_name || t.noName} · {addressForm === 'du' ? t.formDu : t.formSie}</p>
         </Section>
       </div>
 

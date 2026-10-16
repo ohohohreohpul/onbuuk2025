@@ -169,7 +169,9 @@ type BriefingText = (typeof BRIEFING_TEXT)['en'];
 
 function SamplePreview({ draft, assistant, shop, t }: { draft: Briefing; assistant: string; shop: string; t: BriefingText }) {
   const p = draft.personality;
-  const parts = [fillText(t[`p_${p}Sample`], { name: assistant, shop: shop || 'Zenno' })];
+  const shopName = shop || '…';
+  const intro = assistant.trim() ? fillText(t.introNamed, { name: assistant.trim(), shop: shopName }) : fillText(t.introShop, { shop: shopName });
+  const parts = [fillText(t[`p_${p}Sample`], { intro })];
   if (draft.length !== 'short') parts.push(t[`p_${p}More`]);
   const reply = parts.join(' ') + (draft.emoji === 'sometimes' ? ' 😊' : '');
   return (

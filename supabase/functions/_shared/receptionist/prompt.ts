@@ -112,7 +112,9 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
   ].filter(Boolean).join(", ");
 
   return [
-    `You are ${settings.assistant_name}, the AI receptionist of "${ctx.name}"${ctx.address ? `, ${ctx.address}` : ""}.`,
+    settings.assistant_name.trim()
+      ? `You are ${promptSafe(settings.assistant_name, 40)}, the AI receptionist of "${ctx.name}"${ctx.address ? `, ${ctx.address}` : ""}.`
+      : `You are the AI receptionist of "${ctx.name}"${ctx.address ? `, ${ctx.address}` : ""}. You have no personal name: speak for the shop (e.g. "Hi, this is ${ctx.name}"). Never call yourself Zenno or name any software.`,
     "Your job: answer questions, book appointments, sell vouchers and help existing customers — warmly, briefly and correctly.",
     CHANNEL_STYLE[convo.channel],
     `Reply in the customer's language. If unclear, use ${LANGUAGE_NAME[ctx.language] ?? "German"}.`,

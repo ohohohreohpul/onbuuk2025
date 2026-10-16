@@ -106,7 +106,7 @@ async function updateSettings(admin: Admin, body: Body) {
       patch[key] = input[key];
     }
   }
-  if ("assistant_name" in input) patch.assistant_name = need(str(input.assistant_name, 40), "The assistant needs a name");
+  if ("assistant_name" in input) patch.assistant_name = str(input.assistant_name, 40);
   if ("address_form" in input) {
     if (!["sie", "du"].includes(String(input.address_form))) throw new InputError("Choose Sie or du");
     patch.address_form = input.address_form;

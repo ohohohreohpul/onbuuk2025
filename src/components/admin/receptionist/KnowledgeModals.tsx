@@ -65,7 +65,8 @@ export function StyleModal({ name, addressForm, onSave, ...props }: SaveProps & 
     <CalendarModal title={t.secStyle} closeLabel={t.close} onClose={props.onClose}>
       <div className="space-y-4">
         <label className="block text-sm text-stone-600">{t.assistantName}
-          <input value={value} onChange={(e) => setValue(e.target.value)} maxLength={40} className={`${ADMIN_INPUT} mt-1`} />
+          <input value={value} onChange={(e) => setValue(e.target.value)} maxLength={40} placeholder={t.noName} className={`${ADMIN_INPUT} mt-1`} />
+          <span className="mt-1 block text-xs text-stone-400">{t.assistantNameHint}</span>
         </label>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => setForm('sie')} className={chip(form === 'sie')}>{t.formSie}</button>
@@ -74,7 +75,7 @@ export function StyleModal({ name, addressForm, onSave, ...props }: SaveProps & 
         {props.error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{props.error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={props.onClose} className={ADMIN_SECONDARY_BUTTON}>{t.cancel}</button>
-          <button type="button" disabled={props.isSaving || !value.trim()} onClick={() => onSave(value.trim(), form)} className={ADMIN_PRIMARY_BUTTON}>
+          <button type="button" disabled={props.isSaving} onClick={() => onSave(value.trim(), form)} className={ADMIN_PRIMARY_BUTTON}>
             {props.isSaving && <Loader2 className="h-4 w-4 animate-spin" />}{t.save}
           </button>
         </div>

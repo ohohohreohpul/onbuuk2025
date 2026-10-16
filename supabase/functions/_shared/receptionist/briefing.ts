@@ -60,7 +60,7 @@ const INITIATIVE: Record<Initiative, string> = {
 };
 
 const HABIT: Record<Habit, string> = {
-  introduce_self: "In your very first reply of a conversation, greet and introduce yourself by name and thank them for writing.",
+  introduce_self: "In your very first reply of a conversation, greet, say who you are (your name if you have one, otherwise the shop) and thank them for writing.",
   ask_needs_first: "When someone is unsure, ask what they are looking for (relaxation, pain, a gift, a special occasion) before listing treatments.",
   recommend: "Recommend one treatment that fits what they told you, with a short reason, instead of listing everything.",
   use_name: "Use the customer's first name once you know it.",
