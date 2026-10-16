@@ -137,8 +137,9 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     `Opening hours: ${ctx.openingHours.join(", ")}`,
     "Treatments (ref: name, duration, price):",
     formatCatalog(ctx.catalog),
-    "Therapists:",
-    formatStaff(ctx.staff, ctx.catalog),
+    ...(ctx.allowStaffChoice
+      ? ["Therapists:", formatStaff(ctx.staff, ctx.catalog)]
+      : ["Therapists: the shop assigns them itself. Never name therapists, never offer a choice or ask for a preference; just offer times."]),
     "Vouchers and gift cards:",
     formatVouchers(ctx),
     ctx.promotion

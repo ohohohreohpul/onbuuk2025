@@ -163,7 +163,7 @@ function treatmentByRef(shop: ShopContext, ref: unknown): CatalogEntry | null {
 
 function staffByRef(shop: ShopContext, ref: unknown): StaffEntry | null | undefined {
   const value = text(ref, 10);
-  if (!value) return undefined; // not asked for
+  if (!value || !shop.allowStaffChoice) return undefined; // not asked for, or the shop assigns staff itself
   return shop.staff.find((s) => s.ref === value) ?? null;
 }
 
@@ -200,7 +200,8 @@ async function confirmWithJev(run: ToolRun, proposal: string, isStrict = false):
   }
 }
 
-const staffName = (shop: ShopContext, id: string) => shop.staff.find((s) => s.id === id)?.name ?? null;
+/** Therapist name for the customer – hidden when the shop assigns staff itself. */
+const staffName = (shop: ShopContext, id: string) => (shop.allowStaffChoice ? shop.staff.find((s) => s.id === id)?.name ?? null : null);
 
 async function findFreeTimes(run: ToolRun, args: Args): Promise<Result> {
   const entry = treatmentByRef(run.shop, args.treatment);

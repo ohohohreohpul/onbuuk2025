@@ -161,7 +161,7 @@ Deno.test("FAQ entries are formatted as data, empty ones dropped", async () => {
 
 Deno.test("gateway: #test in the own chat becomes a self-test, other own messages are ignored", () => {
   const event = (text: string) => parseGatewayWebhook({
-    event: "messages.upsert", instance: "zenno_x",
+    event: "messages.upsert", instance: "zenno_x", sender: "491771234567@s.whatsapp.net",
     data: { key: { id: "S1", remoteJid: "491771234567@s.whatsapp.net", fromMe: true }, message: { conversation: text } },
   });
   assertEquals(event("#test Habt ihr morgen frei?"), [{ kind: "self_test", instance: "zenno_x", message: { messageId: "S1", from: "491771234567", name: null, text: "Habt ihr morgen frei?" } }]);
@@ -183,4 +183,22 @@ Deno.test("humanizeText removes chatbot residue and connector dashes, keeps time
   assertEquals(humanizeText("Certainly! We have a free slot at 14:00 — would that work?"), "We have a free slot at 14:00, would that work?");
   assertEquals(humanizeText("Wir haben täglich 10:00–20:00 geöffnet. Ich hoffe, das hilft dir weiter!"), "Wir haben täglich 10:00–20:00 geöffnet.");
   assertEquals(humanizeText("Morgen um 15 Uhr ist frei. Let me know if you have any other questions."), "Morgen um 15 Uhr ist frei.");
+});
+
+Deno.test("gateway: chats addressed by @lid use the phone from remoteJidAlt; self-chat via owner", () => {
+  const lidCustomer = parseGatewayWebhook({
+    event: "messages.upsert", instance: "zenno_x", sender: "4917700000000@s.whatsapp.net",
+    data: { key: { id: "L1", remoteJid: "123456789@lid", remoteJidAlt: "4915111111111@s.whatsapp.net", fromMe: false }, pushName: "Anna", message: { conversation: "Hallo" } },
+  });
+  assertEquals(lidCustomer, [{ kind: "message", instance: "zenno_x", message: { messageId: "L1", from: "4915111111111", name: "Anna", text: "Hallo" } }]);
+  const selfLid = parseGatewayWebhook({
+    event: "messages.upsert", instance: "zenno_x", sender: "4917700000000@s.whatsapp.net",
+    data: { key: { id: "L2", remoteJid: "987654321@lid", fromMe: true }, message: { conversation: "#test Hallo" } },
+  });
+  assertEquals(selfLid, [{ kind: "self_test", instance: "zenno_x", message: { messageId: "L2", from: "4917700000000", name: null, text: "Hallo" } }]);
+  const ownToCustomer = parseGatewayWebhook({
+    event: "messages.upsert", instance: "zenno_x", sender: "4917700000000@s.whatsapp.net",
+    data: { key: { id: "L3", remoteJid: "4915111111111@s.whatsapp.net", fromMe: true }, message: { conversation: "#test bei Kundin" } },
+  });
+  assertEquals(ownToCustomer, []);
 });

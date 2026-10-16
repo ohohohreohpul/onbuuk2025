@@ -76,6 +76,8 @@ export interface ShopContext {
   promotion: { title: string; text: string; giftNote: string | null } | null;
   /** "Mon 10:00–20:00" … from the therapists' working hours (earliest start to latest end per weekday). */
   openingHours: string[];
+  /** Booking-page switch "Customers choose their therapist" (site_settings allowSpecialistChoice). */
+  allowStaffChoice: boolean;
   settings: ReceptionistSettings;
 }
 
@@ -131,6 +133,9 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
     supabase.from("gift_card_settings").select("*").eq("business_id", businessId).maybeSingle(),
     loadMarketingShop(supabase, businessId),
   ]);
+  const { data: choiceRow } = await supabase.from("site_settings").select("value")
+    .eq("business_id", businessId).eq("key", "allowSpecialistChoice").maybeSingle();
+  const choiceValue = typeof choiceRow?.value === "string" ? choiceRow.value : JSON.stringify(choiceRow?.value ?? "");
   if (businessRes.error || !businessRes.data) throw new Error(`business lookup failed: ${businessRes.error?.message}`);
   if (servicesRes.error) throw new Error(`services lookup failed: ${servicesRes.error.message}`);
   if (staffRes.error) throw new Error(`staff lookup failed: ${staffRes.error.message}`);
@@ -182,6 +187,7 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
     },
     promotion: activePromotion(gift),
     openingHours: openingHours(staffRows.flatMap((s) => s.working_hours ?? [])),
+    allowStaffChoice: choiceValue.replace(/"/g, "").trim().toLowerCase() !== "false",
     settings,
   };
 }

@@ -4,7 +4,7 @@ import { handleInbound } from "../_shared/receptionist/agent.ts";
 import { getSecret, makeDeliver } from "../_shared/receptionist/deliver.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
 import {
-  gatewayTokenMatches, parseCloudWebhook, parseGatewayWebhook, verifyMetaSignature, type InboundWhatsapp,
+  describeSkippedEvent, gatewayTokenMatches, parseCloudWebhook, parseGatewayWebhook, verifyMetaSignature, type InboundWhatsapp,
 } from "../_shared/receptionist/whatsapp.ts";
 
 // WhatsApp webhooks for the AI receptionist.
@@ -67,7 +67,21 @@ async function cloudWebhook(supabase: Client, req: Request): Promise<Response> {
 async function gatewayWebhook(supabase: Client, req: Request): Promise<Response> {
   if (!gatewayTokenMatches(req.headers.get("x-zenno-webhook-token"))) return new Response("Unauthorized", { status: 401 });
   const payload = await req.json().catch(() => null);
-  for (const event of parseGatewayWebhook(payload)) {
+  const events = parseGatewayWebhook(payload);
+  // Temporary diagnostics: message events that produced nothing (shape only, no content).
+  const eventName = String((payload as { event?: string } | null)?.event ?? "").toLowerCase().replace(/_/g, ".");
+  if (eventName === "messages.upsert" && events.length === 0) {
+    const instance = String((payload as { instance?: string } | null)?.instance ?? "");
+    const { data: owner } = await supabase.from("receptionist_settings").select("business_id").eq("whatsapp_instance", instance).maybeSingle();
+    if (owner) {
+      const { error } = await supabase.from("agent_events").insert({
+        business_id: owner.business_id, agent_key_id: null, action: "receptionist_wa_skipped", result: "skipped",
+        payload: describeSkippedEvent(payload),
+      });
+      if (error) console.error("diagnostic insert failed", error);
+    }
+  }
+  for (const event of events) {
     if (event.kind === "ignore") continue;
     const { data } = await supabase.from("receptionist_settings").select("*").eq("whatsapp_instance", event.instance).maybeSingle();
     const settings = data as ReceptionistSettings | null;
@@ -86,11 +100,8 @@ async function gatewayWebhook(supabase: Client, req: Request): Promise<Response>
     } else if (event.kind === "message" && settings.whatsapp_provider === "qr_gateway") {
       EdgeRuntime.waitUntil(handleMessages(supabase, settings, [event.message]));
     } else if (event.kind === "self_test" && settings.whatsapp_provider === "qr_gateway") {
-      // Only the shop's own "Message yourself" chat: sender and chat are the connected number.
-      const ownNumber = (settings.whatsapp_display_phone ?? "").replace(/\D/g, "");
-      if (ownNumber && event.message.from === ownNumber) {
-        EdgeRuntime.waitUntil(handleMessages(supabase, settings, [{ ...event.message, name: "Test" }]));
-      }
+      // The parser only emits self_test for the shop's own chat (#test prefix, fromMe).
+      EdgeRuntime.waitUntil(handleMessages(supabase, settings, [{ ...event.message, name: "Test" }]));
     }
   }
   return ok();

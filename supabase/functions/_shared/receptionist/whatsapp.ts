@@ -222,19 +222,42 @@ export function parseGatewayWebhook(payload: unknown): GatewayEvent[] {
   if (event !== "messages.upsert") return [{ kind: "ignore" }];
   const items = Array.isArray(p.data) ? p.data : [p.data];
   // deno-lint-ignore no-explicit-any
+  // The shop's own number (Evolution puts the instance owner in "sender").
+  const owner = typeof p.sender === "string" ? phoneDigits(p.sender.split("@")[0]) : "";
   return items.flatMap((d: any): GatewayEvent[] => {
-    const jid = String(d?.key?.remoteJid ?? "");
-    if (!jid.endsWith("@s.whatsapp.net")) return [];
+    const key = d?.key ?? {};
+    const jids = [key.remoteJid, key.remoteJidAlt, key.senderPn, d?.senderPn].filter((j): j is string => typeof j === "string");
+    // Newer WhatsApp may address a chat by a hidden id (…@lid); the phone number then sits in remoteJidAlt/senderPn.
+    const phoneJid = jids.find((j) => j.endsWith("@s.whatsapp.net"));
+    const lidJid = jids.find((j) => j.endsWith("@lid"));
+    if (!phoneJid && !lidJid) return []; // groups, broadcasts, status
     const text = d.message?.conversation ?? d.message?.extendedTextMessage?.text ?? d.message?.imageMessage?.caption ?? d.message?.videoMessage?.caption;
-    if (!text || !d.key?.id) return [];
-    const from = phoneDigits(jid.split("@")[0]);
-    if (d.key.fromMe) {
-      // Own messages are ignored – except "#test …" in the shop's "Message yourself" chat (checked by the caller).
+    if (!text || !key.id) return [];
+    const from = phoneJid ? phoneDigits(phoneJid.split("@")[0]) : lidJid!; // a bare lid jid is still a valid reply address
+    if (key.fromMe) {
+      // Own messages are ignored – except "#test …" in the shop's "Message yourself" chat.
       const test = TEST_PREFIX.exec(String(text));
-      return test ? [{ kind: "self_test", instance, message: { messageId: String(d.key.id), from, name: null, text: test[1].slice(0, 4000) } }] : [];
+      const isOwnChat = (owner && from === owner) || (!phoneJid && Boolean(lidJid));
+      return test && isOwnChat
+        ? [{ kind: "self_test", instance, message: { messageId: String(key.id), from: owner || from, name: null, text: test[1].slice(0, 4000) } }]
+        : [];
     }
-    return [{ kind: "message", instance, message: { messageId: String(d.key.id), from, name: d.pushName ?? null, text: String(text).slice(0, 4000) } }];
+    return [{ kind: "message", instance, message: { messageId: String(key.id), from, name: d.pushName ?? null, text: String(text).slice(0, 4000) } }];
   });
+}
+
+/** Shape of a skipped event for diagnostics: no text, no numbers. */
+export function describeSkippedEvent(payload: unknown): Record<string, unknown> {
+  // deno-lint-ignore no-explicit-any
+  const p = payload as any;
+  const d = Array.isArray(p?.data) ? p.data[0] : p?.data;
+  const domain = (j: unknown) => (typeof j === "string" ? j.split("@")[1] ?? "none" : null);
+  return {
+    event: p?.event ?? null,
+    remoteJid: domain(d?.key?.remoteJid), remoteJidAlt: domain(d?.key?.remoteJidAlt), senderPn: domain(d?.key?.senderPn ?? d?.senderPn),
+    fromMe: d?.key?.fromMe ?? null, hasSender: typeof p?.sender === "string",
+    messageKeys: d?.message ? Object.keys(d.message).slice(0, 6) : [], messageType: d?.messageType ?? null,
+  };
 }
 
 export function gatewayTokenMatches(header: string | null): boolean {
