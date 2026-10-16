@@ -3,9 +3,12 @@ import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
 import { ADMIN_SURFACE } from '../adminUi';
 import { MARKETING_TEXT } from './marketingText';
-import { RunSummary, loadRuns } from './marketingApi';
+import { RunSummary, RunStats, loadRunStats, loadRuns } from './marketingApi';
+import { useCurrency } from '../../../lib/currencyContext';
 
 const REFRESH_MS = 15000;
+// Opens and clicks are counted for emails sent after tracking went live.
+const TRACKING_SINCE = Date.parse('2026-10-16T18:00:00Z');
 
 interface CampaignHistoryProps {
   campaignId: string;
@@ -17,6 +20,8 @@ export default function CampaignHistory({ campaignId, refreshKey }: CampaignHist
   const { t, locale } = useAdminText(MARKETING_TEXT);
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [error, setError] = useState(false);
+  const [stats, setStats] = useState<Map<string, RunStats>>(new Map());
+  const { formatAmount } = useCurrency();
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -27,6 +32,7 @@ export default function CampaignHistory({ campaignId, refreshKey }: CampaignHist
         if (cancelled) return;
         setRuns(next);
         setError(false);
+        loadRunStats(campaignId).then((s) => { if (!cancelled) setStats(s); }).catch((statsError) => console.error('Could not load campaign results:', statsError));
         if (next.some((run) => run.pending > 0)) timer = setTimeout(load, REFRESH_MS);
       } catch (loadError) {
         console.error('Could not load campaign history:', loadError);
@@ -61,9 +67,30 @@ export default function CampaignHistory({ campaignId, refreshKey }: CampaignHist
               {run.failed > 0 && <span className="text-red-700">{run.failed} {t.failed}</span>}
               {run.skipped > 0 && <span>{run.skipped} {t.skipped}</span>}
             </span>
+            {!run.runKey.startsWith('test-') && stats.get(run.runKey) && <RunResults stats={stats.get(run.runKey)!} t={t} money={(c) => formatAmount(c / 100)} />}
           </li>
         ))}
       </ul>
+      {stats.size > 0 && <p className="mt-3 text-xs text-stone-400">{t.rHint}</p>}
     </section>
+  );
+}
+
+const percent = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '–');
+
+function RunResults({ stats, t, money }: { stats: RunStats; t: (typeof MARKETING_TEXT)['en']; money: (cents: number) => string }) {
+  const isMeasured = stats.firstSentAt !== null && Date.parse(stats.firstSentAt) >= TRACKING_SINCE;
+  const cell = (value: string, label: string) => (
+    <span className="rounded-lg bg-stone-900/[0.04] px-2.5 py-1"><b className="font-semibold text-[#1A1714]">{value}</b> {label}</span>
+  );
+  return (
+    <div className="flex w-full flex-wrap gap-1.5 text-xs tabular-nums text-stone-500">
+      {isMeasured
+        ? <>{cell(percent(stats.opened, stats.sent), t.rOpened)}{cell(percent(stats.clicked, stats.sent), t.rClicked)}</>
+        : <span className="px-1 py-1 italic">{t.rNotMeasured}</span>}
+      {cell(String(stats.unsubscribed), t.rUnsub)}
+      {cell(`${stats.voucherSales} · ${money(stats.voucherCents)}`, t.rVouchers)}
+      {cell(`${stats.bookings} · ${money(stats.bookingCents)}`, t.rBookings)}
+    </div>
   );
 }

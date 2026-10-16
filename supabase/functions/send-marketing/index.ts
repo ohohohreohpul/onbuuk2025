@@ -10,6 +10,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { isServiceRoleRequest } from "../_shared/emailAccess.ts";
 import { authorizationErrorResponse, requireActiveAdmin } from "../_shared/adminAuthorization.ts";
+import { addTracking } from "../_shared/marketingTracking.ts";
 import { firstNameOf, renderMarketingEmail, type MarketingShop, type MarketingVoucher } from "../_shared/marketingEmail.ts";
 import { campaignToContent, loadMarketingShop, loadShopVouchers, type CampaignRow } from "../_shared/marketingData.ts";
 
@@ -39,6 +40,7 @@ interface ClaimedSend {
   business_id: string;
   customer_id: string;
   email: string;
+  track_token: string;
 }
 
 type Outcome = "sent" | "skipped" | "retry";
@@ -66,6 +68,7 @@ const serviceClient = () => createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
+const TRACK_BASE = Deno.env.get("MARKETING_TRACK_URL") ?? "https://book.zennohq.com/api/m";
 const unsubscribeUrl = (token: string) => `${Deno.env.get("SUPABASE_URL")}/functions/v1/marketing-unsubscribe?t=${token}`;
 
 async function loadShopBundle(supabase: SupabaseClient, businessId: string): Promise<ShopBundle> {
@@ -77,16 +80,21 @@ async function sendOne(
   supabase: SupabaseClient,
   bundle: ShopBundle,
   campaign: Campaign,
-  to: { email: string; name: string | null; token: string; customerId: string | null },
+  to: { email: string; name: string | null; token: string; customerId: string | null; trackToken?: string },
 ): Promise<string | null> {
   const link = unsubscribeUrl(to.token);
-  const { subject, html } = renderMarketingEmail(
+  const { subject, html: plainHtml } = renderMarketingEmail(
     bundle.shop,
     campaignToContent(campaign),
     firstNameOf(to.name),
     link,
     bundle.vouchers,
   );
+  // Campaign results: tracked links and an open image (not for test sends).
+  const trackSecret = Deno.env.get("MARKETING_LINK_SECRET") ?? "";
+  const html = to.trackToken && trackSecret.length >= 32
+    ? await addTracking(plainHtml, { base: TRACK_BASE, secret: trackSecret, token: to.trackToken, keep: [link] })
+    : plainHtml;
   const { data, error } = await supabase.functions.invoke("send-customer-email", {
     body: {
       businessId: campaign.business_id,
@@ -122,7 +130,7 @@ async function deliver(
 
   if (!shops.has(row.business_id)) shops.set(row.business_id, await loadShopBundle(supabase, row.business_id));
   const failure = await sendOne(supabase, shops.get(row.business_id)!, campaign, {
-    email: row.email, name: customer.name, token: customer.unsubscribe_token, customerId: row.customer_id,
+    email: row.email, name: customer.name, token: customer.unsubscribe_token, customerId: row.customer_id, trackToken: row.track_token,
   });
   return failure ? { outcome: "retry", note: failure } : { outcome: "sent" };
 }

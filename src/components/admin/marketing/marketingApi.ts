@@ -141,3 +141,31 @@ export async function duplicateCampaign(businessId: string, campaign: Campaign, 
   const draft = campaignToDraft(campaign);
   return saveCampaign(businessId, null, { ...draft, subject: `${subjectPrefix}${draft.subject}`.slice(0, 200), is_active: false });
 }
+
+export interface RunStats {
+  runKey: string;
+  sent: number;
+  opened: number;
+  clicked: number;
+  unsubscribed: number;
+  voucherSales: number;
+  voucherCents: number;
+  bookings: number;
+  bookingCents: number;
+  firstSentAt: string | null;
+}
+
+/** Results per run: opens, clicks, unsubscribes and what recipients bought within 7 days. */
+export async function loadRunStats(campaignId: string): Promise<Map<string, RunStats>> {
+  const { data, error } = await supabase.rpc('get_marketing_campaign_stats', { p_campaign_id: campaignId });
+  if (error) throw error;
+  const rows = (data ?? []) as {
+    run_key: string; first_sent_at: string | null; sent: number; opened: number; clicked: number; unsubscribed: number;
+    voucher_sales: number; voucher_cents: number; bookings: number; booking_cents: number;
+  }[];
+  return new Map(rows.map((r) => [r.run_key, {
+    runKey: r.run_key, sent: r.sent, opened: r.opened, clicked: r.clicked, unsubscribed: r.unsubscribed,
+    voucherSales: r.voucher_sales, voucherCents: r.voucher_cents, bookings: r.bookings, bookingCents: r.booking_cents,
+    firstSentAt: r.first_sent_at,
+  }]));
+}

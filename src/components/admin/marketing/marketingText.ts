@@ -9,7 +9,7 @@ export const MARKETING_TEXT: Translations<{
   schedule: string; dayOfMonth: string; hour: string; monthlyOn: string; monthlyOff: string; monthlyHint: string;
   nextSend: string; save: string; saving: string; saved: string; delete: string; confirmDelete: string;
   testTitle: string; testSend: string; testSending: string; testSent: string; sendNow: string; confirmSendNow: string;
-  queued: string; history: string; noHistory: string; runMonthly: string; runNow: string; runTest: string;
+  queued: string; history: string; noHistory: string; rOpened: string; rClicked: string; rUnsub: string; rVouchers: string; rBookings: string; rNotMeasured: string; rHint: string; runMonthly: string; runNow: string; runTest: string;
   sent: string; failed: string; pending: string; skipped: string; edit: string; active: string; paused: string;
   loadFailed: string; saveFailed: string; testFailed: string; sendFailed: string; required: string; httpsOnly: string;
   legalNote: string;
@@ -30,7 +30,7 @@ export const MARKETING_TEXT: Translations<{
     confirmDelete: 'Delete this promotion? Its send history is deleted too.',
     testTitle: 'Send a test', testSend: 'Send test', testSending: 'Sending…', testSent: 'Test sent to {email}',
     sendNow: 'Send now to {count} recipients', confirmSendNow: 'Send this email now to {count} recipients?', queued: '{count} emails are being sent (in batches, a few minutes).',
-    history: 'Sent so far', noHistory: 'Nothing sent yet.', runMonthly: 'Monthly · {month}', runNow: 'Sent manually · {day}', runTest: 'Test',
+    history: 'Sent so far', rOpened: 'opened', rClicked: 'clicked', rUnsub: 'unsubscribed', rVouchers: 'vouchers', rBookings: 'bookings', rNotMeasured: 'opens and clicks not measured yet', rHint: 'Vouchers and bookings: bought by recipients within 7 days. Opens are estimates (some apps open images automatically).', noHistory: 'Nothing sent yet.', runMonthly: 'Monthly · {month}', runNow: 'Sent manually · {day}', runTest: 'Test',
     sent: 'sent', failed: 'failed', pending: 'in progress', skipped: 'skipped', edit: 'Edit', active: 'Monthly', paused: 'Paused',
     loadFailed: 'Could not load email marketing.', saveFailed: 'Could not save: {reason}', testFailed: 'Test email failed: {reason}',
     sendFailed: 'Could not start sending: {reason}', required: 'Subject and text are required.', httpsOnly: 'The button link must start with https://',
@@ -52,7 +52,7 @@ export const MARKETING_TEXT: Translations<{
     confirmDelete: 'Diese Aktion löschen? Der Versandverlauf wird ebenfalls gelöscht.',
     testTitle: 'Test senden', testSend: 'Test senden', testSending: 'Wird gesendet…', testSent: 'Test an {email} gesendet',
     sendNow: 'Jetzt an {count} Empfänger senden', confirmSendNow: 'Diese E-Mail jetzt an {count} Empfänger senden?', queued: '{count} E-Mails werden versendet (in Paketen, einige Minuten).',
-    history: 'Bisher versendet', noHistory: 'Noch nichts versendet.', runMonthly: 'Monatlich · {month}', runNow: 'Manuell · {day}', runTest: 'Test',
+    history: 'Bisher versendet', rOpened: 'geöffnet', rClicked: 'geklickt', rUnsub: 'abgemeldet', rVouchers: 'Gutscheine', rBookings: 'Buchungen', rNotMeasured: 'Öffnungen und Klicks noch nicht gemessen', rHint: 'Gutscheine und Buchungen: von Empfänger:innen innerhalb von 7 Tagen gekauft. Öffnungen sind Schätzwerte (manche Apps laden Bilder automatisch).', noHistory: 'Noch nichts versendet.', runMonthly: 'Monatlich · {month}', runNow: 'Manuell · {day}', runTest: 'Test',
     sent: 'gesendet', failed: 'fehlgeschlagen', pending: 'in Arbeit', skipped: 'übersprungen', edit: 'Bearbeiten', active: 'Monatlich', paused: 'Pausiert',
     loadFailed: 'E-Mail-Marketing konnte nicht geladen werden.', saveFailed: 'Speichern fehlgeschlagen: {reason}', testFailed: 'Test-E-Mail fehlgeschlagen: {reason}',
     sendFailed: 'Versand konnte nicht gestartet werden: {reason}', required: 'Betreff und Text sind Pflichtfelder.', httpsOnly: 'Der Button-Link muss mit https:// beginnen.',
@@ -74,7 +74,7 @@ export const MARKETING_TEXT: Translations<{
     confirmDelete: 'ลบโปรโมชันนี้? ประวัติการส่งจะถูกลบด้วย',
     testTitle: 'ส่งอีเมลทดสอบ', testSend: 'ส่งทดสอบ', testSending: 'กำลังส่ง…', testSent: 'ส่งอีเมลทดสอบไปที่ {email} แล้ว',
     sendNow: 'ส่งตอนนี้ถึง {count} คน', confirmSendNow: 'ส่งอีเมลนี้ตอนนี้ถึงผู้รับ {count} คน?', queued: 'กำลังส่ง {count} อีเมล (ทยอยส่ง ใช้เวลาไม่กี่นาที)',
-    history: 'ประวัติการส่ง', noHistory: 'ยังไม่ได้ส่ง', runMonthly: 'รายเดือน · {month}', runNow: 'ส่งเอง · {day}', runTest: 'ทดสอบ',
+    history: 'ประวัติการส่ง', rOpened: 'เปิดอ่าน', rClicked: 'คลิก', rUnsub: 'ยกเลิกรับ', rVouchers: 'บัตรของขวัญ', rBookings: 'การจอง', rNotMeasured: 'ยังไม่ได้วัดการเปิดและคลิก', rHint: 'บัตรของขวัญและการจอง: ผู้รับซื้อภายใน 7 วัน การเปิดอ่านเป็นค่าประมาณ (บางแอปโหลดรูปอัตโนมัติ)', noHistory: 'ยังไม่ได้ส่ง', runMonthly: 'รายเดือน · {month}', runNow: 'ส่งเอง · {day}', runTest: 'ทดสอบ',
     sent: 'ส่งแล้ว', failed: 'ไม่สำเร็จ', pending: 'กำลังส่ง', skipped: 'ข้าม', edit: 'แก้ไข', active: 'รายเดือน', paused: 'หยุดชั่วคราว',
     loadFailed: 'โหลดอีเมลการตลาดไม่สำเร็จ', saveFailed: 'บันทึกไม่สำเร็จ: {reason}', testFailed: 'ส่งอีเมลทดสอบไม่สำเร็จ: {reason}',
     sendFailed: 'เริ่มส่งไม่สำเร็จ: {reason}', required: 'ต้องกรอกหัวเรื่องและข้อความ', httpsOnly: 'ลิงก์ของปุ่มต้องขึ้นต้นด้วย https://',
