@@ -290,3 +290,32 @@ export function routeIntentFallback(requestText: string): IntentResult {
 export function isTypesafeConfigured(): boolean {
   return Boolean(Deno.env.get("TYPESAFE_API_KEY"));
 }
+// --- receptionist: did the customer clearly agree? ------------------------
+
+export interface AgreementResult {
+  agreed: boolean;
+  confidence: number;
+}
+
+/**
+ * Asks Jev whether the customer's latest messages clearly agree to `proposal`
+ * (a booking, cancellation or move). Used as a second check before the AI
+ * receptionist changes anything; the caller applies AGENT_CONFIDENCE_THRESHOLD.
+ */
+export async function checkCustomerAgreement(recentMessages: string, proposal: string): Promise<AgreementResult> {
+  const res = await typesafeEvaluate(
+    { proposal, conversation: recentMessages },
+    {
+      agreement: {
+        type: "choice",
+        instructions: "Read the end of the conversation. Has the customer clearly and explicitly agreed to exactly the proposal (same day, time and treatment, or the same booking to cancel)?",
+        criteria: {
+          agreed: "Yes: the customer's latest message clearly confirms this exact proposal (e.g. 'yes please', 'book it', 'ja, gerne', 'cancel it').",
+          not_agreed: "No: the customer has not confirmed yet, asked something else, changed details, hesitated, or confirmed a different option.",
+        },
+      },
+    },
+  );
+  const answer = res.answers.agreement as { choice?: string; confidence?: number } | undefined;
+  return { agreed: answer?.choice === "agreed", confidence: answer?.confidence ?? 0 };
+}

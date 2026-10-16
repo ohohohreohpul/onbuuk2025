@@ -8,6 +8,7 @@ import SpecialistsView from './SpecialistsView';
 import TeamManagementView from './TeamManagementView';
 import SettingsView from './SettingsView';
 import PosHomeView from './PosHomeView';
+import ReceptionistView from './receptionist/ReceptionistView';
 import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
 import TaxReportsView from './TaxReportsView';
@@ -60,6 +61,7 @@ function AdminPanel() {
       'gift-cards',
       'agents',
       'marketing',
+      'receptionist',
     ]);
 
     if (requestedView && validViews.has(requestedView)) return requestedView;
@@ -411,6 +413,8 @@ function AdminPanel() {
         return <SettingsView />;
       case 'gift-cards':
         return <LoyaltyRewardsView />;
+      case 'receptionist':
+        return <ReceptionistView />;
       case 'agents':
         return <AiAgentsView />;
       case 'marketing':

@@ -1,0 +1,149 @@
+import { supabase } from '../../../lib/supabase';
+
+// Writes go through the receptionist-admin edge function; reads use the
+// tables directly (RLS: admins read their own shop).
+
+export type ChannelMode = 'auto' | 'drafts';
+export type ChannelKey = 'web' | 'email' | 'whatsapp';
+
+export interface ReceptionistSettings {
+  business_id: string;
+  is_enabled: boolean;
+  assistant_name: string;
+  instructions: string;
+  knowledge: string;
+  web_enabled: boolean;
+  web_mode: ChannelMode;
+  widget_key: string;
+  widget_greeting: string;
+  widget_color: string | null;
+  email_enabled: boolean;
+  email_mode: ChannelMode;
+  imap_host: string | null;
+  imap_port: number;
+  imap_username: string | null;
+  imap_checked_at: string | null;
+  imap_error: string | null;
+  whatsapp_enabled: boolean;
+  whatsapp_mode: ChannelMode;
+  whatsapp_provider: 'cloud_api' | 'qr_gateway' | null;
+  whatsapp_status: 'disconnected' | 'pending_qr' | 'connected' | 'error';
+  whatsapp_display_phone: string | null;
+  whatsapp_phone_number_id: string | null;
+}
+
+export interface Overview {
+  settings: ReceptionistSettings;
+  whatsappQr: string | null;
+  status: {
+    aiConfigured: boolean;
+    jevConfigured: boolean;
+    qrGatewayAvailable: boolean;
+    mailbox: { address: string; smtpHost: string | null } | null;
+    hasCloudToken: boolean;
+    needsHuman: number;
+    drafts: number;
+    tokensThisMonth: number;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  channel: ChannelKey;
+  external_id: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  subject: string | null;
+  status: 'open' | 'needs_human' | 'closed';
+  needs_human_reason: string | null;
+  is_ai_paused: boolean;
+  unread_count: number;
+  last_message_at: string;
+}
+
+export interface Message {
+  id: string;
+  direction: 'in' | 'out';
+  author: 'customer' | 'ai' | 'staff' | 'system';
+  body: string;
+  status: 'sent' | 'draft' | 'failed' | 'discarded';
+  meta: { actions?: { tool: string; result: string }[]; handed_over?: string | null; kind?: string };
+  created_at: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  message: string;
+  is_personalised: boolean;
+  template_name: string | null;
+  template_language: string | null;
+  status: 'draft' | 'sending' | 'paused' | 'done';
+  recipient_count: number;
+  created_at: string;
+}
+
+export class ReceptionistApiError extends Error {}
+
+/** Calls the admin function; turns its { error } body into a readable Error. */
+export async function callReceptionist<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('receptionist-admin', { body: { action, ...payload } });
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    const body = context ? await context.json().catch(() => null) : null;
+    throw new ReceptionistApiError(body?.error ?? error.message);
+  }
+  if (data?.error) throw new ReceptionistApiError(data.error);
+  return data as T;
+}
+
+export const loadOverview = () => callReceptionist<Overview>('overview');
+export const updateSettings = (patch: Partial<ReceptionistSettings>) => callReceptionist<Overview>('update_settings', { patch });
+
+export async function loadConversations(businessId: string, filter: 'all' | 'needs_human' | 'unread'): Promise<Conversation[]> {
+  let query = supabase.from('receptionist_conversations')
+    .select('id, channel, external_id, contact_name, contact_email, contact_phone, subject, status, needs_human_reason, is_ai_paused, unread_count, last_message_at')
+    .eq('business_id', businessId).order('last_message_at', { ascending: false }).limit(100);
+  if (filter === 'needs_human') query = query.eq('status', 'needs_human');
+  if (filter === 'unread') query = query.gt('unread_count', 0);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as Conversation[];
+}
+
+export async function loadMessages(conversationId: string): Promise<Message[]> {
+  const { data, error } = await supabase.from('receptionist_messages')
+    .select('id, direction, author, body, status, meta, created_at')
+    .eq('conversation_id', conversationId).neq('status', 'discarded').order('created_at').limit(200);
+  if (error) throw error;
+  return (data ?? []) as Message[];
+}
+
+/** Conversation ids that have a draft waiting for approval. */
+export async function loadDraftConversationIds(businessId: string): Promise<Set<string>> {
+  const { data } = await supabase.from('receptionist_messages').select('conversation_id').eq('business_id', businessId).eq('status', 'draft');
+  return new Set((data ?? []).map((row) => row.conversation_id as string));
+}
+
+export async function loadCampaigns(businessId: string): Promise<(Campaign & { sent: number; failed: number })[]> {
+  const [campaigns, recipients] = await Promise.all([
+    supabase.from('outreach_campaigns').select('*').eq('business_id', businessId).order('created_at', { ascending: false }),
+    supabase.from('outreach_recipients').select('campaign_id, status').eq('business_id', businessId),
+  ]);
+  if (campaigns.error) throw campaigns.error;
+  const counts = new Map<string, { sent: number; failed: number }>();
+  for (const r of recipients.data ?? []) {
+    const entry = counts.get(r.campaign_id) ?? { sent: 0, failed: 0 };
+    if (r.status === 'sent') entry.sent++;
+    if (r.status === 'failed' || r.status === 'skipped') entry.failed++;
+    counts.set(r.campaign_id, entry);
+  }
+  return ((campaigns.data ?? []) as Campaign[]).map((c) => ({ ...c, ...(counts.get(c.id) ?? { sent: 0, failed: 0 }) }));
+}
+
+export async function countConsents(businessId: string): Promise<number> {
+  const { count } = await supabase.from('customer_contact_consents').select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId).eq('channel', 'whatsapp').eq('status', 'granted');
+  return count ?? 0;
+}

@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import {
   FileText,
   Calendar,
+  MessagesSquare,
   Users,
   Briefcase,
   UserCircle,
@@ -37,13 +38,13 @@ import {
 } from '../../lib/brand';
 
 const TEXT: Translations<{
-  dashboard: string; pos: string; today: string; calendar: string; bookings: string; customers: string;
+  dashboard: string; pos: string; receptionist: string; today: string; calendar: string; bookings: string; customers: string;
   business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string;
   money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
   documentation: string; help: string; logout: string; poweredBy: string; language: string; businessLogo: string;
 }> = {
   en: {
-    dashboard: 'Dashboard', pos: 'POS', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
+    dashboard: 'Dashboard', pos: 'POS', receptionist: 'AI receptionist', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
     business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
     team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', money: 'Money', fees: 'No-Show Fees',
     loyalty: 'Vouchers', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
@@ -51,7 +52,7 @@ const TEXT: Translations<{
     language: 'Language', businessLogo: 'Business logo',
   },
   de: {
-    dashboard: 'Übersicht', pos: 'POS', today: 'Heute', calendar: 'Kalender', bookings: 'Buchungen', customers: 'Kunden',
+    dashboard: 'Übersicht', pos: 'POS', receptionist: 'KI-Rezeption', today: 'Heute', calendar: 'Kalender', bookings: 'Buchungen', customers: 'Kunden',
     business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
     team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', money: 'Finanzen', fees: 'No-Show-Gebühren',
     loyalty: 'Gutscheine', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
@@ -59,7 +60,7 @@ const TEXT: Translations<{
     language: 'Sprache', businessLogo: 'Firmenlogo',
   },
   th: {
-    dashboard: 'แดชบอร์ด', pos: 'POS', today: 'วันนี้', calendar: 'ปฏิทิน', bookings: 'การจอง', customers: 'ลูกค้า',
+    dashboard: 'แดชบอร์ด', pos: 'POS', receptionist: 'พนักงานต้อนรับ AI', today: 'วันนี้', calendar: 'ปฏิทิน', bookings: 'การจอง', customers: 'ลูกค้า',
     business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
     team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
     loyalty: 'บัตรของขวัญ', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
@@ -111,6 +112,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       label: null,
       items: [
         { id: 'calendar', label: t.pos, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars', 'view_reports'] },
+        { id: 'receptionist', label: t.receptionist, icon: MessagesSquare, permissions: ['view_customers', 'view_all_bookings'] },
       ]
     },
     {

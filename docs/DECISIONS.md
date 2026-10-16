@@ -108,3 +108,13 @@
 | first_build | **calendar_workspace_first** | 1.00 | calendar_workspace_first 100%, merge_first 0%, both_in_parallel 0% |
 | whatsapp | **official_cloud_api_first** | 0.35 | official_cloud_api_first 57%, keep_qr_gateway 41%, both_at_launch 2% |
 | credits | **prepaid_credits** | 0.97 | prepaid_credits 98%, plan_tier 2%, free_for_now 0% |
+
+## 2026-10-16 — AI receptionist v1: WhatsApp (incl. outreach), email replies, website chat (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| whatsapp_route | **both_adapters** | 0.46 | both_adapters 64%, qr_only 32%, cloud_api_only 4% |
+| email_inbound | **imap_poll** | 0.98 | imap_poll 99%, forward_webhook 1% |
+| autonomy | **auto_with_gate** | 0.97 | auto_with_gate 98%, drafts_only 1%, fully_auto 1% |
+| build_order | **web_email_whatsapp** | 0.98 | web_email_whatsapp 99%, whatsapp_first 1%, all_parallel 0% |
+| outreach_consent | **explicit_consent_record** | 0.90 | explicit_consent_record 95%, trust_import 5% |

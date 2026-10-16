@@ -29,6 +29,10 @@ export interface SmtpMessage {
   to: string;
   subject: string;
   html: string;
+  /** Plain-text part; generated from the HTML when omitted. */
+  text?: string;
+  /** Extra headers, e.g. In-Reply-To / References so replies thread in the customer's inbox. */
+  headers?: Record<string, string>;
   attachments?: SmtpAttachment[];
 }
 
@@ -62,7 +66,8 @@ export async function sendWithSmtp(settings: SmtpSettings, message: SmtpMessage)
       to: message.to,
       subject: message.subject,
       html: message.html,
-      content: "auto",
+      content: message.text ?? "auto",
+      headers: message.headers,
       attachments: (message.attachments ?? []).map((attachment) => ({
         filename: attachment.filename,
         content: attachment.content,

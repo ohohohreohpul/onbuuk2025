@@ -1,0 +1,57 @@
+{
+  "title": "AI receptionist v1: WhatsApp (incl. outreach), email replies, website chat",
+  "state": {
+    "product": "Zenno Booking (Vite SPA + Supabase eicxhwgxelwcmxcjppwt + Deno edge functions). Wellness/massage shops in Germany, older non-technical owners (DE/EN/TH). Existing: services/prices/therapists, get_available_slots, agent hold->confirm API with merchant consent (auto/manual), gift cards (value + service passes, sets, online purchase page), promotion texts, email marketing with unsubscribe, SMTP sending from the shop's own mailbox (port 465), notification outbox via pg_cron, TypeSafe Jev confidence gating (threshold 0.7).",
+    "request": "Owner wants an AI receptionist acting as a full agent on 1) WhatsApp, including outreach to past customers (only a consented imported list), 2) email replies based on availability, slots, promotions, prices, gift cards, auto-applying things, 3) a website embedded chat bot. AI usage unlimited for now; owner routes the LLM himself (OpenAI-compatible endpoint); credits resold later.",
+    "existing_receptionist_repo": "Separate Next.js app (zenno) with WhatsApp via unofficial Evolution/Baileys QR gateway (own number, no Meta verification, warm-up caps 20->200/day, ban risk, needs an always-on server) and a 360dialog/Cloud API adapter, Telegram/LINE/Messenger, webchat widget, campaigns. Its server code is portable to Deno.",
+    "whatsapp_facts": "Official WhatsApp Cloud API: Meta business verification + phone number, free-form replies only within 24h of the customer's last message, business-initiated outreach only via Meta-approved templates (marketing templates cost per message), no ban risk. QR gateway: any message any time, free, but against WhatsApp terms; bulk outreach from a fresh number risks a ban of the shop's own number.",
+    "email_facts": "Shops already store SMTP credentials of their own mailbox (e.g. Strato info@satuuu99.de). Inbound options: poll the same mailbox via IMAP (port 993, allowed from Supabase edge) with the same credentials, or ask shops to set up forwarding to a Zenno inbound address (needs an inbound email provider account + DNS on our domain, and per-shop forwarding setup at their mail host).",
+    "constraints": "One developer (Claude). Production DB writes need the user's approval in a terminal. Owners are non-technical: setup must be a few clicks. GDPR/UWG: marketing messages need prior consent; Germany.",
+    "risk": "An agent that auto-books and auto-replies can embarrass a shop (wrong price, invented promotion, double booking)."
+  },
+  "decisions": {
+    "whatsapp_route": {
+      "instructions": "Which WhatsApp connection does v1 ship?",
+      "criteria": {
+        "both_adapters": "One WhatsApp channel interface with two connection types the shop picks: official Cloud API (recommended, templates for outreach) and QR 'own number' gateway (opt-in, warm-up caps, outreach throttled, clear ban-risk warning).",
+        "cloud_api_only": "Only the official Cloud API; outreach only via approved templates.",
+        "qr_only": "Only the QR gateway (own number), outreach as plain messages with warm-up caps."
+      },
+      "fallback": "both_adapters"
+    },
+    "email_inbound": {
+      "instructions": "How does the agent receive customer emails?",
+      "criteria": {
+        "imap_poll": "Poll the shop's existing mailbox via IMAP every minute with the credentials they already entered (one extra field: IMAP server), reply via the existing SMTP sender, mark handled mails as read.",
+        "forward_webhook": "Shops forward their mail to a Zenno inbound address handled by an inbound email provider webhook."
+      },
+      "fallback": "imap_poll"
+    },
+    "autonomy": {
+      "instructions": "How autonomous is the agent at launch?",
+      "criteria": {
+        "auto_with_gate": "Replies and books automatically; anything risky (low confidence, complaints, refunds, medical, prices or promotions it cannot find in the data, cancellations inside the cancellation window) goes to a human review queue as a draft and the conversation is flagged. Shop can switch each channel to 'drafts only'.",
+        "drafts_only": "Agent only writes drafts; a human sends every message.",
+        "fully_auto": "Agent answers everything automatically with no review queue."
+      },
+      "fallback": "auto_with_gate"
+    },
+    "build_order": {
+      "instructions": "In which order are the three channels built (one shared agent core first)?",
+      "criteria": {
+        "web_email_whatsapp": "Agent core + website chat first (testable today, no external accounts), then email (credentials already exist), then WhatsApp (needs Meta or a gateway server).",
+        "whatsapp_first": "WhatsApp first, then email, then website chat.",
+        "all_parallel": "All three channels at once."
+      },
+      "fallback": "web_email_whatsapp"
+    },
+    "outreach_consent": {
+      "instructions": "How is consent for outreach handled?",
+      "criteria": {
+        "explicit_consent_record": "Outreach only to customers with a stored consent record per channel (source, timestamp, text shown). Imports must contain a consent column; rows without it are imported as contacts but never messaged. Every outreach message carries an opt-out ('STOP'), which is honoured automatically.",
+        "trust_import": "Anyone on the imported list may be messaged."
+      },
+      "fallback": "explicit_consent_record"
+    }
+  }
+}

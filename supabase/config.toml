@@ -306,3 +306,21 @@ verify_jwt = false
 [functions.marketing-unsubscribe]
 # Public unsubscribe link in promotion emails.
 verify_jwt = false
+
+# AI receptionist (2026-10-16). Each function checks access in code:
+# chat = public widget key + rate limits, whatsapp = Meta signature / gateway token,
+# email + outreach = x-cron-secret, admin = admin JWT (requireActiveAdmin).
+[functions.receptionist-chat]
+verify_jwt = false
+
+[functions.receptionist-whatsapp]
+verify_jwt = false
+
+[functions.receptionist-email]
+verify_jwt = false
+
+[functions.receptionist-outreach]
+verify_jwt = false
+
+[functions.receptionist-admin]
+verify_jwt = false
