@@ -34,6 +34,7 @@ interface CashEntry {
   import_batch_id: string | null;
   is_reversal?: boolean;
   reverses_entry_id?: string | null;
+  booking_payment_id?: string | null;
 }
 
 type Tab = 'records' | 'payments' | 'reports' | 'import';
@@ -295,7 +296,7 @@ export default function TaxReportsView() {
     if (!businessId) return;
     setLoading(true);
     const [e, i, d, b, cfgRes] = await Promise.all([
-      supabase.from('cash_entries').select('*').eq('business_id', businessId).order('entry_date', { ascending: false }).limit(200),
+      supabase.from('cash_entries').select('*').eq('business_id', businessId).order('entry_date', { ascending: false }).order('entry_time', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).limit(200),
       supabase.from('revenue_imports').select('*').eq('business_id', businessId).order('created_at', { ascending: false }).limit(20),
       supabase.from('tax_documents').select('*').eq('business_id', businessId).order('created_at', { ascending: false }).limit(20),
       supabase.from('businesses').select('name, address, phone, custom_logo_url').eq('id', businessId).maybeSingle(),
@@ -326,10 +327,15 @@ export default function TaxReportsView() {
     setLoading(false);
   };
 
-  const reversedIds = useMemo(
-    () => new Set(entries.map(e => e.reverses_entry_id).filter((id): id is string => Boolean(id))),
-    [entries]
-  );
+  // An entry is cancelled by a manual Storno (reverses_entry_id) or, for booking payments,
+  // by the Storno line written when the payment was undone (same booking_payment_id).
+  const reversedIds = useMemo(() => {
+    const undonePayments = new Set(entries.filter(e => e.is_reversal && e.booking_payment_id).map(e => e.booking_payment_id));
+    const ids = entries
+      .filter(e => !e.is_reversal && e.booking_payment_id && undonePayments.has(e.booking_payment_id))
+      .map(e => e.id);
+    return new Set([...ids, ...entries.map(e => e.reverses_entry_id).filter((id): id is string => Boolean(id))]);
+  }, [entries]);
 
   const periodEntries = useMemo(
     () => entries.filter(e => (!periodStart || e.entry_date >= periodStart) && (!periodEnd || e.entry_date <= periodEnd)),
@@ -741,15 +747,22 @@ export default function TaxReportsView() {
                   {periodEntries.length === 0 && (
                     <tr><td colSpan={8} className="text-center py-10 text-stone-400">{t.noRecords}</td></tr>
                   )}
-                  {periodEntries.map(e => (
-                    <tr key={e.id} className="border-b border-stone-100 hover:bg-stone-50/60">
-                      <td className="px-5 py-2.5 text-stone-600 tabular-nums">{formatDay(e.entry_date)}</td>
-                      <td className="px-5 py-2.5 text-stone-800">{e.description}</td>
-                      <td className="px-5 py-2.5 text-stone-500">{sourceLabel(e.source)}</td>
-                      <td className="px-5 py-2.5 text-stone-500">{methodLabel(e.payment_method)}</td>
-                      <td className="px-5 py-2.5 text-right tabular-nums text-stone-600">{formatPrice(e.net_cents)}</td>
-                      <td className="px-5 py-2.5 text-right tabular-nums text-stone-500">{formatPrice(e.gross_cents - e.net_cents)}</td>
-                      <td className="px-5 py-2.5 text-right tabular-nums font-medium text-stone-800">{formatPrice(e.gross_cents)}</td>
+                  {periodEntries.map(e => {
+                    const isCancelled = reversedIds.has(e.id);
+                    const isQuiet = isCancelled || e.is_reversal;
+                    const amount = isCancelled ? 'line-through decoration-stone-300' : '';
+                    return (
+                    <tr key={e.id} className={`border-b border-stone-100 hover:bg-stone-50/60 ${isQuiet ? 'text-stone-400' : ''}`}>
+                      <td className={`px-5 py-2.5 tabular-nums ${isQuiet ? '' : 'text-stone-600'}`}>
+                        {formatDay(e.entry_date)}
+                        {e.entry_time && <span className="ml-2 text-stone-400">{e.entry_time.slice(0, 5)}</span>}
+                      </td>
+                      <td className={`px-5 py-2.5 ${isQuiet ? (e.is_reversal ? 'italic' : '') : 'text-stone-800'}`}>{e.description}</td>
+                      <td className={`px-5 py-2.5 ${isQuiet ? '' : 'text-stone-500'}`}>{sourceLabel(e.source)}</td>
+                      <td className={`px-5 py-2.5 ${isQuiet ? '' : 'text-stone-500'}`}>{methodLabel(e.payment_method)}</td>
+                      <td className={`px-5 py-2.5 text-right tabular-nums ${amount} ${isQuiet ? '' : 'text-stone-600'}`}>{formatPrice(e.net_cents)}</td>
+                      <td className={`px-5 py-2.5 text-right tabular-nums ${amount} ${isQuiet ? '' : 'text-stone-500'}`}>{formatPrice(e.gross_cents - e.net_cents)}</td>
+                      <td className={`px-5 py-2.5 text-right tabular-nums font-medium ${amount} ${isQuiet ? '' : 'text-stone-800'}`}>{formatPrice(e.gross_cents)}</td>
                       <td className="px-3 py-2.5 text-right">
                         {reversedIds.has(e.id) ? (
                           <span className="text-xs text-stone-400">{t.cancelled}</span>
@@ -758,7 +771,8 @@ export default function TaxReportsView() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
