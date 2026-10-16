@@ -83,7 +83,7 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-center gap-3 pl-12 lg:pl-0">
+      <header className="flex flex-wrap items-center gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A1714] text-white"><Bot className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold leading-tight tracking-tight text-[#1A1714]">{t.title}</h1>

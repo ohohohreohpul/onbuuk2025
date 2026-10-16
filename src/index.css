@@ -552,3 +552,13 @@
   min-height: 0;
   height: auto;
 }
+
+/* iPhone/iPad: fields under 16px make Safari zoom in on every tap (and stay zoomed).
+   On touch screens all form fields use at least 16px. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

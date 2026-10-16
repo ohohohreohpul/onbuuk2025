@@ -41,8 +41,7 @@ export default function CalendarToolbar(props: CalendarToolbarProps) {
 
   return (
     <div className="space-y-3">
-      {/* pl-12 keeps the date clear of the mobile menu button */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pl-12 lg:pl-0">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={() => props.onStep(-1)} aria-label={t.previous} title={t.previous} className={navButton}>
             <ChevronLeft className="h-5 w-5" />

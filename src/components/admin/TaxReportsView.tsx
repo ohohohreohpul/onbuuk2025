@@ -616,7 +616,7 @@ export default function TaxReportsView() {
   const TabButton = ({ id, children }: { id: Tab; children: React.ReactNode }) => (
     <button
       onClick={() => setTab(id)}
-      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+      className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
         tab === id ? 'bg-[#1A1714] text-white' : 'text-stone-600 hover:bg-stone-100'
       }`}
     >
@@ -672,7 +672,7 @@ export default function TaxReportsView() {
         </button>
       </div>
 
-      <div className="flex gap-2 border-b border-stone-200 pb-3">
+      <div className="-mx-1 flex gap-2 overflow-x-auto border-b border-stone-200 px-1 pb-3">
         <TabButton id="records">{t.tabRecords}</TabButton>
         <TabButton id="payments">{t.tabPayments}</TabButton>
         <TabButton id="reports">{t.tabReports}</TabButton>

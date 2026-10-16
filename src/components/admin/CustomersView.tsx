@@ -137,12 +137,12 @@ export default function CustomersView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
           <p className="text-gray-600">{t.subtitle}</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="text-center px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
             <div className="text-2xl font-semibold text-gray-900">{customers.length}</div>
             <div className="text-xs text-gray-600 uppercase tracking-wider font-medium">{t.totalCustomers}</div>

@@ -44,14 +44,14 @@ const TEXT: Translations<{
   dashboard: string; pos: string; receptionist: string; today: string; calendar: string; bookings: string; customers: string;
   business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string;
   money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
-  documentation: string; help: string; logout: string; poweredBy: string; language: string; businessLogo: string;
+  documentation: string; help: string; openMenu: string; closeMenu: string; logout: string; poweredBy: string; language: string; businessLogo: string;
 }> = {
   en: {
     dashboard: 'Dashboard', pos: 'POS', receptionist: 'AI receptionist', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
     business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
     team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', money: 'Money', fees: 'No-Show Fees',
     loyalty: 'Vouchers', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
-    documentation: 'Documentation', help: 'Get Help', logout: 'Logout', poweredBy: 'Powered by',
+    documentation: 'Documentation', help: 'Get Help', openMenu: 'Open menu', closeMenu: 'Close menu', logout: 'Logout', poweredBy: 'Powered by',
     language: 'Language', businessLogo: 'Business logo',
   },
   de: {
@@ -59,7 +59,7 @@ const TEXT: Translations<{
     business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
     team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', money: 'Finanzen', fees: 'No-Show-Gebühren',
     loyalty: 'Gutscheine', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
-    documentation: 'Dokumentation', help: 'Hilfe', logout: 'Abmelden', poweredBy: 'Powered by',
+    documentation: 'Dokumentation', help: 'Hilfe', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen', logout: 'Abmelden', poweredBy: 'Powered by',
     language: 'Sprache', businessLogo: 'Firmenlogo',
   },
   th: {
@@ -67,7 +67,7 @@ const TEXT: Translations<{
     business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
     team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
     loyalty: 'บัตรของขวัญ', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
-    documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
+    documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', openMenu: 'เปิดเมนู', closeMenu: 'ปิดเมนู', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
     language: 'ภาษา', businessLogo: 'โลโก้ร้าน',
   },
 };
@@ -91,6 +91,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   const { t } = useAdminText(TEXT);
   const { language, setLanguage } = useAdminLanguage();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const hasOwnLogo = Boolean(logoUrl) && ![BRAND_LOGO, BRAND_LOGO_LIGHT, '/defbuuklogo.png', '/blbuuklogo.png'].includes(logoUrl!);
   const { overview: billing } = useBilling();
 
   useEffect(() => {
@@ -177,14 +178,6 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200"
-      >
-        {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
-
       {/* Sidebar Backdrop */}
       {sidebarOpen && (
         <div 
@@ -195,18 +188,27 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen w-72 z-[56] lg:z-auto
+        fixed lg:sticky top-0 left-0 h-screen w-72 max-w-[85vw] z-[56] lg:z-auto
         transform transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+      `} style={{ height: '100dvh' }}>
         <div className="h-full bg-gradient-to-b from-[#1A1714] via-[#211D1A] to-[#151210] text-white flex flex-col relative overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#A09990]/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
           
           {/* Header */}
-          <div className="p-6 border-b border-white/10 relative">
-            <div className="flex items-center justify-center mb-4">
+          <div className="relative border-b border-white/10 p-4 lg:p-6" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label={t.closeMenu}
+              className="absolute right-3 top-3 rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+              style={{ top: 'max(0.75rem, env(safe-area-inset-top))' }}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mb-3 flex items-center justify-center lg:mb-4">
               <img
                 src={
                   !logoUrl ||
@@ -232,7 +234,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
             <PlanNotice
               overview={billing}
               canUpgrade={adminUser?.role === 'owner' || adminUser?.role === 'admin'}
-              onUpgrade={() => { requestSettingsTab('subscription'); onViewChange('settings'); }}
+              onUpgrade={() => { requestSettingsTab('subscription'); onViewChange('settings'); setSidebarOpen(false); }}
             />
           </div>
 
@@ -328,7 +330,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           </nav>
 
           {/* Footer */}
-          <div className="relative space-y-2.5 border-t border-white/10 p-3">
+          <div className="relative space-y-2.5 border-t border-white/10 p-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
             <div role="radiogroup" aria-label={t.language} className="flex items-center gap-1 rounded-xl bg-white/[0.06] p-1">
               <Languages className="mx-1.5 h-3.5 w-3.5 shrink-0 text-white/40" aria-hidden="true" />
               {ADMIN_LANGUAGES.map((option) => {
@@ -399,7 +401,27 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto min-h-screen">
+      <main className="flex-1 overflow-y-auto min-h-screen min-w-0">
+        <header
+          className="sticky top-0 z-40 flex items-center gap-3 border-b border-stone-200/70 bg-white/85 px-4 pb-2 backdrop-blur-xl lg:hidden"
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label={t.openMenu}
+            className="-ml-1 rounded-xl p-2 text-[#1A1714] hover:bg-stone-900/[0.05]"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          {hasOwnLogo ? (
+            <span className="rounded-lg bg-[#1A1714] px-2.5 py-1">
+              <img src={logoUrl!} alt={t.businessLogo} className="h-6 w-auto max-w-[45vw] object-contain" />
+            </span>
+          ) : (
+            <img src={BRAND_LOGO} alt={BRAND_NAME} className="h-6 w-auto" />
+          )}
+        </header>
         <ProfileCompletionBanner onSetupClick={() => { requestSettingsTab('profile'); onViewChange('settings'); }} />
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
