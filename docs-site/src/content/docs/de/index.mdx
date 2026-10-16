@@ -1,0 +1,28 @@
+---
+title: Zenno Hilfe
+description: Schritt-für-Schritt-Hilfe für Ihre Rezeption mit Zenno. POS-Kalender, Buchungen, Gutscheine, Zahlungen und die KI-Rezeption.
+template: splash
+hero:
+  tagline: Kurze Anleitungen für Ihre Rezeption. Suchen Sie aus, was Sie tun möchten, folgen Sie den Schritten, fertig.
+  actions:
+    - text: Erste Schritte
+      link: /de/start/first-steps/
+      icon: right-arrow
+    - text: An den Support schreiben
+      link: mailto:support@zennohq.com
+      icon: email
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## Was möchten Sie tun?
+
+<CardGrid>
+  <LinkCard title="Einen Termin am Telefon eintragen" href="/de/pos/create-booking/" description="Ein Gast ruft an. Freie Zeit suchen, Namen eintragen, fertig." />
+  <LinkCard title="Zeit blockieren" href="/de/pos/block-time/" description="Eine Therapeutin geht früher, oder Sie halten eine Zeit für einen Anrufer frei." />
+  <LinkCard title="Gutschein verkaufen oder einlösen" href="/de/money/sell-voucher/" description="An der Theke, mit wenigen Klicks." />
+  <LinkCard title="KI-Rezeption einschalten" href="/de/ai-receptionist/turn-on/" description="Antwortet auf WhatsApp, per E-Mail und auf Ihrer Website." />
+  <LinkCard title="Der KI sagen, wie sie schreiben soll" href="/de/ai-receptionist/personality/" description="Persönlichkeit, Ton und gute Gewohnheiten. Oder sie lernt alles von Ihrer Website." />
+  <LinkCard title="Hilfe von einem Menschen" href="/de/help/get-help/" description="Schreiben Sie an support@zennohq.com." />
+</CardGrid>

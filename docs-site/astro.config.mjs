@@ -28,7 +28,7 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Start here', translations: { de: 'Erste Schritte', th: 'เริ่มต้นใช้งาน' }, items: [{ autogenerate: { directory: 'start' } }] },
 				{ label: 'POS & calendar', translations: { de: 'POS & Kalender', th: 'POS และปฏิทิน' }, items: [{ autogenerate: { directory: 'pos' } }] },
-				{ label: 'Bookings & customers', translations: { de: 'Buchungen & Kund:innen', th: 'การจองและลูกค้า' }, items: [{ autogenerate: { directory: 'customers' } }] },
+				{ label: 'Bookings & customers', translations: { de: 'Buchungen & Kunden', th: 'การจองและลูกค้า' }, items: [{ autogenerate: { directory: 'customers' } }] },
 				{ label: 'Vouchers & money', translations: { de: 'Gutscheine & Geld', th: 'บัตรของขวัญและการเงิน' }, items: [{ autogenerate: { directory: 'money' } }] },
 				{ label: 'AI receptionist', translations: { de: 'KI-Rezeption', th: 'พนักงานต้อนรับ AI' }, items: [{ autogenerate: { directory: 'ai-receptionist' } }] },
 				{ label: 'Team & settings', translations: { de: 'Team & Einstellungen', th: 'ทีมและการตั้งค่า' }, items: [{ autogenerate: { directory: 'settings' } }] },

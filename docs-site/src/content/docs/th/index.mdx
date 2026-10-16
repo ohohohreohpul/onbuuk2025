@@ -1,0 +1,28 @@
+---
+title: ศูนย์ช่วยเหลือ Zenno
+description: คู่มือทีละขั้นตอนสำหรับหน้าร้านของคุณใน Zenno – ปฏิทิน POS การจอง บัตรของขวัญ การชำระเงิน และพนักงานต้อนรับ AI
+template: splash
+hero:
+  tagline: คู่มือสั้นๆ ทีละขั้นตอนสำหรับหน้าร้าน เลือกสิ่งที่อยากทำ ทำตามขั้นตอน เสร็จเลย
+  actions:
+    - text: เริ่มต้นใช้งาน
+      link: /th/start/first-steps/
+      icon: right-arrow
+    - text: เขียนถึงฝ่ายช่วยเหลือ
+      link: mailto:support@zennohq.com
+      icon: email
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## คุณอยากทำอะไร?
+
+<CardGrid>
+  <LinkCard title="ลงนัดให้ลูกค้าที่โทรมา" href="/th/pos/create-booking/" description="ลูกค้าโทรมา: หาเวลาว่าง ใส่ชื่อ เสร็จเลย" />
+  <LinkCard title="ปิดเวลา" href="/th/pos/block-time/" description="พนักงานกลับก่อน หรือคุณจองเวลาไว้ให้คนที่โทรมา" />
+  <LinkCard title="ขายหรือใช้บัตรของขวัญ" href="/th/money/sell-voucher/" description="ทำได้ที่เคาน์เตอร์ แตะไม่กี่ครั้ง" />
+  <LinkCard title="เปิดพนักงานต้อนรับ AI" href="/th/ai-receptionist/turn-on/" description="ตอบลูกค้าทาง WhatsApp อีเมล และเว็บไซต์ของคุณ" />
+  <LinkCard title="บอก AI ว่าควรพูดอย่างไร" href="/th/ai-receptionist/personality/" description="บุคลิก น้ำเสียง และนิสัยที่ดี – หรือให้เรียนรู้จากเว็บไซต์ของคุณ" />
+  <LinkCard title="ขอความช่วยเหลือจากทีมงาน" href="/th/help/get-help/" description="เขียนถึง support@zennohq.com" />
+</CardGrid>
