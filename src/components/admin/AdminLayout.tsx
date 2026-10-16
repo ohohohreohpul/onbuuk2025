@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  ListChecks,
   Languages,
   Mail
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
 import HelpModal from './HelpModal';
 import PlanNotice from './billing/PlanNotice';
+import MobileTabBar, { type TabItem } from './MobileTabBar';
 import { useBilling } from './billing/useBilling';
 import { requestSettingsTab } from '../../lib/settingsNavigation';
 import { ADMIN_LANGUAGES, AdminLanguage, useAdminLanguage, useAdminText } from '../../lib/adminLanguage';
@@ -44,14 +46,14 @@ const TEXT: Translations<{
   dashboard: string; pos: string; receptionist: string; today: string; calendar: string; bookings: string; customers: string;
   business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string;
   money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
-  documentation: string; help: string; openMenu: string; closeMenu: string; logout: string; poweredBy: string; language: string; businessLogo: string;
+  documentation: string; help: string; tabInbox: string; more: string; tabsLabel: string; openMenu: string; closeMenu: string; logout: string; poweredBy: string; language: string; businessLogo: string;
 }> = {
   en: {
     dashboard: 'Dashboard', pos: 'POS', receptionist: 'AI receptionist', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
     business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
     team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', money: 'Money', fees: 'No-Show Fees',
     loyalty: 'Vouchers', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
-    documentation: 'Documentation', help: 'Get Help', openMenu: 'Open menu', closeMenu: 'Close menu', logout: 'Logout', poweredBy: 'Powered by',
+    documentation: 'Documentation', help: 'Get Help', tabInbox: 'Inbox', more: 'More', tabsLabel: 'Quick navigation', openMenu: 'Open menu', closeMenu: 'Close menu', logout: 'Logout', poweredBy: 'Powered by',
     language: 'Language', businessLogo: 'Business logo',
   },
   de: {
@@ -59,7 +61,7 @@ const TEXT: Translations<{
     business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
     team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', money: 'Finanzen', fees: 'No-Show-Gebühren',
     loyalty: 'Gutscheine', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
-    documentation: 'Dokumentation', help: 'Hilfe', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen', logout: 'Abmelden', poweredBy: 'Powered by',
+    documentation: 'Dokumentation', help: 'Hilfe', tabInbox: 'Chats', more: 'Mehr', tabsLabel: 'Schnellnavigation', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen', logout: 'Abmelden', poweredBy: 'Powered by',
     language: 'Sprache', businessLogo: 'Firmenlogo',
   },
   th: {
@@ -67,7 +69,7 @@ const TEXT: Translations<{
     business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
     team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
     loyalty: 'บัตรของขวัญ', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
-    documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', openMenu: 'เปิดเมนู', closeMenu: 'ปิดเมนู', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
+    documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', tabInbox: 'แชท', more: 'เพิ่มเติม', tabsLabel: 'เมนูลัด', openMenu: 'เปิดเมนู', closeMenu: 'ปิดเมนู', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
     language: 'ภาษา', businessLogo: 'โลโก้ร้าน',
   },
 };
@@ -167,6 +169,18 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       ]
     }
   ];
+
+  // Phones: the daily places in a bottom tab bar (same permissions as the menu).
+  const TAB_IDS = ['pos', 'receptionist', 'bookings', 'customers'];
+  const tabItems: TabItem[] = allMenuGroups
+    .flatMap((group) => group.items)
+    .filter((item) => TAB_IDS.includes(item.id) && (loading || hasAnyPermission(item.permissions)))
+    .sort((a, b) => TAB_IDS.indexOf(a.id) - TAB_IDS.indexOf(b.id))
+    .map((item) => ({
+      id: item.id,
+      icon: item.id === 'bookings' ? ListChecks : item.icon,
+      label: item.id === 'receptionist' ? t.tabInbox : item.label,
+    }));
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -423,10 +437,18 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           )}
         </header>
         <ProfileCompletionBanner onSetupClick={() => { requestSettingsTab('profile'); onViewChange('settings'); }} />
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto p-4 pb-28 sm:p-6 sm:pb-28 lg:p-8">
           {children}
         </div>
       </main>
+      <MobileTabBar
+        items={tabItems}
+        currentView={currentView}
+        moreLabel={t.more}
+        label={t.tabsLabel}
+        onSelect={onViewChange}
+        onMore={() => setSidebarOpen(true)}
+      />
     </div>
   );
 }
