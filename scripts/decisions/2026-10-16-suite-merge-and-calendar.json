@@ -1,0 +1,48 @@
+{
+  "title": "One Zenno suite: merge the AI receptionist into Zenno Booking + calendar-first admin",
+  "state": {
+    "product": "Zenno Booking (this repo): Vite+React SPA + Supabase (eicxhwgxelwcmxcjppwt) + Deno edge functions. Booking pages, payments, gift cards, loyalty, POS, invoices, /agent/v1 hold->confirm API, get_available_slots RPC, notification outbox via pg_cron. Live shops incl. SATUUU99 (German wellness/Thai massage, older non-tech-savvy owners, DE/EN/TH).",
+    "receptionist": "Separate repo ohohohreohpul/zenno (marketed at zennohq.studio, app on zen-agent.vercel.app): Next.js 16 app with its OWN Supabase project. AI chatbot on WhatsApp (unofficial Evolution/Baileys gateway on an always-on server), Telegram, LINE, Messenger/Instagram, webchat widget. Inbox with human takeover, contacts, deals kanban, tasks, campaigns (pg_cron worker), website scrape -> system prompt, prepaid Stripe credits, agency/sub-accounts. Its booking tools only know weekly class slots (schedule_slots), not services/specialists/time_blocks; no hold/confirm, no cancel/reschedule. Auth is a custom HMAC cookie with service-role DB access, tenancy enforced by hand, some hardcoded 'ws-1'. Channel credentials stored plaintext. LLM loop is plain fetch (Deno-portable). Webhooks portable to edge functions.",
+    "goal": "Sell ONE intelligent suite: one login, one database, one admin, the AI books into the real booking calendar.",
+    "complaint": "Owners say the admin is very hard to use; they want the calendar as the main workspace (block staff hours, manage bookings, create bookings, sell/redeem gift cards, take payments right from the calendar).",
+    "constraints": "One developer (Claude). Live shops must not break. Production DB writes/deploys need the user to paste one command. User hates being asked questions."
+  },
+  "decisions": {
+    "architecture": {
+      "instructions": "How should the AI receptionist be merged into Zenno Booking?",
+      "criteria": {
+        "port_into_booking": "Port the receptionist into the booking stack: new tables in the booking Supabase (channel identities, conversations, messages, channel connections, AI config, campaigns), webhooks + AI loop as Supabase edge functions, inbox/AI screens inside the existing admin SPA, booking tools call get_available_slots + hold/confirm. Only the WhatsApp QR gateway stays a separate server. One login, one DB, one UI. ~3-5 weeks.",
+        "engine_service": "Keep the Next.js app as a headless engine on Vercel but repoint it to the booking DB; build the inbox UI in the booking SPA. Two runtimes to maintain, auth bridged. ~2-3 weeks.",
+        "sso_link_two_apps": "Keep two apps and databases, add single sign-on and a link between them. Fast, but still two products."
+      },
+      "fallback": "port_into_booking"
+    },
+    "first_build": {
+      "instructions": "What ships first, given the live usability complaint?",
+      "criteria": {
+        "calendar_workspace_first": "First ship the calendar-first workspace (calendar as home, click empty slot -> new booking / block time, click booking -> one popup with pay/reschedule/cancel/no-show/redeem voucher, plain-language toolbar), then merge the receptionist in phases.",
+        "merge_first": "Start the receptionist merge first, redesign the calendar afterwards.",
+        "both_in_parallel": "Alternate small slices of both every day."
+      },
+      "fallback": "calendar_workspace_first"
+    },
+    "whatsapp": {
+      "instructions": "Which WhatsApp route for the merged suite at launch?",
+      "criteria": {
+        "official_cloud_api_first": "Ship webchat, Telegram, LINE, Messenger/Instagram and official WhatsApp Cloud API first; keep the unofficial QR gateway as opt-in beta later.",
+        "keep_qr_gateway": "Keep the unofficial QR gateway (own number, no Meta verification) as the main WhatsApp route.",
+        "both_at_launch": "Offer both from day one."
+      },
+      "fallback": "official_cloud_api_first"
+    },
+    "credits": {
+      "instructions": "How is the AI receptionist charged inside the suite?",
+      "criteria": {
+        "plan_tier": "Included in a higher subscription tier of the booking plans with a fair-use monthly reply limit.",
+        "prepaid_credits": "Keep prepaid credit packs on top of the booking subscription.",
+        "free_for_now": "Free for existing shops during the pilot, decide pricing later."
+      },
+      "fallback": "plan_tier"
+    }
+  }
+}

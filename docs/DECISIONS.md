@@ -99,3 +99,12 @@
 | storage | **per_user_db** | 0.91 | per_user_db 94%, per_browser 3%, per_shop 3% |
 | rollout | **daily_first** | 1.00 | daily_first 100%, all_at_once 0% |
 | approach | **reuse_inhouse** | 0.98 | reuse_inhouse 99%, i18next 1% |
+
+## 2026-10-16 — One Zenno suite: merge the AI receptionist into Zenno Booking + calendar-first admin (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| architecture | **port_into_booking** | 1.00 | port_into_booking 100%, engine_service 0%, sso_link_two_apps 0% |
+| first_build | **calendar_workspace_first** | 1.00 | calendar_workspace_first 100%, merge_first 0%, both_in_parallel 0% |
+| whatsapp | **official_cloud_api_first** | 0.35 | official_cloud_api_first 57%, keep_qr_gateway 41%, both_at_launch 2% |
+| credits | **prepaid_credits** | 0.97 | prepaid_credits 98%, plan_tier 2%, free_for_now 0% |

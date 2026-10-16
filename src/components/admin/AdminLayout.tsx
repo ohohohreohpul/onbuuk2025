@@ -112,6 +112,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'main',
       label: null,
       items: [
+        { id: 'calendar', label: t.calendar, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars'] },
         { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard, permissions: ['view_reports'] },
       ]
     },
@@ -119,7 +120,6 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'today',
       label: t.today,
       items: [
-        { id: 'calendar', label: t.calendar, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars'] },
         { id: 'bookings', label: t.bookings, icon: Calendar, permissions: ['view_own_bookings', 'view_all_bookings'] },
       ]
     },
@@ -378,7 +378,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-h-screen">
         <ProfileCompletionBanner onSetupClick={() => onViewChange('settings')} />
-        <div className="max-w-7xl mx-auto p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

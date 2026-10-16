@@ -1,466 +1,260 @@
-import { useEffect, useState, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { executeWithTimeout } from '../../lib/queryUtils';
+import { CalendarClock } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, TrendingUp, Clock, Wallet, Plus } from 'lucide-react';
-import CreateBookingModal from './CreateBookingModal';
-import { useCurrency } from '../../lib/currencyContext';
 import { usePermissions } from '../../hooks/usePermissions';
-import { toLocalDateString } from '../../lib/localDateTime';
-import { useSpecialistNames } from '../../hooks/useSpecialistNames';
-import { therapistLabel } from '../../lib/therapistLabel';
 import { useAdminText } from '../../lib/adminLanguage';
-import { Translations, fillText } from '../../lib/bookingLanguage';
+import { toLocalDateString } from '../../lib/localDateTime';
+import CreateBookingModal from './CreateBookingModal';
+import GiftCardStation from './GiftCardStation';
+import BookingTaskModal from './bookings/BookingTaskModal';
+import RescheduleModal from './bookings/RescheduleModal';
+import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from './adminUi';
+import { CALENDAR_TEXT } from './calendar/calendarText';
+import { addDays, fromMinutes, startOfWeek, weekDates } from './calendar/calendarModel';
+import { useCalendarData, CalendarBlock, CalendarBooking } from './calendar/useCalendarData';
+import CalendarToolbar, { CalendarMode } from './calendar/CalendarToolbar';
+import CalendarModal from './calendar/CalendarModal';
+import DayGrid from './calendar/DayGrid';
+import WeekGrid from './calendar/WeekGrid';
+import MonthGrid from './calendar/MonthGrid';
+import SlotActionModal from './calendar/SlotActionModal';
+import BlockTimeModal from './calendar/BlockTimeModal';
+import { BlockDraft, draftFromBlock, phoneFromText } from './calendar/blockDraft';
 
-const TEXT: Translations<{
-  loading: string; title: string; subtitle: string; createBooking: string;
-  todaysBookings: string; revenueThisWeek: string; bookingsThisMonth: string; upcomingToday: string;
-  today: string; previousMonth: string; nextMonth: string;
-  appointmentOne: string; appointmentMany: string; noBookings: string; nothingThisDay: string; noMoreToday: string;
-  minutes: string; service: string;
-  statusConfirmed: string; statusPending: string; statusCompleted: string; statusCancelled: string; statusNoShow: string;
-}> = {
-  en: {
-    loading: 'Loading calendar...', title: 'Calendar', subtitle: 'View and manage bookings', createBooking: 'Create Booking',
-    todaysBookings: "Today's Bookings", revenueThisWeek: 'Revenue This Week', bookingsThisMonth: 'Bookings This Month',
-    upcomingToday: 'Upcoming Today', today: 'Today', previousMonth: 'Previous month', nextMonth: 'Next month',
-    appointmentOne: '{count} appointment', appointmentMany: '{count} appointments', noBookings: 'No bookings',
-    nothingThisDay: 'Nothing scheduled for this day', noMoreToday: 'No more appointments today',
-    minutes: '{count} min', service: 'Service',
-    statusConfirmed: 'Confirmed', statusPending: 'Pending', statusCompleted: 'Completed', statusCancelled: 'Cancelled', statusNoShow: 'No-show',
-  },
-  de: {
-    loading: 'Kalender wird geladen...', title: 'Kalender', subtitle: 'Buchungen ansehen und verwalten', createBooking: 'Buchung erstellen',
-    todaysBookings: 'Buchungen heute', revenueThisWeek: 'Umsatz diese Woche', bookingsThisMonth: 'Buchungen diesen Monat',
-    upcomingToday: 'Heute anstehend', today: 'Heute', previousMonth: 'Vorheriger Monat', nextMonth: 'Nächster Monat',
-    appointmentOne: '{count} Termin', appointmentMany: '{count} Termine', noBookings: 'Keine Buchungen',
-    nothingThisDay: 'An diesem Tag ist nichts geplant', noMoreToday: 'Heute keine weiteren Termine',
-    minutes: '{count} Min.', service: 'Leistung',
-    statusConfirmed: 'Bestätigt', statusPending: 'Ausstehend', statusCompleted: 'Abgeschlossen', statusCancelled: 'Storniert', statusNoShow: 'No-Show',
-  },
-  th: {
-    loading: 'กำลังโหลดปฏิทิน...', title: 'ปฏิทิน', subtitle: 'ดูและจัดการการจอง', createBooking: 'สร้างการจอง',
-    todaysBookings: 'การจองวันนี้', revenueThisWeek: 'รายได้สัปดาห์นี้', bookingsThisMonth: 'การจองเดือนนี้',
-    upcomingToday: 'นัดหมายถัดไปวันนี้', today: 'วันนี้', previousMonth: 'เดือนก่อนหน้า', nextMonth: 'เดือนถัดไป',
-    appointmentOne: '{count} นัดหมาย', appointmentMany: '{count} นัดหมาย', noBookings: 'ไม่มีการจอง',
-    nothingThisDay: 'ไม่มีนัดหมายในวันนี้', noMoreToday: 'วันนี้ไม่มีนัดหมายเพิ่มเติม',
-    minutes: '{count} นาที', service: 'บริการ',
-    statusConfirmed: 'ยืนยันแล้ว', statusPending: 'รอยืนยัน', statusCompleted: 'เสร็จสิ้น', statusCancelled: 'ยกเลิกแล้ว', statusNoShow: 'ไม่มาตามนัด',
-  },
-};
+const DEFAULT_BLOCK_MINUTES = 60;
+const NARROW_SCREEN_PX = 640;
 
-type CalendarText = (typeof TEXT)['en'];
+interface Slot { day: Date; minutes: number; specialistId: string | null }
+interface CreateDraft {
+  date: string;
+  time?: string;
+  specialistId?: string;
+  note?: string;
+  customerQuery?: string;
+  reserved?: { date: string; time: string; specialistId: string };
+}
+interface BlockState { draft: BlockDraft; existing: CalendarBlock | null }
 
-const statusLabel = (status: string, t: CalendarText): string => {
-  switch (status) {
-    case 'confirmed': return t.statusConfirmed;
-    case 'pending': return t.statusPending;
-    case 'completed': return t.statusCompleted;
-    case 'cancelled': return t.statusCancelled;
-    case 'no_show': return t.statusNoShow;
-    default: return status;
-  }
-};
-
-/** Narrow weekday names, Sunday first, in the admin's locale. */
-const weekdayInitials = (locale: string): string[] =>
-  Array.from({ length: 7 }, (_, i) =>
-    new Date(2024, 0, 7 + i).toLocaleDateString(locale, { weekday: 'narrow' })
-  );
-
-interface Booking {
-  id: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  service_name: string;
-  specialist_id: string | null;
-  partner_specialist_id: string | null;
-  booking_date: string;
-  start_time: string;
-  total_price_cents: number | null;
-  status: string;
-  no_show: boolean;
-  is_pair_booking: boolean;
-  services?: { name: string } | null;
-  service_durations?: { price_cents: number; duration_minutes: number } | null;
+function rangeFor(mode: CalendarMode, anchor: Date): { from: Date; to: Date } {
+  if (mode === 'day') return { from: anchor, to: anchor };
+  if (mode === 'week') return { from: startOfWeek(anchor), to: addDays(startOfWeek(anchor), 6) };
+  return { from: new Date(anchor.getFullYear(), anchor.getMonth(), 1), to: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0) };
 }
 
-interface BookingStats {
-  todayBookings: number;
-  weekRevenue: number;
-  monthBookings: number;
-  upcomingToday: Booking[];
+function stepAnchor(mode: CalendarMode, anchor: Date, direction: -1 | 1): Date {
+  if (mode === 'day') return addDays(anchor, direction);
+  if (mode === 'week') return addDays(anchor, direction * 7);
+  return new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1);
 }
 
-// Zenno surface language — matches the dashboard
-const SURFACE =
-  'bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]';
-const ICON_TILE =
-  'w-10 h-10 rounded-xl bg-stone-900/[6%] text-[#1A1714] flex items-center justify-center shrink-0';
-
-function StatusPill({ status, t }: { status: string; t: CalendarText }) {
-  const style =
-    status === 'confirmed'
-      ? 'bg-stone-900/[6%] text-stone-700 border border-stone-200'
-      : status === 'pending'
-        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-        : status === 'completed'
-          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-          : status === 'cancelled'
-            ? 'bg-red-50 text-red-600 border border-red-200'
-            : 'bg-stone-100 text-stone-500 border border-stone-200';
-  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${style}`}>{statusLabel(status, t)}</span>;
+interface CalendarViewProps {
+  onNavigate?: (view: string) => void;
 }
 
-const priceOf = (b: Booking) =>
-  b.total_price_cents ?? b.service_durations?.price_cents ?? 0;
-
-const countable = (b: Booking) => b.status !== 'cancelled' && !b.no_show;
-
-export default function CalendarView() {
-  const { t, locale } = useAdminText(TEXT);
+/** The calendar workspace: see the day, book, block, redeem – without leaving this page. */
+export default function CalendarView({ onNavigate }: CalendarViewProps) {
+  const { t, locale } = useAdminText(CALENDAR_TEXT);
   const adminUser = adminAuth.getCurrentUser();
-  const { hasPermission } = usePermissions(adminUser?.id || null);
-  const { formatPrice } = useCurrency();
-  const canSeeRevenue = hasPermission('view_revenue');
-  const businessId = adminUser?.business_id;
-  const specialistNames = useSpecialistNames(businessId ?? null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [stats, setStats] = useState<BookingStats>({
-    todayBookings: 0,
-    weekRevenue: 0,
-    monthBookings: 0,
-    upcomingToday: [],
+  const businessId = adminUser?.business_id ?? null;
+  const { hasAnyPermission } = usePermissions(adminUser?.id || null);
+  const [mode, setMode] = useState<CalendarMode>('day');
+  const [anchor, setAnchor] = useState(() => new Date());
+  const [staffFilter, setStaffFilter] = useState<string | null>(null);
+  const { from, to } = useMemo(() => rangeFor(mode, anchor), [mode, anchor]);
+  const { data, isLoading, hasError, reload } = useCalendarData(businessId, from, to);
+
+  const [slot, setSlot] = useState<Slot | null>(null);
+  const [createDraft, setCreateDraft] = useState<CreateDraft | null>(null);
+  const [blockState, setBlockState] = useState<BlockState | null>(null);
+  const [openBookingId, setOpenBookingId] = useState<string | null>(null);
+  const [movingBooking, setMovingBooking] = useState<CalendarBooking | null>(null);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [convertingBlock, setConvertingBlock] = useState<CalendarBlock | null>(null);
+
+  const staffName = (id: string | null) => data.staff.find((s) => s.id === id)?.name ?? null;
+  const openBooking = data.bookings.find((b) => b.id === openBookingId) ?? null;
+
+  const isNarrow = typeof window !== 'undefined' && window.innerWidth < NARROW_SCREEN_PX;
+  const title = mode === 'day'
+    ? anchor.toLocaleDateString(locale, isNarrow
+      ? { weekday: 'short', day: 'numeric', month: 'short' }
+      : { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : mode === 'week'
+      ? `${weekDates(anchor)[0].toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – ${weekDates(anchor)[6].toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : anchor.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+
+  const openDay = (day: Date) => { setAnchor(day); setMode('day'); };
+
+  const blockDraftFor = (day: Date, minutes: number, owner: string | null): BlockDraft => ({
+    owner,
+    date: toLocalDateString(day),
+    start: fromMinutes(minutes),
+    end: fromMinutes(minutes + DEFAULT_BLOCK_MINUTES),
   });
-  const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [dayBookings, setDayBookings] = useState<Booking[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchBookings();
-    setTimeout(() => setIsLoaded(true), 50);
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [currentDate]);
+  const afterChange = () => { reload(); };
 
-  const fetchBookings = async () => {
-    if (!mountedRef.current || !businessId) return;
+  /** Opens the appointment form for a reservation; the block is removed only once the appointment is saved. */
+  const convertBlock = (block: CalendarBlock) => {
+    if (!block.specialist_id) return;
+    setBlockState(null);
+    setActionError(null);
+    const draft = draftFromBlock(block);
+    setConvertingBlock(block);
+    setCreateDraft({
+      date: draft.date,
+      time: draft.start,
+      specialistId: block.specialist_id,
+      note: block.reason ?? undefined,
+      customerQuery: phoneFromText(block.reason) || undefined,
+      reserved: { date: draft.date, time: draft.start, specialistId: block.specialist_id },
+    });
+  };
 
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
-    // include a trailing-month slice so stats can cross month boundaries
-    const rangeStart = new Date(year, month - 1, 1);
-
-    try {
-      const rangeStartIso = toLocalDateString(rangeStart);
-      const monthStartIso = toLocalDateString(monthStart);
-      const monthEndIso = toLocalDateString(monthEnd);
-
-      const result = await executeWithTimeout(
-        supabase
-          .from('bookings')
-          .select('*, services(name), service_durations(price_cents, duration_minutes)')
-          .eq('business_id', businessId)
-          .gte('booking_date', rangeStartIso)
-          .lte('booking_date', monthEndIso)
-          .order('booking_date', { ascending: true })
-          .order('start_time', { ascending: true }),
-        { timeout: 8000, retries: 2 }
-      );
-
-      if (!result.error && result.data && mountedRef.current) {
-        const all = result.data as Booking[];
-        const monthBookings = all.filter((b) => b.booking_date >= monthStartIso);
-
-        const todayIso = new Date().toDateString();
-        const todayBookings = monthBookings.filter(
-          (b) => new Date(b.booking_date + 'T00:00:00').toDateString() === todayIso
-        );
-
-        const startOfWeek = new Date();
-        startOfWeek.setHours(0, 0, 0, 0);
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        const weekFromNow: Booking[] = all.filter((b) => {
-          const d = new Date(b.booking_date + 'T00:00:00');
-          return d >= startOfWeek;
-        });
-
-        setBookings(monthBookings);
-        setStats({
-          todayBookings: todayBookings.length,
-          weekRevenue: weekFromNow.reduce((sum, b) => sum + (countable(b) ? priceOf(b) : 0), 0),
-          monthBookings: monthBookings.length,
-          upcomingToday:
-            todayBookings
-              .filter((b) => {
-                const t = new Date(`${b.booking_date}T${b.start_time}`);
-                return t > new Date() && b.status !== 'cancelled';
-              })
-              .slice(0, 5) || [],
-        });
+  const afterCreate = async () => {
+    const block = convertingBlock;
+    setConvertingBlock(null);
+    if (block) {
+      const { error } = await supabase.from('time_blocks').delete().eq('id', block.id);
+      if (error) {
+        console.error('Appointment saved, reservation not removed:', error);
+        setActionError(t.errorRemoveReservation);
       }
-    } catch (error) {
-      console.error('Error fetching calendar data:', error);
-    } finally {
-      if (mountedRef.current) setLoading(false);
     }
+    reload();
   };
-
-  const getDaysInMonth = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startingDayOfWeek = new Date(year, month, 1).getDay();
-
-    const days: (number | null)[] = [];
-    for (let i = 0; i < startingDayOfWeek; i++) days.push(null);
-    for (let i = 1; i <= daysInMonth; i++) days.push(i);
-    return days;
-  };
-
-  const getBookingsForDay = (day: number) => {
-    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return bookings.filter((b) => b.booking_date === dateStr);
-  };
-
-  const handleDateClick = (day: number) => {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    setSelectedDate(date);
-    setDayBookings(getBookingsForDay(day));
-  };
-
-  const previousMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-
-  const formatTime = (time: string) => time.slice(0, 5);
-  const monthYear = currentDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-stone-500">{t.loading}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const days = getDaysInMonth();
-  const statCards = [
-    { title: t.todaysBookings, value: String(stats.todayBookings), icon: CalendarIcon },
-    ...(canSeeRevenue
-      ? [{ title: t.revenueThisWeek, value: formatPrice(stats.weekRevenue), icon: Wallet }]
-      : []),
-    { title: t.bookingsThisMonth, value: String(stats.monthBookings), icon: TrendingUp },
-    { title: t.upcomingToday, value: String(stats.upcomingToday.length), icon: Clock },
-  ];
-
-  const listBookings = selectedDate ? dayBookings : stats.upcomingToday;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div
-        className={`flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
-      >
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">{t.title}</h1>
-          <p className="text-sm text-stone-500">{t.subtitle}</p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-[#1A1714] hover:bg-[#2E2926] text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-[0_2px_12px_rgba(26,23,20,0.16)] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t.createBooking}</span>
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, index) => (
-          <div
-            key={stat.title}
-            className={`${SURFACE} p-5 transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-            style={{ transitionDelay: `${index * 50}ms` }}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className={ICON_TILE}>
-                <stat.icon className="h-4.5 w-4.5 h-[18px] w-[18px]" strokeWidth={1.75} />
-              </div>
-            </div>
-            <p className="text-[13px] font-medium text-stone-500 mb-1">{stat.title}</p>
-            <p className="text-2xl font-semibold tracking-tight text-[#1A1714] tabular-nums">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar + side panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Month grid */}
-        <div
-          className={`lg:col-span-2 ${SURFACE} p-5 transform transition-all duration-500 delay-100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-[15px] font-semibold text-[#1A1714] tracking-tight">{monthYear}</h2>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={previousMonth}
-                aria-label={t.previousMonth}
-                title={t.previousMonth}
-                className="p-2 hover:bg-stone-100 rounded-lg transition-colors text-stone-600"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentDate(new Date());
-                  setSelectedDate(null);
-                }}
-                className="px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
-              >
-                {t.today}
-              </button>
-              <button
-                onClick={nextMonth}
-                aria-label={t.nextMonth}
-                title={t.nextMonth}
-                className="p-2 hover:bg-stone-100 rounded-lg transition-colors text-stone-600"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1.5">
-            {weekdayInitials(locale).map((day, i) => (
-              <div
-                key={i}
-                className="text-center text-[10px] font-semibold text-stone-400 pb-2 uppercase tracking-wider"
-              >
-                {day}
-              </div>
-            ))}
-            {days.map((day, index) => {
-              if (day === null) return <div key={`empty-${index}`} className="aspect-square" />;
-
-              const dayBookingsForCell = getBookingsForDay(day);
-              const activeCount = dayBookingsForCell.filter((b) => b.status !== 'cancelled').length;
-              const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-              const isToday = cellDate.toDateString() === new Date().toDateString();
-              const isSelected = selectedDate?.toDateString() === cellDate.toDateString();
-
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  className={`aspect-square rounded-xl border transition-all duration-150 flex flex-col items-center justify-center gap-1 ${
-                    isSelected
-                      ? 'bg-[#1A1714] text-white border-[#1A1714] shadow-[0_2px_12px_rgba(26,23,20,0.2)]'
-                      : isToday
-                        ? 'bg-[#F0EDE8] border-stone-300'
-                        : 'border-stone-200/70 hover:border-stone-300 hover:bg-stone-50'
-                  }`}
-                >
-                  <span
-                    className={`text-sm font-medium tabular-nums ${
-                      isSelected ? 'text-white' : isToday ? 'text-[#1A1714]' : 'text-stone-600'
-                    }`}
-                  >
-                    {day}
-                  </span>
-                  {activeCount > 0 && (
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-stone-900/[7%] text-stone-600'
-                      }`}
-                    >
-                      {activeCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Day detail */}
-        <div
-          className={`${SURFACE} p-5 transform transition-all duration-500 delay-150 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[15px] font-semibold text-[#1A1714] tracking-tight">
-              {selectedDate
-                ? selectedDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })
-                : t.upcomingToday}
-            </h2>
-            <span className="text-xs text-stone-400">{fillText(listBookings.length === 1 ? t.appointmentOne : t.appointmentMany, { count: listBookings.length })}</span>
-          </div>
-
-          {listBookings.length === 0 ? (
-            <div className="flex flex-col items-center py-10 text-center">
-              <div className="p-3 bg-[#F0EDE8] rounded-xl mb-3">
-                <Clock className="h-5 w-5 text-stone-400" strokeWidth={1.75} />
-              </div>
-              <p className="text-sm text-stone-500">{t.noBookings}</p>
-              <p className="text-xs text-stone-400 mt-1">
-                {selectedDate ? t.nothingThisDay : t.noMoreToday}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {listBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="border border-stone-200/70 bg-white/80 rounded-xl p-3 hover:border-stone-300 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[#1A1714] tabular-nums">
-                        {formatTime(booking.start_time)}
-                      </span>
-                      <span className="text-xs text-stone-400">
-                        {fillText(t.minutes, { count: booking.service_durations?.duration_minutes ?? '–' })}
-                      </span>
-                    </div>
-                    <StatusPill status={booking.status} t={t} />
-                  </div>
-                  <p className="text-sm font-medium text-stone-700 truncate">{booking.customer_name}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-stone-500 truncate">
-                      {booking.services?.name || booking.service_name || t.service}
-                      {` · ${therapistLabel(booking, specialistNames)}`}
-                    </p>
-                    {canSeeRevenue && priceOf(booking) > 0 && (
-                      <span className="text-xs font-semibold text-[#1A1714] tabular-nums shrink-0">
-                        {formatPrice(priceOf(booking))}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <CreateBookingModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={() => {
-          fetchBookings();
-        }}
+    <div className="space-y-4">
+      <CalendarToolbar
+        title={title}
+        mode={mode}
+        staff={data.staff}
+        staffFilter={staffFilter}
+        canSellVouchers={Boolean(onNavigate) && hasAnyPermission(['process_payments', 'view_gift_cards'])}
+        t={t}
+        onMode={setMode}
+        onStep={(direction) => setAnchor((current) => stepAnchor(mode, current, direction))}
+        onToday={() => setAnchor(new Date())}
+        onStaffFilter={setStaffFilter}
+        onNewBooking={() => setCreateDraft({ date: toLocalDateString(mode === 'month' ? new Date() : anchor), specialistId: staffFilter ?? undefined })}
+        onBlockTime={() => setBlockState({ draft: blockDraftFor(mode === 'month' ? new Date() : anchor, 12 * 60, staffFilter), existing: null })}
+        onRedeemVoucher={() => setIsRedeeming(true)}
+        onSellVoucher={() => onNavigate?.('loyalty')}
       />
+
+      {actionError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p>}
+
+      <div className={`${ADMIN_SURFACE} overflow-hidden`}>
+        {hasError ? (
+          <div className="flex flex-col items-center gap-3 p-10 text-center">
+            <CalendarClock className="h-8 w-8 text-stone-400" />
+            <p className="text-sm text-stone-600">{t.loadFailed}</p>
+            <button type="button" onClick={reload} className={ADMIN_SECONDARY_BUTTON}>{t.retry}</button>
+          </div>
+        ) : isLoading && data.staff.length === 0 ? (
+          <div className="flex justify-center p-16"><div className="h-9 w-9 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900" /></div>
+        ) : (
+          <div className="max-h-[calc(100vh-260px)] min-h-[420px] overflow-y-auto">
+            {mode === 'day' && (
+              <DayGrid day={anchor} data={data} staffFilter={staffFilter} t={t}
+                onSlot={(day, minutes, specialistId) => setSlot({ day, minutes, specialistId })}
+                onBooking={(b) => setOpenBookingId(b.id)}
+                onBlock={(block) => setBlockState({ draft: blockDraftFor(anchor, 0, null), existing: block })}
+              />
+            )}
+            {mode === 'week' && (
+              <WeekGrid anchor={anchor} data={data} staffFilter={staffFilter} t={t} locale={locale}
+                onSlot={(day, minutes, specialistId) => setSlot({ day, minutes, specialistId })}
+                onBooking={(b) => setOpenBookingId(b.id)}
+                onBlock={(block) => setBlockState({ draft: blockDraftFor(anchor, 0, null), existing: block })}
+                onOpenDay={openDay}
+              />
+            )}
+            {mode === 'month' && (
+              <MonthGrid anchor={anchor} data={data} staffFilter={staffFilter} t={t} locale={locale} onOpenDay={openDay} />
+            )}
+          </div>
+        )}
+      </div>
+      <p className="text-sm text-stone-500">{t.hint}</p>
+
+      {slot && (
+        <SlotActionModal
+          dateLabel={slot.day.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+          time={fromMinutes(slot.minutes)}
+          staffName={staffName(slot.specialistId)}
+          t={t}
+          onClose={() => setSlot(null)}
+          onBook={() => {
+            setCreateDraft({ date: toLocalDateString(slot.day), time: fromMinutes(slot.minutes), specialistId: slot.specialistId ?? undefined });
+            setSlot(null);
+          }}
+          onBlock={() => {
+            setBlockState({ draft: blockDraftFor(slot.day, slot.minutes, slot.specialistId), existing: null });
+            setSlot(null);
+          }}
+        />
+      )}
+
+      {createDraft && (
+        <CreateBookingModal
+          isOpen
+          preselectedDate={createDraft.date}
+          preselectedTime={createDraft.time}
+          preselectedSpecialistId={createDraft.specialistId}
+          preselectedNote={createDraft.note}
+          customerQuery={createDraft.customerQuery}
+          reserved={createDraft.reserved}
+          onClose={() => { setCreateDraft(null); setConvertingBlock(null); }}
+          onSuccess={afterCreate}
+        />
+      )}
+
+      {blockState && businessId && (
+        <BlockTimeModal
+          businessId={businessId}
+          staff={data.staff}
+          draft={blockState.draft}
+          existing={blockState.existing}
+          t={t}
+          onClose={() => setBlockState(null)}
+          onSaved={() => { setBlockState(null); afterChange(); }}
+          onConvert={convertBlock}
+        />
+      )}
+
+      {openBookingId && (
+        <BookingTaskModal
+          bookingId={openBookingId}
+          onClose={() => setOpenBookingId(null)}
+          onChanged={afterChange}
+          moreActions={openBooking && (
+            <button type="button" onClick={() => { setMovingBooking(openBooking); setOpenBookingId(null); }} className={ADMIN_SECONDARY_BUTTON}>
+              <CalendarClock className="h-4 w-4" />{t.move}
+            </button>
+          )}
+        />
+      )}
+
+      {movingBooking && (
+        <RescheduleModal
+          booking={movingBooking}
+          onClose={() => setMovingBooking(null)}
+          onMoved={() => { setMovingBooking(null); afterChange(); }}
+        />
+      )}
+
+      {isRedeeming && businessId && (
+        <CalendarModal title={t.voucherTitle} closeLabel={t.close} onClose={() => setIsRedeeming(false)} maxWidthClass="max-w-xl">
+          <GiftCardStation
+            businessId={businessId}
+            onNavigate={(view) => { setIsRedeeming(false); onNavigate?.(view); }}
+          />
+        </CalendarModal>
+      )}
     </div>
   );
 }

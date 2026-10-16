@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Loader2, X } from 'lucide-react';
+import { Check, Loader2, Phone, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
 import { useAdminText } from '../../../lib/adminLanguage';
@@ -10,6 +10,7 @@ import { ADMIN_MODAL, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDAR
 import QuickPay from './QuickPay';
 import RecordPaymentModal from './RecordPaymentModal';
 import PaymentSummary from './PaymentSummary';
+import StaffNoteEditor from './StaffNoteEditor';
 import { markBookingNoShow, setBookingStatus } from './bookingActions';
 import { openCentsOf, stepOf } from './bookingSteps';
 import type { BookingPayment, PaymentMethod } from './paymentMethods';
@@ -62,6 +63,7 @@ interface TaskBooking {
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
+  notes: string | null;
   final_amount_cents: number | null;
   service: { name: string; no_show_fee: number } | null;
   duration: { price_cents: number; duration_minutes: number } | null;
@@ -89,7 +91,7 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
   const load = useCallback(async () => {
     const { data, error: loadError } = await supabase
       .from('bookings')
-      .select('id, business_id, booking_date, start_time, status, no_show, payment_status, customer_name, customer_email, customer_phone, final_amount_cents, service:services(name, no_show_fee), duration:service_durations(price_cents, duration_minutes), payments:booking_payments(id, method, amount_cents, voided_at, gift_card_id, reference, created_at, booking_id)')
+      .select('id, business_id, booking_date, start_time, status, no_show, payment_status, customer_name, customer_email, customer_phone, notes, final_amount_cents, service:services(name, no_show_fee), duration:service_durations(price_cents, duration_minutes), payments:booking_payments(id, method, amount_cents, voided_at, gift_card_id, reference, created_at, booking_id)')
       .eq('id', bookingId)
       .maybeSingle();
     if (loadError || !data) {
@@ -149,6 +151,11 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
                 {new Date(`${booking.booking_date}T00:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })} · {booking.start_time.slice(0, 5)}
               </p>
               <p className="text-sm text-stone-500">{booking.service?.name} · {formatPrice(booking.final_amount_cents ?? booking.duration?.price_cents ?? 0)}</p>
+              {booking.customer_phone && (
+                <a href={`tel:${booking.customer_phone.replace(/[^\d+]/g, '')}`} className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-[#1A1714] underline-offset-2 hover:underline">
+                  <Phone className="h-3.5 w-3.5" />{booking.customer_phone}
+                </a>
+              )}
             </div>
           ) : <h2 id="booking-task-title" className="sr-only">…</h2>}
           <button type="button" onClick={onClose} aria-label={t.close} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-900/[0.05] hover:text-stone-700"><X className="h-5 w-5" /></button>
@@ -212,6 +219,10 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
               )}
             </>
           )}
+          {booking && (
+            <StaffNoteEditor bookingId={booking.id} businessId={booking.business_id} customerNote={booking.notes} onSaved={onChanged} />
+          )}
+
           {booking && moreActions && (
             <section className="border-t border-stone-200/70 pt-4">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">{t.more}</h3>

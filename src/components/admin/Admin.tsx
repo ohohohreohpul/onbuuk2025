@@ -22,6 +22,12 @@ import { executeWithTimeout } from '../../lib/queryUtils';
 import { BRAND_LOGO } from '../../lib/brand';
 
 const AUTH_CHECK_TIMEOUT = 15000;
+
+/** Drops sign-in leftovers (OAuth hash, tokens) from the address but keeps the open page. */
+function cleanAdminUrl() {
+  const view = new URLSearchParams(window.location.search).get('view');
+  window.history.replaceState({}, document.title, view ? `/admin?view=${encodeURIComponent(view)}` : '/admin');
+}
 const OAUTH_PROCESSING_TIMEOUT = 60000;
 
 export default function Admin() {
@@ -59,8 +65,26 @@ function AdminPanel() {
 
     if (requestedView && validViews.has(requestedView)) return requestedView;
     if (params.has('connect_return') || params.has('connect_refresh')) return 'settings';
-    return 'dashboard';
+    return 'calendar';
   });
+
+  // Keep ?view= in the address bar so Back, refresh and shared links work.
+  const navigate = (view: string) => {
+    setCurrentView(view);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('view') === view) return;
+    url.searchParams.set('view', view);
+    window.history.pushState({ view }, '', url);
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      const view = new URLSearchParams(window.location.search).get('view');
+      setCurrentView(view || 'calendar');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
   const processingOAuthRef = useRef(false);
   const authCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
@@ -149,7 +173,7 @@ function AdminPanel() {
             { timeout: 8000, retries: 1 }
           ).catch(err => console.error('Failed to update last login:', err));
 
-          window.history.replaceState({}, document.title, '/admin');
+          cleanAdminUrl();
 
           if (authCheckTimeoutRef.current) {
             clearTimeout(authCheckTimeoutRef.current);
@@ -257,7 +281,7 @@ function AdminPanel() {
           localStorage.setItem('current_business_id', business.id);
           localStorage.setItem('business_permalink', business.permalink);
 
-          window.history.replaceState({}, document.title, '/admin');
+          cleanAdminUrl();
 
           if (authCheckTimeoutRef.current) {
             clearTimeout(authCheckTimeoutRef.current);
@@ -364,11 +388,11 @@ function AdminPanel() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <DashboardView onNavigate={setCurrentView} />;
+        return <DashboardView onNavigate={navigate} />;
       case 'calendar':
-        return <CalendarView />;
+        return <CalendarView onNavigate={navigate} />;
       case 'bookings':
-        return <BookingsView onNavigate={setCurrentView} />;
+        return <BookingsView onNavigate={navigate} />;
       case 'customers':
         return <CustomersView />;
       case 'services':
@@ -394,14 +418,14 @@ function AdminPanel() {
       case 'marketing':
         return <MarketingView />;
       default:
-        return <DashboardView onNavigate={setCurrentView} />;
+        return <CalendarView onNavigate={navigate} />;
     }
   };
 
   return (
     <AdminLayout
       currentView={currentView}
-      onViewChange={setCurrentView}
+      onViewChange={navigate}
       onLogout={handleLogout}
     >
       {renderView()}
