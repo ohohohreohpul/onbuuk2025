@@ -125,6 +125,8 @@ interface RecentBooking {
 
 interface DashboardViewProps {
   onNavigate: (view: string) => void;
+  /** Shown under the calendar on the POS home screen: no own header, no voucher scanner (the calendar toolbar has both). */
+  isEmbedded?: boolean;
 }
 
 const ZERO_STATS: DashboardStats = {
@@ -210,8 +212,8 @@ function WeeklyBars({ days }: { days: { label: string; count: number; isToday: b
   const max = Math.max(...days.map((d) => d.count), 1);
   return (
     <div className="flex items-end gap-2 h-28">
-      {days.map((day) => (
-        <div key={day.label} className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
+      {days.map((day, index) => (
+        <div key={`${index}-${day.label}`} className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
           <span
             className={`text-[11px] font-medium tabular-nums ${
               day.count > 0 ? 'text-stone-700' : 'text-stone-300'
@@ -236,7 +238,7 @@ function WeeklyBars({ days }: { days: { label: string; count: number; isToday: b
   );
 }
 
-export default function DashboardView({ onNavigate }: DashboardViewProps) {
+export default function DashboardView({ onNavigate, isEmbedded = false }: DashboardViewProps) {
   const adminUser = adminAuth.getCurrentUser();
   const { hasPermission } = usePermissions(adminUser?.id || null);
   const { formatPrice } = useCurrency();
@@ -482,6 +484,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
 
   return (
     <div className="space-y-6">
+      {!isEmbedded && (
+        <>
       {/* Header */}
       <div
         className={`relative z-20 flex items-center justify-between transform transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
@@ -519,6 +523,8 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
+        </>
+      )}
 
       {/* Action Centre — daily briefing */}
       <div className={`transform transition-all duration-500 delay-75 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
@@ -608,7 +614,7 @@ export default function DashboardView({ onNavigate }: DashboardViewProps) {
         <div
           className={`transform transition-all duration-500 delay-150 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
         >
-          <GiftCardStation businessId={adminUser?.business_id || ''} onNavigate={onNavigate} />
+          {!isEmbedded && <GiftCardStation businessId={adminUser?.business_id || ''} onNavigate={onNavigate} />}
         </div>
       </div>
 

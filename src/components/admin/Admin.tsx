@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import AdminLayout from './AdminLayout';
-import DashboardView from './DashboardView';
 import BookingsView from './BookingsView';
 import CustomersView from './CustomersView';
 import ServicesView from './ServicesView';
 import SpecialistsView from './SpecialistsView';
 import TeamManagementView from './TeamManagementView';
 import SettingsView from './SettingsView';
-import CalendarView from './CalendarView';
+import PosHomeView from './PosHomeView';
 import { LoyaltyRewardsView } from './LoyaltyRewardsView';
 import NoShowFeesView from './NoShowFeesView';
 import TaxReportsView from './TaxReportsView';
@@ -388,9 +387,8 @@ function AdminPanel() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <DashboardView onNavigate={navigate} />;
       case 'calendar':
-        return <CalendarView onNavigate={navigate} />;
+        return <PosHomeView onNavigate={navigate} />;
       case 'bookings':
         return <BookingsView onNavigate={navigate} />;
       case 'customers':
@@ -418,7 +416,7 @@ function AdminPanel() {
       case 'marketing':
         return <MarketingView />;
       default:
-        return <CalendarView onNavigate={navigate} />;
+        return <PosHomeView onNavigate={navigate} />;
     }
   };
 
