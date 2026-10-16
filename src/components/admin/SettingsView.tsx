@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { SETTINGS_TAB_EVENT } from '../../lib/settingsNavigation';
 import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code, FileUp, Receipt } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
@@ -50,21 +51,29 @@ const TEXT: Translations<{
 
 type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget' | 'import' | 'invoices';
 
+const VALID_TABS: SettingsTab[] = [
+  'account', 'profile', 'general', 'appearance', 'welcome-features', 'colors',
+  'payment', 'subscription', 'emails', 'gift-cards', 'widget', 'import', 'invoices',
+];
+
+function resolveTab(requested: string | null, isOwner: boolean): SettingsTab {
+  const tab = requested as SettingsTab | null;
+  if (!tab || !VALID_TABS.includes(tab)) return 'account';
+  return tab === 'payment' && !isOwner ? 'account' : tab;
+}
+
 export default function SettingsView() {
   const { t } = useAdminText(TEXT);
   const currentUser = adminAuth.getCurrentUser();
   const isOwner = currentUser?.role === 'owner';
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
-    const requestedTab = new URLSearchParams(window.location.search).get('tab') as SettingsTab | null;
-    const validTabs: SettingsTab[] = [
-      'account', 'profile', 'general', 'appearance', 'welcome-features', 'colors',
-      'payment', 'subscription', 'emails', 'gift-cards', 'widget', 'import', 'invoices',
-    ];
-    if (requestedTab && validTabs.includes(requestedTab)) {
-      return requestedTab === 'payment' && !isOwner ? 'account' : requestedTab;
-    }
-    return 'account';
-  });
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
+    resolveTab(new URLSearchParams(window.location.search).get('tab'), isOwner));
+
+  useEffect(() => {
+    const onRequest = (event: Event) => setActiveTab(resolveTab((event as CustomEvent<string>).detail, isOwner));
+    window.addEventListener(SETTINGS_TAB_EVENT, onRequest);
+    return () => window.removeEventListener(SETTINGS_TAB_EVENT, onRequest);
+  }, [isOwner]);
 
   const tabs = [
     { id: 'account' as SettingsTab, name: t.account, icon: User },

@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
 import HelpModal from './HelpModal';
+import { requestSettingsTab } from '../../lib/settingsNavigation';
 import { ADMIN_LANGUAGES, AdminLanguage, useAdminLanguage, useAdminText } from '../../lib/adminLanguage';
 import { Translations } from '../../lib/bookingLanguage';
 import {
@@ -391,7 +392,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-h-screen">
-        <ProfileCompletionBanner onSetupClick={() => onViewChange('settings')} />
+        <ProfileCompletionBanner onSetupClick={() => { requestSettingsTab('profile'); onViewChange('settings'); }} />
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>

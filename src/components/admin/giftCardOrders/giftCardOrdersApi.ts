@@ -102,3 +102,70 @@ export async function setBonusHanded(orderId: string, isHanded: boolean): Promis
   const { error } = await supabase.rpc('set_gift_card_order_bonus_handed', { p_order_id: orderId, p_handed: isHanded });
   if (error) throw error;
 }
+
+export interface PackageItemDraft {
+  kind: 'service_pass' | 'value';
+  service_id: string | null;
+  duration_id: string | null;
+  value_cents: number | null;
+  quantity: number;
+  label: string;
+}
+
+export interface PackageDraft {
+  name: string;
+  subtitle: string;
+  description: string;
+  price_cents: number;
+  compare_at_cents: number | null;
+  bonus_note: string;
+  valid_from: string | null;
+  valid_until: string | null;
+  stock_limit: number | null;
+  is_active: boolean;
+  items: PackageItemDraft[];
+}
+
+export interface ServiceOption {
+  id: string;
+  name: string;
+  durations: { id: string; duration_minutes: number; price_cents: number }[];
+}
+
+export async function loadServiceOptions(businessId: string): Promise<ServiceOption[]> {
+  const { data, error } = await supabase
+    .from('services')
+    .select('id, name, service_durations(id, duration_minutes, price_cents)')
+    .eq('business_id', businessId)
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((service) => ({
+    id: service.id,
+    name: service.name,
+    durations: [...(service.service_durations ?? [])].sort((a, b) => a.duration_minutes - b.duration_minutes),
+  }));
+}
+
+export async function loadPackageDraft(packageId: string): Promise<PackageDraft> {
+  const { data, error } = await supabase
+    .from('gift_card_packages')
+    .select('name, subtitle, description, price_cents, compare_at_cents, bonus_note, valid_from, valid_until, stock_limit, is_active, gift_card_package_items(kind, service_id, duration_id, value_cents, quantity, label, display_order)')
+    .eq('id', packageId)
+    .single();
+  if (error) throw error;
+  const items = [...(data.gift_card_package_items ?? [])].sort((a, b) => a.display_order - b.display_order);
+  return {
+    name: data.name, subtitle: data.subtitle ?? '', description: data.description ?? '',
+    price_cents: data.price_cents, compare_at_cents: data.compare_at_cents, bonus_note: data.bonus_note ?? '',
+    valid_from: data.valid_from, valid_until: data.valid_until, stock_limit: data.stock_limit, is_active: data.is_active,
+    items: items.map(({ kind, service_id, duration_id, value_cents, quantity, label }) => ({ kind, service_id, duration_id, value_cents, quantity, label: label ?? '' })),
+  };
+}
+
+/** Creates or updates a set and replaces its contents in one step (database function). */
+export async function savePackage(packageId: string | null, draft: PackageDraft): Promise<string> {
+  const { items, ...pkg } = draft;
+  const { data, error } = await supabase.rpc('save_gift_card_package', { p_package_id: packageId, p_package: pkg, p_items: items });
+  if (error) throw error;
+  return data as string;
+}

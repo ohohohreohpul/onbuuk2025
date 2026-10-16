@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Package, Search, ShoppingBag } from 'lucide-react';
+import { Loader2, Package, Plus, Search, ShoppingBag } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { useCurrency } from '../../../lib/currencyContext';
 import { downloadGiftCardsPDF, type GiftCardData } from '../../../lib/giftCardPdfGenerator';
-import { ADMIN_INPUT, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_SEGMENTED_CONTROL, ADMIN_SURFACE } from '../adminUi';
+import { ADMIN_INPUT, ADMIN_SECONDARY_BUTTON, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_SEGMENTED_CONTROL, ADMIN_SURFACE } from '../adminUi';
 import OrderCard from './OrderCard';
 import OrderTaskModal from './OrderTaskModal';
+import PackageEditorModal from './PackageEditorModal';
+import { PACKAGE_EDITOR_TEXT } from './packageEditorText';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText, Translations } from '../../../lib/bookingLanguage';
 import {
@@ -79,6 +81,8 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
   const { businessId, language } = useTenant();
   const { currency, currencySymbol, formatAmount } = useCurrency();
   const { t, locale } = useAdminText(TEXT);
+  const { t: setText } = useAdminText(PACKAGE_EDITOR_TEXT);
+  const [editingSet, setEditingSet] = useState<{ id: string | null } | null>(null);
   const [orders, setOrders] = useState<GiftCardOrder[]>([]);
   const [packages, setPackages] = useState<PackageSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -158,11 +162,16 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
 
   return (
     <div className="space-y-6">
-      {packages.length > 0 && (
-        <section aria-labelledby="gift-packages-heading" className={`${ADMIN_SURFACE} p-5`}>
-          <h2 id="gift-packages-heading" className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#1A1714]">
-            <Package className="h-4 w-4" /> {t.voucherSets}
-          </h2>
+      <section aria-labelledby="gift-packages-heading" className={`${ADMIN_SURFACE} p-5`}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 id="gift-packages-heading" className="flex items-center gap-2 text-sm font-semibold text-[#1A1714]">
+              <Package className="h-4 w-4" /> {t.voucherSets}
+            </h2>
+            <button type="button" onClick={() => setEditingSet({ id: null })} className={ADMIN_SECONDARY_BUTTON}>
+              <Plus className="h-4 w-4" />{setText.newSet}
+            </button>
+          </div>
+          {packages.length === 0 && <p className="text-sm text-stone-500">{setText.noSets}</p>}
           <ul className="divide-y divide-stone-200/70">
             {packages.map((pkg) => (
               <li key={pkg.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
@@ -189,10 +198,19 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
                   />
                   {t.onSale}
                 </label>
+                <button type="button" onClick={() => setEditingSet({ id: pkg.id })} className={`${ADMIN_SECONDARY_BUTTON} py-1.5`}>{setText.edit}</button>
               </li>
             ))}
           </ul>
         </section>
+
+      {editingSet && businessId && (
+        <PackageEditorModal
+          businessId={businessId}
+          packageId={editingSet.id}
+          onClose={() => setEditingSet(null)}
+          onSaved={() => { setEditingSet(null); refresh(); }}
+        />
       )}
 
       <section aria-labelledby="gift-orders-heading" className="space-y-4">

@@ -241,3 +241,20 @@ Deno.test("website style: page text, about link and model reply parsing", async 
   const suggestion = parseStyleSuggestion('Here you go:\n{"personality":"calm","length":"short","emoji":"party","initiative":"guide","briefing":"Du bist ruhig.","habits":["use_name"]}');
   assertEquals(suggestion, { personality: "calm", length: "short", emoji: "mirror", initiative: "guide", briefing: "Du bist ruhig." });
 });
+
+Deno.test("prompt: speaks as the shop, never as AI or Zenno; replies in the latest message's language", async () => {
+  const { buildSystemPrompt } = await import("./prompt.ts");
+  const settings = { assistant_name: "", address_form: "sie", faq: [], playbook: {} } as unknown as import("./shopContext.ts").ReceptionistSettings;
+  const ctx = {
+    businessId: "b", name: "SATUUU99", address: null, phone: null, language: "de", shopUrl: null, consentPolicy: "auto",
+    leadTimeMinutes: 0, holdSeconds: 300, catalog: [], staff: [], vouchers: [], promotion: null, openingHours: [], allowStaffChoice: false,
+    giftCards: { enabled: false, presetCents: [], customMinCents: null, customMaxCents: null, payInStore: false }, settings,
+  } as import("./shopContext.ts").ShopContext;
+  const text = buildSystemPrompt(ctx, { channel: "whatsapp", contactName: null, contactEmail: null, contactPhone: null, memory: "", isVerified: true }, new Date("2026-10-16T13:00:00Z"));
+  const opening = text.split("\n")[0];
+  assert(opening.includes('answer messages for "SATUUU99"'));
+  assertFalse(/AI|receptionist|Zenno/i.test(opening));
+  assert(text.includes("Never call yourself an AI"));
+  assert(text.includes("LATEST message"));
+  assertFalse(text.includes("say you are the shop's AI assistant"));
+});
