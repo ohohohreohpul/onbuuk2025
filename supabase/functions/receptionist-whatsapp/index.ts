@@ -85,6 +85,12 @@ async function gatewayWebhook(supabase: Client, req: Request): Promise<Response>
       }).eq("business_id", settings.business_id);
     } else if (event.kind === "message" && settings.whatsapp_provider === "qr_gateway") {
       EdgeRuntime.waitUntil(handleMessages(supabase, settings, [event.message]));
+    } else if (event.kind === "self_test" && settings.whatsapp_provider === "qr_gateway") {
+      // Only the shop's own "Message yourself" chat: sender and chat are the connected number.
+      const ownNumber = (settings.whatsapp_display_phone ?? "").replace(/\D/g, "");
+      if (ownNumber && event.message.from === ownNumber) {
+        EdgeRuntime.waitUntil(handleMessages(supabase, settings, [{ ...event.message, name: "Test" }]));
+      }
     }
   }
   return ok();

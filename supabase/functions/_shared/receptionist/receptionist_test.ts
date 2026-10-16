@@ -158,3 +158,12 @@ Deno.test("FAQ entries are formatted as data, empty ones dropped", async () => {
   assertEquals(formatFaq([{ question: "Parken?", answer: "Hinterhof,\nkostenlos" }, { question: "", answer: "x" }]),
     "\n## Questions and answers (from the shop)\nQ: Parken?\nA: Hinterhof, kostenlos");
 });
+
+Deno.test("gateway: #test in the own chat becomes a self-test, other own messages are ignored", () => {
+  const event = (text: string) => parseGatewayWebhook({
+    event: "messages.upsert", instance: "zenno_x",
+    data: { key: { id: "S1", remoteJid: "491771234567@s.whatsapp.net", fromMe: true }, message: { conversation: text } },
+  });
+  assertEquals(event("#test Habt ihr morgen frei?"), [{ kind: "self_test", instance: "zenno_x", message: { messageId: "S1", from: "491771234567", name: null, text: "Habt ihr morgen frei?" } }]);
+  assertEquals(event("Einkaufsliste: Öl, Handtücher"), []);
+});

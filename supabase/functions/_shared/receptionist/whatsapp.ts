@@ -13,6 +13,8 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const WARMUP_START_CAP = 20;
 const WARMUP_MAX_CAP = 200;
 const WARMUP_RAMP_DAYS = 60;
+/** "#test Habt ihr morgen frei?" in the shop's own chat simulates a customer. */
+const TEST_PREFIX = /^\s*#test\b[\s:]*([\s\S]+)$/i;
 
 export class WhatsappError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -199,6 +201,7 @@ export type GatewayEvent =
   | { kind: "message"; instance: string; message: InboundWhatsapp }
   | { kind: "connection"; instance: string; state: "open" | "close" | "connecting"; phone: string | null }
   | { kind: "qr"; instance: string; qr: string | null }
+  | { kind: "self_test"; instance: string; message: InboundWhatsapp }
   | { kind: "ignore" };
 
 /** Evolution webhook body -> events (groups, own messages and non-text messages are ignored). */
@@ -219,10 +222,16 @@ export function parseGatewayWebhook(payload: unknown): GatewayEvent[] {
   // deno-lint-ignore no-explicit-any
   return items.flatMap((d: any): GatewayEvent[] => {
     const jid = String(d?.key?.remoteJid ?? "");
-    if (d?.key?.fromMe || !jid.endsWith("@s.whatsapp.net")) return [];
+    if (!jid.endsWith("@s.whatsapp.net")) return [];
     const text = d.message?.conversation ?? d.message?.extendedTextMessage?.text ?? d.message?.imageMessage?.caption ?? d.message?.videoMessage?.caption;
     if (!text || !d.key?.id) return [];
-    return [{ kind: "message", instance, message: { messageId: String(d.key.id), from: phoneDigits(jid.split("@")[0]), name: d.pushName ?? null, text: String(text).slice(0, 4000) } }];
+    const from = phoneDigits(jid.split("@")[0]);
+    if (d.key.fromMe) {
+      // Own messages are ignored – except "#test …" in the shop's "Message yourself" chat (checked by the caller).
+      const test = TEST_PREFIX.exec(String(text));
+      return test ? [{ kind: "self_test", instance, message: { messageId: String(d.key.id), from, name: null, text: test[1].slice(0, 4000) } }] : [];
+    }
+    return [{ kind: "message", instance, message: { messageId: String(d.key.id), from, name: d.pushName ?? null, text: String(text).slice(0, 4000) } }];
   });
 }
 
