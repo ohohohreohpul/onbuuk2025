@@ -79,7 +79,7 @@ async function overview(admin: Admin) {
       aiConfigured: isLlmConfigured(),
       jevConfigured: isTypesafeConfigured(),
       qrGatewayAvailable: isGatewayConfigured(),
-      mailbox: mailbox ? { address: mailbox.from_email, smtpHost: mailbox.smtp_host } : null,
+      mailbox: mailbox ? { address: mailbox.from_email, smtpHost: mailbox.smtp_host, provider: mailbox.provider } : null,
       hasCloudToken: Boolean(token.data),
       needsHuman: needsHuman.count ?? 0,
       drafts: drafts.count ?? 0,
@@ -180,8 +180,9 @@ async function connectEmail(admin: Admin, body: Body) {
     throw new InputError(error instanceof ImapError ? error.message : "This mail server name could not be found");
   }
   const mailbox = await shopMailbox(admin.supabaseAdmin, admin.businessId);
-  if (!mailbox) throw new InputError("First set up your own mailbox under Settings > Emails (SMTP).");
+  if (!mailbox) throw new InputError("First set up email sending under Settings > Emails.");
   const username = str(body.imapUsername, 254) || mailbox.smtp_username;
+  if (mailbox.provider === "resend" && !EMAIL.test(username ?? "")) throw new InputError("Enter the full address of the mailbox customers write to, e.g. info@your-shop.de");
   const password = str(body.imapPassword, 500);
   const effectivePassword = password || mailbox.smtp_password;
   if (!username || !effectivePassword) throw new InputError("User name and password are needed");

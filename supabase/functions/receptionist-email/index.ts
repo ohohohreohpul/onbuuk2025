@@ -37,11 +37,11 @@ async function saveState(supabase: Client, businessId: string, patch: Record<str
 
 async function pollShop(supabase: Client, settings: ReceptionistSettings, deadline: number): Promise<number> {
   const mailbox = await shopMailbox(supabase, settings.business_id);
-  if (!mailbox || !settings.imap_host) throw new ImapError("Mailbox not configured (SMTP settings + IMAP server needed)");
+  if (!mailbox || !settings.imap_host) throw new ImapError("Mailbox not configured (email sending + IMAP server needed)");
   const username = settings.imap_username || mailbox.smtp_username;
   const password = (await getSecret(supabase, settings.business_id, "imap_password")) || mailbox.smtp_password;
   if (!username || !password) throw new ImapError("Mailbox user name or password missing");
-  const ownAddress = String(mailbox.from_email).toLowerCase();
+  const ownAddresses = new Set([mailbox.from_email, username].map((a) => String(a).toLowerCase()));
 
   const client = new ImapClient();
   let handled = 0;
@@ -66,7 +66,7 @@ async function pollShop(supabase: Client, settings: ReceptionistSettings, deadli
       await saveState(supabase, settings.business_id, { imap_last_uid: uid, imap_uidvalidity: uidValidity });
       if (!raw) continue;
       const mail = await parseEmail(raw);
-      if (mail.isAutomated || !mail.fromAddress || mail.fromAddress === ownAddress || !mail.body) continue;
+      if (mail.isAutomated || !mail.fromAddress || ownAddresses.has(mail.fromAddress) || !mail.body) continue;
       await handleInbound(supabase, settings, {
         channel: "email",
         externalId: mail.fromAddress,

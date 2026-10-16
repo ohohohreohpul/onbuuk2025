@@ -62,6 +62,7 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
   const [isCopied, setIsCopied] = useState(false);
   const [greeting, setGreeting] = useState(settings.widget_greeting);
   const [color, setColor] = useState(settings.widget_color ?? '#1A1714');
+  const isResend = status.mailbox?.provider === 'resend';
   const suggestedImap = status.mailbox?.smtpHost?.replace(/^smtp\./, 'imap.') ?? '';
   const [imap, setImap] = useState({ host: settings.imap_host ?? suggestedImap, port: String(settings.imap_port ?? 993), user: settings.imap_username ?? '', password: '' });
   const [wa, setWa] = useState({ phoneNumberId: '', token: '', appSecret: '' });
@@ -131,17 +132,19 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
           <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.mailboxMissing}</p>
         ) : (
           <>
-            <p className="text-sm text-stone-600">{fillText(t.mailboxFound, { address: status.mailbox.address })}</p>
+            <p className="text-sm text-stone-600">
+              {fillText(isResend ? t.mailboxResend : t.mailboxFound, { address: status.mailbox.address })}
+            </p>
             {settings.imap_host && (settings.imap_error
               ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{fillText(t.mailboxError, { error: settings.imap_error })}</p>
               : <p className="text-sm text-emerald-700">{fillText(t.mailboxConnected, { time: time(settings.imap_checked_at) })}</p>)}
             <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
               <label className="text-sm text-stone-600">{t.imapHost}<input value={imap.host} onChange={(e) => setImap({ ...imap, host: e.target.value })} placeholder="imap.strato.de" className={`${ADMIN_INPUT} mt-1`} /></label>
               <label className="text-sm text-stone-600">{t.imapPort}<input inputMode="numeric" value={imap.port} onChange={(e) => setImap({ ...imap, port: e.target.value })} className={`${ADMIN_INPUT} mt-1`} /></label>
-              <label className="text-sm text-stone-600">{t.imapUser}<input value={imap.user} onChange={(e) => setImap({ ...imap, user: e.target.value })} placeholder={t.imapUserHint} className={`${ADMIN_INPUT} mt-1`} autoComplete="off" /></label>
-              <label className="text-sm text-stone-600">{t.imapPassword}<input type="password" value={imap.password} onChange={(e) => setImap({ ...imap, password: e.target.value })} placeholder={t.imapPasswordHint} className={`${ADMIN_INPUT} mt-1`} autoComplete="new-password" /></label>
+              <label className="text-sm text-stone-600">{isResend ? t.readMailbox : t.imapUser}<input value={imap.user} onChange={(e) => setImap({ ...imap, user: e.target.value })} placeholder={isResend ? 'info@…' : t.imapUserHint} className={`${ADMIN_INPUT} mt-1`} autoComplete="off" /></label>
+              <label className="text-sm text-stone-600">{t.imapPassword}<input type="password" value={imap.password} onChange={(e) => setImap({ ...imap, password: e.target.value })} placeholder={isResend ? '' : t.imapPasswordHint} className={`${ADMIN_INPUT} mt-1`} autoComplete="new-password" /></label>
             </div>
-            <button type="button" disabled={isBusy !== null || !imap.host} onClick={() => act('email', 'connect_email', { imapHost: imap.host, imapPort: Number(imap.port), imapUsername: imap.user, imapPassword: imap.password })} className={ADMIN_PRIMARY_BUTTON}>
+            <button type="button" disabled={isBusy !== null || !imap.host || (isResend && (!imap.user || (!imap.password && !settings.imap_host)))} onClick={() => act('email', 'connect_email', { imapHost: imap.host, imapPort: Number(imap.port), imapUsername: imap.user, imapPassword: imap.password })} className={ADMIN_PRIMARY_BUTTON}>
               {isBusy === 'email' && <Loader2 className="h-4 w-4 animate-spin" />}{isBusy === 'email' ? t.testingMailbox : t.connectMailbox}
             </button>
             <ModePicker mode={settings.email_mode} t={t} onChange={(mode) => save({ email_mode: mode })} />

@@ -39,7 +39,7 @@ export interface Overview {
     aiConfigured: boolean;
     jevConfigured: boolean;
     qrGatewayAvailable: boolean;
-    mailbox: { address: string; smtpHost: string | null } | null;
+    mailbox: { address: string; smtpHost: string | null; provider: 'smtp' | 'resend' } | null;
     hasCloudToken: boolean;
     needsHuman: number;
     drafts: number;
