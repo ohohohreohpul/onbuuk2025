@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { authorizationErrorResponse, requireActiveAdmin } from "../_shared/adminAuthorization.ts";
 import { sendReply } from "../_shared/receptionist/agent.ts";
-import { appendMessage, updateConversation, type ConversationRow } from "../_shared/receptionist/conversations.ts";
+import { appendMessage, updateConversation, upsertConversation, type ConversationRow } from "../_shared/receptionist/conversations.ts";
 import { makeDeliver, shopMailbox } from "../_shared/receptionist/deliver.ts";
 import { assertPublicMailHost, ImapClient, ImapError } from "../_shared/receptionist/imap.ts";
 import { isLlmConfigured } from "../_shared/receptionist/llm.ts";
+import { sanitizePlaybook } from "../_shared/receptionist/playbook.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
 import { isTypesafeConfigured } from "../_shared/typesafe.ts";
 import { cloudVerify, gatewayConnect, gatewayDisconnect, isGatewayConfigured, toWhatsappNumber } from "../_shared/receptionist/whatsapp.ts";
@@ -106,6 +107,7 @@ async function updateSettings(admin: Admin, body: Body) {
     if (!["sie", "du"].includes(String(input.address_form))) throw new InputError("Choose Sie or du");
     patch.address_form = input.address_form;
   }
+  if ("playbook" in input) patch.playbook = sanitizePlaybook(input.playbook);
   if ("faq" in input) {
     if (!Array.isArray(input.faq) || input.faq.length > MAX_FAQ) throw new InputError(`At most ${MAX_FAQ} questions`);
     patch.faq = (input.faq as Body[]).map((item) => ({
@@ -156,6 +158,39 @@ async function sendDraft(admin: Admin, body: Body) {
   });
   await updateConversation(admin.supabaseAdmin, conversation.id, { unread_count: 0 });
   return { message };
+}
+
+/** Staff starts a chat on WhatsApp or email (a personal message, not a campaign). */
+async function startConversation(admin: Admin, body: Body) {
+  const channel = String(body.channel ?? "");
+  const text = need(str(body.text, MAX_REPLY_CHARS), "Write a message first");
+  const name = str(body.name, 120) || null;
+  const settings = await ensureSettings(admin);
+  let externalId: string;
+  let contact: { name: string | null; email?: string; phone?: string; subject?: string };
+  if (channel === "whatsapp") {
+    if (settings.whatsapp_status !== "connected") throw new InputError("Connect WhatsApp first (Channels).");
+    if (settings.whatsapp_provider === "cloud_api") throw new InputError("Official WhatsApp only allows approved templates for new chats. Use 'WhatsApp messages' for that.");
+    const number = toWhatsappNumber(str(body.to, 40));
+    if (!number) throw new InputError("Enter a valid phone number, e.g. 0157 1234 5678");
+    externalId = number;
+    contact = { name, phone: `+${number}` };
+  } else if (channel === "email") {
+    const email = str(body.to, 254).toLowerCase();
+    if (!EMAIL.test(email)) throw new InputError("Enter a valid email address");
+    if (!(await shopMailbox(admin.supabaseAdmin, admin.businessId))) throw new InputError("Set up email sending first (Settings > Emails).");
+    externalId = email;
+    contact = { name, email, subject: need(str(body.subject, 200), "An email needs a subject") };
+  } else {
+    throw new InputError("Choose WhatsApp or email");
+  }
+  const conversation = await upsertConversation(admin.supabaseAdmin, admin.businessId, channel, externalId, contact);
+  if (contact.subject) await updateConversation(admin.supabaseAdmin, conversation.id, { subject: contact.subject });
+  const message = await sendReply(admin.supabaseAdmin, { ...conversation, subject: contact.subject ?? conversation.subject }, text, "staff",
+    makeDeliver(admin.supabaseAdmin, settings), { by: admin.admin.id, started_by_staff: true });
+  await updateConversation(admin.supabaseAdmin, conversation.id, { is_ai_paused: true, unread_count: 0, status: "open" });
+  if (message?.status === "failed") throw new InputError("The message could not be delivered. Check the number/address and the channel connection.");
+  return { conversationId: conversation.id };
 }
 
 async function discardDraft(admin: Admin, body: Body) {
@@ -382,6 +417,7 @@ const ACTIONS: Record<string, { managerOnly: boolean; run: (admin: Admin, body: 
   reply: { managerOnly: false, run: staffReply },
   send_draft: { managerOnly: false, run: sendDraft },
   discard_draft: { managerOnly: false, run: discardDraft },
+  start_conversation: { managerOnly: false, run: startConversation },
   set_conversation: { managerOnly: false, run: setConversation },
   connect_email: { managerOnly: true, run: connectEmail },
   connect_whatsapp_cloud: { managerOnly: true, run: connectWhatsappCloud },

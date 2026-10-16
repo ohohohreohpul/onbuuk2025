@@ -10,12 +10,15 @@ import InboxPanel from './InboxPanel';
 import ChannelsPanel from './ChannelsPanel';
 import KnowledgePanel from './KnowledgePanel';
 import OutreachPanel from './OutreachPanel';
+import PlaybookPanel from './PlaybookPanel';
+import { PLAYBOOK_TEXT } from './playbookText';
 
-type Tab = 'inbox' | 'channels' | 'knowledge' | 'outreach';
+type Tab = 'inbox' | 'channels' | 'knowledge' | 'playbook' | 'outreach';
 
 /** AI receptionist: one switch, then inbox / channels / knowledge / WhatsApp outreach. */
 export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const { t } = useAdminText(RECEPTIONIST_TEXT);
+  const { t: playbookText } = useAdminText(PLAYBOOK_TEXT);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hasError, setHasError] = useState(false);
   const [tab, setTab] = useState<Tab>('inbox');
@@ -50,6 +53,7 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
     { id: 'inbox', label: t.tabInbox, badge: status.needsHuman + status.drafts },
     { id: 'channels', label: t.tabChannels },
     { id: 'knowledge', label: t.tabKnowledge },
+    { id: 'playbook', label: playbookText.tab },
     { id: 'outreach', label: t.tabOutreach },
   ];
 
@@ -91,9 +95,10 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
         ))}
       </div>
 
-      {tab === 'inbox' && <InboxPanel businessId={settings.business_id} onChanged={load} />}
+      {tab === 'inbox' && <InboxPanel overview={overview} onChanged={load} />}
       {tab === 'channels' && <ChannelsPanel overview={overview} onOverview={setOverview} />}
       {tab === 'knowledge' && <KnowledgePanel overview={overview} onOverview={setOverview} onNavigate={onNavigate} />}
+      {tab === 'playbook' && <PlaybookPanel overview={overview} onOverview={setOverview} />}
       {tab === 'outreach' && <OutreachPanel overview={overview} />}
     </div>
   );

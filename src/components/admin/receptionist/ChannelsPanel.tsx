@@ -5,6 +5,7 @@ import { fillText } from '../../../lib/bookingLanguage';
 import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
 import { callReceptionist, updateSettings, type ChannelMode, type Overview, type ReceptionistSettings } from './receptionistApi';
 import { RECEPTIONIST_TEXT, type ReceptionistText } from './receptionistText';
+import { openWidgetPreview } from './widgetPreview';
 
 
 const QR_REFRESH_MS = 10_000;
@@ -102,17 +103,7 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
   const snippet = `<script src="${window.location.origin}/receptionist-widget.js" data-key="${settings.widget_key}" async></script>`;
   const time = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : '–');
 
-  const openPreview = () => {
-    document.querySelectorAll('script[data-zenno-preview]').forEach((s) => s.remove());
-    const script = document.createElement('script');
-    script.src = '/receptionist-widget.js';
-    script.async = true;
-    script.dataset.key = settings.widget_key;
-    script.dataset.open = 'true';
-    script.dataset.zennoPreview = 'true';
-    (window as unknown as { __zennoReceptionist?: boolean }).__zennoReceptionist = false;
-    document.body.appendChild(script);
-  };
+  const openPreview = () => openWidgetPreview(settings.widget_key);
 
   return (
     <div className="space-y-5">

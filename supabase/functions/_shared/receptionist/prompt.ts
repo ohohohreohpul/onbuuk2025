@@ -4,6 +4,7 @@
 
 import type { CatalogEntry, ShopContext, StaffEntry } from "./shopContext.ts";
 import { promptSafe } from "./limits.ts";
+import { formatPlaybook } from "./playbook.ts";
 
 export type Channel = "web" | "email" | "whatsapp";
 
@@ -146,6 +147,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
       ? `Current promotion: ${ctx.promotion.title}${ctx.promotion.text ? ` — ${ctx.promotion.text}` : ""}${ctx.promotion.giftNote ? ` (gift: ${ctx.promotion.giftNote})` : ""}. Mention it when it fits.`
       : "Current promotion: none.",
     formatFaq(settings.faq),
+    formatPlaybook(settings.playbook, { assistant: settings.assistant_name, shop: ctx.name, name: promptSafe(convo.contactName, 60) || null }),
     "",
     "## Customer",
     identity ? `Known: ${identity}.` : "Nothing known yet.",

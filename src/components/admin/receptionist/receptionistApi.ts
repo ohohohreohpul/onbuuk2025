@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 // tables directly (RLS: admins read their own shop).
 
 export type ChannelMode = 'auto' | 'drafts';
+export type Playbook = Partial<Record<string, { enabled: boolean; example: string }>>;
 export type ChannelKey = 'web' | 'email' | 'whatsapp';
 
 export interface ReceptionistSettings {
@@ -12,6 +13,7 @@ export interface ReceptionistSettings {
   assistant_name: string;
   address_form: 'sie' | 'du';
   faq: { question: string; answer: string }[];
+  playbook: Playbook;
   web_enabled: boolean;
   web_mode: ChannelMode;
   widget_key: string;
@@ -101,15 +103,27 @@ export async function callReceptionist<T>(action: string, payload: Record<string
 export const loadOverview = () => callReceptionist<Overview>('overview');
 export const updateSettings = (patch: Partial<ReceptionistSettings>) => callReceptionist<Overview>('update_settings', { patch });
 
-export async function loadConversations(businessId: string, filter: 'all' | 'needs_human' | 'unread'): Promise<Conversation[]> {
+export type InboxFilter = 'all' | 'needs_human' | ChannelKey;
+
+const PREVIEW_WINDOW = 400;
+
+/** Conversations (newest first) with the last message as a preview line. */
+export async function loadConversations(businessId: string, filter: InboxFilter): Promise<(Conversation & { preview: string | null })[]> {
   let query = supabase.from('receptionist_conversations')
     .select('id, channel, external_id, contact_name, contact_email, contact_phone, subject, status, needs_human_reason, is_ai_paused, unread_count, last_message_at')
     .eq('business_id', businessId).order('last_message_at', { ascending: false }).limit(100);
   if (filter === 'needs_human') query = query.eq('status', 'needs_human');
-  if (filter === 'unread') query = query.gt('unread_count', 0);
+  else if (filter !== 'all') query = query.eq('channel', filter);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as Conversation[];
+  const conversations = (data ?? []) as Conversation[];
+  if (conversations.length === 0) return [];
+  const { data: recent } = await supabase.from('receptionist_messages').select('conversation_id, body, author')
+    .in('conversation_id', conversations.map((c) => c.id)).in('status', ['sent', 'draft']).neq('author', 'system')
+    .order('created_at', { ascending: false }).limit(PREVIEW_WINDOW);
+  const previews = new Map<string, string>();
+  for (const m of recent ?? []) if (!previews.has(m.conversation_id)) previews.set(m.conversation_id, m.body as string);
+  return conversations.map((c) => ({ ...c, preview: previews.get(c.id) ?? null }));
 }
 
 export async function loadMessages(conversationId: string): Promise<Message[]> {
