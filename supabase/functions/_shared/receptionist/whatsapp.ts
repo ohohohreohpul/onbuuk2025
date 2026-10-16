@@ -9,7 +9,7 @@
 //             Not official: outreach is throttled by warm-up caps.
 
 const GRAPH_VERSION = "v21.0";
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 20_000; // includes the typing delay
 const WARMUP_START_CAP = 20;
 const WARMUP_MAX_CAP = 200;
 const WARMUP_RAMP_DAYS = 60;
@@ -160,10 +160,12 @@ export function isGatewayConfigured(): boolean {
 
 const gatewayHeaders = (apiKey: string) => ({ apikey: apiKey, "Content-Type": "application/json" });
 
-export async function gatewaySendText(instance: string, to: string, body: string): Promise<string | null> {
+/** delayMs > 0 shows "typing…" to the customer for that long before the message arrives. */
+export async function gatewaySendText(instance: string, to: string, body: string, delayMs = 0): Promise<string | null> {
   const { url, apiKey } = gateway();
   const data = await request(`${url}/message/sendText/${encodeURIComponent(instance)}`, {
-    method: "POST", headers: gatewayHeaders(apiKey), body: JSON.stringify({ number: to, text: body.slice(0, 4096) }),
+    method: "POST", headers: gatewayHeaders(apiKey),
+    body: JSON.stringify({ number: to, text: body.slice(0, 4096), ...(delayMs > 0 ? { delay: delayMs } : {}) }),
   });
   return ((data.key as { id?: string } | undefined)?.id) ?? null;
 }

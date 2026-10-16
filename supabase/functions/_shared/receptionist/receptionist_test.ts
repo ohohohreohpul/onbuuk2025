@@ -167,3 +167,20 @@ Deno.test("gateway: #test in the own chat becomes a self-test, other own message
   assertEquals(event("#test Habt ihr morgen frei?"), [{ kind: "self_test", instance: "zenno_x", message: { messageId: "S1", from: "491771234567", name: null, text: "Habt ihr morgen frei?" } }]);
   assertEquals(event("Einkaufsliste: Öl, Handtücher"), []);
 });
+
+Deno.test("replies read like texting: no markdown, short parts, typing delay", async () => {
+  const { stripMarkdown, splitIntoMessages, typingDelayMs } = await import("./humanize.ts");
+  const ai = "Gerne! Zum Beispiel:\n\n*   **Anti-Stress Gua Sha (30 min, 45,00 €)**: Kopf und Nacken.\n- Premium Fußmassage\n## Mehr\n17. Oktober passt?";
+  assertEquals(stripMarkdown(ai), "Gerne! Zum Beispiel:\n\nAnti-Stress Gua Sha (30 min, 45,00 €): Kopf und Nacken.\nPremium Fußmassage\nMehr\n17. Oktober passt?");
+  assertEquals(splitIntoMessages("A\n\nB\n\nC\n\nD"), ["A", "B", "C\n\nD"]);
+  assertEquals(splitIntoMessages("Nur eine Nachricht."), ["Nur eine Nachricht."]);
+  assertEquals(typingDelayMs("ok"), 1200);
+  assertEquals(typingDelayMs("x".repeat(1000)), 5000);
+});
+
+Deno.test("humanizeText removes chatbot residue and connector dashes, keeps time ranges", async () => {
+  const { humanizeText } = await import("./humanize.ts");
+  assertEquals(humanizeText("Certainly! We have a free slot at 14:00 — would that work?"), "We have a free slot at 14:00, would that work?");
+  assertEquals(humanizeText("Wir haben täglich 10:00–20:00 geöffnet. Ich hoffe, das hilft dir weiter!"), "Wir haben täglich 10:00–20:00 geöffnet.");
+  assertEquals(humanizeText("Morgen um 15 Uhr ist frei. Let me know if you have any other questions."), "Morgen um 15 Uhr ist frei.");
+});

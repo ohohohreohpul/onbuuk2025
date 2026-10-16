@@ -10,6 +10,7 @@ import type { ConversationRow } from "./conversations.ts";
 import { replySubject, safeMessageId, textToHtml } from "./emailParse.ts";
 import type { ReceptionistSettings } from "./shopContext.ts";
 import { cloudSendText, gatewaySendText, WhatsappError } from "./whatsapp.ts";
+import { splitIntoMessages, typingDelayMs } from "./humanize.ts";
 
 export async function getSecret(supabase: SupabaseClient, businessId: string, kind: string): Promise<string | null> {
   const { data, error } = await supabase.rpc("receptionist_get_secret", { p_business_id: businessId, p_kind: kind });
@@ -90,14 +91,22 @@ export function makeDeliver(supabase: SupabaseClient, settings: ReceptionistSett
       return { externalId: (await sendWithSmtp(mailbox, message)).id };
     }
 
+    // Like a person texting: up to three short messages, each after a typing pause.
     const to = conversation.external_id;
+    const parts = splitIntoMessages(body);
+    let lastId: string | null = null;
     if (settings.whatsapp_provider === "cloud_api") {
       const token = await getSecret(supabase, settings.business_id, "whatsapp_cloud_token");
       if (!token || !settings.whatsapp_phone_number_id) throw new WhatsappError("WhatsApp is not connected");
-      return { externalId: await cloudSendText(settings.whatsapp_phone_number_id, token, to, body) };
+      for (const [index, part] of parts.entries()) {
+        if (index > 0) await new Promise((resolve) => setTimeout(resolve, typingDelayMs(part)));
+        lastId = await cloudSendText(settings.whatsapp_phone_number_id, token, to, part);
+      }
+      return { externalId: lastId };
     }
     if (settings.whatsapp_provider === "qr_gateway" && settings.whatsapp_instance) {
-      return { externalId: await gatewaySendText(settings.whatsapp_instance, to, body) };
+      for (const part of parts) lastId = await gatewaySendText(settings.whatsapp_instance, to, part, typingDelayMs(part));
+      return { externalId: lastId };
     }
     throw new WhatsappError("WhatsApp is not connected");
   };

@@ -103,6 +103,22 @@
     if (!on && el) el.remove();
   }
 
+  // Longer answers arrive as up to three bubbles with a short "typing" pause, like a person texting.
+  function showLikeTyping(text) {
+    var parts = text.split(/\n\s*\n/).map(function (p) { return p.trim(); }).filter(Boolean);
+    if (parts.length > 3) parts = parts.slice(0, 2).concat([parts.slice(2).join('\n\n')]);
+    if (!parts.length) parts = [text];
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return parts.reduce(function (chain, part, index) {
+      return chain.then(function () {
+        if (index === 0 || reduceMotion) { typing(false); add(part, 'ai'); return; }
+        typing(true);
+        var pause = Math.min(3000, Math.max(900, part.length * 25));
+        return new Promise(function (resolve) { setTimeout(function () { typing(false); add(part, 'ai'); resolve(); }, pause); });
+      });
+    }, Promise.resolve());
+  }
+
   function request(method, query, body) {
     return fetch(ENDPOINT + (query || ''), {
       method: method,
@@ -139,9 +155,9 @@
     pendingLocal.push(text);
     typing(true);
     request('POST', '', { key: KEY, visitor: visitor, message: text }).then(function (data) {
+      if (data.reply) { lastAt = data.reply.at; seen[data.reply.id] = true; return showLikeTyping(data.reply.text); }
       typing(false);
-      if (data.reply) { add(data.reply.text, 'ai', data.reply.id); lastAt = data.reply.at; }
-      else if (data.waitingForTeam) add(t.team, 'note');
+      if (data.waitingForTeam) add(t.team, 'note');
     }).catch(function (err) {
       typing(false);
       add(err && err.message && err.message.length < 120 ? err.message : t.error, 'note');

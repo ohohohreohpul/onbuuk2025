@@ -74,10 +74,22 @@ function formatVouchers(ctx: ShopContext): string {
   return lines.length ? lines.join("\n") : "(no vouchers on sale)";
 }
 
+// Writing rules adapted from "humanizer" by Siqi Chen (MIT, github.com/blader/humanizer).
+const HUMAN_WRITING = [
+  "Sound like a real person at the front desk, not an assistant.",
+  "Answer first; do not repeat the customer's question or announce what you are about to say.",
+  "No chatbot phrases: never write Certainly!, Of course!, Great question, I hope this helps, Let me know if you have any other questions, Feel free to, or Would you like to hear more options? End with at most one concrete question instead.",
+  "No sales language (stunning, renowned, nestled, oasis, pamper, indulge, a diverse array, unique experience) and no AI words (additionally, crucial, enhance, valuable, vibrant, delve).",
+  "No dashes as connectors, no lists of three for rhythm, no 'not X but Y', no one-line closing sentence that only repeats the point.",
+  "Vary sentence starts; contractions and everyday words are fine.",
+].join(" ");
+
+const TEXTING_STYLE = `Write like the shop's receptionist texting from the shop's phone: short, natural sentences in plain text. Never use bullet points, numbered lists, bold, headings or markdown. Name at most two or three options in one flowing sentence and ask which one they like. No emojis unless the customer uses them. Usually one short message; if you need to say two separate things, put a blank line between them (they are sent as separate messages). ${HUMAN_WRITING}`;
+
 const CHANNEL_STYLE: Record<Channel, string> = {
-  web: "You are chatting in the website chat. Keep replies short: 1–4 sentences, plain text, no markdown headings or tables.",
-  whatsapp: "You are chatting on WhatsApp. Keep replies short and friendly: 1–4 sentences, plain text, no markdown (WhatsApp shows *one asterisk* as bold only).",
-  email: "You are answering an email. Write a complete, polite email body in plain text: greeting, clear answer, next step, sign-off with the shop name. No subject line, no markdown.",
+  web: `You are chatting in the website chat. ${TEXTING_STYLE}`,
+  whatsapp: `You are chatting on WhatsApp. ${TEXTING_STYLE}`,
+  email: `You are answering an email. Write a short, warm email in plain text like a person at the front desk would: greeting, the answer in a few sentences, the next step, sign-off with the shop name. No bullet points, no bold, no markdown, no subject line. ${HUMAN_WRITING}`,
 };
 
 export interface PromptConversation {

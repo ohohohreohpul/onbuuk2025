@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { complete, isLlmConfigured, LlmError, type ChatMessage } from "./llm.ts";
+import { humanizeText } from "./humanize.ts";
 import { buildSystemPrompt, type Channel } from "./prompt.ts";
 import { loadShopContext, type ReceptionistSettings } from "./shopContext.ts";
 import { newOutcome, runTool, TOOL_SCHEMAS, type ToolOutcome, type ToolRun } from "./tools.ts";
@@ -110,7 +111,7 @@ export async function runAgent(
     usage.completionTokens += result.usage.completionTokens;
     const calls = result.message.tool_calls ?? [];
     if (calls.length === 0) {
-      const text = (result.message.content ?? "").trim();
+      const text = humanizeText(result.message.content ?? "");
       return { text: text || FALLBACK_REPLY, outcome: run.outcome, usage };
     }
     messages.push({ role: "assistant", content: result.message.content, tool_calls: calls });
