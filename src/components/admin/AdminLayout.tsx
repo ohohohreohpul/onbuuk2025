@@ -26,6 +26,7 @@ import { useTenant } from '../../lib/tenantContext';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
+import HelpModal from './HelpModal';
 import { ADMIN_LANGUAGES, AdminLanguage, useAdminLanguage, useAdminText } from '../../lib/adminLanguage';
 import { Translations } from '../../lib/bookingLanguage';
 import {
@@ -34,7 +35,6 @@ import {
   BRAND_LOGO_LIGHT,
   BRAND_NAME,
   BRAND_SITE_URL,
-  BRAND_SUPPORT_URL,
 } from '../../lib/brand';
 
 const TEXT: Translations<{
@@ -76,6 +76,7 @@ interface AdminLayoutProps {
   onLogout: () => void;
 }
 
+const FOOTER_TILE = 'flex flex-col gap-2 rounded-xl bg-white/[0.04] px-3 py-2.5 text-white/60 ring-1 ring-white/[0.06] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.09] hover:text-white';
 const SHORT_LANGUAGE_LABEL: Record<string, string> = { de: 'DE', en: 'EN', th: 'ไทย' };
 
 export default function AdminLayout({ children, currentView, onViewChange, onLogout }: AdminLayoutProps) {
@@ -86,6 +87,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t } = useAdminText(TEXT);
   const { language, setLanguage } = useAdminLanguage();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     async function fetchLogo() {
@@ -339,22 +341,20 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
             </div>
 
             <div className="grid grid-cols-2 gap-1.5">
-              {[
-                { href: BRAND_DOCS_URL, label: t.documentation, Icon: Book },
-                { href: BRAND_SUPPORT_URL, label: t.help, Icon: HelpCircle },
-              ].map(({ href, label, Icon }) => (
-                <a
-                  key={href}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group relative flex flex-col gap-2 rounded-xl bg-white/[0.04] px-3 py-2.5 text-white/60 ring-1 ring-white/[0.06] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.09] hover:text-white"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="truncate text-xs font-medium">{label}</span>
-                  <ExternalLink className="absolute right-2.5 top-2.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-50" />
-                </a>
-              ))}
+              <a
+                href={BRAND_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group relative ${FOOTER_TILE}`}
+              >
+                <Book className="h-4 w-4" />
+                <span className="truncate text-xs font-medium">{t.documentation}</span>
+                <ExternalLink className="absolute right-2.5 top-2.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-50" />
+              </a>
+              <button type="button" onClick={() => setIsHelpOpen(true)} className={`text-left ${FOOTER_TILE}`}>
+                <HelpCircle className="h-4 w-4" />
+                <span className="truncate text-xs font-medium">{t.help}</span>
+              </button>
             </div>
 
             <div className="flex items-center justify-between gap-2 px-1 pt-1">
@@ -380,6 +380,14 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           </div>
         </div>
       </aside>
+
+      {isHelpOpen && (
+        <HelpModal
+          account={{ name: adminUser?.full_name ?? '', email: adminUser?.email ?? '', businessId: businessId ?? adminUser?.business_id ?? null }}
+          currentView={currentView}
+          onClose={() => setIsHelpOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-h-screen">

@@ -12,11 +12,12 @@ export const BRAND_SITE_URL = stripTrailingSlash(
 export const BRAND_APP_URL = stripTrailingSlash(
   import.meta.env.VITE_PUBLIC_APP_URL || 'https://app.onbuuk.com'
 );
+export const BRAND_SUPPORT_EMAIL = import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL || 'support@zennohq.com';
 export const BRAND_SUPPORT_URL = stripTrailingSlash(
-  import.meta.env.VITE_PUBLIC_SUPPORT_URL || `${BRAND_SITE_URL}/support`
+  import.meta.env.VITE_PUBLIC_SUPPORT_URL || `mailto:${BRAND_SUPPORT_EMAIL}`
 );
 export const BRAND_DOCS_URL = stripTrailingSlash(
-  import.meta.env.VITE_PUBLIC_DOCS_URL || `${BRAND_SITE_URL}/docs`
+  import.meta.env.VITE_PUBLIC_DOCS_URL || 'https://docs.zennohq.com'
 );
 
 export const BRAND_LOGO = '/zenno-logo.svg';
