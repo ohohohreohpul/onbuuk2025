@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Check, Loader2, Sparkles } from 'lucide-react';
+import { Check, Globe, Loader2, Sparkles } from 'lucide-react';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
-import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON } from '../adminUi';
+import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON } from '../adminUi';
 import { updateSettings, type Briefing, type Habit, type Overview } from './receptionistApi';
 import { BRIEFING_TEXT, EMOJI_STYLES, HABITS, INITIATIVES, LENGTHS, PERSONALITIES } from './briefingText';
 import { openWidgetPreview } from './widgetPreview';
+import LearnFromWebsiteModal from './LearnFromWebsiteModal';
 
 const MAX_BRIEFING_CHARS = 1500;
 const DEFAULT_BRIEFING: Briefing = {
@@ -24,15 +25,23 @@ interface BriefingPanelProps {
 
 /** "Personality": who the receptionist is and how she treats guests, with a live sample reply. */
 export default function BriefingPanel({ overview, onOverview }: BriefingPanelProps) {
-  const { t } = useAdminText(BRIEFING_TEXT);
+  const { t, lang } = useAdminText(BRIEFING_TEXT);
   const saved = useMemo(() => withDefaults(overview.settings.playbook), [overview.settings.playbook]);
   const [draft, setDraft] = useState<Briefing>(saved);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [isLearning, setIsLearning] = useState(false);
+  const [learned, setLearned] = useState(false);
 
   const isDirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const set = <K extends keyof Briefing>(key: K, value: Briefing[K]) => { setDraft((d) => ({ ...d, [key]: value })); setJustSaved(false); };
+  const applySuggestion = (suggestion: Omit<Briefing, 'habits'>) => {
+    setDraft((d) => ({ ...d, ...suggestion }));
+    setIsLearning(false);
+    setLearned(true);
+    setJustSaved(false);
+  };
   const toggleHabit = (habit: Habit) => set('habits', draft.habits.includes(habit) ? draft.habits.filter((h) => h !== habit) : [...draft.habits, habit]);
 
   const save = async () => {
@@ -58,6 +67,10 @@ export default function BriefingPanel({ overview, onOverview }: BriefingPanelPro
             <h2 className="font-semibold text-[#1A1714]">{t.title}</h2>
             <p className="mt-0.5 text-sm text-stone-500">{t.hint}</p>
           </div>
+          <button type="button" onClick={() => setIsLearning(true)} className={`${ADMIN_SECONDARY_BUTTON} py-2`}><Globe className="h-4 w-4" />{t.learn}</button>
+          {learned && isDirty && (
+            <p className="w-full rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900">{t.learnDone}</p>
+          )}
         </header>
 
         <Section title={t.personality}>
@@ -117,6 +130,8 @@ export default function BriefingPanel({ overview, onOverview }: BriefingPanelPro
           </button>
         </footer>
       </div>
+
+      {isLearning && <LearnFromWebsiteModal language={lang} t={t} onClose={() => setIsLearning(false)} onSuggestion={applySuggestion} />}
 
       <aside className="lg:sticky lg:top-4 lg:self-start">
         <SamplePreview draft={draft} assistant={overview.settings.assistant_name} shop={overview.status.shopName ?? ''} t={t} />

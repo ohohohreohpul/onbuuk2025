@@ -14,12 +14,14 @@ type Keys = Record<
   | `l_${ReplyLength}` | `e_${EmojiStyle}` | `i_${Initiative}` | `i_${Initiative}Hint` | `h_${Habit}`
   | 'tab' | 'title' | 'hint' | 'personality' | 'length' | 'emoji' | 'initiative' | 'habits' | 'habitsHint'
   | 'briefing' | 'briefingHint' | 'briefingPlaceholder' | 'preview' | 'previewCustomer' | 'save' | 'saving' | 'saved'
-  | 'saveFailed' | 'unsaved' | 'reset' | 'tryIt',
+  | 'saveFailed' | 'unsaved' | 'reset' | 'tryIt'
+  | 'learn' | 'learnTitle' | 'learnHint' | 'learnUrl' | 'learnGo' | 'learnBusy' | 'learnDone' | 'cancel' | 'close',
   string
 >;
 
 export const BRIEFING_TEXT: Translations<Keys> = {
   en: {
+    learn: 'Learn from my website', learnTitle: 'Learn from your website', learnHint: 'She reads your homepage and \'about us\' page and picks up your tone and atmosphere. You can check everything before saving.', learnUrl: 'Website address', learnGo: 'Read website', learnBusy: 'Reading your website…', learnDone: 'Taken from your website. Check it and save.', cancel: 'Cancel', close: 'Close',
     tab: 'Personality', title: 'Brief your receptionist', hint: 'Tell her who she is and how you want guests treated, like you would brief a new team member. Prices, times and offers always come from your app.',
     personality: 'Personality', length: 'How much she says', emoji: 'Emojis', initiative: 'How proactive', habits: 'Good habits', habitsHint: 'Little things a great receptionist does.',
     briefing: 'Your briefing', briefingHint: 'In your own words: the feeling of your shop, what matters to you, how to treat regulars or nervous first-timers.',
@@ -37,6 +39,7 @@ export const BRIEFING_TEXT: Translations<Keys> = {
     h_mention_promotion: 'Mention the current promotion', h_suggest_gift: 'Suggest a voucher for birthdays and gifts', h_offer_alternatives: 'Offer other times right away when full', h_aftercare: 'Add a caring tip after booking',
   },
   de: {
+    learn: 'Von meiner Website lernen', learnTitle: 'Von Ihrer Website lernen', learnHint: 'Sie liest Ihre Startseite und die Seite „Über uns“ und übernimmt Ton und Atmosphäre. Sie können alles prüfen, bevor Sie speichern.', learnUrl: 'Website-Adresse', learnGo: 'Website lesen', learnBusy: 'Website wird gelesen…', learnDone: 'Von Ihrer Website übernommen. Bitte prüfen und speichern.', cancel: 'Abbrechen', close: 'Schließen',
     tab: 'Persönlichkeit', title: 'Briefen Sie Ihre Rezeption', hint: 'Sagen Sie ihr, wer sie ist und wie Gäste behandelt werden sollen – wie bei einer neuen Kollegin. Preise, Zeiten und Angebote kommen immer aus Ihrer App.',
     personality: 'Persönlichkeit', length: 'Wie viel sie schreibt', emoji: 'Emojis', initiative: 'Wie aktiv', habits: 'Gute Gewohnheiten', habitsHint: 'Kleinigkeiten, die eine tolle Rezeption ausmachen.',
     briefing: 'Ihr Briefing', briefingHint: 'In Ihren Worten: das Gefühl Ihres Ladens, was Ihnen wichtig ist, wie Stammgäste oder unsichere Neukund:innen behandelt werden.',
@@ -54,6 +57,7 @@ export const BRIEFING_TEXT: Translations<Keys> = {
     h_mention_promotion: 'Erwähnt die aktuelle Aktion', h_suggest_gift: 'Schlägt Gutscheine bei Geburtstag & Geschenk vor', h_offer_alternatives: 'Bietet sofort andere Zeiten an, wenn voll', h_aftercare: 'Gibt nach der Buchung einen kleinen Tipp',
   },
   th: {
+    learn: 'เรียนรู้จากเว็บไซต์ของฉัน', learnTitle: 'เรียนรู้จากเว็บไซต์ของคุณ', learnHint: 'AI จะอ่านหน้าแรกและหน้าเกี่ยวกับเรา แล้วจับน้ำเสียงและบรรยากาศของร้าน คุณตรวจดูได้ก่อนบันทึก', learnUrl: 'ที่อยู่เว็บไซต์', learnGo: 'อ่านเว็บไซต์', learnBusy: 'กำลังอ่านเว็บไซต์…', learnDone: 'นำมาจากเว็บไซต์แล้ว กรุณาตรวจและบันทึก', cancel: 'ยกเลิก', close: 'ปิด',
     tab: 'บุคลิก', title: 'บรีฟพนักงานต้อนรับของคุณ', hint: 'บอกว่าเธอเป็นใครและควรดูแลลูกค้าอย่างไร เหมือนบรีฟพนักงานใหม่ ราคา เวลา และโปรโมชั่นจะมาจากแอปเสมอ',
     personality: 'บุคลิก', length: 'ความยาวของคำตอบ', emoji: 'อีโมจิ', initiative: 'ความกระตือรือร้น', habits: 'นิสัยที่ดี', habitsHint: 'สิ่งเล็กๆ ที่พนักงานต้อนรับเก่งๆ ทำ',
     briefing: 'บรีฟของคุณ', briefingHint: 'เขียนด้วยคำของคุณเอง: บรรยากาศของร้าน สิ่งที่สำคัญ วิธีดูแลลูกค้าประจำหรือลูกค้าใหม่',

@@ -217,3 +217,27 @@ Deno.test("briefing: unknown values fall back to defaults, habits filtered, text
   assertEquals(sanitizeBriefing({ greeting: { enabled: true, example: "old" } }), DEFAULT_BRIEFING);
   assert(formatBriefing(null).includes("Warm and caring"));
 });
+
+Deno.test("website style: url normalising refuses internal or odd addresses", async () => {
+  const { normalizeWebsiteUrl } = await import("./websiteStyle.ts");
+  assertEquals(normalizeWebsiteUrl("satuuu99.de").toString(), "https://satuuu99.de/");
+  assertEquals(normalizeWebsiteUrl("http://www.spa.de/ueber#x").toString(), "http://www.spa.de/ueber");
+  for (const bad of ["localhost", "http://127.0.0.1", "https://a:b@spa.de", "https://spa.de:8080", "ftp://spa.de", "x.supabase.co", "nope"]) {
+    let threw = false;
+    try { normalizeWebsiteUrl(bad); } catch { threw = true; }
+    assert(threw, bad);
+  }
+});
+
+Deno.test("website style: page text, about link and model reply parsing", async () => {
+  const { htmlToText, findAboutLink, parseStyleSuggestion } = await import("./websiteStyle.ts");
+  const html = `<html><head><title>Sabai &amp; Co</title><meta name="description" content="Thai Massage in Berlin"><style>.x{}</style></head>
+    <body><script>alert(1)</script><h1>Willkommen</h1><p>Bei uns f&uuml;hlst du dich zu Hause.</p>
+    <a href="https://evil.com/about">x</a><a href="/ueber-uns">Über uns</a></body></html>`;
+  const text = htmlToText(html);
+  assert(text.includes("Sabai & Co") && text.includes("Thai Massage in Berlin") && text.includes("Bei uns fühlst du dich zu Hause."));
+  assertFalse(text.includes("alert") || text.includes(".x{}"));
+  assertEquals(findAboutLink(html, new URL("https://sabai.de/"))?.toString(), "https://sabai.de/ueber-uns");
+  const suggestion = parseStyleSuggestion('Here you go:\n{"personality":"calm","length":"short","emoji":"party","initiative":"guide","briefing":"Du bist ruhig.","habits":["use_name"]}');
+  assertEquals(suggestion, { personality: "calm", length: "short", emoji: "mirror", initiative: "guide", briefing: "Du bist ruhig." });
+});

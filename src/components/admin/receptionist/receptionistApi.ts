@@ -114,6 +114,9 @@ export async function callReceptionist<T>(action: string, payload: Record<string
 }
 
 export const loadOverview = () => callReceptionist<Overview>('overview');
+export const suggestStyle = (url: string, language: string) =>
+  callReceptionist<{ suggestion: Omit<Briefing, 'habits'> }>('suggest_style', { url, language });
+
 export const updateSettings = (patch: Partial<ReceptionistSettings>) => callReceptionist<Overview>('update_settings', { patch });
 
 export type InboxFilter = 'all' | 'needs_human' | ChannelKey;

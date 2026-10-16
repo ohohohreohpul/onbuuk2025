@@ -3,6 +3,8 @@
 // Mails are only read (PEEK) — the shop's mailbox stays as it is.
 // Implicit TLS only (port 993); Supabase edge functions allow it.
 
+import { isPublicHostName, resolvesPublicly } from "./publicHost.ts";
+
 const COMMAND_TIMEOUT_MS = 20_000;
 const READ_TIMEOUT_MS = 10_000;
 const MAX_LITERAL_BYTES = 3_000_000;
@@ -152,21 +154,8 @@ export class ImapClient {
   }
 }
 
-const PRIVATE_V4 = [/^10\./, /^127\./, /^169\.254\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./, /^0\./, /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./];
-
 /** Only public mail servers: no IP literals, no internal names, no private addresses after DNS. */
 export async function assertPublicMailHost(host: string): Promise<void> {
-  const name = host.toLowerCase();
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(name) || /^\d+(\.\d+){3}$/.test(name) || /(^|\.)(localhost|local|internal|supabase\.co|supabase\.net)$/.test(name)) {
-    throw new ImapError("Please enter the mail server's name, e.g. imap.strato.de");
-  }
-  let addresses: string[] = [];
-  try {
-    addresses = await Deno.resolveDns(name, "A");
-  } catch {
-    throw new ImapError("This mail server name could not be found");
-  }
-  if (addresses.length === 0 || addresses.some((ip) => PRIVATE_V4.some((range) => range.test(ip)))) {
-    throw new ImapError("This mail server name could not be found");
-  }
+  if (!isPublicHostName(host)) throw new ImapError("Please enter the mail server's name, e.g. imap.strato.de");
+  if (!(await resolvesPublicly(host))) throw new ImapError("This mail server name could not be found");
 }

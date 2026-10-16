@@ -6,6 +6,8 @@ import { makeDeliver, shopMailbox } from "../_shared/receptionist/deliver.ts";
 import { assertPublicMailHost, ImapClient, ImapError } from "../_shared/receptionist/imap.ts";
 import { isLlmConfigured } from "../_shared/receptionist/llm.ts";
 import { sanitizeBriefing } from "../_shared/receptionist/briefing.ts";
+import { isOverTokenBudget, withinLimit } from "../_shared/receptionist/limits.ts";
+import { suggestStyleFromWebsite, WebsiteError } from "../_shared/receptionist/websiteStyle.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
 import { isTypesafeConfigured } from "../_shared/typesafe.ts";
 import { cloudVerify, gatewayConnect, gatewayDisconnect, isGatewayConfigured, toWhatsappNumber } from "../_shared/receptionist/whatsapp.ts";
@@ -413,9 +415,36 @@ async function pauseCampaign(admin: Admin, body: Body, isPaused: boolean) {
   return { ok: true };
 }
 
+const STYLE_SUGGESTIONS_PER_HOUR = 10;
+const STYLE_LANGUAGES = new Set(["de", "en", "th"]);
+
+/** "Learn from my website": a briefing suggestion the owner reviews before saving. */
+async function suggestStyle(admin: Admin, body: Body) {
+  const { supabaseAdmin: db, businessId } = admin;
+  const url = str(body.url, 500);
+  if (!url) throw new InputError("Please enter your website address");
+  if (!isLlmConfigured()) throw new InputError("The AI is not connected yet");
+  if (!(await withinLimit(db, `style:${businessId}`, 3600, STYLE_SUGGESTIONS_PER_HOUR))) throw new InputError("Please wait a little before trying again");
+  if (await isOverTokenBudget(db, businessId)) throw new InputError("Today's AI budget is used up. Please try again tomorrow.");
+  const language = STYLE_LANGUAGES.has(String(body.language)) ? String(body.language) : "de";
+  try {
+    const { suggestion, usage, model } = await suggestStyleFromWebsite(url, language);
+    const { error } = await db.from("receptionist_usage").insert({
+      business_id: businessId, conversation_id: null, purpose: "test", model, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens,
+    });
+    if (error) console.error("usage insert failed:", error);
+    return { suggestion };
+  } catch (error) {
+    if (error instanceof WebsiteError) throw new InputError(error.message);
+    console.error("style suggestion failed:", error);
+    throw new InputError("Could not read the website right now. Please try again.");
+  }
+}
+
 const ACTIONS: Record<string, { managerOnly: boolean; run: (admin: Admin, body: Body) => Promise<unknown> }> = {
   overview: { managerOnly: false, run: (a) => overview(a) },
   update_settings: { managerOnly: true, run: updateSettings },
+  suggest_style: { managerOnly: true, run: suggestStyle },
   reply: { managerOnly: false, run: staffReply },
   send_draft: { managerOnly: false, run: sendDraft },
   discard_draft: { managerOnly: false, run: discardDraft },
