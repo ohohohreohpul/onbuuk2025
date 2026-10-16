@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy, Globe, Loader2, Mail, MessageCircle, QrCode, ShieldCheck } from 'lucide-react';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
@@ -6,6 +6,8 @@ import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFAC
 import { callReceptionist, updateSettings, type ChannelMode, type Overview, type ReceptionistSettings } from './receptionistApi';
 import { RECEPTIONIST_TEXT, type ReceptionistText } from './receptionistText';
 
+
+const QR_REFRESH_MS = 10_000;
 
 export function Switch({ isOn, label, onChange, isDisabled }: { isOn: boolean; label: string; onChange: (on: boolean) => void; isDisabled?: boolean }) {
   return (
@@ -66,6 +68,15 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
   const [imap, setImap] = useState({ host: settings.imap_host ?? suggestedImap, port: String(settings.imap_port ?? 993), user: settings.imap_username ?? '', password: '' });
   const [wa, setWa] = useState({ phoneNumberId: '', token: '', appSecret: '' });
   const [waChoice, setWaChoice] = useState<'cloud_api' | 'qr_gateway'>(settings.whatsapp_provider ?? 'cloud_api');
+
+  // WhatsApp rotates the pairing QR every ~30–60 s; keep the shown code fresh until it is scanned.
+  useEffect(() => {
+    if (settings.whatsapp_status !== 'pending_qr') return;
+    const timer = window.setInterval(() => {
+      callReceptionist<Overview>('overview').then(onOverview).catch((error) => console.error('QR refresh failed:', error));
+    }, QR_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [settings.whatsapp_status, onOverview]);
 
   const save = async (patch: Partial<ReceptionistSettings>) => {
     setError(null);
