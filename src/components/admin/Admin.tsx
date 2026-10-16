@@ -23,10 +23,19 @@ import { BRAND_LOGO } from '../../lib/brand';
 
 const AUTH_CHECK_TIMEOUT = 15000;
 
+// The app's own parameters (page, settings tab, results coming back from Stripe).
+const KEPT_PARAMS = ['view', 'tab', 'upgrade', 'credits', 'connect_return', 'connect_refresh'];
+
 /** Drops sign-in leftovers (OAuth hash, tokens) from the address but keeps the open page. */
 function cleanAdminUrl() {
-  const view = new URLSearchParams(window.location.search).get('view');
-  window.history.replaceState({}, document.title, view ? `/admin?view=${encodeURIComponent(view)}` : '/admin');
+  const current = new URLSearchParams(window.location.search);
+  const kept = new URLSearchParams();
+  for (const key of KEPT_PARAMS) {
+    const value = current.get(key);
+    if (value) kept.set(key, value);
+  }
+  const query = kept.toString();
+  window.history.replaceState({}, document.title, query ? `/admin?${query}` : '/admin');
 }
 const OAUTH_PROCESSING_TIMEOUT = 60000;
 
