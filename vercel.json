@@ -13,6 +13,14 @@
       "dest": "/api/ai-booking"
     },
     {
+      "src": "/api/receptionist/chat",
+      "dest": "/api/receptionist-chat"
+    },
+    {
+      "src": "/api/receptionist/whatsapp",
+      "dest": "/api/receptionist-whatsapp"
+    },
+    {
       "handle": "filesystem"
     },
     {

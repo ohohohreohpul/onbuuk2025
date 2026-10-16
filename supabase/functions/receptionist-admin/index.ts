@@ -21,6 +21,7 @@ const CORS = {
 const MANAGER_ROLES = ["owner", "admin", "manager"];
 const MAX_REPLY_CHARS = 4000;
 const MAX_IMPORT_ROWS = 3000;
+const MAX_FAQ = 30;
 const HOST = /^[A-Za-z0-9.-]{3,253}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const IMAP_TLS_PORT = 993;
@@ -101,8 +102,17 @@ async function updateSettings(admin: Admin, body: Body) {
     }
   }
   if ("assistant_name" in input) patch.assistant_name = need(str(input.assistant_name, 40), "The assistant needs a name");
-  if ("instructions" in input) patch.instructions = str(input.instructions, 4000);
-  if ("knowledge" in input) patch.knowledge = str(input.knowledge, 12000);
+  if ("address_form" in input) {
+    if (!["sie", "du"].includes(String(input.address_form))) throw new InputError("Choose Sie or du");
+    patch.address_form = input.address_form;
+  }
+  if ("faq" in input) {
+    if (!Array.isArray(input.faq) || input.faq.length > MAX_FAQ) throw new InputError(`At most ${MAX_FAQ} questions`);
+    patch.faq = (input.faq as Body[]).map((item) => ({
+      question: need(str(item.question, 200), "Every entry needs a question"),
+      answer: need(str(item.answer, 600), "Every entry needs an answer"),
+    }));
+  }
   if ("widget_greeting" in input) patch.widget_greeting = str(input.widget_greeting, 300);
   if ("widget_color" in input) {
     const color = str(input.widget_color, 7);

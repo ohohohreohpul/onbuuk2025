@@ -14,6 +14,8 @@ export interface ReceptionistSettings {
   assistant_name: string;
   instructions: string;
   knowledge: string;
+  address_form: "sie" | "du";
+  faq: { question: string; answer: string }[];
   web_enabled: boolean;
   web_mode: "auto" | "drafts";
   widget_key: string;
@@ -72,10 +74,32 @@ export interface ShopContext {
   vouchers: MarketingVoucher[];
   giftCards: { enabled: boolean; presetCents: number[]; customMinCents: number | null; customMaxCents: number | null; payInStore: boolean };
   promotion: { title: string; text: string; giftNote: string | null } | null;
+  /** "Mon 10:00–20:00" … from the therapists' working hours (earliest start to latest end per weekday). */
+  openingHours: string[];
   settings: ReceptionistSettings;
 }
 
 const DEFAULT_HOLD_SECONDS = 300;
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
+
+export interface WorkingHour {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+}
+
+/** Shop opening hours per weekday = earliest start to latest end of anyone working that day. */
+export function openingHours(hours: WorkingHour[]): string[] {
+  return MONDAY_FIRST.map((day) => {
+    const open = hours.filter((h) => h.day_of_week === day && h.is_available && h.end_time > h.start_time);
+    if (open.length === 0) return `${WEEKDAYS[day]} closed`;
+    const start = open.map((h) => h.start_time.slice(0, 5)).sort()[0];
+    const end = open.map((h) => h.end_time.slice(0, 5)).sort().at(-1);
+    return `${WEEKDAYS[day]} ${start}–${end}`;
+  });
+}
 
 export async function loadSettings(supabase: SupabaseClient, businessId: string): Promise<ReceptionistSettings | null> {
   const { data, error } = await supabase.from("receptionist_settings").select("*").eq("business_id", businessId).maybeSingle();
@@ -103,7 +127,7 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
       .eq("id", businessId).single(),
     supabase.from("services").select("id, name, description, is_pair_massage, service_durations(id, duration_minutes, price_cents)")
       .eq("business_id", businessId).order("display_order"),
-    supabase.from("specialists").select("id, name, specialist_services(service_id)").eq("business_id", businessId).eq("is_active", true).order("name"),
+    supabase.from("specialists").select("id, name, specialist_services(service_id), working_hours(day_of_week, start_time, end_time, is_available)").eq("business_id", businessId).eq("is_active", true).order("name"),
     supabase.from("gift_card_settings").select("*").eq("business_id", businessId).maybeSingle(),
     loadMarketingShop(supabase, businessId),
   ]);
@@ -129,7 +153,9 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
     }
   }
 
-  const staff: StaffEntry[] = ((staffRes.data ?? []) as { id: string; name: string; specialist_services: { service_id: string }[] }[])
+  type StaffRow = { id: string; name: string; specialist_services: { service_id: string }[]; working_hours: WorkingHour[] };
+  const staffRows = (staffRes.data ?? []) as StaffRow[];
+  const staff: StaffEntry[] = staffRows
     .map((s, i) => ({ ref: `t${i + 1}`, id: s.id, name: s.name, serviceIds: (s.specialist_services ?? []).map((x) => x.service_id) }));
 
   const gift = giftRes.data as Record<string, unknown> | null;
@@ -155,6 +181,7 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
       payInStore: gift?.pay_in_store_enabled === true,
     },
     promotion: activePromotion(gift),
+    openingHours: openingHours(staffRows.flatMap((s) => s.working_hours ?? [])),
     settings,
   };
 }

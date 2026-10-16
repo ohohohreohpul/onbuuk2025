@@ -414,7 +414,7 @@ function AdminPanel() {
       case 'gift-cards':
         return <LoyaltyRewardsView />;
       case 'receptionist':
-        return <ReceptionistView />;
+        return <ReceptionistView onNavigate={navigate} />;
       case 'agents':
         return <AiAgentsView />;
       case 'marketing':

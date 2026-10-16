@@ -14,7 +14,7 @@ import OutreachPanel from './OutreachPanel';
 type Tab = 'inbox' | 'channels' | 'knowledge' | 'outreach';
 
 /** AI receptionist: one switch, then inbox / channels / knowledge / WhatsApp outreach. */
-export default function ReceptionistView() {
+export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const { t } = useAdminText(RECEPTIONIST_TEXT);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hasError, setHasError] = useState(false);
@@ -93,7 +93,7 @@ export default function ReceptionistView() {
 
       {tab === 'inbox' && <InboxPanel businessId={settings.business_id} onChanged={load} />}
       {tab === 'channels' && <ChannelsPanel overview={overview} onOverview={setOverview} />}
-      {tab === 'knowledge' && <KnowledgePanel overview={overview} onOverview={setOverview} />}
+      {tab === 'knowledge' && <KnowledgePanel overview={overview} onOverview={setOverview} onNavigate={onNavigate} />}
       {tab === 'outreach' && <OutreachPanel overview={overview} />}
     </div>
   );

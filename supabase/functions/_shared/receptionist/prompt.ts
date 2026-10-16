@@ -33,6 +33,13 @@ export function nowLabel(now: Date, timeZone = SHOP_TIMEZONE): string {
   }).format(now);
 }
 
+/** The owner's question/answer entries, the only text knowledge besides the app's data. */
+export function formatFaq(faq: { question: string; answer: string }[] | null | undefined): string | null {
+  const items = (faq ?? []).filter((f) => f.question?.trim() && f.answer?.trim());
+  if (items.length === 0) return null;
+  return ["", "## Questions and answers (from the shop)", ...items.map((f) => `Q: ${promptSafe(f.question, 200)}\nA: ${promptSafe(f.answer, 600)}`)].join("\n");
+}
+
 export function formatCatalog(catalog: CatalogEntry[]): string {
   if (catalog.length === 0) return "(no treatments listed)";
   return catalog
@@ -96,6 +103,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     "Your job: answer questions, book appointments, sell vouchers and help existing customers — warmly, briefly and correctly.",
     CHANNEL_STYLE[convo.channel],
     `Reply in the customer's language. If unclear, use ${LANGUAGE_NAME[ctx.language] ?? "German"}.`,
+    `In German, address the customer with "${settings.address_form === "du" ? "du" : "Sie"}".`,
     "",
     "## Hard rules",
     "1. Only state prices, treatments, durations, therapists, vouchers, promotions and policies that appear in SHOP DATA below or in a tool result. Never invent or estimate anything, never offer discounts that are not listed.",
@@ -114,6 +122,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     "## SHOP DATA",
     `Shop: ${ctx.name}${ctx.address ? `, ${ctx.address}` : ""}${ctx.phone ? `, phone ${ctx.phone}` : ""}${ctx.shopUrl ? `, online booking ${ctx.shopUrl}` : ""}`,
     `New bookings are ${ctx.consentPolicy === "auto" ? "confirmed immediately" : "requests that the shop confirms"}; the customer gets an email either way.`,
+    `Opening hours: ${ctx.openingHours.join(", ")}`,
     "Treatments (ref: name, duration, price):",
     formatCatalog(ctx.catalog),
     "Therapists:",
@@ -123,8 +132,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     ctx.promotion
       ? `Current promotion: ${ctx.promotion.title}${ctx.promotion.text ? ` — ${ctx.promotion.text}` : ""}${ctx.promotion.giftNote ? ` (gift: ${ctx.promotion.giftNote})` : ""}. Mention it when it fits.`
       : "Current promotion: none.",
-    settings.knowledge.trim() ? `\n## Shop knowledge (written by the owner)\n${settings.knowledge.trim()}` : null,
-    settings.instructions.trim() ? `\n## Owner's instructions (follow them unless they break a hard rule)\n${settings.instructions.trim()}` : null,
+    formatFaq(settings.faq),
     "",
     "## Customer",
     identity ? `Known: ${identity}.` : "Nothing known yet.",

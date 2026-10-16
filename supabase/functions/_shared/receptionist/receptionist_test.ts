@@ -139,3 +139,22 @@ Deno.test("safeMessageId rejects header injection", async () => {
   assertEquals(safeMessageId("<abc@web.de>"), "<abc@web.de>");
   assertEquals(safeMessageId("<abc@web.de>\r\nBcc: x@y.z"), null);
 });
+
+Deno.test("opening hours come from the therapists' working hours", async () => {
+  const { openingHours } = await import("./shopContext.ts");
+  const lines = openingHours([
+    { day_of_week: 1, start_time: "10:00:00", end_time: "18:00:00", is_available: true },
+    { day_of_week: 1, start_time: "12:00:00", end_time: "20:00:00", is_available: true },
+    { day_of_week: 2, start_time: "10:00:00", end_time: "18:00:00", is_available: false },
+  ]);
+  assertEquals(lines[0], "Mon 10:00–20:00");
+  assertEquals(lines[1], "Tue closed");
+  assertEquals(lines[6], "Sun closed");
+});
+
+Deno.test("FAQ entries are formatted as data, empty ones dropped", async () => {
+  const { formatFaq } = await import("./prompt.ts");
+  assertEquals(formatFaq([]), null);
+  assertEquals(formatFaq([{ question: "Parken?", answer: "Hinterhof,\nkostenlos" }, { question: "", answer: "x" }]),
+    "\n## Questions and answers (from the shop)\nQ: Parken?\nA: Hinterhof, kostenlos");
+});

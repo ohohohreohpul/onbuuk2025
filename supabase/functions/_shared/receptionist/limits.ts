@@ -28,8 +28,22 @@ export async function isOverTokenBudget(supabase: SupabaseClient, businessId: st
   return used >= budget;
 }
 
-/** Client IP as seen by Supabase's edge (first X-Forwarded-For hop). */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * Real visitor IP. Requests through our own domain (Vercel proxy) carry it in
+ * x-zenno-client-ip, trusted only with the shared RECEPTIONIST_PROXY_SECRET;
+ * otherwise the edge's own view (first X-Forwarded-For hop).
+ */
 export function clientIp(req: Request): string {
+  const secret = Deno.env.get("RECEPTIONIST_PROXY_SECRET") ?? "";
+  const proxied = req.headers.get("x-zenno-client-ip");
+  if (secret.length >= 32 && proxied && safeEqual(req.headers.get("x-zenno-proxy-secret") ?? "", secret)) return proxied.slice(0, 64);
   const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return (req.headers.get("cf-connecting-ip") ?? forwarded ?? "unknown").slice(0, 64);
 }

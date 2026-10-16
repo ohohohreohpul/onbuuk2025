@@ -10,8 +10,8 @@ export interface ReceptionistSettings {
   business_id: string;
   is_enabled: boolean;
   assistant_name: string;
-  instructions: string;
-  knowledge: string;
+  address_form: 'sie' | 'du';
+  faq: { question: string; answer: string }[];
   web_enabled: boolean;
   web_mode: ChannelMode;
   widget_key: string;

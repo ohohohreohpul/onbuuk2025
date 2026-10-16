@@ -12,7 +12,8 @@
   window.__zennoReceptionist = true;
 
   var KEY = script.getAttribute('data-key') || '';
-  var ENDPOINT = script.getAttribute('data-endpoint') || 'https://eicxhwgxelwcmxcjppwt.supabase.co/functions/v1/receptionist-chat';
+  // Same host that serves this script (your Zenno domain) – it forwards to the backend.
+  var ENDPOINT = script.getAttribute('data-endpoint') || new URL(script.src).origin + '/api/receptionist/chat';
   var POLL_MS = 4000;
   var STORAGE = 'zenno_receptionist_visitor';
   if (!/^wc_[a-f0-9]{32}$/.test(KEY)) { console.warn('[Zenno] receptionist widget: missing or invalid data-key'); return; }

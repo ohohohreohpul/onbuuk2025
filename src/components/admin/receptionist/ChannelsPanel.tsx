@@ -6,13 +6,12 @@ import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFAC
 import { callReceptionist, updateSettings, type ChannelMode, type Overview, type ReceptionistSettings } from './receptionistApi';
 import { RECEPTIONIST_TEXT, type ReceptionistText } from './receptionistText';
 
-const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 export function Switch({ isOn, label, onChange, isDisabled }: { isOn: boolean; label: string; onChange: (on: boolean) => void; isDisabled?: boolean }) {
   return (
     <button type="button" role="switch" aria-checked={isOn} aria-label={label} disabled={isDisabled} onClick={() => onChange(!isOn)}
       className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${isOn ? 'bg-emerald-600' : 'bg-stone-300'}`}>
-      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${isOn ? 'translate-x-6' : 'translate-x-1'}`} />
+      <span className={`absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${isOn ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
   );
 }
@@ -132,9 +131,7 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
           <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.mailboxMissing}</p>
         ) : (
           <>
-            <p className="text-sm text-stone-600">
-              {fillText(isResend ? t.mailboxResend : t.mailboxFound, { address: status.mailbox.address })}
-            </p>
+            {!isResend && <p className="text-sm text-stone-600">{fillText(t.mailboxFound, { address: status.mailbox.address })}</p>}
             {settings.imap_host && (settings.imap_error
               ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{fillText(t.mailboxError, { error: settings.imap_error })}</p>
               : <p className="text-sm text-emerald-700">{fillText(t.mailboxConnected, { time: time(settings.imap_checked_at) })}</p>)}
@@ -176,7 +173,7 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
                   <label className="text-sm text-stone-600">{t.waAppSecret}<input type="password" value={wa.appSecret} onChange={(e) => setWa({ ...wa, appSecret: e.target.value })} placeholder={t.waAppSecretHint} className={`${ADMIN_INPUT} mt-1`} autoComplete="off" /></label>
                 </div>
                 <label className="block text-sm text-stone-600">{t.waToken}<input type="password" value={wa.token} onChange={(e) => setWa({ ...wa, token: e.target.value })} className={`${ADMIN_INPUT} mt-1`} autoComplete="off" /></label>
-                <p className="text-xs text-stone-500">{t.waWebhookHint} <code className="select-all">{FUNCTIONS_URL}/receptionist-whatsapp</code></p>
+                <p className="text-xs text-stone-500">{t.waWebhookHint} <code className="select-all">{window.location.origin}/api/receptionist/whatsapp</code></p>
                 <button type="button" disabled={isBusy !== null || !wa.phoneNumberId || !wa.token} onClick={() => act('wa', 'connect_whatsapp_cloud', wa)} className={ADMIN_PRIMARY_BUTTON}>
                   {isBusy === 'wa' && <Loader2 className="h-4 w-4 animate-spin" />}{t.waConnect}
                 </button>
