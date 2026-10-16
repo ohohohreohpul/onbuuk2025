@@ -4,7 +4,7 @@
 
 import type { CatalogEntry, ShopContext, StaffEntry } from "./shopContext.ts";
 import { promptSafe } from "./limits.ts";
-import { formatPlaybook } from "./playbook.ts";
+import { formatBriefing } from "./briefing.ts";
 
 export type Channel = "web" | "email" | "whatsapp";
 
@@ -85,7 +85,7 @@ const HUMAN_WRITING = [
   "Vary sentence starts; contractions and everyday words are fine.",
 ].join(" ");
 
-const TEXTING_STYLE = `Write like the shop's receptionist texting from the shop's phone: short, natural sentences in plain text. Never use bullet points, numbered lists, bold, headings or markdown. Name at most two or three options in one flowing sentence and ask which one they like. No emojis unless the customer uses them. Usually one short message; if you need to say two separate things, put a blank line between them (they are sent as separate messages). ${HUMAN_WRITING}`;
+const TEXTING_STYLE = `Write like the shop's receptionist texting from the shop's phone: short, natural sentences in plain text. Never use bullet points, numbered lists, bold, headings or markdown. Name at most two or three options in one flowing sentence and ask which one they like. Usually one message; if you need to say two separate things, put a blank line between them (they are sent as separate messages). ${HUMAN_WRITING}`;
 
 const CHANNEL_STYLE: Record<Channel, string> = {
   web: `You are chatting in the website chat. ${TEXTING_STYLE}`,
@@ -116,6 +116,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     "Your job: answer questions, book appointments, sell vouchers and help existing customers — warmly, briefly and correctly.",
     CHANNEL_STYLE[convo.channel],
     `Reply in the customer's language. If unclear, use ${LANGUAGE_NAME[ctx.language] ?? "German"}.`,
+    formatBriefing(settings.playbook),
     `In German, address the customer with "${settings.address_form === "du" ? "du" : "Sie"}".`,
     "",
     "## Hard rules",
@@ -147,7 +148,6 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
       ? `Current promotion: ${ctx.promotion.title}${ctx.promotion.text ? ` — ${ctx.promotion.text}` : ""}${ctx.promotion.giftNote ? ` (gift: ${ctx.promotion.giftNote})` : ""}. Mention it when it fits.`
       : "Current promotion: none.",
     formatFaq(settings.faq),
-    formatPlaybook(settings.playbook, { assistant: settings.assistant_name, shop: ctx.name, name: promptSafe(convo.contactName, 60) || null }),
     "",
     "## Customer",
     identity ? `Known: ${identity}.` : "Nothing known yet.",

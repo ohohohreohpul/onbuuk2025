@@ -5,7 +5,7 @@ import { appendMessage, updateConversation, upsertConversation, type Conversatio
 import { makeDeliver, shopMailbox } from "../_shared/receptionist/deliver.ts";
 import { assertPublicMailHost, ImapClient, ImapError } from "../_shared/receptionist/imap.ts";
 import { isLlmConfigured } from "../_shared/receptionist/llm.ts";
-import { sanitizePlaybook } from "../_shared/receptionist/playbook.ts";
+import { sanitizeBriefing } from "../_shared/receptionist/briefing.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
 import { isTypesafeConfigured } from "../_shared/typesafe.ts";
 import { cloudVerify, gatewayConnect, gatewayDisconnect, isGatewayConfigured, toWhatsappNumber } from "../_shared/receptionist/whatsapp.ts";
@@ -65,12 +65,13 @@ async function overview(admin: Admin) {
   const settings = await ensureSettings(admin);
   const { supabaseAdmin: db, businessId } = admin;
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const [mailbox, token, needsHuman, drafts, usage] = await Promise.all([
+  const [mailbox, token, needsHuman, drafts, usage, business] = await Promise.all([
     shopMailbox(db, businessId),
     db.rpc("receptionist_get_secret", { p_business_id: businessId, p_kind: "whatsapp_cloud_token" }),
     db.from("receptionist_conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "needs_human"),
     db.from("receptionist_messages").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "draft"),
     db.from("receptionist_usage").select("prompt_tokens, completion_tokens").eq("business_id", businessId).gte("created_at", monthStart),
+    db.from("businesses").select("name").eq("id", businessId).maybeSingle(),
   ]);
   const tokens = (usage.data ?? []).reduce((sum, row) => sum + row.prompt_tokens + row.completion_tokens, 0);
   const { whatsapp_qr: qr, ...rest } = settings as ReceptionistSettings & { whatsapp_qr?: string | null };
@@ -86,6 +87,7 @@ async function overview(admin: Admin) {
       needsHuman: needsHuman.count ?? 0,
       drafts: drafts.count ?? 0,
       tokensThisMonth: tokens,
+      shopName: (business.data?.name as string | undefined) ?? null,
     },
   };
 }
@@ -107,7 +109,7 @@ async function updateSettings(admin: Admin, body: Body) {
     if (!["sie", "du"].includes(String(input.address_form))) throw new InputError("Choose Sie or du");
     patch.address_form = input.address_form;
   }
-  if ("playbook" in input) patch.playbook = sanitizePlaybook(input.playbook);
+  if ("playbook" in input) patch.playbook = sanitizeBriefing(input.playbook);
   if ("faq" in input) {
     if (!Array.isArray(input.faq) || input.faq.length > MAX_FAQ) throw new InputError(`At most ${MAX_FAQ} questions`);
     patch.faq = (input.faq as Body[]).map((item) => ({

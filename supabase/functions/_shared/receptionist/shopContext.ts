@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { loadMarketingShop, loadShopVouchers } from "../marketingData.ts";
 import type { MarketingVoucher } from "../marketingEmail.ts";
-import type { Playbook } from "./playbook.ts";
+import type { Briefing } from "./briefing.ts";
 
 export type ShopLanguage = "de" | "en" | "th";
 
@@ -17,7 +17,7 @@ export interface ReceptionistSettings {
   knowledge: string;
   address_form: "sie" | "du";
   faq: { question: string; answer: string }[];
-  playbook: Playbook;
+  playbook: Partial<Briefing>;
   web_enabled: boolean;
   web_mode: "auto" | "drafts";
   widget_key: string;

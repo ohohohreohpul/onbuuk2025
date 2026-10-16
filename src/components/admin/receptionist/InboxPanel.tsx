@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MessagesSquare, Plus } from 'lucide-react';
+import { MessagesSquare, PenSquare } from 'lucide-react';
 import { useAdminText } from '../../../lib/adminLanguage';
-import { ADMIN_PRIMARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
+import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
 import { loadConversations, loadDraftConversationIds, type InboxFilter, type Overview } from './receptionistApi';
 import { RECEPTIONIST_TEXT } from './receptionistText';
 import ConversationList, { type ListConversation } from './inbox/ConversationList';
@@ -49,24 +49,22 @@ export default function InboxPanel({ overview, onChanged }: InboxPanelProps) {
   const refresh = () => { load(); onChanged(); };
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <button type="button" onClick={() => setIsComposing(true)} className={ADMIN_PRIMARY_BUTTON}><Plus className="h-4 w-4" />{t.newChat}</button>
-      </div>
-      <div className={`${ADMIN_SURFACE} grid h-[calc(100vh-260px)] min-h-[520px] overflow-hidden lg:grid-cols-[340px_1fr]`}>
+    <div>
+      <div className={`${ADMIN_SURFACE} grid h-[calc(100vh-190px)] min-h-[480px] overflow-hidden lg:grid-cols-[320px_1fr]`}>
         <div className={`border-r border-stone-200/70 ${selected ? 'hidden lg:block' : 'block'} min-h-0`}>
           {hasError
             ? <p className="p-6 text-sm text-red-700">{t.loadFailed}</p>
             : <ConversationList rows={rows} selectedId={selectedId} filter={filter} query={query} draftIds={draftIds} locale={locale} t={t}
-                onFilter={setFilter} onQuery={setQuery} onSelect={setSelectedId} />}
+                onFilter={setFilter} onQuery={setQuery} onSelect={setSelectedId} onNewChat={() => setIsComposing(true)} />}
         </div>
         <div className={`${selected ? 'block' : 'hidden lg:flex'} min-h-0 lg:flex lg:flex-col`}>
           {selected
             ? <ThreadPane key={selected.id} conversation={selected} onBack={() => setSelectedId(null)} onChanged={refresh} />
             : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-stone-400">
-                <MessagesSquare className="h-10 w-10" />
-                <p className="text-sm">{t.pickChat}</p>
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-stone-900/[0.015] p-10 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-stone-400 shadow-sm ring-1 ring-stone-900/[0.05]"><MessagesSquare className="h-6 w-6" /></span>
+                <p className="text-sm text-stone-500">{t.pickChat}</p>
+                <button type="button" onClick={() => setIsComposing(true)} className={ADMIN_SECONDARY_BUTTON}><PenSquare className="h-4 w-4" />{t.newChat}</button>
               </div>
             )}
         </div>

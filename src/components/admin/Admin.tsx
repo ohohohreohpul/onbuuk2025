@@ -38,6 +38,12 @@ export default function Admin() {
   );
 }
 
+const LEGACY_VIEWS: Record<string, string> = { calendar: 'pos', dashboard: 'pos' };
+
+function canonicalView(view: string | null): string | null {
+  return view ? LEGACY_VIEWS[view] ?? view : null;
+}
+
 function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,8 +52,7 @@ function AdminPanel() {
     const params = new URLSearchParams(window.location.search);
     const requestedView = params.get('view');
     const validViews = new Set([
-      'dashboard',
-      'calendar',
+      'pos',
       'bookings',
       'customers',
       'services',
@@ -64,13 +69,25 @@ function AdminPanel() {
       'receptionist',
     ]);
 
-    if (requestedView && validViews.has(requestedView)) return requestedView;
+    const view = canonicalView(requestedView);
+    if (view && validViews.has(view)) return view;
     if (params.has('connect_return') || params.has('connect_refresh')) return 'settings';
-    return 'calendar';
+    return 'pos';
   });
 
+  // Old links (?view=calendar / ?view=dashboard) now open the POS; show the new address.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const requested = url.searchParams.get('view');
+    if (requested && canonicalView(requested) !== requested) {
+      url.searchParams.set('view', canonicalView(requested) as string);
+      window.history.replaceState(window.history.state, '', url);
+    }
+  }, []);
+
   // Keep ?view= in the address bar so Back, refresh and shared links work.
-  const navigate = (view: string) => {
+  const navigate = (target: string) => {
+    const view = canonicalView(target) as string;
     setCurrentView(view);
     const url = new URL(window.location.href);
     if (url.searchParams.get('view') === view) return;
@@ -81,7 +98,7 @@ function AdminPanel() {
   useEffect(() => {
     const onPopState = () => {
       const view = new URLSearchParams(window.location.search).get('view');
-      setCurrentView(view || 'calendar');
+      setCurrentView(canonicalView(view) || 'pos');
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -388,8 +405,7 @@ function AdminPanel() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard':
-      case 'calendar':
+      case 'pos':
         return <PosHomeView onNavigate={navigate} />;
       case 'bookings':
         return <BookingsView onNavigate={navigate} />;

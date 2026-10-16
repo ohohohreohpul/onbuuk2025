@@ -4,7 +4,19 @@ import { supabase } from '../../../lib/supabase';
 // tables directly (RLS: admins read their own shop).
 
 export type ChannelMode = 'auto' | 'drafts';
-export type Playbook = Partial<Record<string, { enabled: boolean; example: string }>>;
+export type Personality = 'warm' | 'calm' | 'cheerful' | 'professional';
+export type EmojiStyle = 'never' | 'mirror' | 'sometimes';
+export type ReplyLength = 'short' | 'balanced' | 'detailed';
+export type Initiative = 'answer' | 'guide' | 'sell';
+export type Habit = 'introduce_self' | 'ask_needs_first' | 'recommend' | 'use_name' | 'mention_promotion' | 'suggest_gift' | 'offer_alternatives' | 'aftercare';
+export interface Briefing {
+  personality: Personality;
+  emoji: EmojiStyle;
+  length: ReplyLength;
+  initiative: Initiative;
+  habits: Habit[];
+  briefing: string;
+}
 export type ChannelKey = 'web' | 'email' | 'whatsapp';
 
 export interface ReceptionistSettings {
@@ -13,7 +25,7 @@ export interface ReceptionistSettings {
   assistant_name: string;
   address_form: 'sie' | 'du';
   faq: { question: string; answer: string }[];
-  playbook: Playbook;
+  playbook: Partial<Briefing>;
   web_enabled: boolean;
   web_mode: ChannelMode;
   widget_key: string;
@@ -46,6 +58,7 @@ export interface Overview {
     needsHuman: number;
     drafts: number;
     tokensThisMonth: number;
+    shopName?: string | null;
   };
 }
 

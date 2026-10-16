@@ -111,7 +111,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       id: 'main',
       label: null,
       items: [
-        { id: 'calendar', label: t.pos, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars', 'view_reports'] },
+        { id: 'pos', label: t.pos, icon: Calendar, permissions: ['view_own_calendar', 'view_all_calendars', 'view_reports'] },
         { id: 'receptionist', label: t.receptionist, icon: MessagesSquare, permissions: ['view_customers', 'view_all_bookings'] },
       ]
     },

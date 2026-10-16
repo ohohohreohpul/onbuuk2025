@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Bot } from 'lucide-react';
+import { AlertTriangle, BookOpen, Bot, Inbox, Megaphone, Radio, Smile, type LucideIcon } from 'lucide-react';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
-import { ADMIN_SECONDARY_BUTTON, ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE, ADMIN_SURFACE } from '../adminUi';
+import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
 import { loadOverview, updateSettings, type Overview } from './receptionistApi';
 import { RECEPTIONIST_TEXT } from './receptionistText';
 import { Switch } from './ChannelsPanel';
@@ -10,15 +10,15 @@ import InboxPanel from './InboxPanel';
 import ChannelsPanel from './ChannelsPanel';
 import KnowledgePanel from './KnowledgePanel';
 import OutreachPanel from './OutreachPanel';
-import PlaybookPanel from './PlaybookPanel';
-import { PLAYBOOK_TEXT } from './playbookText';
+import BriefingPanel from './BriefingPanel';
+import { BRIEFING_TEXT } from './briefingText';
 
-type Tab = 'inbox' | 'channels' | 'knowledge' | 'playbook' | 'outreach';
+type Tab = 'inbox' | 'channels' | 'knowledge' | 'personality' | 'outreach';
 
 /** AI receptionist: one switch, then inbox / channels / knowledge / WhatsApp outreach. */
 export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const { t } = useAdminText(RECEPTIONIST_TEXT);
-  const { t: playbookText } = useAdminText(PLAYBOOK_TEXT);
+  const { t: briefingText } = useAdminText(BRIEFING_TEXT);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hasError, setHasError] = useState(false);
   const [tab, setTab] = useState<Tab>('inbox');
@@ -49,12 +49,12 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
   }
 
   const { settings, status } = overview;
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'inbox', label: t.tabInbox, badge: status.needsHuman + status.drafts },
-    { id: 'channels', label: t.tabChannels },
-    { id: 'knowledge', label: t.tabKnowledge },
-    { id: 'playbook', label: playbookText.tab },
-    { id: 'outreach', label: t.tabOutreach },
+  const tabs: { id: Tab; label: string; icon: LucideIcon; badge?: number }[] = [
+    { id: 'inbox', label: t.tabInbox, icon: Inbox, badge: status.needsHuman + status.drafts },
+    { id: 'personality', label: briefingText.tab, icon: Smile },
+    { id: 'knowledge', label: t.tabKnowledge, icon: BookOpen },
+    { id: 'channels', label: t.tabChannels, icon: Radio },
+    { id: 'outreach', label: t.tabOutreach, icon: Megaphone },
   ];
 
   const toggleMaster = async (isOn: boolean) => {
@@ -67,17 +67,18 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 pl-12 sm:flex-row sm:items-start sm:justify-between lg:pl-0">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-[#1A1714]"><Bot className="h-6 w-6" />{t.title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-stone-500">{t.intro}</p>
-          <p className="mt-1 text-xs text-stone-400">{fillText(t.usage, { tokens: status.tokensThisMonth.toLocaleString() })}</p>
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center gap-3 pl-12 lg:pl-0">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A1714] text-white"><Bot className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-semibold leading-tight tracking-tight text-[#1A1714]">{t.title}</h1>
+          <p className="truncate text-xs text-stone-500" title={t.intro}>{fillText(t.usage, { tokens: status.tokensThisMonth.toLocaleString() })}</p>
         </div>
-        <div className={`${ADMIN_SURFACE} flex items-center gap-3 px-4 py-3`}>
-          <span className="text-sm font-medium text-[#1A1714]">{settings.is_enabled ? t.masterOn : t.masterOff}</span>
+        <label className={`flex cursor-pointer items-center gap-2.5 rounded-full border py-1.5 pl-3.5 pr-1.5 text-sm font-medium transition ${settings.is_enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-stone-200 bg-white/70 text-stone-600'}`}>
+          <span className={`h-2 w-2 rounded-full ${settings.is_enabled ? 'animate-pulse bg-emerald-500' : 'bg-stone-400'}`} />
+          {settings.is_enabled ? t.masterOn : t.masterOff}
           <Switch isOn={settings.is_enabled} label={t.title} onChange={toggleMaster} />
-        </div>
+        </label>
       </header>
 
       {!status.aiConfigured && (
@@ -85,20 +86,25 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
       )}
       {saveError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</p>}
 
-      <div className={`${ADMIN_SEGMENTED_CONTROL} max-w-full overflow-x-auto`} role="tablist">
-        {tabs.map((item) => (
-          <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium ${tab === item.id ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE}`}>
-            {item.label}
-            {item.badge ? <span className="rounded-full bg-amber-400 px-1.5 text-[11px] font-semibold text-amber-950">{item.badge}</span> : null}
-          </button>
-        ))}
-      </div>
+      <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-stone-200/80 px-1" role="tablist">
+        {tabs.map((item) => {
+          const isActive = tab === item.id;
+          const Icon = item.icon;
+          return (
+            <button key={item.id} type="button" role="tab" aria-selected={isActive} onClick={() => setTab(item.id)}
+              className={`relative -mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition ${isActive ? 'border-[#1A1714] text-[#1A1714]' : 'border-transparent text-stone-500 hover:text-[#1A1714]'}`}>
+              <Icon className="h-4 w-4" />
+              {item.label}
+              {item.badge ? <span className="rounded-full bg-amber-400 px-1.5 text-[11px] font-semibold leading-4 text-amber-950">{item.badge}</span> : null}
+            </button>
+          );
+        })}
+      </nav>
 
       {tab === 'inbox' && <InboxPanel overview={overview} onChanged={load} />}
       {tab === 'channels' && <ChannelsPanel overview={overview} onOverview={setOverview} />}
       {tab === 'knowledge' && <KnowledgePanel overview={overview} onOverview={setOverview} onNavigate={onNavigate} />}
-      {tab === 'playbook' && <PlaybookPanel overview={overview} onOverview={setOverview} />}
+      {tab === 'personality' && <BriefingPanel overview={overview} onOverview={setOverview} />}
       {tab === 'outreach' && <OutreachPanel overview={overview} />}
     </div>
   );
