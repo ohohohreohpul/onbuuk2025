@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { loadShopPageProfile } from '../lib/shopPageData';
 import { useTenant } from '../lib/tenantContext';
 import { BRAND_LOGO, BRAND_SITE_URL } from '../lib/brand';
+import { isPaidPlanType } from '../lib/plans';
 
 export function PoweredByZenno() {
   const tenant = useTenant();
@@ -21,7 +22,7 @@ export function PoweredByZenno() {
         return null;
       });
 
-      const isPro = business?.plan_type === 'pro' || business?.plan_type === 'premium';
+      const isPro = isPaidPlanType(business?.plan_type);
       const isFree = business?.plan_type === 'free' || business?.plan_type === 'starter';
 
       if (isFree) {

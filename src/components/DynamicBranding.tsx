@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
+import { isPaidPlanType } from '../lib/plans';
 import {
   BRAND_FAVICON,
   BRAND_NAME,
@@ -59,7 +60,7 @@ export function DynamicBranding() {
         }
 
         // Check if premium plan - same check as hide_powered_by_badge
-        const isPremium = business.plan_type === 'pro' || business.plan_type === 'premium';
+        const isPremium = isPaidPlanType(business.plan_type);
         
         // Only apply custom branding for premium users
         if (isPremium) {

@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: business.stripe_customer_id,
-      return_url: `${req.headers.get('origin')}/admin/settings`,
+      return_url: `${req.headers.get('origin')}/admin?view=settings&tab=subscription`,
     });
 
     return new Response(

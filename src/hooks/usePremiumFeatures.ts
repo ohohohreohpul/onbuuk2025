@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useTenant } from '../lib/tenantContext';
+import { isPaidPlanType } from '../lib/plans';
 
 export type PlanType = 'free' | 'standard' | 'pro';
+
+// Free plan limits (also enforced in the database: private.enforce_free_plan_limits).
+const FREE_MAX_STAFF = 1;
+const FREE_MAX_SERVICES = 5;
 
 export interface TierLimits {
   maxStaff: number | null;
@@ -38,8 +43,8 @@ export function usePremiumFeatures(): PremiumFeatures {
     canUseAdvancedPermissions: false,
     canUseAdvancedFormCustomization: false,
     limits: {
-      maxStaff: 2,
-      maxServices: 5,
+      maxStaff: FREE_MAX_STAFF,
+      maxServices: FREE_MAX_SERVICES,
       maxBookings: 50,
       currentStaff: 0,
       currentServices: 0,
@@ -61,8 +66,8 @@ export function usePremiumFeatures(): PremiumFeatures {
           canUseAdvancedPermissions: false,
           canUseAdvancedFormCustomization: false,
           limits: {
-            maxStaff: 2,
-            maxServices: 5,
+            maxStaff: FREE_MAX_STAFF,
+            maxServices: FREE_MAX_SERVICES,
             maxBookings: 50,
             currentStaff: 0,
             currentServices: 0,
@@ -79,13 +84,8 @@ export function usePremiumFeatures(): PremiumFeatures {
         .eq('id', tenant.businessId)
         .maybeSingle();
 
-      const planType = (business?.plan_type === 'pro' || business?.plan_type === 'premium')
-        ? 'pro'
-        : business?.plan_type === 'standard'
-          ? 'standard'
-          : 'free';
+      const planType: PlanType = isPaidPlanType(business?.plan_type) ? 'pro' : 'free';
       const isPro = planType === 'pro';
-      const isStandard = planType === 'standard';
       const isFree = planType === 'free';
 
       setFeatures({
@@ -95,11 +95,11 @@ export function usePremiumFeatures(): PremiumFeatures {
         canHidePoweredBy: isPro,
         canUseCalendarIntegration: isPro,
         canUseCustomDomain: isPro,
-        canUseAdvancedPermissions: isPro || isStandard,
-        canUseAdvancedFormCustomization: isPro || isStandard,
+        canUseAdvancedPermissions: isPro,
+        canUseAdvancedFormCustomization: isPro,
         limits: {
-          maxStaff: business?.max_staff_count ?? (isPro ? null : isStandard ? 5 : 2),
-          maxServices: business?.max_services_count ?? (isPro ? null : isStandard ? 20 : 5),
+          maxStaff: isPro ? null : FREE_MAX_STAFF,
+          maxServices: isPro ? null : FREE_MAX_SERVICES,
           maxBookings: isFree ? 50 : null,
           currentStaff: business?.current_staff_count ?? 0,
           currentServices: business?.current_services_count ?? 0,

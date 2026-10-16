@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SETTINGS_TAB_EVENT } from '../../lib/settingsNavigation';
-import { Building, CreditCard, Crown, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code, FileUp, Receipt } from 'lucide-react';
+import { Building, CreditCard, Crown, Globe, Store, Layout, Sparkles, Mail, Palette, Gift, User, Code, FileUp, Receipt } from 'lucide-react';
 import StoreProfile from './settings/StoreProfile';
 import GeneralSettings from './settings/GeneralSettings';
 import BookingFormAppearance from './settings/BookingFormAppearance';
@@ -8,6 +8,7 @@ import WelcomeFeaturesSettings from './settings/WelcomeFeaturesSettings';
 import ColorCustomization from './settings/ColorCustomization';
 import PaymentSettings from './settings/PaymentSettings';
 import SubscriptionManagement from './settings/SubscriptionManagement';
+import CustomDomainSettings from './settings/CustomDomainSettings';
 import CustomerEmails from './settings/CustomerEmails';
 import { GiftCardCustomization } from './settings/GiftCardCustomization';
 import AccountSettings from './settings/AccountSettings';
@@ -26,34 +27,34 @@ import {
 
 const TEXT: Translations<{
   title: string; subtitle: string; account: string; profile: string; general: string; appearance: string;
-  colors: string; welcomeFeatures: string; giftCards: string; widget: string; subscription: string;
+  colors: string; welcomeFeatures: string; giftCards: string; widget: string; subscription: string; domain: string;
   payment: string; emails: string; invoices: string; import: string;
 }> = {
   en: {
     title: 'Settings', subtitle: 'Manage your business settings and preferences',
     account: 'Account', profile: 'Store Profile', general: 'General', appearance: 'Booking Form', colors: 'Colors',
-    welcomeFeatures: 'Welcome Features', giftCards: 'Gift Cards', widget: 'Widget & Embed', subscription: 'Subscription',
+    welcomeFeatures: 'Welcome Features', giftCards: 'Gift Cards', widget: 'Widget & Embed', subscription: 'Plan', domain: 'Domain',
     payment: 'Payment', emails: 'Emails', invoices: 'Invoices', import: 'Import',
   },
   de: {
     title: 'Einstellungen', subtitle: 'Einstellungen und Präferenzen Ihres Unternehmens verwalten',
     account: 'Konto', profile: 'Shop-Profil', general: 'Allgemein', appearance: 'Buchungsformular', colors: 'Farben',
-    welcomeFeatures: 'Willkommensfunktionen', giftCards: 'Gutscheine', widget: 'Widget & Einbettung', subscription: 'Abonnement',
+    welcomeFeatures: 'Willkommensfunktionen', giftCards: 'Gutscheine', widget: 'Widget & Einbettung', subscription: 'Tarif', domain: 'Domain',
     payment: 'Zahlung', emails: 'E-Mails', invoices: 'Rechnungen', import: 'Import',
   },
   th: {
     title: 'การตั้งค่า', subtitle: 'จัดการการตั้งค่าและค่ากำหนดของธุรกิจ',
     account: 'บัญชี', profile: 'ข้อมูลร้าน', general: 'ทั่วไป', appearance: 'แบบฟอร์มการจอง', colors: 'สี',
-    welcomeFeatures: 'ฟีเจอร์ต้อนรับ', giftCards: 'บัตรของขวัญ', widget: 'วิดเจ็ตและการฝัง', subscription: 'แพ็กเกจสมาชิก',
+    welcomeFeatures: 'ฟีเจอร์ต้อนรับ', giftCards: 'บัตรของขวัญ', widget: 'วิดเจ็ตและการฝัง', subscription: 'แพ็กเกจ', domain: 'โดเมน',
     payment: 'การชำระเงิน', emails: 'อีเมล', invoices: 'ใบแจ้งหนี้', import: 'นำเข้าข้อมูล',
   },
 };
 
-type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget' | 'import' | 'invoices';
+type SettingsTab = 'profile' | 'general' | 'appearance' | 'welcome-features' | 'colors' | 'payment' | 'subscription' | 'emails' | 'gift-cards' | 'account' | 'widget' | 'import' | 'invoices' | 'domain';
 
 const VALID_TABS: SettingsTab[] = [
   'account', 'profile', 'general', 'appearance', 'welcome-features', 'colors',
-  'payment', 'subscription', 'emails', 'gift-cards', 'widget', 'import', 'invoices',
+  'payment', 'subscription', 'emails', 'gift-cards', 'widget', 'import', 'invoices', 'domain',
 ];
 
 function resolveTab(requested: string | null, isOwner: boolean): SettingsTab {
@@ -85,6 +86,7 @@ export default function SettingsView() {
     { id: 'gift-cards' as SettingsTab, name: t.giftCards, icon: Gift },
     { id: 'widget' as SettingsTab, name: t.widget, icon: Code },
     { id: 'subscription' as SettingsTab, name: t.subscription, icon: Crown },
+    { id: 'domain' as SettingsTab, name: t.domain, icon: Globe },
     ...(isOwner ? [{ id: 'payment' as SettingsTab, name: t.payment, icon: CreditCard }] : []),
     { id: 'emails' as SettingsTab, name: t.emails, icon: Mail },
     { id: 'invoices' as SettingsTab, name: t.invoices, icon: Receipt },
@@ -130,6 +132,7 @@ export default function SettingsView() {
         {activeTab === 'gift-cards' && <GiftCardCustomization />}
         {activeTab === 'widget' && <WidgetEmbed />}
         {activeTab === 'subscription' && <SubscriptionManagement />}
+        {activeTab === 'domain' && <CustomDomainSettings />}
         {activeTab === 'payment' && <PaymentSettings />}
         {activeTab === 'emails' && <CustomerEmails />}
         {activeTab === 'invoices' && <InvoiceSettings />}

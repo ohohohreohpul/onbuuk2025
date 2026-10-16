@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, BookOpen, Bot, Inbox, Megaphone, Radio, Smile, type LucideIcon } from 'lucide-react';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
+import { requestSettingsTab } from '../../../lib/settingsNavigation';
+import AiRepliesCard from '../billing/AiRepliesCard';
+import { repliesLeft } from '../billing/billingApi';
+import { BILLING_TEXT } from '../billing/billingText';
+import { useBilling } from '../billing/useBilling';
 import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from '../adminUi';
 import { loadOverview, updateSettings, type Overview } from './receptionistApi';
 import { RECEPTIONIST_TEXT } from './receptionistText';
@@ -18,6 +23,16 @@ type Tab = 'inbox' | 'channels' | 'knowledge' | 'personality' | 'outreach';
 /** AI receptionist: one switch, then inbox / channels / knowledge / WhatsApp outreach. */
 export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const { t } = useAdminText(RECEPTIONIST_TEXT);
+  const { t: billingText, locale } = useAdminText(BILLING_TEXT);
+  const { overview: billing } = useBilling();
+  const [creditsNotice] = useState(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get('credits');
+    if (!result) return null;
+    url.searchParams.delete('credits');
+    window.history.replaceState(window.history.state, '', url);
+    return result === 'success' ? 'success' : 'cancelled';
+  });
   const { t: briefingText } = useAdminText(BRIEFING_TEXT);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hasError, setHasError] = useState(false);
@@ -72,7 +87,11 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1A1714] text-white"><Bot className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold leading-tight tracking-tight text-[#1A1714]">{t.title}</h1>
-          <p className="truncate text-xs text-stone-500" title={t.intro}>{fillText(t.usage, { tokens: status.tokensThisMonth.toLocaleString() })}</p>
+          <p className="truncate text-xs text-stone-500" title={t.intro}>
+            {billing && billing.plan !== 'free'
+              ? fillText(billingText.aiLeft, { count: repliesLeft(billing).toLocaleString(locale) })
+              : fillText(t.usage, { tokens: status.tokensThisMonth.toLocaleString() })}
+          </p>
         </div>
         <label className={`flex cursor-pointer items-center gap-2.5 rounded-full border py-1.5 pl-3.5 pr-1.5 text-sm font-medium transition ${settings.is_enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-stone-200 bg-white/70 text-stone-600'}`}>
           <span className={`h-2 w-2 rounded-full ${settings.is_enabled ? 'animate-pulse bg-emerald-500' : 'bg-stone-400'}`} />
@@ -81,6 +100,14 @@ export default function ReceptionistView({ onNavigate }: { onNavigate?: (view: s
         </label>
       </header>
 
+      {creditsNotice && (
+        <p role="status" className={`rounded-xl px-4 py-3 text-sm ${creditsNotice === 'success' ? 'bg-emerald-50 text-emerald-900' : 'bg-stone-100 text-stone-700'}`}>
+          {creditsNotice === 'success' ? billingText.creditsSuccess : billingText.creditsCancelled}
+        </p>
+      )}
+      {billing && (billing.plan === 'free' || repliesLeft(billing) < 100 || creditsNotice) && (
+        <AiRepliesCard overview={billing} onUpgrade={() => { requestSettingsTab('subscription'); onNavigate?.('settings'); }} />
+      )}
       {!status.aiConfigured && (
         <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{t.aiMissing}</p>
       )}

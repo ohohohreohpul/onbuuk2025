@@ -96,10 +96,19 @@ async function overview(admin: Admin) {
 
 const MODES = ["auto", "drafts"];
 
+const PLAN_NEEDED = "The AI receptionist is part of the Zenno plan. Upgrade under Settings > Subscription.";
+
+async function requirePaidPlan(admin: Admin) {
+  const { data, error } = await admin.supabaseAdmin.rpc("business_is_paid", { p_business_id: admin.businessId });
+  if (error) throw new Error(`plan check failed: ${error.message}`);
+  if (data !== true) throw new InputError(PLAN_NEEDED);
+}
+
 async function updateSettings(admin: Admin, body: Body) {
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   const input = (body.patch ?? {}) as Body;
   for (const key of ["is_enabled", "web_enabled", "email_enabled", "whatsapp_enabled"]) if (key in input) patch[key] = bool(input[key]);
+  if (patch.is_enabled === true) await requirePaidPlan(admin);
   for (const key of ["web_mode", "email_mode", "whatsapp_mode"]) {
     if (key in input) {
       if (!MODES.includes(String(input[key]))) throw new InputError(`${key} must be auto or drafts`);
@@ -391,6 +400,7 @@ async function saveCampaign(admin: Admin, body: Body) {
 }
 
 async function startCampaign(admin: Admin, body: Body) {
+  await requirePaidPlan(admin);
   const settings = await ensureSettings(admin);
   if (settings.whatsapp_status !== "connected") throw new InputError("Connect WhatsApp first.");
   const { data: campaign } = await admin.supabaseAdmin.from("outreach_campaigns").select("*")

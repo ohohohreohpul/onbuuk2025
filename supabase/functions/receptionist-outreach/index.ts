@@ -4,6 +4,7 @@ import { isServiceRoleRequest } from "../_shared/adminAuthorization.ts";
 import { appendMessage, upsertConversation } from "../_shared/receptionist/conversations.ts";
 import { getSecret } from "../_shared/receptionist/deliver.ts";
 import { complete, isLlmConfigured } from "../_shared/receptionist/llm.ts";
+import { consumeAiReply } from "../_shared/receptionist/agent.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
 import { cloudSendTemplate, gatewaySendText, warmupCap } from "../_shared/receptionist/whatsapp.ts";
 
@@ -63,7 +64,8 @@ const firstName = (name: string | null) => (name ?? "").trim().split(/\s+/)[0] ?
 async function messageFor(supabase: Client, campaign: Campaign, recipient: Recipient, language: string): Promise<string> {
   const base = campaign.message.replace(/\{name\}/gi, firstName(recipient.name) || (language === "de" ? "Hallo" : "there")).trim();
   let text = base;
-  if (campaign.is_personalised && isLlmConfigured()) {
+  // One credit per personalised message; without credits the template text goes out unchanged.
+  if (campaign.is_personalised && isLlmConfigured() && (await consumeAiReply(supabase, recipient.business_id)) === "ok") {
     try {
       const result = await complete([
         { role: "system", content: "Rewrite this WhatsApp message from a wellness shop to one customer: same facts, offers and links, no new claims, 2-4 short sentences, warm, same language. Reply with the message only." },

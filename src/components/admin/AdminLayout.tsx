@@ -27,6 +27,8 @@ import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
 import HelpModal from './HelpModal';
+import PlanNotice from './billing/PlanNotice';
+import { useBilling } from './billing/useBilling';
 import { requestSettingsTab } from '../../lib/settingsNavigation';
 import { ADMIN_LANGUAGES, AdminLanguage, useAdminLanguage, useAdminText } from '../../lib/adminLanguage';
 import { Translations } from '../../lib/bookingLanguage';
@@ -89,6 +91,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
   const { t } = useAdminText(TEXT);
   const { language, setLanguage } = useAdminLanguage();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const { overview: billing } = useBilling();
 
   useEffect(() => {
     async function fetchLogo() {
@@ -226,6 +229,11 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                 <p className="text-xs text-white/60 truncate">{adminUser?.role}</p>
               </div>
             </div>
+            <PlanNotice
+              overview={billing}
+              canUpgrade={adminUser?.role === 'owner' || adminUser?.role === 'admin'}
+              onUpgrade={() => { requestSettingsTab('subscription'); onViewChange('settings'); }}
+            />
           </div>
 
           {/* Navigation */}

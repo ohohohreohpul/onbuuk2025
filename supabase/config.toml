@@ -324,3 +324,19 @@ verify_jwt = false
 
 [functions.receptionist-admin]
 verify_jwt = false
+
+# Billing (Stripe calls the webhook without a user; the others check the admin themselves).
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.upgrade-subscription]
+verify_jwt = false
+
+[functions.create-portal-session]
+verify_jwt = false
+
+[functions.buy-ai-credits]
+verify_jwt = false
+
+[functions.custom-domain]
+verify_jwt = false

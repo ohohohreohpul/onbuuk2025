@@ -199,6 +199,16 @@ export async function sendReply(
   }
 }
 
+/** 'ok' | 'free_plan' | 'no_credits'. Fails open on infrastructure errors so guests are not left unanswered. */
+export async function consumeAiReply(supabase: SupabaseClient, businessId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("consume_ai_reply", { p_business_id: businessId });
+  if (error) {
+    console.error("AI credit check failed:", error);
+    return "ok";
+  }
+  return String(data);
+}
+
 /** Full inbound pipeline: store → (opt-out) → agent → send or draft. */
 export async function handleInbound(
   supabase: SupabaseClient,
@@ -229,6 +239,13 @@ export async function handleInbound(
   }
   if (await isOverTokenBudget(supabase, settings.business_id)) {
     await updateConversation(supabase, conversation.id, { status: "needs_human", needs_human_reason: "Daily AI limit reached" });
+    return { conversation, reply: null, duplicate: false };
+  }
+  // Plans and credits: one AI reply = one credit (monthly allowance first, then purchased replies).
+  const credit = await consumeAiReply(supabase, settings.business_id);
+  if (credit !== "ok") {
+    const reason = credit === "free_plan" ? "The AI receptionist is part of the Zenno plan" : "No AI replies left – buy more under AI receptionist";
+    await updateConversation(supabase, conversation.id, { status: "needs_human", needs_human_reason: reason });
     return { conversation, reply: null, duplicate: false };
   }
 

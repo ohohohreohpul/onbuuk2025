@@ -153,7 +153,7 @@ async function handleEvent(event: Stripe.Event) {
       await syncCustomerFromStripe(customerId);
 
       if (event.type === 'checkout.session.completed') {
-        await handleNewSignup(customerId, stripeData as Stripe.Checkout.Session);
+        await handleZennoPlanCheckout(stripeData as Stripe.Checkout.Session);
       }
     } else if (mode === 'payment' && payment_status === 'paid') {
       try {
@@ -166,7 +166,14 @@ async function handleEvent(event: Stripe.Event) {
           metadata,
         } = stripeData as Stripe.Checkout.Session;
 
-        if (metadata?.type === 'booking' && metadata?.booking_id) {
+        if (metadata?.type === 'ai_credits' && metadata?.business_id) {
+          const replies = Number.parseInt(metadata.replies ?? '', 10);
+          const { data: added, error: creditError } = await supabase.rpc('add_ai_credits', {
+            p_business_id: metadata.business_id, p_replies: replies, p_amount_cents: amount_total ?? 0, p_session_id: checkout_session_id,
+          });
+          if (creditError) console.error('AI credits could not be added:', creditError);
+          else console.info(added ? `Added ${replies} AI replies for ${metadata.business_id}` : `AI credits for ${checkout_session_id} were already added`);
+        } else if (metadata?.type === 'booking' && metadata?.booking_id) {
           const bookingId = metadata.booking_id;
           console.log(`Processing booking payment for booking: ${bookingId}`);
 
@@ -445,105 +452,12 @@ async function handleAccountDeauthorized(data: any) {
   }
 }
 
-async function handleNewSignup(customerId: string, session: Stripe.Checkout.Session) {
-  try {
-    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-    const metadata = subscription.metadata;
-
-    if (!metadata.user_email || !metadata.business_name) {
-      console.log('No signup metadata found, skipping business creation');
-      return;
-    }
-
-    const { data: existingBusiness } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('stripe_customer_id', customerId)
-      .maybeSingle();
-
-    if (existingBusiness) {
-      console.log('Business already exists for this customer');
-      return;
-    }
-
-    console.log('Creating new business account for customer:', customerId);
-
-    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
-      email: metadata.user_email,
-      password: metadata.user_password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: metadata.user_full_name,
-        business_name: metadata.business_name,
-      },
-    });
-
-    if (signUpError || !authData.user) {
-      console.error('Failed to create auth user:', signUpError);
-      throw new Error('Failed to create auth user');
-    }
-
-    const randomPermalink = `biz-${Math.random().toString(36).substring(2, 10)}`;
-    const trialEndDate = new Date(subscription.trial_end! * 1000);
-
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .insert({
-        name: metadata.business_name,
-        permalink: randomPermalink,
-        subdomain: null,
-        business_type: metadata.business_type,
-        phone: metadata.phone,
-        address: metadata.address,
-        plan_type: metadata.plan_type,
-        is_active: true,
-        owner_id: authData.user.id,
-        custom_logo_url: '/zenno-logo.svg',
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscription.id,
-        subscription_status: subscription.status,
-        trial_end_date: trialEndDate.toISOString(),
-      })
-      .select()
-      .single();
-
-    if (businessError) {
-      console.error('Business creation error:', businessError);
-      throw new Error(`Failed to create business: ${businessError.message}`);
-    }
-
-    await supabase.from('admin_users').insert({
-      business_id: business.id,
-      email: metadata.user_email,
-      full_name: metadata.user_full_name,
-      role: 'admin',
-      is_owner: true,
-      is_active: true,
-      user_id: authData.user.id,
-    });
-
-    await supabase.from('booking_form_colors').insert([
-      { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
-      { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
-      { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
-      { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
-      { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
-      { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
-      { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
-      { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
-      { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
-    ]);
-
-    await supabase
-      .from('stripe_customers')
-      .update({ business_id: business.id })
-      .eq('customer_id', customerId);
-
-    console.log('Successfully created business account:', business.id);
-  } catch (error) {
-    console.error('Error handling new signup:', error);
-    throw error;
-  }
+/** The Zenno plan was bought from Settings > Subscription: mark the shop (custom plans stay custom). */
+async function handleZennoPlanCheckout(session: Stripe.Checkout.Session) {
+  const businessId = session.metadata?.business_id || session.client_reference_id;
+  if (!businessId || session.metadata?.kind !== 'zenno_plan') return;
+  const { error } = await supabase.from('businesses').update({ plan_type: 'pro' }).eq('id', businessId).neq('plan_type', 'custom');
+  if (error) console.error('Could not set the Zenno plan:', error);
 }
 
 async function syncCustomerFromStripe(customerId: string) {
@@ -612,6 +526,13 @@ async function syncCustomerFromStripe(customerId: string) {
 
     if (businessUpdateError) {
       console.error('Error updating business subscription status:', businessUpdateError);
+    }
+
+    // A Zenno plan that ended goes back to Free (custom plans are managed by hand).
+    if (['canceled', 'unpaid', 'incomplete_expired'].includes(subscription.status)) {
+      const { error: downgradeError } = await supabase.from('businesses').update({ plan_type: 'free' })
+        .eq('stripe_customer_id', customerId).in('plan_type', ['pro', 'standard']);
+      if (downgradeError) console.error('Could not move the shop back to Free:', downgradeError);
     }
 
     console.info(`Successfully synced subscription for customer: ${customerId}`);
