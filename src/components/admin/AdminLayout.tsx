@@ -76,6 +76,8 @@ interface AdminLayoutProps {
   onLogout: () => void;
 }
 
+const SHORT_LANGUAGE_LABEL: Record<string, string> = { de: 'DE', en: 'EN', th: 'ไทย' };
+
 export default function AdminLayout({ children, currentView, onViewChange, onLogout }: AdminLayoutProps) {
   const adminUser = adminAuth.getCurrentUser();
   const { businessId } = useTenant();
@@ -315,59 +317,64 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-white/10 space-y-1 relative">
-            <label className="flex items-center gap-3 px-4 py-2 rounded-xl text-white/60 text-sm">
-              <Languages className="w-4 h-4" aria-hidden="true" />
-              <span className="sr-only">{t.language}</span>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as AdminLanguage)}
-                aria-label={t.language}
-                className="flex-1 bg-white/10 hover:bg-white/15 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-lg px-2 py-1.5 text-white text-sm cursor-pointer [&>option]:text-stone-900"
+          <div className="relative space-y-2.5 border-t border-white/10 p-3">
+            <div role="radiogroup" aria-label={t.language} className="flex items-center gap-1 rounded-xl bg-white/[0.06] p-1">
+              <Languages className="mx-1.5 h-3.5 w-3.5 shrink-0 text-white/40" aria-hidden="true" />
+              {ADMIN_LANGUAGES.map((option) => {
+                const isActive = language === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    title={option.label}
+                    onClick={() => setLanguage(option.value as AdminLanguage)}
+                    className={`flex-1 rounded-lg py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${isActive ? 'bg-white text-[#1A1714] shadow-sm' : 'text-white/55 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    {SHORT_LANGUAGE_LABEL[option.value] ?? option.value.toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { href: BRAND_DOCS_URL, label: t.documentation, Icon: Book },
+                { href: BRAND_SUPPORT_URL, label: t.help, Icon: HelpCircle },
+              ].map(({ href, label, Icon }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative flex flex-col gap-2 rounded-xl bg-white/[0.04] px-3 py-2.5 text-white/60 ring-1 ring-white/[0.06] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.09] hover:text-white"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="truncate text-xs font-medium">{label}</span>
+                  <ExternalLink className="absolute right-2.5 top-2.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-50" />
+                </a>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 px-1 pt-1">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-white/50 transition-colors hover:bg-red-500/15 hover:text-red-200"
               >
-                {ADMIN_LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <a
-              href={BRAND_DOCS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
-            >
-              <Book className="w-4 h-4" />
-              <span>{t.documentation}</span>
-              <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
-            </a>
-
-            <a
-              href={BRAND_SUPPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm"
-            >
-              <HelpCircle className="w-4 h-4" />
-              <span>{t.help}</span>
-              <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
-            </a>
-
-            <button
-              onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/60 hover:bg-red-500/20 hover:text-red-200 transition-all duration-200 text-sm"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{t.logout}</span>
-            </button>
-
-            <div className="pt-4 mt-4 border-t border-white/10">
+                <LogOut className="h-3.5 w-3.5" />
+                <span>{t.logout}</span>
+              </button>
               <a
                 href={BRAND_SITE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-white/40 hover:text-white/60 transition-colors text-xs"
+                title={`${t.poweredBy} ${BRAND_NAME}`}
+                className="flex items-center gap-1.5 text-[11px] text-white/35 transition-colors hover:text-white/60"
               >
-                <span>{t.poweredBy}</span>
                 <span className="font-semibold">{BRAND_NAME}</span>
-                <span className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">v1.0</span>
+                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">v1.0</span>
               </a>
             </div>
           </div>
