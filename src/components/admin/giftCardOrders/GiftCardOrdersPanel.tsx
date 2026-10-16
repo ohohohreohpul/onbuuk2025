@@ -112,7 +112,7 @@ export default function GiftCardOrdersPanel({ businessName, designUrl, termsAndC
       .filter((order) => filter === 'all'
         || (filter === 'open' ? order.status === 'pending_payment' : order.status === 'paid'))
       .filter((order) => !needle || [order.order_number, order.buyer_name, order.buyer_email]
-        .some((value) => value.toLowerCase().includes(needle)));
+        .some((value) => (value ?? '').toLowerCase().includes(needle)));
   }, [orders, filter, query]);
 
   const openCount = orders.filter((order) => order.status === 'pending_payment').length;

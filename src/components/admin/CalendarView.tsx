@@ -7,6 +7,7 @@ import { useAdminText } from '../../lib/adminLanguage';
 import { toLocalDateString } from '../../lib/localDateTime';
 import CreateBookingModal from './CreateBookingModal';
 import GiftCardStation from './GiftCardStation';
+import SellVoucherModal from './calendar/SellVoucherModal';
 import BookingTaskModal from './bookings/BookingTaskModal';
 import RescheduleModal from './bookings/RescheduleModal';
 import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from './adminUi';
@@ -70,6 +71,7 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
   const [openBookingId, setOpenBookingId] = useState<string | null>(null);
   const [movingBooking, setMovingBooking] = useState<CalendarBooking | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isSelling, setIsSelling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [convertingBlock, setConvertingBlock] = useState<CalendarBlock | null>(null);
 
@@ -133,7 +135,7 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
         mode={mode}
         staff={data.staff}
         staffFilter={staffFilter}
-        canSellVouchers={Boolean(onNavigate) && hasAnyPermission(['process_payments', 'view_gift_cards'])}
+        canSellVouchers={hasAnyPermission(['process_payments', 'view_gift_cards'])}
         t={t}
         onMode={setMode}
         onStep={(direction) => setAnchor((current) => stepAnchor(mode, current, direction))}
@@ -142,7 +144,7 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
         onNewBooking={() => setCreateDraft({ date: toLocalDateString(mode === 'month' ? new Date() : anchor), specialistId: staffFilter ?? undefined })}
         onBlockTime={() => setBlockState({ draft: blockDraftFor(mode === 'month' ? new Date() : anchor, 12 * 60, staffFilter), existing: null })}
         onRedeemVoucher={() => setIsRedeeming(true)}
-        onSellVoucher={() => onNavigate?.('loyalty')}
+        onSellVoucher={() => setIsSelling(true)}
       />
 
       {actionError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p>}
@@ -246,6 +248,8 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
           onMoved={() => { setMovingBooking(null); afterChange(); }}
         />
       )}
+
+      {isSelling && businessId && <SellVoucherModal businessId={businessId} onClose={() => setIsSelling(false)} />}
 
       {isRedeeming && businessId && (
         <CalendarModal title={t.voucherTitle} closeLabel={t.close} onClose={() => setIsRedeeming(false)} maxWidthClass="max-w-xl">

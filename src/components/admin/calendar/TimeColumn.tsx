@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Ban, Check, StickyNote, Users } from 'lucide-react';
 import {
-  MINUTES_PER_HOUR, MinuteRange, Placed, StaffColor, blockStripes, fromMinutes, snapMinutes,
+  MINUTES_PER_HOUR, MinuteRange, Placed, SLOT_STEP_MINUTES, StaffColor, blockStripes, fromMinutes, snapMinutes,
 } from './calendarModel';
 import type { CalendarBlock, CalendarBooking } from './useCalendarData';
 import type { CalendarText } from './calendarText';
@@ -66,19 +66,21 @@ function BookingCard({ placed, startHour, t, onClick }: {
     <button
       type="button"
       onClick={(event) => { event.stopPropagation(); onClick(); }}
-      className={`absolute overflow-hidden rounded-lg px-2 py-1 text-left shadow-sm transition hover:z-20 hover:shadow-md focus:z-20 focus:outline-none focus:ring-2 focus:ring-stone-900/40 ${isNoShow ? 'opacity-50' : ''}`}
+      className={`group absolute z-10 overflow-hidden rounded-xl px-2.5 py-1.5 text-left shadow-[0_1px_3px_rgba(26,23,20,0.08)] ring-1 ring-inset transition duration-150 hover:z-20 hover:shadow-[0_6px_18px_rgba(26,23,20,0.14)] focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 motion-safe:hover:-translate-y-px ${isNoShow ? 'opacity-50' : ''}`}
       style={{
         top: toPx(item.startMin, startHour) + 1,
         height,
-        left: `calc(${(lane / laneCount) * 100}% + 2px)`,
-        width: `calc(${100 / laneCount}% - 4px)`,
-        background: isPending ? '#FFFBEB' : color.bg,
-        borderLeft: `4px solid ${isPending ? '#F59E0B' : color.border}`,
+        left: `calc(${(lane / laneCount) * 100}% + 3px)`,
+        width: `calc(${100 / laneCount}% - 6px)`,
+        background: isPending ? '#FFFBEB' : `linear-gradient(180deg, #FFFFFF 0%, ${color.bg} 100%)`,
+        ['--tw-ring-color' as string]: isPending ? '#FCD34D' : `${color.border}66`,
         outline: isPending ? '1px dashed #F59E0B' : undefined,
+        outlineOffset: isPending ? '-3px' : undefined,
         color: color.text,
       }}
     >
-      <div className="flex items-center gap-1 text-[12px] font-semibold leading-tight">
+      <div className="flex items-center gap-1.5 text-[12px] font-semibold leading-tight">
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: isPending ? '#F59E0B' : color.border }} aria-hidden />
         <span className="tabular-nums">{fromMinutes(item.startMin)}</span>
         <span className={`truncate ${isNoShow ? 'line-through' : ''}`}>{booking.customer_name}</span>
         {isPaid && <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label={t.paid} />}
@@ -107,10 +109,21 @@ export default function TimeColumn(props: TimeColumnProps) {
   const totalHeight = (endHour - startHour) * HOUR_HEIGHT_PX;
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
 
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const [hoverMin, setHoverMin] = useState<number | null>(null);
+  const minutesAt = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const minutes = startHour * MINUTES_PER_HOUR + ((event.clientY - rect.top) / HOUR_HEIGHT_PX) * MINUTES_PER_HOUR;
-    props.onEmptyClick(snapMinutes(minutes));
+    return Math.min(snapMinutes(minutes), endHour * MINUTES_PER_HOUR - SLOT_STEP_MINUTES);
+  };
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => props.onEmptyClick(minutesAt(event));
+  const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Over an appointment or a block the card itself reacts; no ghost slot.
+    if ((event.target as HTMLElement).closest('button')) {
+      if (hoverMin !== null) setHoverMin(null);
+      return;
+    }
+    const minutes = minutesAt(event);
+    if (minutes !== hoverMin) setHoverMin(minutes);
   };
 
   return (
@@ -119,7 +132,9 @@ export default function TimeColumn(props: TimeColumnProps) {
       tabIndex={-1}
       aria-label={props.label}
       onClick={handleClick}
-      className="relative cursor-copy border-l border-stone-200/80 bg-white/60"
+      onMouseMove={handleMove}
+      onMouseLeave={() => setHoverMin(null)}
+      className="group/col relative cursor-pointer border-l border-stone-200/80 bg-white/60 transition-colors duration-150 hover:bg-white/90"
       style={{ height: totalHeight }}
     >
       {hours.map((hour) => (
@@ -127,6 +142,16 @@ export default function TimeColumn(props: TimeColumnProps) {
           <div className="absolute inset-x-0 border-t border-dashed border-stone-100" style={{ top: HOUR_HEIGHT_PX / 2 }} />
         </div>
       ))}
+
+      {hoverMin !== null && (
+        <div
+          className="pointer-events-none absolute inset-x-[3px] z-[5] flex items-start rounded-xl bg-stone-900/[0.045] px-2.5 py-1 text-[12px] font-semibold text-stone-600 ring-1 ring-inset ring-stone-900/15 motion-safe:transition-[top] motion-safe:duration-100"
+          style={{ top: toPx(hoverMin, startHour) + 1, height: HOUR_HEIGHT_PX / 2 - 2 }}
+          aria-hidden
+        >
+          + {fromMinutes(hoverMin)}
+        </div>
+      )}
 
       {props.offRanges.map((range, i) => (
         <div
@@ -141,11 +166,11 @@ export default function TimeColumn(props: TimeColumnProps) {
           key={block.id}
           type="button"
           onClick={(event) => { event.stopPropagation(); props.onBlockClick(block); }}
-          className="absolute inset-x-0.5 z-10 overflow-hidden rounded-lg border-l-4 px-2 py-1 text-left text-[12px] leading-snug text-stone-800 shadow-sm hover:brightness-95"
+              className="absolute inset-x-[3px] z-10 overflow-hidden rounded-xl px-2.5 py-1.5 text-left text-[12px] leading-snug text-stone-800 ring-1 ring-inset ring-stone-900/10 transition duration-150 hover:shadow-[0_6px_18px_rgba(26,23,20,0.12)] motion-safe:hover:-translate-y-px"
           style={{
             top: Math.max(0, toPx(startMin, startHour)) + 1,
             height: Math.max(MIN_CARD_HEIGHT_PX, toPx(endMin, startHour) - Math.max(0, toPx(startMin, startHour)) - 2),
-            ...blockStripes(block.color),
+            background: blockStripes(block.color).background,
           }}
         >
           <span className="flex items-center gap-1 font-semibold tabular-nums">

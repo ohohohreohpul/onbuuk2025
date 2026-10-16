@@ -124,7 +124,7 @@ export default function OrderCard({ order, isBusy, onOpen, onToggleBonus, onDown
       {isExpanded && (
         <div className="mt-4 grid gap-4 border-t border-stone-200/70 pt-4 text-sm md:grid-cols-2">
           <div className="space-y-1.5 text-stone-600">
-            <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-stone-400" /> {order.buyer_email}</p>
+            {order.buyer_email && <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-stone-400" /> {order.buyer_email}</p>}
             {order.buyer_phone && <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-stone-400" /> {order.buyer_phone}</p>}
             {order.recipient_email && <p className="text-xs text-stone-500">{fillText(t.recipientFor, { email: order.recipient_email })}</p>}
             {order.message && <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs italic text-stone-500">“{order.message}”</p>}

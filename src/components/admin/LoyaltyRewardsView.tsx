@@ -100,7 +100,7 @@ const TEXT: Translations<LoyaltyText> = {
     unknownError: 'Unknown error', msgDeletedOne: 'Deleted 1 gift card', msgDeletedMany: 'Deleted {count} gift cards',
     msgDeleteError: 'Error deleting gift cards. Please try again.', msgArtworkTooLarge: 'Error: artwork must be smaller than 5 MB',
     msgArtworkReadError: 'Error: failed to read artwork',
-    pageTitle: 'Loyalty & Rewards', pageSubtitle: 'Turn repeat visits into lasting relationships and manage cards and service passes.',
+    pageTitle: 'Vouchers', pageSubtitle: 'Sell, look up and redeem vouchers and multi-visit cards.',
     tabLoyalty: 'Loyalty program', tabGiftSetup: 'Gift-card setup', tabGiftCards: 'Gift cards', tabOrders: 'Orders & sets', tabPos: 'Point of sale',
     pointsProgram: 'Points program',
     pointsProgramHint: 'Reward completed bookings automatically and let customers redeem points on future visits.',
@@ -176,7 +176,7 @@ const TEXT: Translations<LoyaltyText> = {
     unknownError: 'Unbekannter Fehler', msgDeletedOne: '1 Gutschein gelöscht', msgDeletedMany: '{count} Gutscheine gelöscht',
     msgDeleteError: 'Fehler beim Löschen der Gutscheine. Bitte erneut versuchen.', msgArtworkTooLarge: 'Fehler: Das Motiv muss kleiner als 5 MB sein',
     msgArtworkReadError: 'Fehler: Das Motiv konnte nicht gelesen werden',
-    pageTitle: 'Treue & Prämien', pageSubtitle: 'Aus Stammbesuchen dauerhafte Kundenbeziehungen machen und Gutscheine sowie Behandlungsgutscheine verwalten.',
+    pageTitle: 'Gutscheine', pageSubtitle: 'Gutscheine und Mehrfachkarten verkaufen, nachschlagen und einlösen.',
     tabLoyalty: 'Treueprogramm', tabGiftSetup: 'Gutschein-Einstellungen', tabGiftCards: 'Gutscheine', tabOrders: 'Bestellungen & Sets', tabPos: 'Kasse',
     pointsProgram: 'Punkteprogramm',
     pointsProgramHint: 'Abgeschlossene Buchungen automatisch belohnen; Kunden lösen Punkte bei späteren Besuchen ein.',
@@ -252,7 +252,7 @@ const TEXT: Translations<LoyaltyText> = {
     unknownError: 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ', msgDeletedOne: 'ลบบัตรของขวัญ 1 ใบแล้ว', msgDeletedMany: 'ลบบัตรของขวัญ {count} ใบแล้ว',
     msgDeleteError: 'ลบบัตรของขวัญไม่สำเร็จ กรุณาลองอีกครั้ง', msgArtworkTooLarge: 'ข้อผิดพลาด: ไฟล์ภาพต้องเล็กกว่า 5 MB',
     msgArtworkReadError: 'ข้อผิดพลาด: อ่านไฟล์ภาพไม่ได้',
-    pageTitle: 'สะสมแต้มและรางวัล', pageSubtitle: 'เปลี่ยนลูกค้าขาประจำให้เป็นความสัมพันธ์ระยะยาว และจัดการบัตรของขวัญและบัตรบริการ',
+    pageTitle: 'บัตรของขวัญ', pageSubtitle: 'ขาย ค้นหา และใช้บัตรของขวัญและบัตรหลายครั้ง',
     tabLoyalty: 'โปรแกรมสะสมแต้ม', tabGiftSetup: 'ตั้งค่าบัตรของขวัญ', tabGiftCards: 'บัตรของขวัญ', tabOrders: 'คำสั่งซื้อและชุด', tabPos: 'จุดขาย',
     pointsProgram: 'โปรแกรมแต้ม',
     pointsProgramHint: 'ให้แต้มอัตโนมัติเมื่อการจองเสร็จสิ้น และให้ลูกค้าใช้แต้มในการมาครั้งต่อไป',
@@ -409,7 +409,7 @@ export function LoyaltyRewardsView() {
   const { businessId, language } = useTenant();
   const { currency, currencySymbol, formatAmount } = useCurrency();
   const { t, locale } = useAdminText(TEXT);
-  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'orders' | 'pos'>('loyalty');
+  const [activeTab, setActiveTab] = useState<'loyalty' | 'giftcards' | 'manage' | 'orders' | 'pos'>('manage');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessageText] = useState('');
@@ -1005,11 +1005,11 @@ export function LoyaltyRewardsView() {
       <div className="overflow-x-auto pb-1">
         <div className={`${ADMIN_SEGMENTED_CONTROL} min-w-max`}>
           {[
-            { id: 'loyalty' as const, label: t.tabLoyalty, icon: Award },
-            { id: 'giftcards' as const, label: t.tabGiftSetup, icon: Gift },
             { id: 'manage' as const, label: t.tabGiftCards, icon: CreditCard },
             { id: 'orders' as const, label: t.tabOrders, icon: Gift },
             { id: 'pos' as const, label: t.tabPos, icon: DollarSign },
+            { id: 'giftcards' as const, label: t.tabGiftSetup, icon: Gift },
+            { id: 'loyalty' as const, label: t.tabLoyalty, icon: Award },
           ].map((tab) => (
             <button
               type="button"

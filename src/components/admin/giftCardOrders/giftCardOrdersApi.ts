@@ -21,7 +21,7 @@ export interface GiftCardOrder {
   total_cents: number;
   status: OrderStatus;
   buyer_name: string;
-  buyer_email: string;
+  buyer_email: string | null;
   buyer_phone: string | null;
   recipient_email: string | null;
   message: string | null;
