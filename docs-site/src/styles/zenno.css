@@ -1,0 +1,62 @@
+/* Zenno look for Starlight: ink on paper, Geist, rounded cards (tokens from the Zenno design system). */
+:root {
+	--sl-font: Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--sl-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--sl-content-width: 46rem;
+	--zn-ink: #1a1714;
+	--zn-paper: #fdfdfc;
+	--zn-sand: #f7f5f2;
+	--zn-line: #e7e5e4;
+}
+
+/* Light: warm stone greys, ink accent. */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #f0ede8;
+	--sl-color-accent: #1a1714;
+	--sl-color-accent-high: #1a1714;
+	--sl-color-white: #1a1714;
+	--sl-color-gray-1: #292524;
+	--sl-color-gray-2: #44403c;
+	--sl-color-gray-3: #6b6560;
+	--sl-color-gray-4: #a09990;
+	--sl-color-gray-5: #e7e5e4;
+	--sl-color-gray-6: #f7f5f2;
+	--sl-color-gray-7: #fbfaf8;
+	--sl-color-black: #fdfdfc;
+	--sl-color-bg-nav: #fdfdfc;
+	--sl-color-bg-sidebar: #fbfaf8;
+}
+
+/* Dark: the app's night sidebar. */
+:root {
+	--sl-color-accent-low: #2e2926;
+	--sl-color-accent: #eeebe6;
+	--sl-color-accent-high: #ffffff;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #eeebe6;
+	--sl-color-gray-2: #d6d3d1;
+	--sl-color-gray-3: #a09990;
+	--sl-color-gray-4: #6b6560;
+	--sl-color-gray-5: #3d3833;
+	--sl-color-gray-6: #211d1a;
+	--sl-color-black: #151210;
+	--sl-color-bg-nav: #1a1714;
+	--sl-color-bg-sidebar: #1a1714;
+}
+
+body { -webkit-font-smoothing: antialiased; }
+.sl-markdown-content h1, .sl-markdown-content h2, .sl-markdown-content h3, h1#_top { letter-spacing: -0.01em; text-wrap: balance; }
+h1#_top { font-weight: 600; }
+
+/* Asides and cards: rounded like the app, no coloured left bar. */
+.starlight-aside { border-radius: 16px; border-inline-start-width: 1px; border: 1px solid var(--sl-color-gray-5); }
+.card { border-radius: 16px !important; transition: transform .3s, box-shadow .3s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(26, 23, 20, 0.085); }
+.sl-link-button { border-radius: 12px !important; }
+kbd { border-radius: 6px; border: 1px solid var(--sl-color-gray-5); padding: 0 .35em; font-family: var(--sl-font); font-size: .85em; }
+.sl-markdown-content img { border-radius: 12px; }
+
+/* Step lists read like a recipe. */
+.sl-markdown-content ol > li::marker { font-weight: 600; color: var(--sl-color-gray-3); }
+
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }

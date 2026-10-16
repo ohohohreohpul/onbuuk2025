@@ -44,7 +44,7 @@ export const CALENDAR_TEXT: Translations<{
     errorWho: 'Please choose who is blocked.',
     move: 'Move appointment', voucherTitle: 'Redeem voucher', minutes: '{count} min',
     severalDays: 'Several days', lastDay: 'Last day', confirmDelete: 'Yes, remove', unassigned: 'Not assigned',
-    comment: 'Comment', commentPlaceholder: 'e.g. Ms Kopelke · back & neck · 0157 7180 7377', color: 'Colour', noColor: 'Grey', durationLabel: 'Duration: {hours} h {minutes} min', convert: 'Turn into a real appointment', convertHint: 'Customer gets a confirmation and reminder; payment and stats are tracked.', errorRemoveReservation: 'The appointment is saved, but the reservation is still there – please remove it.',
+    comment: 'Comment', commentPlaceholder: 'e.g. Ms Weber · back & neck · 0151 2345 6789', color: 'Colour', noColor: 'Grey', durationLabel: 'Duration: {hours} h {minutes} min', convert: 'Turn into a real appointment', convertHint: 'Customer gets a confirmation and reminder; payment and stats are tracked.', errorRemoveReservation: 'The appointment is saved, but the reservation is still there – please remove it.',
   },
   de: {
     title: 'Kalender', loadFailed: 'Der Kalender konnte nicht geladen werden.', retry: 'Erneut versuchen',
@@ -68,7 +68,7 @@ export const CALENDAR_TEXT: Translations<{
     errorWho: 'Bitte auswählen, wer blockiert wird.',
     move: 'Termin verschieben', voucherTitle: 'Gutschein einlösen', minutes: '{count} Min.',
     severalDays: 'Mehrere Tage', lastDay: 'Letzter Tag', confirmDelete: 'Ja, entfernen', unassigned: 'Ohne Zuordnung',
-    comment: 'Kommentar', commentPlaceholder: 'z. B. Fr. Kopelke · Rücken/Nacken · 0157 7180 7377', color: 'Farbe', noColor: 'Grau', durationLabel: 'Dauer: {hours} Std. {minutes} Min.', convert: 'Als richtigen Termin eintragen', convertHint: 'Die Kundin bekommt Bestätigung und Erinnerung; Zahlung und Statistik werden erfasst.', errorRemoveReservation: 'Der Termin ist gespeichert, aber die Reservierung ist noch da – bitte entfernen.',
+    comment: 'Kommentar', commentPlaceholder: 'z. B. Fr. Weber · Rücken/Nacken · 0151 2345 6789', color: 'Farbe', noColor: 'Grau', durationLabel: 'Dauer: {hours} Std. {minutes} Min.', convert: 'Als richtigen Termin eintragen', convertHint: 'Die Kundin bekommt Bestätigung und Erinnerung; Zahlung und Statistik werden erfasst.', errorRemoveReservation: 'Der Termin ist gespeichert, aber die Reservierung ist noch da – bitte entfernen.',
   },
   th: {
     title: 'ปฏิทิน', loadFailed: 'โหลดปฏิทินไม่สำเร็จ', retry: 'ลองอีกครั้ง',
@@ -92,7 +92,7 @@ export const CALENDAR_TEXT: Translations<{
     errorWho: 'กรุณาเลือกว่าปิดเวลาของใคร',
     move: 'เลื่อนนัด', voucherTitle: 'ใช้บัตรของขวัญ', minutes: '{count} นาที',
     severalDays: 'หลายวัน', lastDay: 'วันสุดท้าย', confirmDelete: 'ใช่ ยกเลิก', unassigned: 'ยังไม่ระบุพนักงาน',
-    comment: 'หมายเหตุ', commentPlaceholder: 'เช่น คุณ Kopelke · หลัง/คอ · 0157 7180 7377', color: 'สี', noColor: 'เทา', durationLabel: 'ระยะเวลา: {hours} ชม. {minutes} นาที', convert: 'เปลี่ยนเป็นนัดหมายจริง', convertHint: 'ลูกค้าจะได้รับการยืนยันและการแจ้งเตือน ระบบบันทึกการชำระเงินและสถิติ', errorRemoveReservation: 'บันทึกนัดหมายแล้ว แต่เวลาที่ปิดไว้ยังอยู่ – กรุณาลบออก',
+    comment: 'หมายเหตุ', commentPlaceholder: 'เช่น คุณ Weber · หลัง/คอ · 0151 2345 6789', color: 'สี', noColor: 'เทา', durationLabel: 'ระยะเวลา: {hours} ชม. {minutes} นาที', convert: 'เปลี่ยนเป็นนัดหมายจริง', convertHint: 'ลูกค้าจะได้รับการยืนยันและการแจ้งเตือน ระบบบันทึกการชำระเงินและสถิติ', errorRemoveReservation: 'บันทึกนัดหมายแล้ว แต่เวลาที่ปิดไว้ยังอยู่ – กรุณาลบออก',
   },
 };
 

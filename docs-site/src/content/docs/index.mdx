@@ -1,0 +1,28 @@
+---
+title: Zenno Help
+description: Step-by-step help for your Zenno front desk – POS calendar, bookings, vouchers, payments and the AI receptionist.
+template: splash
+hero:
+  tagline: Short, step-by-step guides for your front desk. Find what you want to do, follow the steps, done.
+  actions:
+    - text: First steps
+      link: /start/first-steps/
+      icon: right-arrow
+    - text: Write to support
+      link: mailto:support@zennohq.com
+      icon: email
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## What do you want to do?
+
+<CardGrid>
+  <LinkCard title="Put in a booking from the phone" href="/pos/create-booking/" description="A guest calls: find a free time, enter the name, done." />
+  <LinkCard title="Block time" href="/pos/block-time/" description="A therapist leaves early or you hold a time for a caller." />
+  <LinkCard title="Sell or redeem a voucher" href="/money/sell-voucher/" description="At the counter, in a few taps." />
+  <LinkCard title="Turn on the AI receptionist" href="/ai-receptionist/turn-on/" description="Answers on WhatsApp, email and your website." />
+  <LinkCard title="Tell the AI how to talk" href="/ai-receptionist/personality/" description="Personality, tone and good habits – or learn them from your website." />
+  <LinkCard title="Get help from a person" href="/help/get-help/" description="Write to support@zennohq.com." />
+</CardGrid>
