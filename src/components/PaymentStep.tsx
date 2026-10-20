@@ -1210,7 +1210,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
           disabled={isProcessing}
         >
           <ChevronRight className="w-4 h-4 rotate-180 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back
+          {t.back}
         </button>
         <h2 className="text-3xl font-semibold mb-2 tracking-tight" style={{ color: colors.textPrimary }}>{content.title}</h2>
         <p className="text-lg" style={{ color: colors.textSecondary }}>{content.subtitle}</p>
