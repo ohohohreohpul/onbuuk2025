@@ -118,3 +118,12 @@
 | autonomy | **auto_with_gate** | 0.97 | auto_with_gate 98%, drafts_only 1%, fully_auto 1% |
 | build_order | **web_email_whatsapp** | 0.98 | web_email_whatsapp 99%, whatsapp_first 1%, all_parallel 0% |
 | outreach_consent | **explicit_consent_record** | 0.90 | explicit_consent_record 95%, trust_import 5% |
+
+## 2026-10-20 — One account, multiple stores (jev-1.13.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| scope_v1 | **switcher_only** | 1.00 | switcher_only 100%, switcher_plus_shared_vouchers 0%, full_chain 0% |
+| selection_mechanism | **header** | 1.00 | header 100%, db_active_store 0%, jwt_claim 0% |
+| billing | **per_store_plan** | 0.55 | per_store_plan 70%, custom_only 29%, group_plan 1% |
+| group_overview | **later** | 0.78 | later 89%, simple_cards 11% |

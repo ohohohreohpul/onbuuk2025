@@ -1,0 +1,49 @@
+{
+  "title": "One account, multiple stores",
+  "state": {
+    "product": "Zenno Booking (Vite SPA + Supabase + Deno edge functions). Wellness/massage shops in Germany and Thailand, older non-technical owners (DE/EN/TH). Plans: Free, Zenno 49 EUR/month per shop, Custom (tailored, already advertised as 'several locations or teams').",
+    "today": "Every shop is one row in businesses with its own services, therapists, calendar, customers, vouchers, cash book, booking page (subdomain or custom domain), AI receptionist, Stripe customer and plan. A login (admin_users) belongs to exactly one shop: admin_users.email is UNIQUE. public.get_admin_business_id() returns 'the' shop of the logged-in user and is used by 124 RLS policies on 56 tables; edge functions resolve the shop via requireActiveAdmin the same way. 82 active admin logins, 76 distinct auth users.",
+    "request": "Owner wants one login to run several stores (branches of one brand, or separate brands owned by one person) and switch between them.",
+    "technical_options": "A) Selected-store header: the app sends x-zenno-business on every request; get_admin_business_id() and requireActiveAdmin return that store only if the user has an active membership there, else the first membership. Zero changes to the 124 policies, switch is instant and per tab. B) Store the active store per user in a table: one switch affects all tabs/devices of that user. C) Custom JWT claim: needs a token refresh on every switch.",
+    "sharing_questions": "Chains often want: vouchers bought in one branch redeemable in another; one customer list across branches; staff working in two branches; a combined revenue view. Each of these crosses the tenant boundary that RLS enforces today and needs careful, separate design.",
+    "constraints": "One developer (Claude). Production DB writes need the user's approval in a terminal. Must not break the 80 existing single-shop logins. German cash book (Kassenbuch/GoBD) rules are per business entity, so money records must stay per store.",
+    "risk": "A tenant-isolation bug would show one shop's customers to another owner (GDPR breach)."
+  },
+  "decisions": {
+    "scope_v1": {
+      "instructions": "What does v1 ship?",
+      "criteria": {
+        "switcher_only": "One login, many stores, a store switcher in the sidebar; each store stays fully separate (own data, booking page, plan, receptionist). Add another store from the switcher. Invite an existing login to a second store. No data shared across stores yet.",
+        "switcher_plus_shared_vouchers": "Switcher plus vouchers redeemable across stores of the same group.",
+        "full_chain": "Switcher plus shared customers, shared vouchers, shared staff and a combined dashboard."
+      },
+      "fallback": "switcher_only"
+    },
+    "selection_mechanism": {
+      "instructions": "How does the backend know which store is selected?",
+      "criteria": {
+        "header": "Option A, request header validated against memberships, fallback to first membership.",
+        "db_active_store": "Option B, active store stored per user.",
+        "jwt_claim": "Option C, custom JWT claim with token refresh."
+      },
+      "fallback": "header"
+    },
+    "billing": {
+      "instructions": "How are extra stores billed?",
+      "criteria": {
+        "per_store_plan": "Each store has its own plan exactly like today (a second store starts on Free and can upgrade to Zenno 49 EUR); groups of stores can be moved to Custom by us.",
+        "group_plan": "One subscription for the whole group with a per-store price.",
+        "custom_only": "Multiple stores only available on Custom."
+      },
+      "fallback": "per_store_plan"
+    },
+    "group_overview": {
+      "instructions": "Does v1 include an 'All stores' overview?",
+      "criteria": {
+        "later": "No; v2 after the switcher has been used by real multi-store owners.",
+        "simple_cards": "Yes, a read-only page with one card per store: today's bookings, revenue this month, open chats."
+      },
+      "fallback": "simple_cards"
+    }
+  }
+}
