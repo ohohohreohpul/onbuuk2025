@@ -272,7 +272,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   // Above 250 € (Kleinbetragsrechnung limit) a German invoice needs the customer's address.
   const downloadInvoice = async (booking: Booking) => {
     let address: string | undefined;
-    if ((booking.duration?.price_cents ?? 0) > SMALL_INVOICE_LIMIT_CENTS) {
+    if ((booking.final_amount_cents ?? booking.duration?.price_cents ?? 0) > SMALL_INVOICE_LIMIT_CENTS) {
       address = window.prompt(fillText(t.invoiceAddressPrompt, { name: booking.customer_name })) ?? undefined;
       if (address === undefined) return;
     }
@@ -438,7 +438,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
                         </div>
                       </td>
                       <td className={`px-5 py-4 text-sm font-semibold tabular-nums ${isClosed ? 'text-stone-400' : 'text-[#1A1714]'}`}>
-                        {formatPrice(booking.duration.price_cents)}
+                        {formatPrice(booking.final_amount_cents ?? booking.duration.price_cents)}
                         {openCentsOf(booking) > 0 && booking.status !== 'cancelled' && !booking.no_show ? (
                           <p className="mt-1 text-xs font-semibold text-amber-800">{t.notPaid}</p>
                         ) : (

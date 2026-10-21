@@ -7,6 +7,7 @@ import { ImportServicesModal } from './ImportServicesModal';
 import { useCurrency } from '../../lib/currencyContext';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, type Translations } from '../../lib/bookingLanguage';
+import { duplicateMinutes, planDurationChanges, type EditedDuration } from './services/durationChanges';
 
 const TEXT: Translations<{
   title: string; subtitle: string; allCategories: string; listView: string; gridView: string; importTitle: string;
@@ -20,7 +21,7 @@ const TEXT: Translations<{
   noShowFeeHint: string; lateCancelFee: string; lateCancelFeeHint: string; cancelBefore: string; cancelBeforeHint: string;
   durationsPrices: string; addDuration: string; durationPlaceholder: string; pricePlaceholder: string; removeDuration: string;
   updateService: string; createService: string; cancel: string; limitReached: string; chooseCategory: string;
-  businessNotFound: string; updateFailed: string; createFailed: string; unexpectedError: string; confirmDelete: string;
+  businessNotFound: string; updateFailed: string; createFailed: string; duplicateDuration: string; durationInUse: string; durationSaveFailed: string; unexpectedError: string; confirmDelete: string;
   deleteFailed: string;
 }> = {
   en: {
@@ -44,7 +45,7 @@ const TEXT: Translations<{
     removeDuration: 'Remove duration', updateService: 'Update service', createService: 'Create service', cancel: 'Cancel',
     limitReached: "You've reached the maximum number of services ({max}) for your {plan} plan. Upgrade to Pro for unlimited services.",
     chooseCategory: 'Please select or create a category.', businessNotFound: 'Business not found.',
-    updateFailed: 'Could not update the service: {message}', createFailed: 'Could not create the service: {message}',
+    updateFailed: 'Could not update the service: {message}', createFailed: 'Could not create the service: {message}', duplicateDuration: '{minutes} min is listed twice. Keep one price per length.', durationInUse: 'Kept {minutes} min: past bookings or vouchers still use it.', durationSaveFailed: 'Could not save the prices: {message}',
     unexpectedError: 'An unexpected error occurred. Please try again.', confirmDelete: 'Are you sure you want to delete this service?',
     deleteFailed: 'Could not delete the service: {message}',
   },
@@ -69,7 +70,7 @@ const TEXT: Translations<{
     removeDuration: 'Dauer entfernen', updateService: 'Leistung speichern', createService: 'Leistung anlegen', cancel: 'Abbrechen',
     limitReached: 'Die maximale Anzahl an Leistungen ({max}) für Ihren {plan}-Tarif ist erreicht. Mit Pro sind unbegrenzt viele Leistungen möglich.',
     chooseCategory: 'Bitte eine Kategorie auswählen oder anlegen.', businessNotFound: 'Unternehmen nicht gefunden.',
-    updateFailed: 'Leistung konnte nicht gespeichert werden: {message}', createFailed: 'Leistung konnte nicht angelegt werden: {message}',
+    updateFailed: 'Leistung konnte nicht gespeichert werden: {message}', createFailed: 'Leistung konnte nicht angelegt werden: {message}', duplicateDuration: '{minutes} Min. steht doppelt drin. Bitte nur einen Preis pro Dauer.', durationInUse: '{minutes} Min. bleibt bestehen: Frühere Buchungen oder Gutscheine nutzen diese Dauer noch.', durationSaveFailed: 'Preise konnten nicht gespeichert werden: {message}',
     unexpectedError: 'Ein unerwarteter Fehler ist aufgetreten. Bitte erneut versuchen.', confirmDelete: 'Diese Leistung wirklich löschen?',
     deleteFailed: 'Leistung konnte nicht gelöscht werden: {message}',
   },
@@ -94,7 +95,7 @@ const TEXT: Translations<{
     removeDuration: 'ลบระยะเวลา', updateService: 'บันทึกบริการ', createService: 'สร้างบริการ', cancel: 'ยกเลิก',
     limitReached: 'คุณมีบริการครบจำนวนสูงสุด ({max}) ของแพ็กเกจ {plan} แล้ว อัปเกรดเป็น Pro เพื่อเพิ่มบริการได้ไม่จำกัด',
     chooseCategory: 'กรุณาเลือกหรือสร้างหมวดหมู่', businessNotFound: 'ไม่พบข้อมูลร้าน',
-    updateFailed: 'อัปเดตบริการไม่สำเร็จ: {message}', createFailed: 'สร้างบริการไม่สำเร็จ: {message}',
+    updateFailed: 'อัปเดตบริการไม่สำเร็จ: {message}', createFailed: 'สร้างบริการไม่สำเร็จ: {message}', duplicateDuration: '{minutes} นาที ซ้ำกัน กรุณาใส่ราคาเดียวต่อระยะเวลา', durationInUse: 'เก็บ {minutes} นาทีไว้ เพราะยังมีการจองหรือบัตรของขวัญที่ใช้อยู่', durationSaveFailed: 'บันทึกราคาไม่สำเร็จ: {message}',
     unexpectedError: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองอีกครั้ง', confirmDelete: 'ต้องการลบบริการนี้ใช่หรือไม่',
     deleteFailed: 'ลบบริการไม่สำเร็จ: {message}',
   },
@@ -115,6 +116,8 @@ interface Service {
   late_cancel_fee: number;
   late_cancel_hours: number;
 }
+
+const FOREIGN_KEY_VIOLATION = '23503';
 
 interface ServiceDuration {
   id: string;
@@ -147,7 +150,7 @@ export default function ServicesView() {
     late_cancel_fee: 0,
     late_cancel_hours: 24,
   });
-  const [serviceDurations, setServiceDurations] = useState<Array<{ duration_minutes: number; price_cents: number }>>([
+  const [serviceDurations, setServiceDurations] = useState<EditedDuration[]>([
     { duration_minutes: 60, price_cents: 8900 },
   ]);
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
@@ -261,6 +264,7 @@ export default function ServicesView() {
     });
     setServiceDurations(
       durations[service.id]?.map(d => ({
+        id: d.id,
         duration_minutes: d.duration_minutes,
         price_cents: d.price_cents,
       })) || [{ duration_minutes: 60, price_cents: 8900 }]
@@ -270,8 +274,52 @@ export default function ServicesView() {
     setShowModal(true);
   };
 
+  /**
+   * Saves the price list by updating rows in place (same id), so bookings and
+   * vouchers that point at a price keep working. Returns the lengths that could
+   * not be removed because something still uses them, or null after an error.
+   */
+  const saveDurations = async (serviceId: string): Promise<number[] | null> => {
+    const plan = planDurationChanges(durations[serviceId] ?? [], serviceDurations);
+    const fail = (error: { message: string }) => {
+      console.error('Error saving service prices:', error);
+      alert(fillText(t.durationSaveFailed, { message: error.message }));
+      return null;
+    };
+
+    for (const row of plan.updates) {
+      const { error } = await supabase
+        .from('service_durations')
+        .update({ duration_minutes: row.duration_minutes, price_cents: row.price_cents, updated_at: new Date().toISOString() })
+        .eq('id', row.id);
+      if (error) return fail(error);
+    }
+    if (plan.inserts.length > 0) {
+      const { error } = await supabase.from('service_durations').insert(plan.inserts.map((row) => ({
+        business_id: tenant.businessId,
+        service_id: serviceId,
+        duration_minutes: row.duration_minutes,
+        price_cents: row.price_cents,
+      })));
+      if (error) return fail(error);
+    }
+    const inUse: number[] = [];
+    for (const row of plan.deletes) {
+      const { error } = await supabase.from('service_durations').delete().eq('id', row.id);
+      if (error?.code === FOREIGN_KEY_VIOLATION) inUse.push(row.duration_minutes);
+      else if (error) return fail(error);
+    }
+    return inUse;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const repeated = duplicateMinutes(serviceDurations);
+    if (repeated !== null) {
+      alert(fillText(t.duplicateDuration, { minutes: repeated }));
+      return;
+    }
 
     const categoryToSave = isCreatingNewCategory ? newCategoryName.trim() : formData.category;
 
@@ -313,27 +361,9 @@ export default function ServicesView() {
           return;
         }
 
-        const { error: deleteError } = await supabase
-          .from('service_durations')
-          .delete()
-          .eq('service_id', editingService.id);
-
-        if (deleteError) {
-          console.error('Error deleting durations:', deleteError);
-        }
-
-        for (const duration of serviceDurations) {
-          const { error: durationError } = await supabase.from('service_durations').insert({
-            business_id: tenant.businessId,
-            service_id: editingService.id,
-            duration_minutes: duration.duration_minutes,
-            price_cents: duration.price_cents,
-          });
-
-          if (durationError) {
-            console.error('Error inserting duration:', durationError);
-          }
-        }
+        const inUse = await saveDurations(editingService.id);
+        if (inUse === null) return;
+        if (inUse.length > 0) alert(inUse.map((minutes) => fillText(t.durationInUse, { minutes })).join('\n'));
       } else {
         const { data: newService, error: insertError } = await supabase
           .from('services')
@@ -361,20 +391,7 @@ export default function ServicesView() {
           return;
         }
 
-        if (newService) {
-          for (const duration of serviceDurations) {
-            const { error: durationError } = await supabase.from('service_durations').insert({
-              business_id: tenant.businessId,
-              service_id: newService.id,
-              duration_minutes: duration.duration_minutes,
-              price_cents: duration.price_cents,
-            });
-
-            if (durationError) {
-              console.error('Error inserting duration:', durationError);
-            }
-          }
-        }
+        if (newService && (await saveDurations(newService.id)) === null) return;
       }
 
       setShowModal(false);
