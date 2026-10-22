@@ -3,6 +3,7 @@ import {
   MINUTES_PER_HOUR, MinuteRange, Placed, blockRangeOnDay, layoutLanes, staffColor, toMinutes,
 } from './calendarModel';
 import type { ColumnBlock, ColumnBooking } from './TimeColumn';
+import { phoneFromText } from './blockDraft';
 import type { CalendarBlock, CalendarBooking, CalendarStaff, CalendarWorkingHour } from './useCalendarData';
 
 /** Working time of one therapist on a day (day_of_week: 0 = Sunday), or null when off. */
@@ -31,11 +32,19 @@ export function shopOpenRange(hours: CalendarWorkingHour[], staffIds: string[], 
   return { startMin: Math.min(...ranges.map((r) => r.startMin)), endMin: Math.max(...ranges.map((r) => r.endMin)) };
 }
 
-/** Blocks shown in a column: shop closures plus (optionally) the therapists' own blocks. */
+/** A held slot for a customer (coloured, or a phone number in the comment) – not a break or day off. */
+export const isReservation = (block: CalendarBlock): boolean => block.color !== null || phoneFromText(block.reason) !== '';
+
+/**
+ * Blocks shown in a column: shop closures, the therapists' own blocks, and in the
+ * combined "everyone" column (specialistIds null) all reservations. A single
+ * therapist's break or day off is left out there so the shop doesn't look closed.
+ */
 export function columnBlocks(blocks: CalendarBlock[], day: Date, specialistIds: string[] | null): ColumnBlock[] {
   return blocks.flatMap((block) => {
     const isShopClosure = block.specialist_id === null;
-    const isRelevant = isShopClosure || (specialistIds !== null && specialistIds.includes(block.specialist_id as string));
+    const isRelevant = isShopClosure
+      || (specialistIds === null ? isReservation(block) : specialistIds.includes(block.specialist_id as string));
     const range = isRelevant ? blockRangeOnDay(block, day) : null;
     return range ? [{ ...range, block, isShopClosure }] : [];
   });

@@ -52,11 +52,21 @@ describe('column contents', () => {
     const at = (h: number) => new Date(2026, 9, 16, h).toISOString();
     const blocks = [
       { id: 'shop', specialist_id: null, start_time: at(9), end_time: at(10), reason: null, color: null },
-      { id: 'own', specialist_id: 'noi', start_time: at(13), end_time: at(14), reason: 'Pause', color: '#22C55E' },
+      { id: 'own', specialist_id: 'noi', start_time: at(13), end_time: at(14), reason: 'Pause', color: null },
     ];
     expect(columnBlocks(blocks, friday, ['mali']).map((b) => b.block.id)).toEqual(['shop']);
     expect(columnBlocks(blocks, friday, ['noi']).map((b) => b.block.id)).toEqual(['shop', 'own']);
     expect(columnBlocks(blocks, friday, null).map((b) => b.block.id)).toEqual(['shop']);
+  });
+
+  it('shows reservations in the combined week column, but not a therapist\'s break', () => {
+    const at = (h: number) => new Date(2026, 9, 16, h).toISOString();
+    const blocks = [
+      { id: 'pause', specialist_id: 'noi', start_time: at(12), end_time: at(13), reason: 'Pause', color: null },
+      { id: 'coloured', specialist_id: 'noi', start_time: at(13), end_time: at(14), reason: 'Hr. Schneider', color: '#A855F7' },
+      { id: 'phone', specialist_id: 'mali', start_time: at(15), end_time: at(16), reason: '017670339870 Fr. Kimmerly', color: null },
+    ];
+    expect(columnBlocks(blocks, friday, null).map((b) => b.block.id)).toEqual(['coloured', 'phone']);
   });
 
   it('keeps inactive therapists visible while they still have appointments', () => {
