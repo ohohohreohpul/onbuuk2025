@@ -12,7 +12,7 @@ import BookingTaskModal from './bookings/BookingTaskModal';
 import RescheduleModal from './bookings/RescheduleModal';
 import { ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE } from './adminUi';
 import { CALENDAR_TEXT } from './calendar/calendarText';
-import { addDays, fromMinutes, startOfWeek, weekDates } from './calendar/calendarModel';
+import { addDays, fromMinutes, startOfDay, startOfWeek, weekDates } from './calendar/calendarModel';
 import { useCalendarData, CalendarBlock, CalendarBooking } from './calendar/useCalendarData';
 import CalendarToolbar, { CalendarMode } from './calendar/CalendarToolbar';
 import CalendarModal from './calendar/CalendarModal';
@@ -60,7 +60,7 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
   const businessId = adminUser?.business_id ?? null;
   const { hasAnyPermission } = usePermissions(adminUser?.id || null);
   const [mode, setMode] = useState<CalendarMode>('day');
-  const [anchor, setAnchor] = useState(() => new Date());
+  const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
   const [staffFilter, setStaffFilter] = useState<string | null>(null);
   const { from, to } = useMemo(() => rangeFor(mode, anchor), [mode, anchor]);
   const { data, isLoading, hasError, reload } = useCalendarData(businessId, from, to);
@@ -139,7 +139,7 @@ export default function CalendarView({ onNavigate }: CalendarViewProps) {
         t={t}
         onMode={setMode}
         onStep={(direction) => setAnchor((current) => stepAnchor(mode, current, direction))}
-        onToday={() => setAnchor(new Date())}
+        onToday={() => setAnchor(startOfDay(new Date()))}
         onStaffFilter={setStaffFilter}
         onNewBooking={() => setCreateDraft({ date: toLocalDateString(mode === 'month' ? new Date() : anchor), specialistId: staffFilter ?? undefined })}
         onBlockTime={() => setBlockState({ draft: blockDraftFor(mode === 'month' ? new Date() : anchor, 12 * 60, staffFilter), existing: null })}

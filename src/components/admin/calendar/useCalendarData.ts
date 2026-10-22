@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { toLocalDateString } from '../../../lib/localDateTime';
-import { addDays } from './calendarModel';
+import { addDays, startOfDay } from './calendarModel';
 
 /** Online bookings keep arriving while the front desk has the calendar open. */
 const REFRESH_INTERVAL_MS = 60_000;
@@ -71,8 +71,9 @@ async function loadCalendar(businessId: string, from: Date, to: Date): Promise<C
       .from('time_blocks')
       .select('id, specialist_id, start_time, end_time, reason, color')
       .eq('business_id', businessId)
+      // Whole days: from midnight, so blocks that already ended today still show.
       .lt('start_time', addDays(to, 1).toISOString())
-      .gt('end_time', from.toISOString()),
+      .gt('end_time', startOfDay(from).toISOString()),
     supabase
       .from('bookings')
       .select(BOOKING_COLUMNS)
