@@ -97,7 +97,7 @@ const TEXT: Translations<LoyaltyText> = {
     msgPdfDownloaded: 'Gift card PDF downloaded!', msgPdfError: 'Error downloading gift card',
     msgNoRecipient: 'No recipient email address for this gift card', msgSending: 'Sending gift card email...',
     msgErrorDetail: 'Error: {error}', msgEmailSent: 'Gift card email sent successfully!', msgEmailError: 'Error sending email: {error}',
-    unknownError: 'Unknown error', msgDeletedOne: 'Deleted 1 gift card', msgDeletedMany: 'Deleted {count} gift cards',
+    unknownError: 'Unknown error', msgDeletedOne: '1 voucher made invalid', msgDeletedMany: '{count} vouchers made invalid',
     msgDeleteError: 'Error deleting gift cards. Please try again.', msgArtworkTooLarge: 'Error: artwork must be smaller than 5 MB',
     msgArtworkReadError: 'Error: failed to read artwork',
     pageTitle: 'Vouchers', pageSubtitle: 'Sell, look up and redeem vouchers and multi-visit cards.',
@@ -147,7 +147,7 @@ const TEXT: Translations<LoyaltyText> = {
     valueCard: 'Value card', servicePass: 'Service pass', amount: 'Amount ({symbol})', passOffer: 'Pass offer', chooseAPass: 'Choose a pass',
     recipientEmail: 'Recipient email', buyer: 'Buyer (optional)', buyerPlaceholder: 'Name or email', colBuyer: 'Buyer', issuePass: 'Issue pass', createCard: 'Create card',
     allCards: 'All cards and passes', allCardsHint: 'Money balances and visit entitlements in one place.', searchCards: 'Search code, name or email', noMatch: 'No card matches “{query}”.',
-    deleteSelected: 'Delete selected ({count})', deselectAll: 'Deselect all gift cards', selectAll: 'Select all gift cards',
+    deleteSelected: 'Make invalid ({count})', deselectAll: 'Deselect all gift cards', selectAll: 'Select all gift cards',
     colCode: 'Code', colProduct: 'Product', colSoldFor: 'Sold for', colRemaining: 'Remaining', colStatus: 'Status',
     colPurchased: 'Purchased', colRecipient: 'Recipient', noCards: 'No cards or passes yet',
     noCardsHint: 'Create the first one above or import value cards from CSV.', deselectCard: 'Deselect {code}', selectCard: 'Select {code}',
@@ -155,9 +155,9 @@ const TEXT: Translations<LoyaltyText> = {
     emailRecipient: 'Email to recipient', emailAria: 'Email {code}',
     statusActive: 'Active', statusFullyRedeemed: 'Fully redeemed', statusExpired: 'Expired', statusCancelled: 'Cancelled',
     statusPendingPayment: 'Awaiting payment',
-    deleteTitle: 'Delete selected gift cards?', deleteBodyOne: '1 card and its transaction history will be removed.',
-    deleteBodyMany: '{count} cards and their transaction history will be removed.', cannotUndo: 'This cannot be undone.',
-    cancel: 'Cancel', deleting: 'Deleting…', deleteCount: 'Delete {count}',
+    deleteTitle: 'Make selected vouchers invalid?', deleteBodyOne: '1 voucher can no longer be used. It stays in the list as “Cancelled” with its history.',
+    deleteBodyMany: '{count} vouchers can no longer be used. They stay in the list as “Cancelled” with their history.', cannotUndo: 'Reason (required), e.g. used in the shop',
+    cancel: 'Cancel', deleting: 'Saving…', deleteCount: 'Make {count} invalid',
   },
   de: {
     msgPassRequired: 'Name, Leistung und Dauer sind erforderlich', msgVisitsRange: 'Besuche müssen eine ganze Zahl zwischen 1 und 100 sein',
@@ -173,7 +173,7 @@ const TEXT: Translations<LoyaltyText> = {
     msgPdfDownloaded: 'Gutschein-PDF heruntergeladen.', msgPdfError: 'Fehler beim Herunterladen des Gutscheins',
     msgNoRecipient: 'Für diesen Gutschein ist keine E-Mail-Adresse hinterlegt', msgSending: 'Gutschein-E-Mail wird gesendet…',
     msgErrorDetail: 'Fehler: {error}', msgEmailSent: 'Gutschein-E-Mail gesendet.', msgEmailError: 'Fehler beim Senden der E-Mail: {error}',
-    unknownError: 'Unbekannter Fehler', msgDeletedOne: '1 Gutschein gelöscht', msgDeletedMany: '{count} Gutscheine gelöscht',
+    unknownError: 'Unbekannter Fehler', msgDeletedOne: '1 Gutschein ungültig gemacht', msgDeletedMany: '{count} Gutscheine ungültig gemacht',
     msgDeleteError: 'Fehler beim Löschen der Gutscheine. Bitte erneut versuchen.', msgArtworkTooLarge: 'Fehler: Das Motiv muss kleiner als 5 MB sein',
     msgArtworkReadError: 'Fehler: Das Motiv konnte nicht gelesen werden',
     pageTitle: 'Gutscheine', pageSubtitle: 'Gutscheine und Mehrfachkarten verkaufen, nachschlagen und einlösen.',
@@ -223,7 +223,7 @@ const TEXT: Translations<LoyaltyText> = {
     valueCard: 'Wertgutschein', servicePass: 'Behandlungsgutschein', amount: 'Betrag ({symbol})', passOffer: 'Kartenangebot', chooseAPass: 'Karte wählen',
     recipientEmail: 'E-Mail des Empfängers', buyer: 'Käufer (optional)', buyerPlaceholder: 'Name oder E-Mail', colBuyer: 'Käufer', issuePass: 'Karte ausstellen', createCard: 'Gutschein ausstellen',
     allCards: 'Alle Gutscheine und Karten', allCardsHint: 'Guthaben und Besuchsansprüche an einem Ort.', searchCards: 'Code, Name oder E-Mail suchen', noMatch: 'Kein Gutschein passt zu „{query}“.',
-    deleteSelected: 'Auswahl löschen ({count})', deselectAll: 'Auswahl aller Gutscheine aufheben', selectAll: 'Alle Gutscheine auswählen',
+    deleteSelected: 'Ungültig machen ({count})', deselectAll: 'Auswahl aller Gutscheine aufheben', selectAll: 'Alle Gutscheine auswählen',
     colCode: 'Code', colProduct: 'Produkt', colSoldFor: 'Verkauft für', colRemaining: 'Verbleibend', colStatus: 'Status',
     colPurchased: 'Gekauft', colRecipient: 'Empfänger', noCards: 'Noch keine Gutscheine oder Karten',
     noCardsHint: 'Oben den ersten anlegen oder Wertgutscheine per CSV importieren.', deselectCard: '{code} abwählen', selectCard: '{code} auswählen',
@@ -231,9 +231,9 @@ const TEXT: Translations<LoyaltyText> = {
     emailRecipient: 'Per E-Mail an Empfänger senden', emailAria: '{code} per E-Mail senden',
     statusActive: 'Aktiv', statusFullyRedeemed: 'Vollständig eingelöst', statusExpired: 'Abgelaufen', statusCancelled: 'Storniert',
     statusPendingPayment: 'Zahlung ausstehend',
-    deleteTitle: 'Ausgewählte Gutscheine löschen?', deleteBodyOne: '1 Gutschein und sein Transaktionsverlauf werden entfernt.',
-    deleteBodyMany: '{count} Gutscheine und ihr Transaktionsverlauf werden entfernt.', cannotUndo: 'Dies kann nicht rückgängig gemacht werden.',
-    cancel: 'Abbrechen', deleting: 'Wird gelöscht…', deleteCount: '{count} löschen',
+    deleteTitle: 'Ausgewählte Gutscheine ungültig machen?', deleteBodyOne: '1 Gutschein kann nicht mehr benutzt werden. Er bleibt mit Verlauf als „Storniert“ in der Liste.',
+    deleteBodyMany: '{count} Gutscheine können nicht mehr benutzt werden. Sie bleiben mit Verlauf als „Storniert“ in der Liste.', cannotUndo: 'Grund (Pflicht), z. B. im Laden eingelöst',
+    cancel: 'Abbrechen', deleting: 'Wird gespeichert…', deleteCount: '{count} ungültig machen',
   },
   th: {
     msgPassRequired: 'ต้องระบุชื่อ บริการ และระยะเวลา', msgVisitsRange: 'จำนวนครั้งต้องเป็นจำนวนเต็มระหว่าง 1 ถึง 100',
@@ -249,7 +249,7 @@ const TEXT: Translations<LoyaltyText> = {
     msgPdfDownloaded: 'ดาวน์โหลด PDF บัตรของขวัญแล้ว', msgPdfError: 'ดาวน์โหลดบัตรของขวัญไม่สำเร็จ',
     msgNoRecipient: 'บัตรของขวัญนี้ไม่มีอีเมลผู้รับ', msgSending: 'กำลังส่งอีเมลบัตรของขวัญ…',
     msgErrorDetail: 'ข้อผิดพลาด: {error}', msgEmailSent: 'ส่งอีเมลบัตรของขวัญแล้ว', msgEmailError: 'ส่งอีเมลไม่สำเร็จ: {error}',
-    unknownError: 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ', msgDeletedOne: 'ลบบัตรของขวัญ 1 ใบแล้ว', msgDeletedMany: 'ลบบัตรของขวัญ {count} ใบแล้ว',
+    unknownError: 'ข้อผิดพลาดที่ไม่ทราบสาเหตุ', msgDeletedOne: 'ทำให้บัตร 1 ใบใช้ไม่ได้แล้ว', msgDeletedMany: 'ทำให้บัตร {count} ใบใช้ไม่ได้แล้ว',
     msgDeleteError: 'ลบบัตรของขวัญไม่สำเร็จ กรุณาลองอีกครั้ง', msgArtworkTooLarge: 'ข้อผิดพลาด: ไฟล์ภาพต้องเล็กกว่า 5 MB',
     msgArtworkReadError: 'ข้อผิดพลาด: อ่านไฟล์ภาพไม่ได้',
     pageTitle: 'บัตรของขวัญ', pageSubtitle: 'ขาย ค้นหา และใช้บัตรของขวัญและบัตรหลายครั้ง',
@@ -299,7 +299,7 @@ const TEXT: Translations<LoyaltyText> = {
     valueCard: 'บัตรมูลค่า', servicePass: 'บัตรบริการ', amount: 'จำนวนเงิน ({symbol})', passOffer: 'ข้อเสนอบัตรบริการ', chooseAPass: 'เลือกบัตรบริการ',
     recipientEmail: 'อีเมลผู้รับ', buyer: 'ผู้ซื้อ (ไม่บังคับ)', buyerPlaceholder: 'ชื่อหรืออีเมล', colBuyer: 'ผู้ซื้อ', issuePass: 'ออกบัตรบริการ', createCard: 'ออกบัตรของขวัญ',
     allCards: 'บัตรทั้งหมด', allCardsHint: 'ยอดเงินคงเหลือและสิทธิ์จำนวนครั้งในที่เดียว', searchCards: 'ค้นหารหัส ชื่อ หรืออีเมล', noMatch: 'ไม่พบบัตรที่ตรงกับ “{query}”',
-    deleteSelected: 'ลบที่เลือก ({count})', deselectAll: 'ยกเลิกการเลือกบัตรทั้งหมด', selectAll: 'เลือกบัตรทั้งหมด',
+    deleteSelected: 'ทำให้ใช้ไม่ได้ ({count})', deselectAll: 'ยกเลิกการเลือกบัตรทั้งหมด', selectAll: 'เลือกบัตรทั้งหมด',
     colCode: 'โค้ด', colProduct: 'สินค้า', colSoldFor: 'ราคาขาย', colRemaining: 'คงเหลือ', colStatus: 'สถานะ',
     colPurchased: 'วันที่ซื้อ', colRecipient: 'ผู้รับ', noCards: 'ยังไม่มีบัตร',
     noCardsHint: 'สร้างใบแรกด้านบน หรือนำเข้าบัตรมูลค่าจาก CSV', deselectCard: 'ยกเลิกการเลือก {code}', selectCard: 'เลือก {code}',
@@ -307,9 +307,9 @@ const TEXT: Translations<LoyaltyText> = {
     emailRecipient: 'ส่งอีเมลถึงผู้รับ', emailAria: 'ส่งอีเมล {code}',
     statusActive: 'ใช้งานได้', statusFullyRedeemed: 'ใช้ครบแล้ว', statusExpired: 'หมดอายุ', statusCancelled: 'ยกเลิกแล้ว',
     statusPendingPayment: 'รอชำระเงิน',
-    deleteTitle: 'ลบบัตรของขวัญที่เลือก?', deleteBodyOne: 'บัตร 1 ใบและประวัติธุรกรรมจะถูกลบ',
-    deleteBodyMany: 'บัตร {count} ใบและประวัติธุรกรรมจะถูกลบ', cannotUndo: 'ไม่สามารถย้อนกลับได้',
-    cancel: 'ยกเลิก', deleting: 'กำลังลบ…', deleteCount: 'ลบ {count} ใบ',
+    deleteTitle: 'ทำให้บัตรที่เลือกใช้ไม่ได้?', deleteBodyOne: 'บัตร 1 ใบจะใช้ไม่ได้อีก แต่ยังอยู่ในรายการเป็น “ยกเลิกแล้ว” พร้อมประวัติ',
+    deleteBodyMany: 'บัตร {count} ใบจะใช้ไม่ได้อีก แต่ยังอยู่ในรายการเป็น “ยกเลิกแล้ว” พร้อมประวัติ', cannotUndo: 'เหตุผล (จำเป็น) เช่น ใช้ที่ร้านแล้ว',
+    cancel: 'ยกเลิก', deleting: 'กำลังบันทึก…', deleteCount: 'ทำให้ {count} ใบใช้ไม่ได้',
   },
 };
 
@@ -475,6 +475,7 @@ export function LoyaltyRewardsView() {
   const [cardQuery, setCardQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -930,16 +931,13 @@ export function LoyaltyRewardsView() {
     setMessage('');
 
     try {
+      // Vouchers are never deleted: each becomes invalid with the reason in its history.
       const idsToDelete = Array.from(selectedCardIds);
-      
-      const { error } = await supabase
-        .from('gift_cards')
-        .delete()
-        .in('id', idsToDelete);
-
-      if (error) {
-        throw error;
+      for (const id of idsToDelete) {
+        const { error } = await supabase.rpc('void_gift_card', { p_gift_card_id: id, p_reason: voidReason.trim() });
+        if (error) throw error;
       }
+      setVoidReason('');
 
       setMessage(idsToDelete.length === 1 ? t.msgDeletedOne : fillText(t.msgDeletedMany, { count: idsToDelete.length }));
       setSelectedCardIds(new Set());
@@ -1874,7 +1872,10 @@ export function LoyaltyRewardsView() {
                 <p className="mt-1 text-sm text-stone-500">{selectedCardIds.size === 1 ? t.deleteBodyOne : fillText(t.deleteBodyMany, { count: selectedCardIds.size })}</p>
               </div>
             </div>
-            <div className="rounded-xl border border-red-200/80 bg-red-50/70 p-3 text-sm text-red-700">{t.cannotUndo}</div>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-stone-700">{t.cannotUndo}</span>
+              <input value={voidReason} onChange={(event) => setVoidReason(event.target.value)} className={ADMIN_INPUT} autoFocus />
+            </label>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
@@ -1887,7 +1888,7 @@ export function LoyaltyRewardsView() {
               <button
                 type="button"
                 onClick={handleBulkDelete}
-                disabled={isDeleting}
+                disabled={isDeleting || !voidReason.trim()}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isDeleting ? (

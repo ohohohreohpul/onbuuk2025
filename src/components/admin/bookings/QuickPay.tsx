@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Banknote, CreditCard, Gift, Loader2 } from 'lucide-react';
+import { Banknote, CreditCard, Gift, Loader2, Ticket } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
 import { useAdminText } from '../../../lib/adminLanguage';
@@ -10,21 +10,22 @@ import { ToastAction } from '@/components/ui/toast';
 const UNDO_VISIBLE_MS = 10000;
 
 const TEXT: Translations<{
-  cash: string; card: string; voucher: string; other: string; code: string; redeem: string; cancel: string;
+  cash: string; card: string; voucher: string; paper: string; paperNumber: string; paperSave: string; paperUsed: string; notInSystem: string;
+  other: string; code: string; redeem: string; cancel: string;
   open: string; failed: string; voucherFailed: string; paid: string; saved: string; undo: string; undone: string; undoFailed: string;
 }> = {
   en: {
-    cash: 'Cash', card: 'Card', voucher: 'Gift card', other: 'Other / split…', code: 'Gift card code', redeem: 'Redeem', cancel: 'Back',
+    cash: 'Cash', card: 'Card', voucher: 'Gift card', paper: 'Paper voucher (shop)', paperNumber: 'Voucher number, e.g. TS60-100', paperSave: 'Record as paid', paperUsed: 'Voucher {code} was already used on {date}.', notInSystem: 'Not in the system. A paper voucher sold in the shop? Use “Paper voucher (shop)”.', other: 'Other / split…', code: 'Gift card code', redeem: 'Redeem', cancel: 'Back',
     open: '{amount} still open', failed: 'Could not save. Please try again.', voucherFailed: 'Gift card not accepted: {reason}', paid: 'Paid',
     saved: '{method} · {amount} saved', undo: 'Undo', undone: 'Payment taken back.', undoFailed: 'Could not undo: {reason}',
   },
   de: {
-    cash: 'Bar', card: 'Karte', voucher: 'Gutschein', other: 'Anders / geteilt…', code: 'Gutschein-Code', redeem: 'Einlösen', cancel: 'Zurück',
+    cash: 'Bar', card: 'Karte', voucher: 'Gutschein', paper: 'Gutschein vor Ort (Papier)', paperNumber: 'Gutscheinnummer, z. B. TS60-100', paperSave: 'Als bezahlt eintragen', paperUsed: 'Gutschein {code} wurde schon am {date} eingelöst.', notInSystem: 'Nicht im System. Papiergutschein aus dem Laden? Dann „Gutschein vor Ort (Papier)“ wählen.', other: 'Anders / geteilt…', code: 'Gutschein-Code', redeem: 'Einlösen', cancel: 'Zurück',
     open: 'Noch offen: {amount}', failed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', voucherFailed: 'Gutschein nicht angenommen: {reason}', paid: 'Bezahlt',
     saved: '{method} · {amount} gespeichert', undo: 'Rückgängig', undone: 'Zahlung zurückgenommen.', undoFailed: 'Rückgängig nicht möglich: {reason}',
   },
   th: {
-    cash: 'เงินสด', card: 'บัตร', voucher: 'บัตรของขวัญ', other: 'วิธีอื่น / แบ่งจ่าย…', code: 'รหัสบัตรของขวัญ', redeem: 'ใช้บัตร', cancel: 'กลับ',
+    cash: 'เงินสด', card: 'บัตร', voucher: 'บัตรของขวัญ', paper: 'บัตรกระดาษ (ที่ร้าน)', paperNumber: 'เลขบัตร เช่น TS60-100', paperSave: 'บันทึกว่าชำระแล้ว', paperUsed: 'บัตร {code} ถูกใช้ไปแล้วเมื่อ {date}', notInSystem: 'ไม่มีในระบบ ถ้าเป็นบัตรกระดาษที่ขายหน้าร้าน ให้เลือก “บัตรกระดาษ (ที่ร้าน)”', other: 'วิธีอื่น / แบ่งจ่าย…', code: 'รหัสบัตรของขวัญ', redeem: 'ใช้บัตร', cancel: 'กลับ',
     open: 'ค้างชำระ {amount}', failed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', voucherFailed: 'ใช้บัตรไม่ได้: {reason}', paid: 'ชำระแล้ว',
     saved: '{method} · {amount} บันทึกแล้ว', undo: 'ย้อนกลับ', undone: 'ยกเลิกการชำระแล้ว', undoFailed: 'ย้อนกลับไม่ได้: {reason}',
   },
@@ -53,12 +54,14 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid, compac
   const { t } = useAdminText(TEXT);
   const { formatPrice } = useCurrency();
   const [busy, setBusy] = useState(false);
-  const [askCode, setAskCode] = useState(false);
+  const [askCode, setAskCode] = useState<false | 'zenno' | 'paper'>(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
 
-  const record = async (method: 'cash' | 'card' | 'other', cents: number): Promise<string | null> => {
-    const { data, error: rpcError } = await supabase.rpc('record_shop_payment', { p_booking_id: bookingId, p_method: method, p_amount_cents: cents });
+  const record = async (method: 'cash' | 'card' | 'gift_card' | 'other', cents: number, reference?: string): Promise<string | null> => {
+    const { data, error: rpcError } = await supabase.rpc('record_shop_payment', {
+      p_booking_id: bookingId, p_method: method, p_amount_cents: cents, p_reference: reference ?? null,
+    });
     if (rpcError) throw rpcError;
     return (data?.paymentId as string | null) ?? null;
   };
@@ -107,7 +110,7 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid, compac
       p_booking_id: bookingId, p_code: code.trim(), p_requested_amount_cents: openCents,
     });
     if (redeemError) {
-      setError(fillText(t.voucherFailed, { reason: redeemError.message }));
+      setError(/invalid gift card/i.test(redeemError.message) ? t.notInSystem : fillText(t.voucherFailed, { reason: redeemError.message }));
       setBusy(false);
       return;
     }
@@ -125,14 +128,36 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid, compac
     }
   };
 
+  /** Paper voucher sold at the counter, not in Zenno: recorded with its number; a number works only once. */
+  const payWithPaper = async () => {
+    const number = code.trim().toUpperCase();
+    if (!number) return;
+    setBusy(true);
+    setError('');
+    try {
+      await record('gift_card', openCents, number);
+      setAskCode(false);
+      setCode('');
+      onPaid();
+    } catch (paperError) {
+      const used = /PAPER_VOUCHER_USED:(\S+)/.exec((paperError as { message?: string })?.message ?? '');
+      console.error('Paper voucher payment failed:', paperError);
+      setError(used ? fillText(t.paperUsed, { code: number, date: used[1] }) : t.failed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (askCode) {
+    const isPaper = askCode === 'paper';
+    const submit = isPaper ? payWithPaper : redeem;
     return (
       <div className={`${compact ? '' : 'mt-2 '}flex flex-wrap items-center gap-1.5`}>
-        <input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && redeem()}
-          placeholder={t.code} aria-label={t.code} autoFocus
-          className="w-44 rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-stone-400" />
-        <button type="button" onClick={redeem} disabled={busy || !code.trim()} className={DARK}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />} {t.redeem}
+        <input value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()}
+          placeholder={isPaper ? t.paperNumber : t.code} aria-label={isPaper ? t.paperNumber : t.code} autoFocus
+          className="w-60 rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm uppercase outline-none focus:border-stone-400" />
+        <button type="button" onClick={submit} disabled={busy || !code.trim()} className={DARK}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />} {isPaper ? t.paperSave : t.redeem}
         </button>
         <button type="button" onClick={() => { setAskCode(false); setError(''); }} className="px-2 text-sm text-stone-500 hover:text-stone-800">{t.cancel}</button>
         {error && <p role="alert" className="w-full text-xs text-red-700">{error}</p>}
@@ -146,7 +171,8 @@ export default function QuickPay({ bookingId, openCents, onOther, onPaid, compac
       <div className="flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => pay('cash')} disabled={busy || disabled} className={DARK}><Banknote className="h-4 w-4" /> {t.cash}</button>
         <button type="button" onClick={() => pay('card')} disabled={busy || disabled} className={DARK}><CreditCard className="h-4 w-4" /> {t.card}</button>
-        <button type="button" onClick={() => setAskCode(true)} disabled={busy || disabled} className={LIGHT}><Gift className="h-4 w-4" /> {t.voucher}</button>
+        <button type="button" onClick={() => setAskCode('zenno')} disabled={busy || disabled} className={LIGHT}><Gift className="h-4 w-4" /> {t.voucher}</button>
+        <button type="button" onClick={() => setAskCode('paper')} disabled={busy || disabled} className={LIGHT}><Ticket className="h-4 w-4" /> {t.paper}</button>
         {!compact && <button type="button" onClick={onOther} disabled={busy || disabled} className="px-1.5 text-xs text-stone-500 underline-offset-2 hover:text-stone-800 hover:underline">{t.other}</button>}
       </div>
       {error && <p role="alert" className="mt-1 text-xs text-red-700">{error}</p>}

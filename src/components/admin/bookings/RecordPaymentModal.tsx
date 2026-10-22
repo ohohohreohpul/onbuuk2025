@@ -16,7 +16,7 @@ type Choice = 'cash' | 'card' | 'gift_card' | 'other';
 const TEXT: Translations<{
   title: string; close: string; price: string; open: string; paid: string; paidInFull: string; howPaid: string;
   amount: string; voucherCode: string; voucherHint: string; record: string; recording: string; done: string;
-  coveredByVoucher: string; markPaid: string; loadFailed: string; recordFailed: string; voucherFailed: string;
+  coveredByVoucher: string; markPaid: string; loadFailed: string; recordFailed: string; paperUsed: string; voucherFailed: string;
   invalidAmount: string; tooMuch: string;
 }> = {
   en: {
@@ -24,7 +24,7 @@ const TEXT: Translations<{
     paidInFull: 'Paid in full', howPaid: 'How did the customer pay?', amount: 'Amount ({symbol})',
     voucherCode: 'Voucher number (optional)', voucherHint: 'If the number is a Zenno gift card, its balance is reduced too.',
     record: 'Record payment', recording: 'Saving…', done: 'Done', coveredByVoucher: 'Gift cards cover the full price.',
-    markPaid: 'Mark as paid', loadFailed: 'Could not load the payments for this booking.', recordFailed: 'Could not record the payment.',
+    markPaid: 'Mark as paid', loadFailed: 'Could not load the payments for this booking.', recordFailed: 'Could not record the payment.', paperUsed: 'Voucher {code} was already used on {date}.',
     voucherFailed: 'Could not redeem the card: {reason}', invalidAmount: 'Enter an amount greater than 0.', tooMuch: 'That is more than the open amount of {amount}.',
   },
   de: {
@@ -32,7 +32,7 @@ const TEXT: Translations<{
     paidInFull: 'Vollständig bezahlt', howPaid: 'Wie wurde bezahlt?', amount: 'Betrag ({symbol})',
     voucherCode: 'Gutschein-Nummer (optional)', voucherHint: 'Ist es ein Zenno-Gutschein, wird auch das Guthaben abgebucht.',
     record: 'Zahlung erfassen', recording: 'Wird gespeichert…', done: 'Fertig', coveredByVoucher: 'Gutscheine decken den vollen Preis.',
-    markPaid: 'Als bezahlt markieren', loadFailed: 'Zahlungen dieser Buchung konnten nicht geladen werden.', recordFailed: 'Zahlung konnte nicht erfasst werden.',
+    markPaid: 'Als bezahlt markieren', loadFailed: 'Zahlungen dieser Buchung konnten nicht geladen werden.', recordFailed: 'Zahlung konnte nicht erfasst werden.', paperUsed: 'Gutschein {code} wurde schon am {date} eingelöst.',
     voucherFailed: 'Gutschein konnte nicht eingelöst werden: {reason}', invalidAmount: 'Bitte einen Betrag größer als 0 eingeben.', tooMuch: 'Das ist mehr als der offene Betrag von {amount}.',
   },
   th: {
@@ -40,7 +40,7 @@ const TEXT: Translations<{
     paidInFull: 'ชำระครบแล้ว', howPaid: 'ลูกค้าชำระด้วยวิธีใด', amount: 'จำนวนเงิน ({symbol})',
     voucherCode: 'เลขที่บัตรของขวัญ (ไม่บังคับ)', voucherHint: 'ถ้าเป็นบัตรของขวัญในระบบ Zenno ระบบจะหักยอดในบัตรด้วย',
     record: 'บันทึกการชำระ', recording: 'กำลังบันทึก…', done: 'เสร็จสิ้น', coveredByVoucher: 'บัตรของขวัญครอบคลุมราคาทั้งหมดแล้ว',
-    markPaid: 'ทำเครื่องหมายว่าชำระแล้ว', loadFailed: 'โหลดข้อมูลการชำระเงินของการจองนี้ไม่สำเร็จ', recordFailed: 'บันทึกการชำระเงินไม่สำเร็จ',
+    markPaid: 'ทำเครื่องหมายว่าชำระแล้ว', loadFailed: 'โหลดข้อมูลการชำระเงินของการจองนี้ไม่สำเร็จ', recordFailed: 'บันทึกการชำระเงินไม่สำเร็จ', paperUsed: 'บัตร {code} ถูกใช้ไปแล้วเมื่อ {date}',
     voucherFailed: 'ใช้บัตรไม่สำเร็จ: {reason}', invalidAmount: 'กรุณาใส่จำนวนเงินที่มากกว่า 0', tooMuch: 'จำนวนนี้มากกว่ายอดค้างชำระ {amount}',
   },
 };
@@ -126,8 +126,10 @@ export default function RecordPaymentModal({ booking, onClose, onChanged }: Reco
       p_amount_cents: cents,
       p_reference: reference || null,
     });
-    if (recordError) console.error('Could not record shop payment:', recordError);
-    return recordError ? t.recordFailed : null;
+    if (!recordError) return null;
+    console.error('Could not record shop payment:', recordError);
+    const used = /PAPER_VOUCHER_USED:(\S+)/.exec(recordError.message);
+    return used ? fillText(t.paperUsed, { code: reference ?? '', date: used[1] }) : t.recordFailed;
   };
 
   const handleRecord = async () => {

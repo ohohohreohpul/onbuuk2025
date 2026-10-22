@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Download, Mail, Edit2, Save, Banknote, CreditCard } from 'lucide-react';
+import { X, Download, Mail, Edit2, Save, Banknote, CreditCard, Ban, Check } from 'lucide-react';
 import { markOrderPaid, type ShopPaymentMethod } from './giftCardOrders/giftCardOrdersApi';
 import { ADMIN_INPUT, ADMIN_MODAL, ADMIN_MODAL_BACKDROP, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_TERTIARY_BUTTON } from './adminUi';
 import { supabase } from '../../lib/supabase';
@@ -23,7 +23,9 @@ type DetailText = {
   redeemAmount: string; visitRedemption: string; visitRedemptionHint: string; history: string; loading: string;
   noTransactions: string; visitOne: string; visitMany: string; deleting: string; deleteCard: string; close: string;
   statusActive: string; statusFullyRedeemed: string; statusExpired: string; statusCancelled: string; statusPendingPayment: string;
-  txnPurchase: string; txnRedemption: string; txnRefund: string;
+  txnPurchase: string; txnRedemption: string; txnRefund: string; txnVoid: string;
+  redeemVisit: string; redeemVisitConfirm: string; visitRedeemed: string; visitRedeemFailed: string;
+  voidCard: string; voiding: string; voidReason: string; voidFailed: string; voidedNote: string;
   notPaid: string; notPaidHint: string; paidWith: string; cash: string; card: string; payFailed: string; validUntil: string; of: string;
 };
 
@@ -50,12 +52,14 @@ const TEXT: Translations<DetailText> = {
     downloadPdf: 'Download PDF', redeemHeading: 'Redeem Gift Card', amount: 'Amount ({symbol})',
     descriptionOptional: 'Description (optional)', descriptionPlaceholder: 'e.g., Booking #123', processing: 'Processing...',
     redeemAmount: 'Redeem Amount', visitRedemption: 'Visit redemption',
-    visitRedemptionHint: 'This pass is visit-based, so it is redeemed through checkout when the customer books the matching service. It is never deducted as a cash amount.',
+    visitRedemptionHint: 'This pass is counted per visit and never deducted as money. If the customer comes without an online booking, redeem a visit here – it then shows in the history.',
     history: 'Transaction History', loading: 'Loading...', noTransactions: 'No transactions yet',
     visitOne: '1 visit', visitMany: '{count} visits', deleting: 'Deleting...', deleteCard: 'Delete gift card', close: 'Close',
     notPaid: 'Not paid yet', notPaidHint: 'The voucher becomes valid once it is paid.', paidWith: 'Paid with:', cash: 'Paid cash', card: 'Paid by card', payFailed: 'Could not save the payment.', validUntil: 'Valid until', of: 'of {amount}',
     statusActive: 'Active', statusFullyRedeemed: 'Fully redeemed', statusExpired: 'Expired', statusCancelled: 'Cancelled',
-    statusPendingPayment: 'Awaiting payment', txnPurchase: 'Purchase', txnRedemption: 'Redemption', txnRefund: 'Refund',
+    statusPendingPayment: 'Awaiting payment', txnPurchase: 'Purchase', txnRedemption: 'Redemption', txnRefund: 'Refund', txnVoid: 'Made invalid',
+    redeemVisit: 'Redeem 1 visit', redeemVisitConfirm: 'Redeem 1 visit of voucher {code} now?', visitRedeemed: '1 visit redeemed. Visits left: {count}.', visitRedeemFailed: 'Could not redeem: {reason}',
+    voidCard: 'Make voucher invalid', voiding: 'Saving…', voidReason: 'Why is voucher {code} made invalid? (e.g. used in the shop, issued by mistake)\nIt stays in the list as “Cancelled” and can no longer be used.', voidFailed: 'Could not make the voucher invalid.', voidedNote: 'This voucher is invalid and can no longer be used. It stays in the list for your records.',
   },
   de: {
     emailsSaved: 'E-Mail-Angaben gespeichert.', emailsSaveFailed: 'E-Mail-Angaben konnten nicht gespeichert werden',
@@ -81,12 +85,14 @@ const TEXT: Translations<DetailText> = {
     send: 'Senden', sendBoth: 'An beide senden', downloadPdf: 'PDF herunterladen', redeemHeading: 'Gutschein einlösen',
     amount: 'Betrag ({symbol})', descriptionOptional: 'Beschreibung (optional)', descriptionPlaceholder: 'z. B. Buchung #123',
     processing: 'Wird verarbeitet...', redeemAmount: 'Betrag einlösen', visitRedemption: 'Einlösung pro Besuch',
-    visitRedemptionHint: 'Dieser Gutschein gilt pro Besuch und wird an der Kasse eingelöst, wenn die Kund:in die passende Leistung bucht. Er wird nie als Geldbetrag abgezogen.',
+    visitRedemptionHint: 'Dieser Gutschein gilt pro Besuch und wird nie als Geldbetrag abgezogen. Kommt die Kund:in ohne Online-Buchung, hier einen Besuch einlösen – das steht danach im Verlauf.',
     history: 'Transaktionsverlauf', loading: 'Wird geladen...', noTransactions: 'Noch keine Transaktionen',
     visitOne: '1 Besuch', visitMany: '{count} Besuche', deleting: 'Wird gelöscht...', deleteCard: 'Gutschein löschen', close: 'Schließen',
     notPaid: 'Noch nicht bezahlt', notPaidHint: 'Der Gutschein ist nach der Zahlung gültig.', paidWith: 'Bezahlt mit:', cash: 'Bar bezahlt', card: 'Mit Karte bezahlt', payFailed: 'Zahlung konnte nicht gespeichert werden.', validUntil: 'Gültig bis', of: 'von {amount}',
     statusActive: 'Aktiv', statusFullyRedeemed: 'Vollständig eingelöst', statusExpired: 'Abgelaufen', statusCancelled: 'Storniert',
-    statusPendingPayment: 'Zahlung offen', txnPurchase: 'Kauf', txnRedemption: 'Einlösung', txnRefund: 'Erstattung',
+    statusPendingPayment: 'Zahlung offen', txnPurchase: 'Kauf', txnRedemption: 'Einlösung', txnRefund: 'Erstattung', txnVoid: 'Ungültig gemacht',
+    redeemVisit: '1 Besuch einlösen', redeemVisitConfirm: 'Jetzt 1 Besuch von Gutschein {code} einlösen?', visitRedeemed: '1 Besuch eingelöst. Noch übrig: {count}.', visitRedeemFailed: 'Einlösen nicht möglich: {reason}',
+    voidCard: 'Gutschein ungültig machen', voiding: 'Wird gespeichert…', voidReason: 'Warum wird Gutschein {code} ungültig? (z. B. im Laden eingelöst, versehentlich angelegt)\nEr bleibt als „Storniert“ in der Liste und kann nicht mehr benutzt werden.', voidFailed: 'Gutschein konnte nicht ungültig gemacht werden.', voidedNote: 'Dieser Gutschein ist ungültig und kann nicht mehr benutzt werden. Er bleibt zur Nachweisführung in der Liste.',
   },
   th: {
     emailsSaved: 'บันทึกข้อมูลอีเมลแล้ว', emailsSaveFailed: 'บันทึกข้อมูลอีเมลไม่สำเร็จ',
@@ -109,12 +115,14 @@ const TEXT: Translations<DetailText> = {
     downloadPdf: 'ดาวน์โหลด PDF', redeemHeading: 'ใช้บัตรของขวัญ', amount: 'จำนวนเงิน ({symbol})',
     descriptionOptional: 'รายละเอียด (ไม่บังคับ)', descriptionPlaceholder: 'เช่น การจอง #123', processing: 'กำลังดำเนินการ...',
     redeemAmount: 'ใช้ยอดเงิน', visitRedemption: 'การใช้สิทธิ์ตามครั้ง',
-    visitRedemptionHint: 'บัตรนี้นับตามจำนวนครั้ง จะถูกใช้ตอนชำระเงินเมื่อลูกค้าจองบริการที่ตรงกัน และไม่ถูกหักเป็นยอดเงิน',
+    visitRedemptionHint: 'บัตรนี้นับเป็นครั้ง ไม่หักเป็นยอดเงิน ถ้าลูกค้ามาโดยไม่ได้จองออนไลน์ ให้กดใช้ 1 ครั้งที่นี่ แล้วจะแสดงในประวัติ',
     history: 'ประวัติรายการ', loading: 'กำลังโหลด...', noTransactions: 'ยังไม่มีรายการ',
     visitOne: '1 ครั้ง', visitMany: '{count} ครั้ง', deleting: 'กำลังลบ...', deleteCard: 'ลบบัตรของขวัญ', close: 'ปิด',
     notPaid: 'ยังไม่ชำระ', notPaidHint: 'บัตรจะใช้ได้หลังชำระเงิน', paidWith: 'ชำระด้วย:', cash: 'ชำระเงินสดแล้ว', card: 'ชำระด้วยบัตรแล้ว', payFailed: 'บันทึกการชำระเงินไม่สำเร็จ', validUntil: 'ใช้ได้ถึง', of: 'จาก {amount}',
     statusActive: 'ใช้งานได้', statusFullyRedeemed: 'ใช้ครบแล้ว', statusExpired: 'หมดอายุ', statusCancelled: 'ยกเลิกแล้ว',
-    statusPendingPayment: 'รอชำระเงิน', txnPurchase: 'ซื้อ', txnRedemption: 'ใช้บัตร', txnRefund: 'คืนเงิน',
+    statusPendingPayment: 'รอชำระเงิน', txnPurchase: 'ซื้อ', txnRedemption: 'ใช้บัตร', txnRefund: 'คืนเงิน', txnVoid: 'ทำให้ใช้ไม่ได้',
+    redeemVisit: 'ใช้ 1 ครั้ง', redeemVisitConfirm: 'ใช้บัตร {code} 1 ครั้งตอนนี้?', visitRedeemed: 'ใช้ไป 1 ครั้งแล้ว เหลือ {count} ครั้ง', visitRedeemFailed: 'ใช้บัตรไม่ได้: {reason}',
+    voidCard: 'ทำให้บัตรใช้ไม่ได้', voiding: 'กำลังบันทึก…', voidReason: 'ทำไมบัตร {code} ถึงใช้ไม่ได้? (เช่น ใช้ที่ร้านแล้ว, สร้างผิด)\nบัตรจะยังอยู่ในรายการเป็น “ยกเลิกแล้ว” และใช้ไม่ได้อีก', voidFailed: 'ทำให้บัตรใช้ไม่ได้ไม่สำเร็จ', voidedNote: 'บัตรนี้ใช้ไม่ได้แล้ว แต่ยังเก็บไว้ในรายการเป็นหลักฐาน',
   },
 };
 
@@ -131,6 +139,7 @@ const TRANSACTION_KEYS: Record<string, keyof DetailText> = {
   purchase: 'txnPurchase',
   redemption: 'txnRedemption',
   refund: 'txnRefund',
+  void: 'txnVoid',
 };
 
 interface GiftCard {
@@ -431,27 +440,35 @@ export function GiftCardDetailModal({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm(t.confirmDelete)) {
+  const handleRedeemVisit = async () => {
+    if (!confirm(fillText(t.redeemVisitConfirm, { code: giftCard.code }))) return;
+    setRedeeming(true);
+    const { data, error } = await supabase.rpc('redeem_service_pass_at_pos', { p_code: giftCard.code });
+    setRedeeming(false);
+    if (error) {
+      console.error('Could not redeem service pass visit:', error);
+      alert(fillText(t.visitRedeemFailed, { reason: error.message }));
       return;
     }
+    alert(fillText(t.visitRedeemed, { count: Number(data?.remainingVisits ?? 0) }));
+    onUpdate();
+    onClose();
+  };
 
+  /** Vouchers are never deleted: they become invalid and stay in the list with a reason. */
+  const handleVoid = async () => {
+    const reason = window.prompt(fillText(t.voidReason, { code: giftCard.code }));
+    if (reason === null || !reason.trim()) return;
     setDeleting(true);
-
-    try {
-      const { error } = await supabase.from('gift_cards').delete().eq('id', giftCard.id);
-
-      if (error) throw error;
-
-      alert(t.deleted);
-      onUpdate();
-      onClose();
-    } catch (error) {
-      console.error('Error deleting gift card:', error);
-      alert(t.deleteFailed);
-    } finally {
-      setDeleting(false);
+    const { error } = await supabase.rpc('void_gift_card', { p_gift_card_id: giftCard.id, p_reason: reason.trim() });
+    setDeleting(false);
+    if (error) {
+      console.error('Could not void gift card:', error);
+      alert(t.voidFailed);
+      return;
     }
+    onUpdate();
+    onClose();
   };
 
   const [paying, setPaying] = useState(false);
@@ -618,8 +635,17 @@ export function GiftCardDetailModal({
             </section>
           )}
 
-          {giftCard.status === 'active' && !isExpired && isServicePass && (
-            <p className="rounded-2xl bg-[#F7F5F2] p-4 text-sm text-stone-600"><span className="font-medium text-stone-800">{t.visitRedemption}.</span> {t.visitRedemptionHint}</p>
+          {giftCard.status === 'active' && !isExpired && isServicePass && (giftCard.remaining_visits ?? 0) > 0 && (
+            <section className="rounded-2xl bg-[#F7F5F2] p-4">
+              <p className="text-sm text-stone-600"><span className="font-medium text-stone-800">{t.visitRedemption}.</span> {t.visitRedemptionHint}</p>
+              <button type="button" onClick={handleRedeemVisit} disabled={redeeming} className={`${ADMIN_PRIMARY_BUTTON} mt-3`}>
+                <Check className="h-4 w-4" /> {redeeming ? t.processing : t.redeemVisit}
+              </button>
+            </section>
+          )}
+
+          {giftCard.status === 'cancelled' && (
+            <p className="rounded-2xl bg-stone-100 px-4 py-3 text-sm text-stone-600">{t.voidedNote}</p>
           )}
 
           <section>
@@ -638,7 +664,7 @@ export function GiftCardDetailModal({
                     </div>
                     <div className="shrink-0 text-right">
                       <p className={`font-semibold tabular-nums ${txn.transaction_type === 'redemption' ? 'text-stone-800' : 'text-emerald-700'}`}>
-                        {isServicePass && (txn.visit_count || 0) > 0
+                        {txn.transaction_type === 'void' ? '–' : isServicePass && (txn.visit_count || 0) > 0
                           ? `${txn.transaction_type === 'redemption' ? '−' : '+'}${txn.visit_count === 1 ? t.visitOne : fillText(t.visitMany, { count: txn.visit_count ?? 0 })}`
                           : <>{txn.transaction_type === 'redemption' ? '−' : '+'}{formatAmount(Math.abs(txn.amount_cents / 100))}</>}
                       </p>
@@ -650,11 +676,13 @@ export function GiftCardDetailModal({
             )}
           </section>
 
-          <div className="border-t border-stone-200/70 pt-4">
-            <button type="button" onClick={handleDelete} disabled={deleting} className={`${ADMIN_TERTIARY_BUTTON} text-red-700 hover:bg-red-50 hover:text-red-800`}>
-              <Trash2 className="h-4 w-4" /> {deleting ? t.deleting : t.deleteCard}
-            </button>
-          </div>
+          {giftCard.status !== 'cancelled' && (
+            <div className="border-t border-stone-200/70 pt-4">
+              <button type="button" onClick={handleVoid} disabled={deleting} className={`${ADMIN_TERTIARY_BUTTON} text-red-700 hover:bg-red-50 hover:text-red-800`}>
+                <Ban className="h-4 w-4" /> {deleting ? t.voiding : t.voidCard}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
