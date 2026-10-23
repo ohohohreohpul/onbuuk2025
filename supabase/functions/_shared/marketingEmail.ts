@@ -47,6 +47,9 @@ export interface MarketingVoucher {
   compareCents: number | null;
   url: string;
   imageUrl?: string | null;
+  /** Set or multi-visit card, so the website chat can sell exactly this voucher. */
+  kind?: "set" | "pass";
+  id?: string;
 }
 
 const COPY = {

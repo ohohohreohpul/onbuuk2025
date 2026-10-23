@@ -248,7 +248,7 @@ Deno.test("prompt: speaks as the shop, never as AI or Zenno; replies in the late
   const ctx = {
     businessId: "b", name: "SATUUU99", address: null, phone: null, language: "de", shopUrl: null, consentPolicy: "auto",
     leadTimeMinutes: 0, holdSeconds: 300, catalog: [], staff: [], vouchers: [], promotion: null, openingHours: [], allowStaffChoice: false,
-    giftCards: { enabled: false, presetCents: [], customMinCents: null, customMaxCents: null, payInStore: false }, settings,
+    giftCards: { enabled: false, presetCents: [], customMinCents: null, customMaxCents: null, payInStore: false, onlinePayment: false }, settings,
   } as import("./shopContext.ts").ShopContext;
   const text = buildSystemPrompt(ctx, { channel: "whatsapp", contactName: null, contactEmail: null, contactPhone: null, memory: "", isVerified: true }, new Date("2026-10-16T13:00:00Z"));
   const opening = text.split("\n")[0];
@@ -257,4 +257,38 @@ Deno.test("prompt: speaks as the shop, never as AI or Zenno; replies in the late
   assert(text.includes("Never call yourself an AI"));
   assert(text.includes("LATEST message"));
   assertFalse(text.includes("say you are the shop's AI assistant"));
+});
+
+Deno.test("voucherChoice: only listed amounts and vouchers can be sold", async () => {
+  const { voucherChoice } = await import("./tools.ts");
+  const shop = {
+    giftCards: { enabled: true, presetCents: [2500, 5000], customMinCents: 1000, customMaxCents: 30000, payInStore: true, onlinePayment: true },
+    vouchers: [
+      { name: "Weihnachtsset", detail: null, priceCents: 9900, compareCents: null, url: "https://shop.test/?set=pkg-1", kind: "set", id: "pkg-1" },
+      { name: "5 × Thai", detail: null, priceCents: 30000, compareCents: null, url: "u", kind: "pass", id: "pass-1" },
+    ],
+  } as unknown as import("./shopContext.ts").ShopContext;
+
+  assertEquals(voucherChoice(shop, { voucher: "value", amount_euros: 25 }), { kind: "value", amount_cents: 2500, label: "Wertgutschein 25,00 €" });
+  assertEquals((voucherChoice(shop, { voucher: "value", amount_euros: 120 }) as { amount_cents: number }).amount_cents, 12000);
+  assert("error" in voucherChoice(shop, { voucher: "value", amount_euros: 5 }));
+  assert("error" in voucherChoice(shop, { voucher: "value", amount_euros: 500 }));
+  assert((voucherChoice(shop, { voucher: "v1" }) as { error: string }).error.includes("https://shop.test/?set=pkg-1"));
+  assertEquals((voucherChoice(shop, { voucher: "v2" }) as { pass_offer_id: string }).pass_offer_id, "pass-1");
+  assert("error" in voucherChoice(shop, { voucher: "v3" }));
+});
+
+Deno.test("prompt: vouchers are digital, never paid or picked up in the shop", async () => {
+  const { buildSystemPrompt } = await import("./prompt.ts");
+  const settings = { assistant_name: "", address_form: "sie", faq: [], playbook: {} } as unknown as import("./shopContext.ts").ReceptionistSettings;
+  const ctx = {
+    businessId: "b", name: "SATUUU99", address: null, phone: null, language: "de", shopUrl: "https://shop.test", consentPolicy: "auto",
+    leadTimeMinutes: 0, holdSeconds: 300, catalog: [], staff: [], vouchers: [], promotion: null, openingHours: [], allowStaffChoice: false,
+    giftCards: { enabled: true, presetCents: [2500], customMinCents: null, customMaxCents: null, payInStore: true, onlinePayment: true }, settings,
+  } as import("./shopContext.ts").ShopContext;
+  const text = buildSystemPrompt(ctx, { channel: "web", contactName: null, contactEmail: null, contactPhone: null, memory: "", isVerified: false }, new Date("2026-10-23T13:00:00Z"));
+  assert(text.includes("create_voucher_payment_link"));
+  assert(text.includes("Never offer paying or picking them up in the shop"));
+  assertFalse(text.includes("paid in the shop."));
+  assert(text.includes("never open with a greeting"));
 });

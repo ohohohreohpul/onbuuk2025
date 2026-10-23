@@ -18,6 +18,8 @@ import { phoneTailPattern, withinLimit } from "./limits.ts";
 const MAX_TIMES_RETURNED = 12;
 const MAX_GIFT_LOOKUPS_PER_CONVERSATION = 5;
 const MAX_GIFT_LOOKUPS_PER_SHOP = 30;
+const MAX_VOUCHER_LINKS_PER_CONVERSATION = 5;
+const CENTS_PER_EURO = 100;
 const HOUR_SECONDS = 3600;
 const MEMORY_LIMIT = 600;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -123,6 +125,24 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       name: "check_gift_card",
       description: "Balance and validity of a voucher code the customer gave you.",
       parameters: { type: "object", properties: { code: str }, required: ["code"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_voucher_payment_link",
+      description: "Creates a personal payment link for a digital voucher the customer agreed to buy. Opens the shop's voucher page with everything filled in; they pay online and get the voucher by email.",
+      parameters: {
+        type: "object",
+        properties: {
+          voucher: { type: "string", description: "'value' for a value voucher, or a voucher ref like v1 from SHOP DATA" },
+          amount_euros: { type: "number", description: "Only for 'value': the amount in euros" },
+          buyer_name: str, buyer_email: str,
+          recipient_email: { type: "string", description: "Optional: send the voucher to this person" },
+          message: { type: "string", description: "Optional personal message on the voucher" },
+        },
+        required: ["voucher", "buyer_name", "buyer_email"],
+      },
     },
   },
   {
@@ -430,6 +450,63 @@ async function checkGiftCard(run: ToolRun, args: Args): Promise<Result> {
   };
 }
 
+/** Which voucher the customer wants, as a draft row; or an error the model can act on. */
+export function voucherChoice(shop: ShopContext, args: Args): { kind: "value" | "pass"; amount_cents?: number; pass_offer_id?: string; label: string } | { error: string } {
+  const choice = text(args.voucher, 10).toLowerCase();
+  if (choice === "value") {
+    if (!shop.giftCards.enabled) return { error: "This shop sells no value vouchers. Offer the vouchers listed in SHOP DATA." };
+    const cents = Math.round(Number(args.amount_euros) * CENTS_PER_EURO);
+    const { presetCents, customMinCents, customMaxCents } = shop.giftCards;
+    const isPreset = presetCents.includes(cents);
+    const isCustom = customMinCents !== null && cents >= customMinCents && cents <= (customMaxCents ?? 0);
+    if (!Number.isFinite(cents) || cents <= 0 || (!isPreset && !isCustom)) {
+      return { error: "That amount is not available. Offer an amount listed in SHOP DATA." };
+    }
+    return { kind: "value", amount_cents: cents, label: `Wertgutschein ${formatEuro(cents)}` };
+  }
+  const index = /^v(\d+)$/.exec(choice);
+  const voucher = index ? shop.vouchers[Number(index[1]) - 1] : undefined;
+  if (!voucher?.id || !voucher.kind) return { error: "Unknown voucher. Use 'value' or a ref like v1 from SHOP DATA." };
+  // Sets are ordered and paid in the shop on the voucher page; only value vouchers and cards are paid online.
+  if (voucher.kind === "set") return { error: `This set cannot be paid online. Send its link instead: ${voucher.url}` };
+  return { kind: "pass", pass_offer_id: voucher.id, label: `${voucher.name} (${formatEuro(voucher.priceCents)})` };
+}
+
+async function createVoucherPaymentLink(run: ToolRun, args: Args): Promise<Result> {
+  const { shop } = run;
+  if (!shop.shopUrl) return { error: "The shop has no voucher page. Hand over to the team." };
+  if (!shop.giftCards.onlinePayment) {
+    return { error: `Online payment is not set up. Send the voucher page instead: ${shop.shopUrl}/?gutschein=1` };
+  }
+  const buyerName = text(args.buyer_name, 120);
+  const buyerEmail = text(args.buyer_email, 200).toLowerCase();
+  const recipientEmail = text(args.recipient_email, 200).toLowerCase() || null;
+  if (!buyerName) return { error: "Ask for the buyer's full name." };
+  if (!EMAIL.test(buyerEmail)) return { error: "Ask for a valid email address of the buyer." };
+  if (recipientEmail && !EMAIL.test(recipientEmail)) return { error: "The recipient's email address looks wrong. Ask again or leave it out." };
+  const choice = voucherChoice(shop, args);
+  if ("error" in choice) return choice;
+  if (!(await withinLimit(run.supabase, `voucher-link:${run.conversation.id}`, HOUR_SECONDS, MAX_VOUCHER_LINKS_PER_CONVERSATION))) {
+    return { error: "Too many payment links in this chat. Hand over to the team." };
+  }
+
+  const { label, ...voucher } = choice;
+  const { data, error } = await run.supabase.from("gift_card_checkout_drafts").insert({
+    business_id: shop.businessId, ...voucher, buyer_name: buyerName, buyer_email: buyerEmail,
+    recipient_email: recipientEmail, message: text(args.message, 500) || null, conversation_id: run.conversation.id,
+  }).select("id").single();
+  if (error || !data) throw new Error(`voucher draft failed: ${error?.message}`);
+  await logAgentEvent(run.supabase, {
+    businessId: shop.businessId, agentKeyId: null, action: "receptionist_voucher_link", result: "created",
+    payload: { conversationId: run.conversation.id, kind: voucher.kind },
+  });
+  return {
+    payment_link: `${shop.shopUrl}/?gutschein=1&kasse=${data.id}`,
+    voucher: label,
+    tell_customer: "Give them this link to pay online. Everything is filled in; after payment the voucher arrives by email as a PDF. The link works for 3 days.",
+  };
+}
+
 export async function runTool(run: ToolRun, name: string, args: Args): Promise<Result> {
   try {
     switch (name) {
@@ -439,6 +516,7 @@ export async function runTool(run: ToolRun, name: string, args: Args): Promise<R
       case "cancel_booking": return await cancelOwnBooking(run, args);
       case "move_booking": return await moveOwnBooking(run, args);
       case "check_gift_card": return await checkGiftCard(run, args);
+      case "create_voucher_payment_link": return await createVoucherPaymentLink(run, args);
       case "hand_over_to_staff": {
         run.outcome.handedOver = { reason: text(args.reason, 300) || "Needs a team member" };
         return { handed_over: true, tell_customer: "A team member will get back to them personally." };

@@ -19,9 +19,9 @@
   if (!/^wc_[a-f0-9]{32}$/.test(KEY)) { console.warn('[Zenno] receptionist widget: missing or invalid data-key'); return; }
 
   var TEXT = {
-    de: { placeholder: 'Nachricht schreiben…', send: 'Senden', open: 'Chat öffnen', close: 'Chat schließen', hello: 'Hallo! Wie kann ich helfen? Ich kann freie Termine finden, buchen und Fragen zu Preisen und Gutscheinen beantworten.', error: 'Das hat nicht geklappt. Bitte noch einmal versuchen.', team: 'Danke! Unser Team antwortet Ihnen hier so bald wie möglich.', status: 'Online · antwortet sofort', footnote: 'Antworten werden automatisch erstellt – unser Team übernimmt bei Bedarf.' },
-    en: { placeholder: 'Write a message…', send: 'Send', open: 'Open chat', close: 'Close chat', hello: 'Hi! How can I help? I can find free times, book appointments and answer questions about prices and vouchers.', error: 'That did not work. Please try again.', team: 'Thanks! Our team will reply here as soon as possible.', status: 'Online · replies instantly', footnote: 'Replies are generated automatically – our team steps in when needed.' },
-    th: { placeholder: 'พิมพ์ข้อความ…', send: 'ส่ง', open: 'เปิดแชท', close: 'ปิดแชท', hello: 'สวัสดีค่ะ ให้ช่วยอะไรดีคะ? หาเวลาว่าง จองคิว หรือสอบถามราคาและบัตรของขวัญได้เลยค่ะ', error: 'ไม่สำเร็จ กรุณาลองอีกครั้ง', team: 'ขอบคุณค่ะ ทีมงานจะตอบกลับที่นี่โดยเร็วที่สุด', status: 'ออนไลน์ · ตอบทันที', footnote: 'ข้อความตอบกลับสร้างโดยอัตโนมัติ – ทีมงานจะช่วยต่อเมื่อจำเป็น' },
+    de: { placeholder: 'Nachricht schreiben…', send: 'Senden', open: 'Chat öffnen', close: 'Chat schließen', hello: 'Hallo! Wie kann ich helfen? Ich kann freie Termine finden, buchen und Fragen zu Preisen und Gutscheinen beantworten.', error: 'Das hat nicht geklappt. Bitte noch einmal versuchen.', team: 'Danke! Unser Team antwortet Ihnen hier so bald wie möglich.', status: 'Online · antwortet sofort', pay: 'Jetzt bezahlen', footnote: 'Antworten werden automatisch erstellt – unser Team übernimmt bei Bedarf.' },
+    en: { placeholder: 'Write a message…', send: 'Send', open: 'Open chat', close: 'Close chat', hello: 'Hi! How can I help? I can find free times, book appointments and answer questions about prices and vouchers.', error: 'That did not work. Please try again.', team: 'Thanks! Our team will reply here as soon as possible.', status: 'Online · replies instantly', pay: 'Pay now', footnote: 'Replies are generated automatically – our team steps in when needed.' },
+    th: { placeholder: 'พิมพ์ข้อความ…', send: 'ส่ง', open: 'เปิดแชท', close: 'ปิดแชท', hello: 'สวัสดีค่ะ ให้ช่วยอะไรดีคะ? หาเวลาว่าง จองคิว หรือสอบถามราคาและบัตรของขวัญได้เลยค่ะ', error: 'ไม่สำเร็จ กรุณาลองอีกครั้ง', team: 'ขอบคุณค่ะ ทีมงานจะตอบกลับที่นี่โดยเร็วที่สุด', status: 'ออนไลน์ · ตอบทันที', pay: 'ชำระเงินตอนนี้', footnote: 'ข้อความตอบกลับสร้างโดยอัตโนมัติ – ทีมงานจะช่วยต่อเมื่อจำเป็น' },
   };
 
   // 128-bit random id: only this browser can read its own conversation.
@@ -79,6 +79,9 @@
     '.close:hover{background:rgba(255,255,255,.9)}' +
     '.list{position:relative;flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}' +
     '.msg{max-width:85%;padding:10px 13px;border-radius:18px;font-size:14px;line-height:1.5;word-wrap:break-word;color:var(--ink)}' +
+    '.msg a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all}' +
+    '.msg a.pay{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:11px 16px;border-radius:999px;background:var(--c);color:#fff;font-weight:650;text-decoration:none;word-break:normal;box-shadow:0 6px 18px rgba(0,0,0,.16);transition:transform .15s}' +
+    '.msg a.pay:hover{transform:translateY(-1px)}' +
     '.msg p{margin:0}.msg p+p,.msg ul+p,.msg p+ul{margin-top:6px}.msg ul{margin:0;padding-left:18px}.msg li+li{margin-top:2px}.msg b{font-weight:650}' +
     '.bot{align-self:flex-start;background:var(--glass);border:1px solid var(--line);border-bottom-left-radius:6px;box-shadow:0 2px 10px rgba(20,16,12,.06)}' +
     '.me{align-self:flex-end;background:var(--c);color:#fff;border-bottom-right-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.14)}' +
@@ -114,11 +117,23 @@
   var $ = function (sel) { return root.querySelector(sel); };
   var panel = $('.panel'), list = $('.list'), form = $('form'), input = $('textarea'), sendBtn = $('.send'), fab = $('.fab');
 
+  /** https links become links; a voucher payment link (?kasse=) becomes a "Pay now" button. */
+  function linkify(parent, text) {
+    text.split(/(https:\/\/[^\s<>"]+[^\s<>".,;:!?)])/).forEach(function (part) {
+      if (!/^https:\/\//.test(part)) { if (part) parent.appendChild(document.createTextNode(part)); return; }
+      var a = document.createElement('a');
+      a.href = part; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      if (/[?&]kasse=/.test(part)) { a.className = 'pay'; a.textContent = t.pay + ' →'; } else { a.textContent = part.replace(/^https:\/\//, ''); }
+      parent.appendChild(a);
+    });
+  }
+
   /** Appends text with **bold** turned into <b>, as text nodes only (never HTML). */
   function inline(parent, text) {
+    text = text.replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '$2'); // [label](url) -> url
     text.split(/(\*\*[^*]+\*\*)/).forEach(function (part) {
       if (/^\*\*[^*]+\*\*$/.test(part)) { var b = document.createElement('b'); b.textContent = part.slice(2, -2); parent.appendChild(b); }
-      else if (part) parent.appendChild(document.createTextNode(part));
+      else if (part) linkify(parent, part);
     });
   }
 

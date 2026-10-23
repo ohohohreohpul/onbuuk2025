@@ -131,6 +131,7 @@ export async function loadShopVouchers(supabase: Client, businessId: string, sho
     .map((p) => ({
       name: p.name, detail: p.subtitle ?? null, priceCents: p.price_cents, compareCents: p.compare_at_cents ?? null,
       url: giftLink(shopUrl, GIFT_LINK_PARAMS.set, p.id),
+      kind: "set" as const, id: p.id,
     }));
 
   // deno-lint-ignore no-explicit-any
@@ -144,6 +145,7 @@ export async function loadShopVouchers(supabase: Client, businessId: string, sho
       priceCents: o.price_cents,
       compareCents: regular,
       url: giftLink(shopUrl, GIFT_LINK_PARAMS.pass, o.id),
+      kind: "pass" as const, id: o.id,
       imageUrl: service?.image_url?.startsWith("https://") ? service.image_url : null,
     };
   });

@@ -352,6 +352,17 @@ const TEXT: Translations<{
   },
 };
 
+/** Order agreed in the website chat (get_gift_card_checkout_draft). */
+interface CheckoutDraft {
+  kind: 'value' | 'pass';
+  amountCents: number | null;
+  passOfferId: string | null;
+  buyerName: string;
+  buyerEmail: string;
+  recipientEmail: string | null;
+  message: string | null;
+}
+
 interface GiftCardSettings extends PromoSettings {
   enabled: boolean;
   pay_in_store_enabled?: boolean;
@@ -429,6 +440,14 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
   const [showPayPalButtons, setShowPayPalButtons] = useState(false);
   const [giftCardCode, setGiftCardCode] = useState('');
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [scrollToPayment, setScrollToPayment] = useState(false);
+
+  // Coming from the chat: everything is filled in, so show the payment buttons.
+  useEffect(() => {
+    if (!scrollToPayment || loading) return;
+    document.getElementById('gift-card-payment')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setScrollToPayment(false);
+  }, [scrollToPayment, loading]);
 
   useEffect(() => {
     loadSettings();
@@ -484,7 +503,36 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
       setPurchaseType('package');
       setSelectedPackageId(link.setId);
     }
+    if (link.checkoutId) await applyCheckoutDraft(link.checkoutId, data?.preset_amounts_cents ?? []);
     setLoading(false);
+  };
+
+  /** An order agreed in the website chat: fill in everything and go straight to payment. */
+  const applyCheckoutDraft = async (draftId: string, presetCents: number[]) => {
+    const { data: draft, error: draftError } = await supabase.rpc('get_gift_card_checkout_draft', {
+      p_draft_id: draftId, p_business_id: businessId,
+    });
+    if (draftError) {
+      console.error('Could not load the chat order:', draftError);
+      return;
+    }
+    if (!draft) return; // expired or unknown: the normal voucher page is shown
+    const order = draft as CheckoutDraft;
+    if (order.kind === 'pass' && order.passOfferId) {
+      setPurchaseType('service_pass');
+      setSelectedServicePassId(order.passOfferId);
+    } else if (order.kind === 'value' && order.amountCents) {
+      setPurchaseType('value');
+      const isPreset = presetCents.includes(order.amountCents);
+      setUseCustom(!isPreset);
+      setSelectedAmount(isPreset ? order.amountCents : null);
+      setCustomAmount(isPreset ? '' : (order.amountCents / 100).toFixed(2));
+    }
+    setBuyerName(order.buyerName);
+    setBuyerEmail(order.buyerEmail);
+    setRecipientEmail(order.recipientEmail ?? '');
+    setMessage(order.message ?? '');
+    setScrollToPayment(true);
   };
 
   const checkPaymentSettings = async () => {
@@ -1076,7 +1124,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
 
       {/* Payment Method Selection */}
       {(stripeEnabled || paypalEnabled) && !isPayInStore && !showPayPalButtons && (
-        <div className="space-y-3 pt-4 border-t">
+        <div id="gift-card-payment" className="space-y-3 pt-4 border-t">
           <h3 className="font-medium text-gray-900">{t.paymentMethod}</h3>
           <div className="space-y-2">
             {stripeEnabled && (

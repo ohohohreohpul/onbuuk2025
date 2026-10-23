@@ -75,7 +75,7 @@ export interface ShopContext {
   catalog: CatalogEntry[];
   staff: StaffEntry[];
   vouchers: MarketingVoucher[];
-  giftCards: { enabled: boolean; presetCents: number[]; customMinCents: number | null; customMaxCents: number | null; payInStore: boolean };
+  giftCards: { enabled: boolean; presetCents: number[]; customMinCents: number | null; customMaxCents: number | null; payInStore: boolean; onlinePayment: boolean };
   promotion: { title: string; text: string; giftNote: string | null } | null;
   /** "Mon 10:00–20:00" … from the therapists' working hours (earliest start to latest end per weekday). */
   openingHours: string[];
@@ -138,6 +138,9 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
   ]);
   const { data: choiceRow } = await supabase.from("site_settings").select("value")
     .eq("business_id", businessId).eq("key", "allowSpecialistChoice").maybeSingle();
+  const { data: paymentRows } = await supabase.from("site_settings").select("key, value")
+    .eq("business_id", businessId).in("key", ["stripe_enabled", "paypal_enabled"]);
+  const onlinePayment = (paymentRows ?? []).some((row) => String(row.value).replace(/"/g, "") === "true");
   const choiceValue = typeof choiceRow?.value === "string" ? choiceRow.value : JSON.stringify(choiceRow?.value ?? "");
   if (businessRes.error || !businessRes.data) throw new Error(`business lookup failed: ${businessRes.error?.message}`);
   if (servicesRes.error) throw new Error(`services lookup failed: ${servicesRes.error.message}`);
@@ -187,6 +190,7 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
       customMinCents: gift?.allow_custom_amount ? Number(gift.min_custom_amount_cents ?? 0) : null,
       customMaxCents: gift?.allow_custom_amount ? Number(gift.max_custom_amount_cents ?? 0) : null,
       payInStore: gift?.pay_in_store_enabled === true,
+      onlinePayment,
     },
     promotion: activePromotion(gift),
     openingHours: openingHours(staffRows.flatMap((s) => s.working_hours ?? [])),
