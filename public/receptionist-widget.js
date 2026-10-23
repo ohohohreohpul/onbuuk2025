@@ -88,6 +88,8 @@
     'form{position:relative;display:flex;align-items:flex-end;gap:8px;margin:0 12px;padding:6px 6px 6px 14px;border-radius:24px;background:rgba(255,255,255,.75);border:1px solid var(--line);box-shadow:0 4px 18px rgba(20,16,12,.08)}' +
     'textarea{flex:1;resize:none;border:0;background:transparent;padding:8px 0;font-size:15px;line-height:1.4;max-height:96px;outline:none;color:var(--ink)}' +
     'textarea::placeholder{color:#9a928a}' +
+    'textarea:focus,textarea:focus-visible{outline:none}' +
+    'form:focus-within{border-color:color-mix(in srgb,var(--c) 45%,white);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 18%,transparent),0 4px 18px rgba(20,16,12,.08)}' +
     '.send{width:38px;height:38px;flex:none;border:0;border-radius:50%;background:var(--c);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,opacity .15s}' +
     '.send:hover{transform:scale(1.06)}.send:disabled{opacity:.4;cursor:default;transform:none}' +
     '.foot{padding:8px 16px 12px;font-size:11px;line-height:1.35;color:var(--muted);text-align:center}' +
