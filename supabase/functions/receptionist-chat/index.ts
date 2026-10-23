@@ -52,6 +52,7 @@ async function config(supabase: Client, settings: ReceptionistSettings) {
   const shop = await loadMarketingShop(supabase, settings.business_id);
   return {
     shop: shop.name,
+    logo: shop.logoUrl ?? null,
     assistant: settings.assistant_name,
     greeting: settings.widget_greeting || null,
     color: settings.widget_color ?? shop.primaryColor ?? "#1A1714",
