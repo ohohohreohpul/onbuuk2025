@@ -134,6 +134,11 @@ async function updateSettings(admin: Admin, body: Body) {
     if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) throw new InputError("Colour must look like #1A1714");
     patch.widget_color = color || null;
   }
+  if ("widget_avatar_url" in input) {
+    const url = str(input.widget_avatar_url, 1000);
+    if (url && !/^https:\/\/\S+$/.test(url)) throw new InputError("The picture must be an https address");
+    patch.widget_avatar_url = url || null;
+  }
   await ensureSettings(admin);
   const { error } = await admin.supabaseAdmin.from("receptionist_settings").update(patch).eq("business_id", admin.businessId);
   if (error) throw new Error(`settings update failed: ${error.message}`);

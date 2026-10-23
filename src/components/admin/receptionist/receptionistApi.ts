@@ -31,6 +31,7 @@ export interface ReceptionistSettings {
   widget_key: string;
   widget_greeting: string;
   widget_color: string | null;
+  widget_avatar_url: string | null;
   email_enabled: boolean;
   email_mode: ChannelMode;
   imap_host: string | null;

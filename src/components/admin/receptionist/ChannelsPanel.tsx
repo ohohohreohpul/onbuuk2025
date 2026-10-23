@@ -6,6 +6,7 @@ import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFAC
 import { callReceptionist, updateSettings, type ChannelMode, type Overview, type ReceptionistSettings } from './receptionistApi';
 import { RECEPTIONIST_TEXT, type ReceptionistText } from './receptionistText';
 import { openWidgetPreview } from './widgetPreview';
+import ChatAvatarPicker from './ChatAvatarPicker';
 
 
 const QR_REFRESH_MS = 10_000;
@@ -124,6 +125,8 @@ export default function ChannelsPanel({ overview, onOverview }: ChannelsPanelPro
             <input type="color" value={color} onChange={(e) => setColor(e.target.value)} onBlur={() => save({ widget_color: color })} className="mt-1 block h-11 w-16 cursor-pointer rounded-xl border border-stone-200" />
           </label>
         </div>
+        <ChatAvatarPicker businessId={settings.business_id} avatarUrl={settings.widget_avatar_url} color={color} t={t}
+          onSave={(url) => save({ widget_avatar_url: url })} />
         <ModePicker mode={settings.web_mode} t={t} onChange={(mode) => save({ web_mode: mode })} />
         <button type="button" onClick={openPreview} disabled={!settings.is_enabled || !settings.web_enabled} className={ADMIN_SECONDARY_BUTTON}>{t.preview}</button>
       </Card>
