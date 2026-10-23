@@ -14,6 +14,7 @@ import type { ToolSchema } from "./llm.ts";
 import type { CatalogEntry, ShopContext, StaffEntry } from "./shopContext.ts";
 import { formatEuro, type Channel } from "./prompt.ts";
 import { phoneTailPattern, withinLimit } from "./limits.ts";
+import { summaryWasShown } from "./bookingSummary.ts";
 
 const MAX_TIMES_RETURNED = 12;
 const MAX_GIFT_LOOKUPS_PER_CONVERSATION = 5;
@@ -266,6 +267,12 @@ async function bookAppointment(run: ToolRun, args: Args): Promise<Result> {
   if (!slot) return { error: `${time} on ${date} is no longer free. Call find_free_times and offer other times.` };
 
   const proposal = `Book ${entry.serviceName} (${entry.minutes} min, ${formatEuro(entry.priceCents)}) on ${date} at ${time}${therapist ? ` with ${therapist.name}` : ""} for ${name}`;
+  // The customer must have seen what they book and what it costs, and answered after that.
+  if (!summaryWasShown(run.transcript, time, entry.priceCents)) {
+    return {
+      error: `Not booked yet. First send this summary in your own words and ask for a clear yes: ${entry.serviceName}, ${entry.minutes} min, ${formatEuro(entry.priceCents)}, ${date} at ${time}. Book only after they answer yes.`,
+    };
+  }
   const notConfirmed = await confirmWithJev(run, proposal);
   if (notConfirmed) return { error: notConfirmed };
 

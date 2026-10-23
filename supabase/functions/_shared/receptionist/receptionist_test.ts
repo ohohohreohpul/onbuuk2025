@@ -299,3 +299,18 @@ Deno.test("formatBriefing: the website chat skips the introduce-yourself habit",
   assert(formatBriefing(stored).includes("In your very first reply"));
   assertFalse(formatBriefing(stored, true).includes("In your very first reply"));
 });
+
+Deno.test("summaryWasShown: booking needs a summary with time and price right before the customer's yes", async () => {
+  const { summaryWasShown } = await import("./bookingSummary.ts");
+  const offered = "Assistant: Wir haben morgen um 16:00, 16:30 oder 17:00 Uhr frei. Passt Ihnen da etwas?";
+  // What happened on 23.10.: the customer picked a time and gave details, but never saw the price.
+  assertFalse(summaryWasShown(`Customer: Gua Sha 60 Min morgen\n${offered}\nCustomer: Die erste Zeit bitte. Test, a@b.de, 0151 2345678`, "16:00", 7000));
+  const summary = "Assistant: Dann trage ich ein: Anti-Stress Gua Sha Massage, 60 Min, 70,00 €, morgen Samstag, 24.10. um 16:00 Uhr.\nSoll ich so buchen?";
+  assert(summaryWasShown(`${offered}\nCustomer: 16 Uhr\n${summary}\nCustomer: Ja`, "16:00", 7000));
+  assert(summaryWasShown("Assistant: Gua Sha 60 Min für 70 € am Samstag um 16 Uhr, passt das?\nCustomer: ja bitte", "16:00", 7000));
+  assert(summaryWasShown("Assistant: Fußpflege um 9.30 für 45,50 Euro?\nCustomer: ja", "09:30", 4550));
+  // Wrong time or price in the summary, or no reply yet.
+  assertFalse(summaryWasShown(`${summary}\nCustomer: Ja`, "16:30", 7000));
+  assertFalse(summaryWasShown(`${summary}\nCustomer: Ja`, "16:00", 6000));
+  assertFalse(summaryWasShown(summary, "16:00", 7000));
+});
