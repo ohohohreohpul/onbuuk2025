@@ -225,7 +225,7 @@
     $('.status').textContent = t.status;
     $('.foot').textContent = t.footnote;
     var avatar = $('.avatar');
-    if (cfg.logo && /^https:\/\//.test(cfg.logo)) {
+    if (cfg.logo && /^(https:\/\/|data:image\/(png|jpe?g|webp|svg\+xml);base64,)/.test(cfg.logo)) {
       var img = document.createElement('img'); img.alt = ''; img.src = cfg.logo;
       img.onerror = function () { img.remove(); avatar.textContent = shopName.charAt(0).toUpperCase(); };
       avatar.appendChild(img);
