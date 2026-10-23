@@ -530,7 +530,7 @@ export function GiftCardPurchase({ onBack }: GiftCardPurchaseProps) {
     }
     setBuyerName(order.buyerName);
     setBuyerEmail(order.buyerEmail);
-    setRecipientEmail(order.recipientEmail ?? '');
+    setRecipientEmail(order.recipientEmail ?? order.buyerEmail);
     setMessage(order.message ?? '');
     setScrollToPayment(true);
   };

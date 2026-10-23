@@ -20,6 +20,12 @@ const MAX_GIFT_LOOKUPS_PER_CONVERSATION = 5;
 const MAX_GIFT_LOOKUPS_PER_SHOP = 30;
 const MAX_VOUCHER_LINKS_PER_CONVERSATION = 5;
 const CENTS_PER_EURO = 100;
+/** The voucher page needs a message; without one from the customer the shop sends a friendly line. */
+const DEFAULT_VOUCHER_MESSAGE: Record<string, (shop: string) => string> = {
+  de: (shop) => `Viel Freude mit Ihrem Gutschein! – ${shop}`,
+  en: (shop) => `Enjoy your voucher! – ${shop}`,
+  th: (shop) => `ขอให้มีความสุขกับบัตรของขวัญ – ${shop}`,
+};
 const HOUR_SECONDS = 3600;
 const MEMORY_LIMIT = 600;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -493,7 +499,10 @@ async function createVoucherPaymentLink(run: ToolRun, args: Args): Promise<Resul
   const { label, ...voucher } = choice;
   const { data, error } = await run.supabase.from("gift_card_checkout_drafts").insert({
     business_id: shop.businessId, ...voucher, buyer_name: buyerName, buyer_email: buyerEmail,
-    recipient_email: recipientEmail, message: text(args.message, 500) || null, conversation_id: run.conversation.id,
+    // Bought for themselves: the voucher goes to the buyer's own address.
+    recipient_email: recipientEmail ?? buyerEmail,
+    message: text(args.message, 500) || (DEFAULT_VOUCHER_MESSAGE[shop.language] ?? DEFAULT_VOUCHER_MESSAGE.de)(shop.name),
+    conversation_id: run.conversation.id,
   }).select("id").single();
   if (error || !data) throw new Error(`voucher draft failed: ${error?.message}`);
   await logAgentEvent(run.supabase, {
