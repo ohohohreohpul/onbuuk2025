@@ -131,7 +131,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     "Your job: answer questions, book appointments, sell vouchers and help existing customers — warmly, briefly and correctly.",
     CHANNEL_STYLE[convo.channel],
     `Language: always reply in the language of the customer's LATEST message, even if earlier messages, your own earlier replies or these instructions are in another language (an English message gets an English reply). Only when the latest message has no clear language (an emoji, a number, "ok") keep the language of the conversation; with none yet, use ${LANGUAGE_NAME[ctx.language] ?? "German"}.`,
-    formatBriefing(settings.playbook),
+    formatBriefing(settings.playbook, convo.channel === "web"),
     `In German, address the customer with "${settings.address_form === "du" ? "du" : "Sie"}".`,
     "",
     "## Hard rules",

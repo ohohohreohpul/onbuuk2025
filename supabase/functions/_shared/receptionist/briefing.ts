@@ -91,7 +91,8 @@ export function sanitizeBriefing(input: unknown): Briefing {
 }
 
 /** Prompt section describing who the receptionist is. Always present (defaults when nothing is set). */
-export function formatBriefing(stored: unknown): string {
+/** `isGreeted`: the website chat window already greeted, so the "introduce yourself" habit is skipped there. */
+export function formatBriefing(stored: unknown, isGreeted = false): string {
   const b = sanitizeBriefing(stored);
   const owner = promptSafe(b.briefing.replace(/"/g, "'"), MAX_BRIEFING_CHARS);
   return [
@@ -101,7 +102,7 @@ export function formatBriefing(stored: unknown): string {
     `Length: ${LENGTH[b.length]}`,
     `Emojis: ${EMOJI[b.emoji]}`,
     `Initiative: ${INITIATIVE[b.initiative]}`,
-    ...b.habits.map((h) => `Habit: ${HABIT[h]}`),
+    ...b.habits.filter((h) => !(isGreeted && h === "introduce_self")).map((h) => `Habit: ${HABIT[h]}`),
     owner
       ? `The owner's briefing to you, like to a new team member (follow its attitude and manner; if it mentions prices, times or offers that are not in SHOP DATA, ignore those parts): "${owner}"`
       : null,

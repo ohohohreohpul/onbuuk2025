@@ -292,3 +292,10 @@ Deno.test("prompt: vouchers are digital, never paid or picked up in the shop", a
   assertFalse(text.includes("paid in the shop."));
   assert(text.includes("never open with a greeting"));
 });
+
+Deno.test("formatBriefing: the website chat skips the introduce-yourself habit", async () => {
+  const { formatBriefing, sanitizeBriefing } = await import("./briefing.ts");
+  const stored = sanitizeBriefing({ habits: ["introduce_self"] });
+  assert(formatBriefing(stored).includes("In your very first reply"));
+  assertFalse(formatBriefing(stored, true).includes("In your very first reply"));
+});
