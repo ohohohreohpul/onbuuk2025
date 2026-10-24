@@ -155,9 +155,24 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   {
     type: "function",
     function: {
+      name: "save_contact",
+      description: "Saves the customer's name, email and/or phone as soon as they tell you, so the team can reach them. Call it right away, also with only a name.",
+      parameters: { type: "object", properties: { name: str, email: str, phone: str } },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "hand_over_to_staff",
       description: "Flags the conversation for a team member (complaints, refunds, health questions, anything unsure).",
-      parameters: { type: "object", properties: { reason: str }, required: ["reason"] },
+      parameters: {
+        type: "object",
+        properties: {
+          reason: str,
+          customer_declined_contact: { type: "boolean", description: "True only if the customer explicitly refused to give an email address" },
+        },
+        required: ["reason"],
+      },
     },
   },
   {
@@ -523,6 +538,21 @@ async function createVoucherPaymentLink(run: ToolRun, args: Args): Promise<Resul
   };
 }
 
+/** Name / email / phone the customer gave; stored on the conversation for the team. */
+export function saveContact(run: ToolRun, args: Args): Result {
+  const name = text(args.name, 120);
+  const email = text(args.email, 254).toLowerCase();
+  const phone = text(args.phone, 40);
+  if (email && !EMAIL.test(email)) return { error: "That email address looks wrong. Ask again." };
+  if (phone && !PHONE.test(phone)) return { error: "That phone number looks wrong. Ask again." };
+  if (!name && !email && !phone) return { error: "Nothing to save." };
+  run.outcome.contact = {
+    ...run.outcome.contact,
+    ...(name ? { name } : {}), ...(email ? { email } : {}), ...(phone ? { phone } : {}),
+  };
+  return { saved: true };
+}
+
 export async function runTool(run: ToolRun, name: string, args: Args): Promise<Result> {
   try {
     switch (name) {
@@ -533,7 +563,13 @@ export async function runTool(run: ToolRun, name: string, args: Args): Promise<R
       case "move_booking": return await moveOwnBooking(run, args);
       case "check_gift_card": return await checkGiftCard(run, args);
       case "create_voucher_payment_link": return await createVoucherPaymentLink(run, args);
+      case "save_contact": return saveContact(run, args);
       case "hand_over_to_staff": {
+        // In the website chat the team can only reply if they have an email address.
+        const knowsEmail = Boolean(run.conversation.contactEmail || run.outcome.contact.email);
+        if (run.conversation.channel === "web" && !knowsEmail && args.customer_declined_contact !== true) {
+          return { error: "Before handing over, ask for their name and email so the team can get back to them (save_contact). If they refuse, hand over with customer_declined_contact true." };
+        }
         run.outcome.handedOver = { reason: text(args.reason, 300) || "Needs a team member" };
         return { handed_over: true, tell_customer: "A team member will get back to them personally." };
       }

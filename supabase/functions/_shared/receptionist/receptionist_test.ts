@@ -316,3 +316,27 @@ Deno.test("summaryWasShown: booking needs a summary with time and price right be
   assertFalse(summaryWasShown(`${summary}\nCustomer: Ja`, "16:00", 6000));
   assertFalse(summaryWasShown(summary, "16:00", 7000));
 });
+
+Deno.test("save_contact and hand-over: the website chat keeps a way to reach the customer", async () => {
+  const { runTool, saveContact } = await import("./tools.ts");
+  const run = {
+    supabase: {}, shop: {}, transcript: "",
+    conversation: { id: "c", channel: "web", contactName: null, contactEmail: null, contactPhone: null, isVerified: false },
+    outcome: { handedOver: null, optOut: false, memory: null, contact: {}, actions: [] },
+  } as unknown as import("./tools.ts").ToolRun;
+
+  assert("error" in await runTool(run, "hand_over_to_staff", { reason: "card question" }));
+  assertEquals(run.outcome.handedOver, null);
+
+  assert("error" in saveContact(run, { email: "not-an-email" }));
+  assertEquals(saveContact(run, { name: "Anna Weber" }), { saved: true });
+  assertEquals(saveContact(run, { email: "Anna@Example.de" }), { saved: true });
+  assertEquals(run.outcome.contact, { name: "Anna Weber", email: "anna@example.de" });
+
+  await runTool(run, "hand_over_to_staff", { reason: "card question" });
+  assertEquals(run.outcome.handedOver, { reason: "card question" });
+
+  const refused = { ...run, outcome: { ...run.outcome, contact: {}, handedOver: null } } as typeof run;
+  await runTool(refused, "hand_over_to_staff", { reason: "x", customer_declined_contact: true });
+  assertEquals(refused.outcome.handedOver, { reason: "x" });
+});
