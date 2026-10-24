@@ -70,6 +70,11 @@ function formatVouchers(ctx: ShopContext): string {
   ctx.vouchers.forEach((v, i) => {
     lines.push(`- v${i + 1}: ${v.name}${v.detail ? ` (${v.detail})` : ""}: ${formatEuro(v.priceCents)}${v.compareCents ? ` instead of ${formatEuro(v.compareCents)}` : ""} — ${v.url}`);
   });
+  lines.push(
+    "- Using a voucher or multi-visit card (e.g. a 10er card, also older or partly used ones): the customer books a treatment as usual and gives the code. "
+      + "Online, they enter the code at the payment step and the amount or one visit is deducted automatically. Here in the chat, book the appointment and pass the code as voucher_code; it is deducted at the appointment. "
+      + "Paper vouchers: bring them to the appointment. Never guess which voucher they have and never hand over just because a card is old or partly used: explain this and offer to book their next visit right away.",
+  );
   if (ctx.giftCards.enabled || ctx.vouchers.length) {
     lines.push(ctx.giftCards.onlinePayment
       ? "- All vouchers are digital: paid online, sent by email as a PDF right after payment. Never offer paying or picking them up in the shop. To sell one, use create_voucher_payment_link (rule 9)."
@@ -132,7 +137,7 @@ export function buildSystemPrompt(ctx: ShopContext, convo: PromptConversation, n
     CHANNEL_STYLE[convo.channel],
     `Language: always reply in the language of the customer's LATEST message, even if earlier messages, your own earlier replies or these instructions are in another language (an English message gets an English reply). Only when the latest message has no clear language (an emoji, a number, "ok") keep the language of the conversation; with none yet, use ${LANGUAGE_NAME[ctx.language] ?? "German"}.`,
     formatBriefing(settings.playbook, convo.channel === "web"),
-    `In German, address the customer with "${settings.address_form === "du" ? "du" : "Sie"}".`,
+    `In German, always address the customer with "${settings.address_form === "du" ? "du" : "Sie"}" in every message; never switch${settings.address_form === "du" ? "" : " to \"du\", even if the customer writes informally"}.`,
     "",
     "## Hard rules",
     "1. Only state prices, treatments, durations, therapists, vouchers, promotions and policies that appear in SHOP DATA below or in a tool result. Never invent or estimate anything, never offer discounts that are not listed.",

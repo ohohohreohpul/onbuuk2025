@@ -291,6 +291,8 @@ Deno.test("prompt: vouchers are digital, never paid or picked up in the shop", a
   assert(text.includes("Never offer paying or picking them up in the shop"));
   assertFalse(text.includes("paid in the shop."));
   assert(text.includes("never open with a greeting"));
+  assert(text.includes("multi-visit card"));
+  assert(text.includes('never switch to "du"'));
 });
 
 Deno.test("formatBriefing: the website chat skips the introduce-yourself habit", async () => {
