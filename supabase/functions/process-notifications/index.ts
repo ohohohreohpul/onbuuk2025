@@ -91,6 +91,13 @@ async function deliverNewsletterConfirm(supabase: SupabaseClient, row: ClaimedRo
     .maybeSingle();
   if (!customer) return { outcome: "skipped", note: "no pending newsletter request" };
 
+  const { data: sender } = await supabase
+    .from("email_settings")
+    .select("id")
+    .eq("business_id", row.business_id)
+    .maybeSingle();
+  if (!sender) return { outcome: "skipped", note: "shop has no email sender configured" };
+
   const { data: shop } = await supabase.from("businesses").select("name, language").eq("id", row.business_id).maybeSingle();
   const language: NewsletterLanguage = shop?.language === "en" || shop?.language === "th" ? shop.language : "de";
   const { subject, html } = renderNewsletterConfirmEmail(
