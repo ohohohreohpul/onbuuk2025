@@ -5,7 +5,9 @@ import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
 import { ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON } from '../adminUi';
 import { MARKETING_TEXT } from './marketingText';
-import { AudienceCounts, Campaign, duplicateCampaign, loadAudienceCounts, loadCampaigns } from './marketingApi';
+import { AudienceCounts, Campaign, CampaignDraft, EMPTY_COUNTS, duplicateCampaign, loadAudienceCounts, loadCampaigns } from './marketingApi';
+import { AUTOMATION_TEXT } from './automationText';
+import AutomationsSection from './AutomationsSection';
 import CampaignEditor from './CampaignEditor';
 import CampaignHistory from './CampaignHistory';
 
@@ -15,8 +17,10 @@ const NEW_ID = 'new';
 export default function MarketingView() {
   const { businessId } = useTenant();
   const { t, locale } = useAdminText(MARKETING_TEXT);
+  const { t: a } = useAdminText(AUTOMATION_TEXT);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [counts, setCounts] = useState<AudienceCounts>({ subscribers: 0, all: 0, unsubscribed: 0 });
+  const [counts, setCounts] = useState<AudienceCounts>(EMPTY_COUNTS);
+  const [newDraft, setNewDraft] = useState<CampaignDraft | undefined>(undefined);
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -24,7 +28,8 @@ export default function MarketingView() {
   const [historyKey, setHistoryKey] = useState(0);
   // Changes only when a promotion is opened, so saving a new one (which gives it an id) keeps the editor.
   const [editorKey, setEditorKey] = useState(0);
-  const open = (id: string | null) => { setOpenId(id); setEditorKey((key) => key + 1); };
+  const open = (id: string | null, draft?: CampaignDraft) => { setNewDraft(draft); setOpenId(id); setEditorKey((key) => key + 1); };
+  const promotions = campaigns.filter((c) => (c.kind ?? 'monthly') === 'monthly');
 
   const load = useCallback(async () => {
     if (!businessId) return;
@@ -73,6 +78,7 @@ export default function MarketingView() {
           key={editorKey}
           businessId={businessId}
           campaign={campaign}
+          initialDraft={newDraft}
           counts={counts}
           onSaved={(saved) => {
             setCampaigns((current) => current.some((c) => c.id === saved.id) ? current.map((c) => (c.id === saved.id ? saved : c)) : [...current, saved]);
@@ -93,7 +99,6 @@ export default function MarketingView() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714]">{t.title}</h1>
           <p className="mt-1 max-w-xl text-sm text-stone-500">{t.subtitle}</p>
         </div>
-        <button type="button" onClick={() => open(NEW_ID)} className={ADMIN_PRIMARY_BUTTON}><Plus className="h-4 w-4" /> {t.newCampaign}</button>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{t.loadFailed}</p>}
@@ -107,7 +112,14 @@ export default function MarketingView() {
         ))}
       </dl>
 
-      {!loading && campaigns.length === 0 ? (
+      <AutomationsSection campaigns={campaigns} counts={counts} loading={loading} onOpen={(id) => open(id)} onCreate={(draft) => open(NEW_ID, draft)} />
+
+      <div className="flex items-end justify-between gap-3">
+        <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{a.promotionsTitle}</h2>
+        <button type="button" onClick={() => open(NEW_ID)} className={ADMIN_PRIMARY_BUTTON}><Plus className="h-4 w-4" /> {t.newCampaign}</button>
+      </div>
+
+      {!loading && promotions.length === 0 ? (
         <div className={`${ADMIN_SURFACE} px-6 py-14 text-center`}>
           <Mail className="mx-auto h-7 w-7 text-stone-400" strokeWidth={1.5} />
           <p className="mt-3 text-sm font-medium text-stone-700">{t.noCampaigns}</p>
@@ -115,7 +127,7 @@ export default function MarketingView() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {campaigns.map((campaign) => (
+          {promotions.map((campaign) => (
             <li key={campaign.id} className={`${ADMIN_SURFACE} flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between`}>
               <button type="button" onClick={() => open(campaign.id)} className="min-w-0 flex-1 text-left">
                 <span className="flex items-center gap-2">

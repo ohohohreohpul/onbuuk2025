@@ -4,22 +4,23 @@ import { adminAuth } from '../../../lib/adminAuth';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
 import {
-  ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SELECT, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON,
+  ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON,
 } from '../adminUi';
 import { MARKETING_TEXT } from './marketingText';
 import {
-  AudienceCounts, Campaign, CampaignDraft, campaignToDraft, deleteCampaign, saveCampaign, sendNow, sendTest,
+  AudienceCounts, Campaign, CampaignDraft, campaignToDraft, deleteCampaign, isAutomation, saveCampaign, sendNow, sendTest,
 } from './marketingApi';
+import { AUTOMATION_TEXT } from './automationText';
+import ScheduleFields from './ScheduleFields';
 import type { MarketingBlock } from '../../../../supabase/functions/_shared/marketingEmail';
 import BlockList from './blocks/BlockList';
 import EmailPreview from './EmailPreview';
 
-const DAYS = Array.from({ length: 28 }, (_, index) => index + 1);
-const HOURS = Array.from({ length: 16 }, (_, index) => index + 6);
-
 interface CampaignEditorProps {
   businessId: string;
   campaign: Campaign | null;
+  /** Starting point for a new email (automation or special day); defaults to an empty promotion. */
+  initialDraft?: CampaignDraft;
   counts: AudienceCounts;
   onSaved: (campaign: Campaign) => void;
   onDeleted: () => void;
@@ -36,9 +37,11 @@ const hasInvalidLink = (blocks: MarketingBlock[]): boolean =>
 
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
-export default function CampaignEditor({ businessId, campaign, counts, onSaved, onDeleted, onQueued }: CampaignEditorProps) {
+export default function CampaignEditor({ businessId, campaign, initialDraft, counts, onSaved, onDeleted, onQueued }: CampaignEditorProps) {
   const { t, locale } = useAdminText(MARKETING_TEXT);
-  const [draft, setDraft] = useState<CampaignDraft>(() => campaignToDraft(campaign));
+  const { t: a } = useAdminText(AUTOMATION_TEXT);
+  const [draft, setDraft] = useState<CampaignDraft>(() => (campaign || !initialDraft ? campaignToDraft(campaign) : initialDraft));
+  const canSendNow = !isAutomation(draft.kind);
   const [testEmail, setTestEmail] = useState(() => adminAuth.getCurrentUser()?.email ?? '');
   const [busy, setBusy] = useState<'save' | 'test' | 'send' | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
@@ -48,6 +51,10 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
   const validate = (): string | null => {
     if (!draft.subject.trim() || draft.blocks.length === 0) return t.required;
     if (hasInvalidLink(draft.blocks)) return t.httpsOnly;
+    if (draft.kind === 'special_day') {
+      if (!draft.send_on) return a.dateRequired;
+      if (draft.is_active && draft.send_on < new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' })) return a.datePast;
+    }
     return null;
   };
 
@@ -141,27 +148,7 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
             </label>
           ))}
         </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="mb-2 text-sm font-medium text-stone-700">{t.schedule}</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <label><span className="mb-1 block text-xs text-stone-500">{t.dayOfMonth}</span>
-              <select value={draft.day_of_month} onChange={(e) => update({ day_of_month: Number(e.target.value) })} className={ADMIN_SELECT}>
-                {DAYS.map((day) => <option key={day} value={day}>{day}.</option>)}
-              </select>
-            </label>
-            <label><span className="mb-1 block text-xs text-stone-500">{t.hour}</span>
-              <select value={draft.send_hour} onChange={(e) => update({ send_hour: Number(e.target.value) })} className={ADMIN_SELECT}>
-                {HOURS.map((hour) => <option key={hour} value={hour}>{String(hour).padStart(2, '0')}:00</option>)}
-              </select>
-            </label>
-          </div>
-          <label className="flex cursor-pointer items-center gap-3">
-            <input type="checkbox" checked={draft.is_active} onChange={(e) => update({ is_active: e.target.checked })} className="h-4 w-4 accent-[#1A1714]" />
-            <span className="text-sm font-medium text-[#1A1714]">{t.monthlyOn}</span>
-          </label>
-          <p className="text-xs text-stone-500">{t.monthlyHint}</p>
-          {nextSend && <p className="text-xs font-medium text-emerald-700">{fillText(t.nextSend, { date: nextSend })}</p>}
-        </fieldset>
+        <ScheduleFields draft={draft} nextSend={nextSend} update={update} />
       </section>
 
       <section className={`${ADMIN_SURFACE} flex flex-col gap-3 p-6 sm:flex-row sm:items-end`}>
@@ -183,9 +170,11 @@ export default function CampaignEditor({ businessId, campaign, counts, onSaved, 
           <button type="button" onClick={remove} className={`${ADMIN_TERTIARY_BUTTON} text-red-700 hover:bg-red-50`}><Trash2 className="h-4 w-4" /> {t.delete}</button>
         ) : <span />}
         <div className="flex gap-2">
-          <button type="button" onClick={runNow} disabled={busy !== null || recipients === 0} className={ADMIN_SECONDARY_BUTTON}>
-            <Send className="h-4 w-4" /> {fillText(t.sendNow, { count: recipients })}
-          </button>
+          {canSendNow && (
+            <button type="button" onClick={runNow} disabled={busy !== null || recipients === 0} className={ADMIN_SECONDARY_BUTTON}>
+              <Send className="h-4 w-4" /> {fillText(t.sendNow, { count: recipients })}
+            </button>
+          )}
           <button type="button" onClick={save} disabled={busy !== null} className={ADMIN_PRIMARY_BUTTON}>{busy === 'save' ? t.saving : t.save}</button>
         </div>
       </div>

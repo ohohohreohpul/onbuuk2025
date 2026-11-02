@@ -11,6 +11,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { isServiceRoleRequest } from "../_shared/emailAccess.ts";
 import { authorizationErrorResponse, requireActiveAdmin } from "../_shared/adminAuthorization.ts";
 import { addTracking } from "../_shared/marketingTracking.ts";
+import { unsubscribeUrl } from "../_shared/newsletterLinks.ts";
 import { firstNameOf, renderMarketingEmail, type MarketingShop, type MarketingVoucher } from "../_shared/marketingEmail.ts";
 import { campaignToContent, loadMarketingShop, loadShopVouchers, type CampaignRow } from "../_shared/marketingData.ts";
 
@@ -69,7 +70,6 @@ const serviceClient = () => createClient(
 );
 
 const TRACK_BASE = Deno.env.get("MARKETING_TRACK_URL") ?? "https://book.zennohq.com/api/m";
-const unsubscribeUrl = (token: string) => `${Deno.env.get("SUPABASE_URL")}/functions/v1/marketing-unsubscribe?t=${token}`;
 
 async function loadShopBundle(supabase: SupabaseClient, businessId: string): Promise<ShopBundle> {
   const shop = await loadMarketingShop(supabase, businessId);

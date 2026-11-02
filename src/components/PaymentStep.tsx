@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { marketingBookingFields, type CustomerDetails } from '../lib/customerDetails';
 import { ChevronRight, CreditCard, Check, Gift, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight, Wallet } from 'lucide-react';
 import { bookingAttribution } from '../lib/attribution';
 import { supabase, Service, ServiceDuration } from '../lib/supabase';
@@ -404,12 +405,7 @@ interface PaymentStepProps {
     date: string;
     time: string;
     isPairBooking: boolean;
-    customerDetails: {
-      name: string;
-      email: string;
-      phone: string;
-      notes: string;
-    };
+    customerDetails: CustomerDetails;
   };
   onBack: () => void;
 }
@@ -842,6 +838,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             customer_phone: bookingData.customerDetails.phone,
             is_pair_booking: bookingData.isPairBooking,
             notes: bookingData.customerDetails.notes || null,
+            ...marketingBookingFields(bookingData.customerDetails),
             payment_status: 'pending',
             status: 'pending',
             payment_method: 'paypal',
@@ -896,6 +893,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             customer_phone: bookingData.customerDetails.phone,
             is_pair_booking: bookingData.isPairBooking,
             notes: bookingData.customerDetails.notes || null,
+            ...marketingBookingFields(bookingData.customerDetails),
             payment_status: 'pending',
             status: 'pending',
             payment_method: 'stripe',
@@ -991,6 +989,7 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
             customer_phone: bookingData.customerDetails.phone,
             is_pair_booking: bookingData.isPairBooking,
             notes: bookingData.customerDetails.notes || null,
+            ...marketingBookingFields(bookingData.customerDetails),
             payment_status: 'pending',
             status: 'pending',
             payment_method: isPayingInPerson ? 'in_person' : 'none',

@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
+import { EMPTY_CUSTOMER_DETAILS, type CustomerDetails } from './lib/customerDetails';
 import { useSpecialistChoice } from './hooks/useSpecialistChoice';
 import BookingLayout from './components/BookingLayout';
 import WelcomeStep from './components/WelcomeStep';
@@ -60,12 +61,7 @@ interface BookingState {
   date: string;
   time: string;
   isPairBooking: boolean;
-  customerDetails: {
-    name: string;
-    email: string;
-    phone: string;
-    notes: string;
-  };
+  customerDetails: CustomerDetails;
 }
 
 function AppContent() {
@@ -187,12 +183,7 @@ function AppContent() {
     date: '',
     time: '',
     isPairBooking: false,
-    customerDetails: {
-      name: '',
-      email: '',
-      phone: '',
-      notes: '',
-    },
+    customerDetails: EMPTY_CUSTOMER_DETAILS,
   });
   const [specialistName, setSpecialistName] = useState<string | null>(null);
 
@@ -407,12 +398,7 @@ function AppContent() {
     setCurrentStep('details');
   };
 
-  const handleDetailsSubmit = (details: {
-    name: string;
-    email: string;
-    phone: string;
-    notes: string;
-  }) => {
+  const handleDetailsSubmit = (details: CustomerDetails) => {
     setBookingState({
       ...bookingState,
       customerDetails: details,

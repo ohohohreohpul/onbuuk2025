@@ -5,6 +5,7 @@ import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { useCurrency } from '../../lib/currencyContext';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
+import CustomerMarketingFields from './customers/CustomerMarketingFields';
 
 interface Customer {
   id: string;
@@ -286,6 +287,8 @@ export default function CustomerDetailModal({ customer, onClose }: Props) {
               </div>
             )}
           </div>
+
+          <CustomerMarketingFields customerId={customer.id} />
 
           <div>
             <h3 className="text-lg font-medium text-stone-800 mb-4 flex items-center space-x-2">

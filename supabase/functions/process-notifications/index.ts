@@ -10,6 +10,8 @@ import { loadBookingEmailData, type BookingEmailData } from "../_shared/bookingE
 import { fillTemplate, OWNER_EVENTS, renderBuiltIn, type NotificationEvent } from "../_shared/bookingEmailTemplates.ts";
 import { isServiceRoleRequest } from "../_shared/emailAccess.ts";
 import { decideSend } from "../_shared/notificationRules.ts";
+import { confirmNewsletterUrl } from "../_shared/newsletterLinks.ts";
+import { renderNewsletterConfirmEmail, type NewsletterLanguage } from "../_shared/newsletterConfirmEmail.ts";
 
 const BATCH_SIZE = 25;
 const STATUS_LABEL = {
@@ -22,7 +24,7 @@ interface ClaimedRow {
   id: string;
   business_id: string;
   booking_id: string;
-  event_key: NotificationEvent;
+  event_key: NotificationEvent | "newsletter_confirm";
   booking_date: string;
   start_time: string;
   attempts: number;
@@ -70,7 +72,42 @@ async function renderEmail(
   return renderBuiltIn(event, data.language, variables);
 }
 
+/** Double opt-in: only while the customer is still 'pending' (not confirmed or unsubscribed meanwhile). */
+async function deliverNewsletterConfirm(supabase: SupabaseClient, row: ClaimedRow): Promise<{ outcome: Outcome; note?: string }> {
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("customer_email, customer_name")
+    .eq("id", row.booking_id)
+    .maybeSingle();
+  if (!booking?.customer_email) return { outcome: "skipped", note: "booking deleted" };
+
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("unsubscribe_token, newsletter_status")
+    .eq("business_id", row.business_id)
+    .ilike("email", booking.customer_email.trim().replace(/[\\%_]/g, "\\$&"))
+    .eq("newsletter_status", "pending")
+    .limit(1)
+    .maybeSingle();
+  if (!customer) return { outcome: "skipped", note: "no pending newsletter request" };
+
+  const { data: shop } = await supabase.from("businesses").select("name, language").eq("id", row.business_id).maybeSingle();
+  const language: NewsletterLanguage = shop?.language === "en" || shop?.language === "th" ? shop.language : "de";
+  const { subject, html } = renderNewsletterConfirmEmail(
+    language,
+    shop?.name ?? "",
+    booking.customer_name ?? "",
+    confirmNewsletterUrl(customer.unsubscribe_token),
+  );
+  const { data: result, error } = await supabase.functions.invoke("send-customer-email", {
+    body: { businessId: row.business_id, toEmail: booking.customer_email.trim(), subject, body: html },
+  });
+  if (error || !result?.success) return { outcome: "retry", note: error?.message ?? result?.error ?? "send failed" };
+  return { outcome: "sent" };
+}
+
 async function deliver(supabase: SupabaseClient, row: ClaimedRow): Promise<{ outcome: Outcome; note?: string }> {
+  if (row.event_key === "newsletter_confirm") return deliverNewsletterConfirm(supabase, row);
   const data = await loadBookingEmailData(supabase, row.booking_id);
   const decision = decideSend(
     { event: row.event_key, bookingDate: row.booking_date, startTime: row.start_time },

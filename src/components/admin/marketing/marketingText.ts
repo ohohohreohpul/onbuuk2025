@@ -16,7 +16,7 @@ export const MARKETING_TEXT: Translations<{
   back: string; duplicate: string; copyPrefix: string; noSubject: string; schedule_line: string; nextShort: string; lastSent: string; neverSent: string; open: string;
 }> = {
   en: {
-    title: 'Email marketing', subtitle: 'Send your customers a promotion once a month, automatically and in your shop\'s name.',
+    title: 'Email marketing', subtitle: 'Birthday greetings, win-back emails and promotions to your customers, automatically and in your shop\'s name.',
     newCampaign: 'New promotion', noCampaigns: 'No promotion yet', noCampaignsHint: 'Write one email; Zenno sends it every month on the day you choose.',
     subscribers: 'Newsletter subscribers', allCustomers: 'Customers with email', unsubscribed: 'Unsubscribed', reach: '{count} recipients',
     subject: 'Subject', subjectPlaceholder: 'e.g. Your break in November – save with a 5-visit card',
@@ -38,7 +38,7 @@ export const MARKETING_TEXT: Translations<{
     back: 'All promotions', duplicate: 'Duplicate', copyPrefix: 'Copy: ', noSubject: '(no subject yet)', schedule_line: 'Every month on the {day}. at {hour}:00', nextShort: 'Next: {date}', lastSent: 'Last sent {date}', neverSent: 'Not sent yet', open: 'Open',
   },
   de: {
-    title: 'E-Mail-Marketing', subtitle: 'Einmal im Monat ein Angebot an Ihre Kunden – automatisch und im Namen Ihres Shops.',
+    title: 'E-Mail-Marketing', subtitle: 'Geburtstagsgrüße, Rückgewinnung und Aktionen für Ihre Kunden – automatisch und im Namen Ihres Shops.',
     newCampaign: 'Neue Aktion', noCampaigns: 'Noch keine Aktion', noCampaignsHint: 'Schreiben Sie eine E-Mail; Zenno versendet sie jeden Monat am gewählten Tag.',
     subscribers: 'Newsletter-Abonnenten', allCustomers: 'Kunden mit E-Mail', unsubscribed: 'Abgemeldet', reach: '{count} Empfänger',
     subject: 'Betreff', subjectPlaceholder: 'z. B. Ihre Auszeit im November – jetzt mit 5er-Karte sparen',

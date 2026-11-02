@@ -4,6 +4,11 @@ import { campaignToContent, type CampaignRow } from '../../../../supabase/functi
 
 export type Audience = 'subscribers' | 'all';
 
+/** monthly = promotion; special_day = one date; birthday / winback = daily automations. */
+export type CampaignKind = 'monthly' | 'special_day' | 'birthday' | 'winback';
+export const AUTOMATION_KINDS: CampaignKind[] = ['birthday', 'winback'];
+export const isAutomation = (kind: CampaignKind): boolean => AUTOMATION_KINDS.includes(kind);
+
 export interface Campaign extends CampaignRow {
   id: string;
   business_id: string;
@@ -13,6 +18,10 @@ export interface Campaign extends CampaignRow {
   button_url: string | null;
   blocks: MarketingBlock[];
   audience: Audience;
+  kind: CampaignKind;
+  send_on: string | null;
+  days_before: number;
+  winback_days: number;
   day_of_month: number;
   send_hour: number;
   is_active: boolean;
@@ -24,6 +33,10 @@ export interface CampaignDraft {
   subject: string;
   blocks: MarketingBlock[];
   audience: Audience;
+  kind: CampaignKind;
+  send_on: string | null;
+  days_before: number;
+  winback_days: number;
   day_of_month: number;
   send_hour: number;
   is_active: boolean;
@@ -33,7 +46,11 @@ export interface AudienceCounts {
   subscribers: number;
   all: number;
   unsubscribed: number;
+  pending: number;
+  with_birthday: number;
 }
+
+export const EMPTY_COUNTS: AudienceCounts = { subscribers: 0, all: 0, unsubscribed: 0, pending: 0, with_birthday: 0 };
 
 export interface RunSummary {
   runKey: string;
@@ -52,10 +69,37 @@ export const EMPTY_DRAFT: CampaignDraft = {
     { type: 'vouchers', title: '', showImages: false },
   ],
   audience: 'subscribers',
+  kind: 'monthly',
+  send_on: null,
+  days_before: 0,
+  winback_days: 60,
   day_of_month: 1,
   send_hour: 10,
   is_active: false,
 };
+
+export interface StarterText {
+  subject: string;
+  headline: string;
+  text: string;
+  button: string;
+}
+
+/** A new automation or special day with ready-to-edit text; booking button points at the shop. */
+export function starterDraft(kind: CampaignKind, starter: StarterText, bookingUrl: string, sendOn: string | null = null): CampaignDraft {
+  return {
+    ...EMPTY_DRAFT,
+    kind,
+    send_on: kind === 'special_day' ? sendOn : null,
+    // Birthday and win-back go to every customer who hasn't unsubscribed (existing-customer basis, §7(3) UWG).
+    audience: isAutomation(kind) ? 'all' : 'subscribers',
+    subject: starter.subject,
+    blocks: [
+      { type: 'hero', logoUrl: null, imageUrl: null, headline: starter.headline, buttonText: starter.button, buttonUrl: bookingUrl, caption: '' },
+      { type: 'text', text: starter.text },
+    ],
+  };
+}
 
 export async function loadCampaigns(businessId: string): Promise<Campaign[]> {
   const { data, error } = await supabase
@@ -70,7 +114,7 @@ export async function loadCampaigns(businessId: string): Promise<Campaign[]> {
 export async function loadAudienceCounts(): Promise<AudienceCounts> {
   const { data, error } = await supabase.rpc('marketing_audience_counts');
   if (error) throw error;
-  return { subscribers: 0, all: 0, unsubscribed: 0, ...(data as Partial<AudienceCounts>) };
+  return { ...EMPTY_COUNTS, ...(data as Partial<AudienceCounts>) };
 }
 
 /** A saved campaign as an editable draft; campaigns from before the block editor are converted. */
@@ -80,6 +124,10 @@ export function campaignToDraft(campaign: Campaign | null): CampaignDraft {
     subject: campaign.subject,
     blocks: campaignToContent(campaign).blocks,
     audience: campaign.audience,
+    kind: campaign.kind ?? 'monthly',
+    send_on: campaign.send_on,
+    days_before: campaign.days_before ?? 0,
+    winback_days: campaign.winback_days ?? 60,
     day_of_month: campaign.day_of_month,
     send_hour: campaign.send_hour,
     is_active: campaign.is_active,

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, User, Mail, Phone, FileText, ArrowRight } from 'lucide-react';
+import { ChevronRight, User, Mail, Phone, FileText, ArrowRight, Cake } from 'lucide-react';
 import { useBookingCustomization } from '../hooks/useBookingCustomization';
 import { useTheme } from '../lib/themeContext';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { useBookingText, type Translations, customOr } from '../lib/bookingLanguage';
+import { isValidBirthday, type CustomerDetails } from '../lib/customerDetails';
 
 const TEXT: Translations<{
   back: string;
@@ -22,6 +23,11 @@ const TEXT: Translations<{
   namePlaceholder: string;
   emailPlaceholder: string;
   notesPlaceholder: string;
+  birthdayLabel: string;
+  birthdayHint: string;
+  birthdayInvalid: string;
+  newsletterLabel: string;
+  existingCustomerNotice: string;
 }> = {
   en: {
     back: 'Back',
@@ -39,6 +45,11 @@ const TEXT: Translations<{
     namePlaceholder: 'Enter your full name',
     emailPlaceholder: 'your.email@example.com',
     notesPlaceholder: 'Any special requests or health considerations we should know about...',
+    birthdayLabel: 'Birthday (optional)',
+    birthdayHint: 'So we can send you a little birthday surprise.',
+    birthdayInvalid: 'Please enter a valid date',
+    newsletterLabel: 'Yes, I would like to receive news and offers by email.',
+    existingCustomerNotice: 'We may also email you about similar offers. You can object to this at any time, e.g. via the link in every email.',
   },
   de: {
     back: 'Zurück',
@@ -56,6 +67,11 @@ const TEXT: Translations<{
     namePlaceholder: 'Vor- und Nachname',
     emailPlaceholder: 'name@beispiel.de',
     notesPlaceholder: 'Besondere Wünsche oder gesundheitliche Hinweise, die wir kennen sollten …',
+    birthdayLabel: 'Geburtstag (optional)',
+    birthdayHint: 'Damit wir Ihnen zum Geburtstag eine kleine Überraschung schicken können.',
+    birthdayInvalid: 'Bitte ein gültiges Datum eingeben',
+    newsletterLabel: 'Ja, ich möchte Neuigkeiten und Angebote per E-Mail erhalten.',
+    existingCustomerNotice: 'Wir können Sie per E-Mail auch über ähnliche Angebote informieren. Dem können Sie jederzeit widersprechen, z. B. über den Link in jeder E-Mail.',
   },
   th: {
     back: 'ย้อนกลับ',
@@ -73,11 +89,16 @@ const TEXT: Translations<{
     namePlaceholder: 'กรอกชื่อ-นามสกุล',
     emailPlaceholder: 'your.email@example.com',
     notesPlaceholder: 'คำขอพิเศษหรือข้อมูลด้านสุขภาพที่ควรแจ้งให้เราทราบ...',
+    birthdayLabel: 'วันเกิด (ไม่บังคับ)',
+    birthdayHint: 'เพื่อให้เราส่งเซอร์ไพรส์เล็ก ๆ ในวันเกิดของคุณ',
+    birthdayInvalid: 'กรุณากรอกวันที่ที่ถูกต้อง',
+    newsletterLabel: 'ต้องการรับข่าวสารและข้อเสนอทางอีเมล',
+    existingCustomerNotice: 'เราอาจส่งอีเมลแจ้งข้อเสนอที่คล้ายกันให้คุณ คุณปฏิเสธได้ทุกเมื่อ เช่น ผ่านลิงก์ในทุกอีเมล',
   },
 };
 
 interface PersonalDetailsStepProps {
-  onNext: (details: { name: string; email: string; phone: string; notes: string }) => void;
+  onNext: (details: CustomerDetails) => void;
   onBack: () => void;
 }
 
@@ -89,6 +110,8 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [birthday, setBirthday] = useState('');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -128,13 +151,17 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
       newErrors.phone = t.phoneRequired;
     }
 
+    if (birthday && !isValidBirthday(birthday)) {
+      newErrors.birthday = t.birthdayInvalid;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleContinue = () => {
     if (validateForm()) {
-      onNext({ name, email, phone, notes });
+      onNext({ name, email, phone, notes, birthday, newsletterOptIn });
     }
   };
 
@@ -285,6 +312,56 @@ export default function PersonalDetailsStep({ onNext, onBack }: PersonalDetailsS
               placeholder={t.notesPlaceholder}
             />
           </Card>
+        </div>
+
+        {/* Birthday Field */}
+        <div className={`transform transition-all duration-500 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <label htmlFor="booking-birthday" className="block text-sm font-semibold mb-2" style={{ color: colors.textPrimary }}>
+            <div className="flex items-center space-x-2">
+              <div
+                className="p-1.5 rounded-lg"
+                style={{ backgroundColor: `${colors.secondary || '#A09990'}15` }}
+              >
+                <Cake className="w-4 h-4" style={{ color: colors.secondary || '#A09990' }} />
+              </div>
+              <span>{t.birthdayLabel}</span>
+            </div>
+          </label>
+          <Card glass className="p-0 overflow-hidden">
+            <input
+              id="booking-birthday"
+              type="date"
+              value={birthday}
+              max={new Date().toISOString().slice(0, 10)}
+              min="1900-01-01"
+              onChange={(e) => setBirthday(e.target.value)}
+              className={`w-full px-4 py-3 bg-transparent border-0 focus:outline-none focus:ring-2 transition-all ${
+                errors.birthday ? 'ring-2 ring-red-300' : ''
+              }`}
+              style={{
+                color: colors.textPrimary,
+                '--tw-ring-color': primaryColor
+              } as any}
+            />
+          </Card>
+          {errors.birthday
+            ? <p className="mt-1.5 text-sm text-red-600">{errors.birthday}</p>
+            : <p className="mt-1.5 text-sm" style={{ color: colors.textSecondary }}>{t.birthdayHint}</p>}
+        </div>
+
+        {/* Newsletter consent (unticked by default; leads to a double opt-in email) */}
+        <div className={`space-y-2 transform transition-all duration-500 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <label className="flex items-start gap-3 cursor-pointer text-sm" style={{ color: colors.textPrimary }}>
+            <input
+              type="checkbox"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 rounded"
+              style={{ accentColor: primaryColor }}
+            />
+            <span>{t.newsletterLabel}</span>
+          </label>
+          <p className="text-xs leading-relaxed" style={{ color: colors.textSecondary }}>{t.existingCustomerNotice}</p>
         </div>
       </div>
 
