@@ -23,6 +23,8 @@ const CORS = {
 };
 const MANAGER_ROLES = ["owner", "admin", "manager"];
 const OBJECT_ID = /^[a-zA-Z0-9_-]{1,64}$/;
+/** Zenno Social includes 2 connected accounts (each costs a Zernio seat); custom plans have no limit. */
+const SOCIAL_ACCOUNT_LIMIT = 2;
 
 type Body = Record<string, unknown>;
 type Admin = Awaited<ReturnType<typeof requireActiveAdmin>>;
@@ -58,6 +60,17 @@ async function accounts(admin: Admin) {
   }));
 }
 
+async function requireAccountSlot({ supabaseAdmin, businessId }: Admin): Promise<void> {
+  const { data: shop } = await supabaseAdmin.from("businesses").select("plan_type").eq("id", businessId).single();
+  if (shop?.plan_type === "custom") return;
+  const { count, error } = await supabaseAdmin.from("social_accounts").select("id", { count: "exact", head: true })
+    .eq("business_id", businessId).eq("is_active", true);
+  if (error) throw new Error(error.message);
+  if ((count ?? 0) >= SOCIAL_ACCOUNT_LIMIT) {
+    throw new InputError(`Zenno Social includes ${SOCIAL_ACCOUNT_LIMIT} accounts. Disconnect one first, or write to support@zennohq.com for more.`);
+  }
+}
+
 /** The account id must be one of this shop's active accounts. */
 async function ownAccount(admin: Admin, accountId: unknown): Promise<string> {
   const id = typeof accountId === "string" ? accountId : "";
@@ -86,6 +99,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
     run: async (admin, body, req) => {
       await requireSocial(admin);
       if (!isSocialPlatform(body.platform)) throw new InputError("Choose Instagram or Facebook.");
+      await requireAccountSlot(admin);
       const profileId = await profileOf(admin);
       const redirect = `${returnBase(req)}/admin?view=social&connected=${body.platform}`;
       const result = await zernio<{ authUrl?: string }>(`/connect/${body.platform}`, { query: { profileId, redirect_url: redirect } });

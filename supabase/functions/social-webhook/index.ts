@@ -10,6 +10,7 @@ import {
 
 // Zernio webhook (one subscription for all shops, secret ZERNIO_WEBHOOK_SECRET).
 //   message.received      Instagram / Facebook DM -> AI receptionist -> reply via Zernio
+//                         (only while the shop has the Social plan)
 //   account.connected     mirror the account into social_accounts
 //   account.disconnected  mark it inactive
 // Answers 200 right away; the agent runs in the background (Zernio retries slow webhooks).
@@ -51,6 +52,12 @@ async function handleMessage(supabase: Client, event: SocialMessageEvent): Promi
   const businessId = await shopFor(supabase, event.accountId, event.businessId);
   if (!businessId) {
     console.warn(`social-webhook: message for account ${event.accountId} belongs to no Zenno shop`);
+    return;
+  }
+  const { data: hasSocial, error: planError } = await supabase.rpc("business_has_social", { p_business_id: businessId });
+  if (planError) throw new Error(`plan check failed: ${planError.message}`);
+  if (hasSocial !== true) {
+    console.warn(`social-webhook: shop ${businessId} has no Social plan; message not answered`);
     return;
   }
   const { data } = await supabase.from("receptionist_settings").select("*").eq("business_id", businessId).maybeSingle();

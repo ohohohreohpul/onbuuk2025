@@ -1,4 +1,6 @@
-/** Plan labels that unlock paid features (custom = tailored plan; premium = legacy name). */
+/** Plan labels that unlock paid features (social = Zenno Social; custom = tailored plan; standard/premium = legacy names). */
+const PAID_PLAN_TYPES = new Set(['pro', 'social', 'custom', 'standard', 'premium']);
+
 export function isPaidPlanType(planType: string | null | undefined): boolean {
-  return planType === 'pro' || planType === 'custom' || planType === 'premium';
+  return PAID_PLAN_TYPES.has(planType ?? '');
 }
