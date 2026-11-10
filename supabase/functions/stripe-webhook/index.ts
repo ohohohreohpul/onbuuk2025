@@ -529,9 +529,9 @@ async function syncCustomerFromStripe(customerId: string) {
       console.error('Error updating business subscription status:', businessUpdateError);
     }
 
-    // A Zenno plan that ended goes back to Free (custom plans are managed by hand).
+    // A Zenno plan that ended goes back to Free, own domain included (custom plans are managed by hand).
     if (['canceled', 'unpaid', 'incomplete_expired'].includes(subscription.status)) {
-      const { error: downgradeError } = await supabase.from('businesses').update({ plan_type: 'free' })
+      const { error: downgradeError } = await supabase.from('businesses').update({ plan_type: 'free', custom_domain_enabled: false })
         .eq('stripe_customer_id', customerId).in('plan_type', ['pro', 'standard', 'social']);
       if (downgradeError) console.error('Could not move the shop back to Free:', downgradeError);
     }
