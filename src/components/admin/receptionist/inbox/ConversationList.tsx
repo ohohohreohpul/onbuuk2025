@@ -10,6 +10,8 @@ const CHANNEL_TINT: Record<ChannelKey, string> = {
   whatsapp: 'bg-emerald-500 text-white',
   email: 'bg-sky-500 text-white',
   web: 'bg-stone-700 text-white',
+  instagram: 'bg-pink-600 text-white',
+  facebook: 'bg-blue-600 text-white',
 };
 
 interface ConversationListProps {

@@ -151,6 +151,7 @@ async function applyOutcome(supabase: SupabaseClient, conversation: Conversation
 function channelMode(settings: ReceptionistSettings, channel: Channel): "auto" | "drafts" {
   if (channel === "email") return settings.email_mode;
   if (channel === "whatsapp") return settings.whatsapp_mode;
+  if (channel === "instagram" || channel === "facebook") return settings.social_mode;
   return settings.web_mode;
 }
 
@@ -158,6 +159,7 @@ function isChannelOn(settings: ReceptionistSettings, channel: Channel): boolean 
   if (!settings.is_enabled) return false;
   if (channel === "email") return settings.email_enabled;
   if (channel === "whatsapp") return settings.whatsapp_enabled;
+  if (channel === "instagram" || channel === "facebook") return settings.social_enabled;
   return settings.web_enabled;
 }
 

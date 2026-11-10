@@ -6,7 +6,7 @@ import type { CatalogEntry, ShopContext, StaffEntry } from "./shopContext.ts";
 import { promptSafe } from "./limits.ts";
 import { formatBriefing } from "./briefing.ts";
 
-export type Channel = "web" | "email" | "whatsapp";
+export type Channel = "web" | "email" | "whatsapp" | "instagram" | "facebook";
 
 export const SHOP_TIMEZONE = "Europe/Berlin";
 const DAYS_LISTED = 14;
@@ -99,6 +99,8 @@ const TEXTING_STYLE = `Write like the shop's receptionist texting from the shop'
 const CHANNEL_STYLE: Record<Channel, string> = {
   web: `You are chatting in the website chat. The chat window already greeted the customer, so never open with a greeting or introduce the shop; answer straight away. ${TEXTING_STYLE}`,
   whatsapp: `You are chatting on WhatsApp. ${TEXTING_STYLE}`,
+  instagram: `You are answering an Instagram direct message. You only know their Instagram name, so ask for their email before booking. ${TEXTING_STYLE}`,
+  facebook: `You are answering a Facebook Messenger message. You only know their Facebook name, so ask for their email before booking. ${TEXTING_STYLE}`,
   email: `You are answering an email. Write a short, warm email in plain text like a person at the front desk would: greeting, the answer in a few sentences, the next step, sign-off with the shop name. No bullet points, no bold, no markdown, no subject line. ${HUMAN_WRITING}`,
 };
 

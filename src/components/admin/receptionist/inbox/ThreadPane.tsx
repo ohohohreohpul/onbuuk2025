@@ -50,7 +50,7 @@ export default function ThreadPane({ conversation, onBack, onChanged }: ThreadPa
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const channelName: Record<ChannelKey, string> = { web: t.channelWeb, email: t.channelEmail, whatsapp: t.channelWhatsapp };
+  const channelName: Record<ChannelKey, string> = { web: t.channelWeb, email: t.channelEmail, whatsapp: t.channelWhatsapp, instagram: 'Instagram', facebook: 'Facebook' };
 
   const load = useCallback(async () => {
     try {

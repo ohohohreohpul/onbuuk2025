@@ -21,6 +21,8 @@ export interface ConversationRow {
   is_ai_paused: boolean;
   memory: string;
   unread_count: number;
+  /** Instagram/Facebook: the connected Zernio account the conversation belongs to. */
+  external_account_id?: string | null;
 }
 
 export interface MessageRow {

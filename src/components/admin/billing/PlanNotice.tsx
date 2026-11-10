@@ -14,7 +14,7 @@ export default function PlanNotice({ overview, canUpgrade, onUpgrade }: PlanNoti
   const { t } = useAdminText(BILLING_TEXT);
   if (!overview) return null;
   if (overview.plan !== 'free') {
-    return <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-wider text-white/40">{overview.plan === 'custom' ? t.onCustom : t.onZenno}</p>;
+    return <p className="mt-2 px-1 text-[11px] font-medium uppercase tracking-wider text-white/40">{overview.plan === 'custom' ? t.onCustom : overview.plan === 'social' ? t.onSocial : t.onZenno}</p>;
   }
   return (
     <button

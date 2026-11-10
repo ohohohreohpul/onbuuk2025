@@ -17,7 +17,7 @@ export interface Briefing {
   habits: Habit[];
   briefing: string;
 }
-export type ChannelKey = 'web' | 'email' | 'whatsapp';
+export type ChannelKey = 'web' | 'email' | 'whatsapp' | 'instagram' | 'facebook';
 
 export interface ReceptionistSettings {
   business_id: string;

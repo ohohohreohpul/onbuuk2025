@@ -15,6 +15,7 @@ import TaxReportsView from './TaxReportsView';
 import ProductsView from './ProductsView';
 import AiAgentsView from './AiAgentsView';
 import MarketingView from './marketing/MarketingView';
+import SocialView from './social/SocialView';
 import { adminAuth } from '../../lib/adminAuth';
 import { AdminLanguageProvider } from '../../lib/adminLanguage';
 import { supabase } from '../../lib/supabase';
@@ -75,6 +76,7 @@ function AdminPanel() {
       'gift-cards',
       'agents',
       'marketing',
+      'social',
       'receptionist',
     ]);
 
@@ -444,6 +446,8 @@ function AdminPanel() {
         return <AiAgentsView />;
       case 'marketing':
         return <MarketingView />;
+      case 'social':
+        return <SocialView onNavigate={navigate} />;
       default:
         return <PosHomeView onNavigate={navigate} />;
     }

@@ -456,7 +456,8 @@ async function handleAccountDeauthorized(data: any) {
 async function handleZennoPlanCheckout(session: Stripe.Checkout.Session) {
   const businessId = session.metadata?.business_id || session.client_reference_id;
   if (!businessId || session.metadata?.kind !== 'zenno_plan') return;
-  const { error } = await supabase.from('businesses').update({ plan_type: 'pro' }).eq('id', businessId).neq('plan_type', 'custom');
+  const planType = session.metadata?.plan_type === 'social' ? 'social' : 'pro';
+  const { error } = await supabase.from('businesses').update({ plan_type: planType }).eq('id', businessId).neq('plan_type', 'custom');
   if (error) console.error('Could not set the Zenno plan:', error);
 }
 
@@ -531,7 +532,7 @@ async function syncCustomerFromStripe(customerId: string) {
     // A Zenno plan that ended goes back to Free (custom plans are managed by hand).
     if (['canceled', 'unpaid', 'incomplete_expired'].includes(subscription.status)) {
       const { error: downgradeError } = await supabase.from('businesses').update({ plan_type: 'free' })
-        .eq('stripe_customer_id', customerId).in('plan_type', ['pro', 'standard']);
+        .eq('stripe_customer_id', customerId).in('plan_type', ['pro', 'standard', 'social']);
       if (downgradeError) console.error('Could not move the shop back to Free:', downgradeError);
     }
 

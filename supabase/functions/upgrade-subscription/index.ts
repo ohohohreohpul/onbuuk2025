@@ -1,10 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { authorizationErrorResponse, requireActiveAdmin } from "../_shared/adminAuthorization.ts";
-import { returnBase, shopCustomer, stripeClient } from "../_shared/billing/stripeBilling.ts";
+import { returnBase, shopCustomer, socialPriceId, stripeClient } from "../_shared/billing/stripeBilling.ts";
 
-// Upgrade to the Zenno plan (49 €/month): a Stripe Checkout subscription on the
-// shop's own Stripe customer, so the webhook can link payment and shop.
+// Upgrade to a paid plan: Zenno (49 €/month, STRIPE_ZENNO_MONTHLY_PRICE_ID) or
+// Zenno Social (69 €/month, see socialPriceId). New subscribers go
+// through Stripe Checkout on the shop's own customer; a shop already paying for
+// Zenno moves to Social by swapping the price on its subscription (prorated).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,17 +23,35 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
     const admin = await requireActiveAdmin(req, { roles: ["owner", "admin"] });
-    const { coupon_code } = await req.json().catch(() => ({})) as { coupon_code?: string };
-    const priceId = Deno.env.get("STRIPE_ZENNO_MONTHLY_PRICE_ID");
-    if (!priceId) return json({ error: "The Zenno plan is not set up yet. Please contact support@zennohq.com." }, 503);
+    const { coupon_code, plan: requestedPlan } = await req.json().catch(() => ({})) as { coupon_code?: string; plan?: string };
+    const plan = requestedPlan === "social" ? "social" : "pro";
 
-    const { data: business } = await supabase.from("businesses").select("plan_type, subscription_status").eq("id", admin.businessId).single();
+    const { data: business } = await supabase.from("businesses")
+      .select("plan_type, subscription_status, stripe_subscription_id").eq("id", admin.businessId).single();
     if (business?.plan_type === "custom") return json({ error: "Your shop has a custom plan. Please contact support@zennohq.com." }, 400);
-    if (business?.plan_type === "pro" && ["active", "trialing", "past_due"].includes(business.subscription_status ?? "")) {
-      return json({ error: "Your shop is already on the Zenno plan." }, 400);
+    const isPaying = ["active", "trialing", "past_due"].includes(business?.subscription_status ?? "");
+    if (isPaying && business?.plan_type === plan) {
+      return json({ error: plan === "social" ? "Your shop is already on Zenno Social." : "Your shop is already on the Zenno plan." }, 400);
     }
 
     const stripe = stripeClient();
+    const priceId = plan === "social" ? await socialPriceId(stripe) : Deno.env.get("STRIPE_ZENNO_MONTHLY_PRICE_ID");
+    if (!priceId) return json({ error: "This plan is not set up yet. Please contact support@zennohq.com." }, 503);
+    // Already paying for the other plan: change the price on the same subscription.
+    if (isPaying && business?.stripe_subscription_id && (business.plan_type === "pro" || business.plan_type === "social")) {
+      const subscription = await stripe.subscriptions.retrieve(business.stripe_subscription_id);
+      const item = subscription.items.data[0];
+      if (!item) throw new Error("subscription has no item");
+      await stripe.subscriptions.update(subscription.id, {
+        items: [{ id: item.id, price: priceId }],
+        proration_behavior: "create_prorations",
+        metadata: { ...subscription.metadata, kind: "zenno_plan", business_id: admin.businessId, plan_type: plan },
+      });
+      const { error } = await supabase.from("businesses").update({ plan_type: plan }).eq("id", admin.businessId).neq("plan_type", "custom");
+      if (error) throw new Error(`plan switch not stored: ${error.message}`);
+      return json({ switched: true, plan });
+    }
+
     const customer = await shopCustomer(supabase, stripe, admin.businessId);
     const base = returnBase(req);
     const coupon = typeof coupon_code === "string" ? coupon_code.trim().slice(0, 100) : "";
@@ -41,8 +61,8 @@ Deno.serve(async (req: Request) => {
       client_reference_id: admin.businessId,
       line_items: [{ price: priceId, quantity: 1 }],
       ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
-      metadata: { kind: "zenno_plan", business_id: admin.businessId },
-      subscription_data: { metadata: { kind: "zenno_plan", business_id: admin.businessId, plan_type: "pro" } },
+      metadata: { kind: "zenno_plan", business_id: admin.businessId, plan_type: plan },
+      subscription_data: { metadata: { kind: "zenno_plan", business_id: admin.businessId, plan_type: plan } },
       success_url: `${base}/admin?view=settings&tab=subscription&upgrade=success`,
       cancel_url: `${base}/admin?view=settings&tab=subscription&upgrade=cancelled`,
     });

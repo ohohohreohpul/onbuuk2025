@@ -33,6 +33,8 @@ export interface ReceptionistSettings {
   imap_last_uid: number;
   whatsapp_enabled: boolean;
   whatsapp_mode: "auto" | "drafts";
+  social_enabled: boolean;
+  social_mode: "auto" | "drafts";
   whatsapp_provider: "cloud_api" | "qr_gateway" | null;
   whatsapp_status: string;
   whatsapp_phone_number_id: string | null;

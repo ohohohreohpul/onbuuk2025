@@ -340,3 +340,6 @@ verify_jwt = false
 
 [functions.custom-domain]
 verify_jwt = false
+
+[functions.social-webhook]
+verify_jwt = false

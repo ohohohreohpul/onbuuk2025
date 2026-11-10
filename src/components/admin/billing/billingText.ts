@@ -9,10 +9,15 @@ type Keys =
   | 'fCustomAll' | 'fCustomLocations' | 'fCustomReplies' | 'fCustomSetup'
   | 'upgradeSuccess' | 'upgradeCancelled' | 'paymentIssue' | 'failed'
   | 'aiTitle' | 'aiHint' | 'aiUsed' | 'aiExtra' | 'aiLeft' | 'aiEmpty' | 'aiFree' | 'buy' | 'buying' | 'replies'
-  | 'packHint' | 'creditsSuccess' | 'creditsCancelled';
+  | 'packHint' | 'creditsSuccess' | 'creditsCancelled'
+  | 'socialPlan' | 'onSocial' | 'socialLine' | 'chooseSocial' | 'switchedSocial' | 'switchedZenno'
+  | 'fSocialAll' | 'fSocialDm' | 'fSocialComments' | 'fSocialAccounts';
 
 export const BILLING_TEXT: Translations<Record<Keys, string>> = {
   en: {
+    socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'Your Instagram and Facebook book for you too.', chooseSocial: 'Upgrade to Zenno Social',
+    switchedSocial: 'Done! Your shop is on Zenno Social. Connect Instagram and Facebook under Social.', switchedZenno: 'Done! Your shop is on the Zenno plan.',
+    fSocialAll: 'Everything in Zenno', fSocialDm: 'Instagram and Facebook messages answered by your AI receptionist', fSocialComments: 'Comment-to-DM: a keyword in the comments sends the booking link', fSocialAccounts: '2 social accounts included',
     freePlan: 'Free', zennoPlan: 'Zenno', customPlan: 'Custom', upgrade: 'Upgrade',
     onFree: 'Free plan', onZenno: 'Zenno plan', onCustom: 'Custom plan',
     title: 'Your plan', subtitle: 'One plan with everything. For several locations or special needs we make you an offer.',
@@ -35,6 +40,9 @@ export const BILLING_TEXT: Translations<Record<Keys, string>> = {
     creditsSuccess: 'Thank you! Your replies are added in a moment.', creditsCancelled: 'Purchase cancelled. Nothing was charged.',
   },
   de: {
+    socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'Auch Instagram und Facebook buchen für Sie.', chooseSocial: 'Zu Zenno Social wechseln',
+    switchedSocial: 'Fertig! Ihr Shop ist jetzt auf Zenno Social. Verbinden Sie Instagram und Facebook unter Social.', switchedZenno: 'Fertig! Ihr Shop ist jetzt im Zenno-Tarif.',
+    fSocialAll: 'Alles aus Zenno', fSocialDm: 'Instagram- und Facebook-Nachrichten beantwortet Ihre KI-Rezeption', fSocialComments: 'Kommentar-zu-DM: Ein Stichwort im Kommentar schickt den Buchungslink', fSocialAccounts: '2 Social-Konten inklusive',
     freePlan: 'Free', zennoPlan: 'Zenno', customPlan: 'Individuell', upgrade: 'Upgrade',
     onFree: 'Free-Tarif', onZenno: 'Zenno-Tarif', onCustom: 'Individueller Tarif',
     title: 'Ihr Tarif', subtitle: 'Ein Tarif mit allem. Für mehrere Standorte oder besondere Wünsche machen wir Ihnen ein Angebot.',
@@ -57,6 +65,9 @@ export const BILLING_TEXT: Translations<Record<Keys, string>> = {
     creditsSuccess: 'Danke! Ihre Antworten werden gleich gutgeschrieben.', creditsCancelled: 'Kauf abgebrochen. Es wurde nichts berechnet.',
   },
   th: {
+    socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'ให้ Instagram และ Facebook จองคิวให้คุณด้วย', chooseSocial: 'อัปเกรดเป็น Zenno Social',
+    switchedSocial: 'เรียบร้อย! ร้านของคุณใช้ Zenno Social แล้ว เชื่อมต่อ Instagram และ Facebook ได้ที่เมนู Social', switchedZenno: 'เรียบร้อย! ร้านของคุณใช้แพ็กเกจ Zenno แล้ว',
+    fSocialAll: 'ทุกอย่างใน Zenno', fSocialDm: 'พนักงานต้อนรับ AI ตอบข้อความ Instagram และ Facebook', fSocialComments: 'คอมเมนต์เป็น DM: พิมพ์คำสำคัญในคอมเมนต์แล้วได้ลิงก์จองทันที', fSocialAccounts: 'รวมบัญชีโซเชียล 2 บัญชี',
     freePlan: 'ฟรี', zennoPlan: 'Zenno', customPlan: 'แบบกำหนดเอง', upgrade: 'อัปเกรด',
     onFree: 'แพ็กเกจฟรี', onZenno: 'แพ็กเกจ Zenno', onCustom: 'แพ็กเกจกำหนดเอง',
     title: 'แพ็กเกจของคุณ', subtitle: 'แพ็กเกจเดียวครบทุกอย่าง ถ้ามีหลายสาขาหรือต้องการเพิ่มเติม เราจะเสนอราคาให้',

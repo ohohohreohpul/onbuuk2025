@@ -20,7 +20,8 @@ import {
   X,
   ListChecks,
   Languages,
-  Mail
+  Mail,
+  Instagram,
 } from 'lucide-react';
 import { adminAuth } from '../../lib/adminAuth';
 import { useTenant } from '../../lib/tenantContext';
@@ -44,14 +45,14 @@ import {
 
 const TEXT: Translations<{
   dashboard: string; pos: string; receptionist: string; today: string; calendar: string; bookings: string; customers: string;
-  business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string;
+  business: string; services: string; products: string; specialists: string; team: string; agents: string; marketing: string; social: string;
   money: string; fees: string; loyalty: string; tax: string; setup: string; settings: string;
   documentation: string; help: string; tabInbox: string; more: string; tabsLabel: string; openMenu: string; closeMenu: string; logout: string; poweredBy: string; language: string; businessLogo: string;
 }> = {
   en: {
     dashboard: 'Dashboard', pos: 'POS', receptionist: 'AI receptionist', today: 'Today', calendar: 'Calendar', bookings: 'Bookings', customers: 'Customers',
     business: 'Business', services: 'Services', products: 'Add-On Products', specialists: 'Specialists',
-    team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', money: 'Money', fees: 'No-Show Fees',
+    team: 'Team & Permissions', agents: 'AI booking', marketing: 'Email marketing', social: 'Instagram & Facebook', money: 'Money', fees: 'No-Show Fees',
     loyalty: 'Vouchers', tax: 'Tax & Reports', setup: 'Setup', settings: 'Settings',
     documentation: 'Documentation', help: 'Get Help', tabInbox: 'Inbox', more: 'More', tabsLabel: 'Quick navigation', openMenu: 'Open menu', closeMenu: 'Close menu', logout: 'Logout', poweredBy: 'Powered by',
     language: 'Language', businessLogo: 'Business logo',
@@ -59,7 +60,7 @@ const TEXT: Translations<{
   de: {
     dashboard: 'Übersicht', pos: 'POS', receptionist: 'KI-Rezeption', today: 'Heute', calendar: 'Kalender', bookings: 'Buchungen', customers: 'Kunden',
     business: 'Geschäft', services: 'Leistungen', products: 'Zusatzprodukte', specialists: 'Therapeut:innen',
-    team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', money: 'Finanzen', fees: 'No-Show-Gebühren',
+    team: 'Team & Berechtigungen', agents: 'KI-Buchung', marketing: 'E-Mail-Marketing', social: 'Instagram & Facebook', money: 'Finanzen', fees: 'No-Show-Gebühren',
     loyalty: 'Gutscheine', tax: 'Steuer & Berichte', setup: 'Einrichtung', settings: 'Einstellungen',
     documentation: 'Dokumentation', help: 'Hilfe', tabInbox: 'Chats', more: 'Mehr', tabsLabel: 'Schnellnavigation', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen', logout: 'Abmelden', poweredBy: 'Powered by',
     language: 'Sprache', businessLogo: 'Firmenlogo',
@@ -67,7 +68,7 @@ const TEXT: Translations<{
   th: {
     dashboard: 'แดชบอร์ด', pos: 'POS', receptionist: 'พนักงานต้อนรับ AI', today: 'วันนี้', calendar: 'ปฏิทิน', bookings: 'การจอง', customers: 'ลูกค้า',
     business: 'ธุรกิจ', services: 'บริการ', products: 'สินค้าเสริม', specialists: 'พนักงานบริการ',
-    team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
+    team: 'ทีมและสิทธิ์การใช้งาน', agents: 'การจองผ่าน AI', marketing: 'อีเมลการตลาด', social: 'Instagram และ Facebook', money: 'การเงิน', fees: 'ค่าธรรมเนียมไม่มาตามนัด',
     loyalty: 'บัตรของขวัญ', tax: 'ภาษีและรายงาน', setup: 'ตั้งค่าระบบ', settings: 'การตั้งค่า',
     documentation: 'คู่มือการใช้งาน', help: 'ขอความช่วยเหลือ', tabInbox: 'แชท', more: 'เพิ่มเติม', tabsLabel: 'เมนูลัด', openMenu: 'เปิดเมนู', closeMenu: 'ปิดเมนู', logout: 'ออกจากระบบ', poweredBy: 'Powered by',
     language: 'ภาษา', businessLogo: 'โลโก้ร้าน',
@@ -139,6 +140,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
       items: [
         { id: 'customers', label: t.customers, icon: Users, permissions: ['view_customers'] },
         { id: 'marketing', label: t.marketing, icon: Mail, permissions: ['view_customers', 'view_settings'] },
+        { id: 'social', label: t.social, icon: Instagram, permissions: ['view_customers', 'view_settings'] },
       ]
     },
     {

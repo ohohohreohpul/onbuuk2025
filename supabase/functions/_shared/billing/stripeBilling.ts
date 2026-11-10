@@ -1,4 +1,4 @@
-// Zenno's own billing (the shop pays Zenno): the 49 € plan and AI reply packs.
+// Zenno's own billing (the shop pays Zenno): the 49 € and 69 € plans and AI reply packs.
 // Prices: plan from STRIPE_ZENNO_MONTHLY_PRICE_ID; packs as fixed amounts below.
 
 import Stripe from "npm:stripe@17.7.0";
@@ -39,4 +39,31 @@ export async function shopCustomer(supabase: SupabaseClient, stripe: Stripe, bus
   });
   await supabase.from("businesses").update({ stripe_customer_id: customer.id }).eq("id", businessId);
   return customer.id;
+}
+
+const SOCIAL_LOOKUP_KEY = "zenno_social_monthly";
+const SOCIAL_AMOUNT_CENTS = 6900;
+
+/**
+ * The 69 € Zenno Social price: STRIPE_ZENNO_SOCIAL_PRICE_ID if set, else found by
+ * lookup key, else created once. It copies currency and tax handling (VAT included)
+ * from the 49 € Zenno price so both plans are billed the same way.
+ */
+export async function socialPriceId(stripe: Stripe): Promise<string | null> {
+  const configured = Deno.env.get("STRIPE_ZENNO_SOCIAL_PRICE_ID");
+  if (configured) return configured;
+  const existing = await stripe.prices.list({ lookup_keys: [SOCIAL_LOOKUP_KEY], active: true, limit: 1 });
+  if (existing.data[0]) return existing.data[0].id;
+  const zennoPriceId = Deno.env.get("STRIPE_ZENNO_MONTHLY_PRICE_ID");
+  if (!zennoPriceId) return null;
+  const zenno = await stripe.prices.retrieve(zennoPriceId);
+  const created = await stripe.prices.create({
+    currency: zenno.currency,
+    unit_amount: SOCIAL_AMOUNT_CENTS,
+    recurring: { interval: "month" },
+    tax_behavior: zenno.tax_behavior ?? "inclusive",
+    lookup_key: SOCIAL_LOOKUP_KEY,
+    product_data: { name: "Zenno Social", metadata: { kind: "zenno_plan", plan_type: "social" } },
+  });
+  return created.id;
 }
