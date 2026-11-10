@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { queueOwnerEvent } from '../lib/ownerTracking';
 import { Building2, ArrowRight, Mail, Loader2, ArrowLeft, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -108,6 +109,7 @@ export function BusinessSignUp() {
         });
 
       if (adminError) throw new Error(`Failed to create admin user: ${adminError.message}`);
+      queueOwnerEvent('CompleteRegistration', { content_name: 'email' });
 
       await supabase.from('booking_form_colors').insert([
         { business_id: business.id, color_key: 'primary', color_value: '#1A1714' },
