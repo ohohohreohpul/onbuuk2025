@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import AdminLayout from './AdminLayout';
+import { queueOwnerEvent } from '../../lib/ownerTracking';
 import BookingsView from './BookingsView';
 import CustomersView from './CustomersView';
 import ServicesView from './ServicesView';
@@ -296,6 +297,8 @@ function AdminPanel() {
             console.error('Failed to insert default colors:', colorResult.error);
             throw new Error('Failed to initialize booking colors. Please try again.');
           }
+
+          queueOwnerEvent('CompleteRegistration', { content_name: 'google' });
 
           const adminUserData = {
             id: adminInsertResult.data.id,

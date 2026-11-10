@@ -39,6 +39,11 @@ function browserLanguage(): AdminLanguage {
   return isAdminLanguage(code) ? code : 'en';
 }
 
+/** The owner's language before the account loads: last choice on this device, else the browser's. */
+export function initialAdminLanguage(): AdminLanguage {
+  return readCachedLanguage() ?? browserLanguage();
+}
+
 interface AdminLanguageContextValue {
   language: AdminLanguage;
   setLanguage: (language: AdminLanguage) => Promise<void>;

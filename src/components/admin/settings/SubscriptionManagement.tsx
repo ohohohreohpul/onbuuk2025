@@ -7,6 +7,7 @@ import AiRepliesCard from '../billing/AiRepliesCard';
 import { euro, openBillingPortal, PRICE_CENTS, startUpgrade, SUPPORT_EMAIL, type PaidPlan, type PlanKey } from '../billing/billingApi';
 import { BILLING_TEXT, type BillingText } from '../billing/billingText';
 import { useBilling } from '../billing/useBilling';
+import { confirmPendingPlan } from '../../../lib/ownerTracking';
 
 type Notice = { kind: 'success' | 'info' | 'error'; text: string } | null;
 
@@ -17,6 +18,7 @@ function readReturnNotice(t: BillingText): Notice {
   if (!upgrade) return null;
   url.searchParams.delete('upgrade');
   window.history.replaceState(window.history.state, '', url);
+  if (upgrade === 'success') confirmPendingPlan();
   return upgrade === 'success' ? { kind: 'success', text: t.upgradeSuccess } : { kind: 'info', text: t.upgradeCancelled };
 }
 

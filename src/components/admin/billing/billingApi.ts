@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { adminAccessToken } from '../../../lib/functionAuth';
+import { queueOwnerEvent, rememberPendingPlan } from '../../../lib/ownerTracking';
 
 export type PlanKey = 'free' | 'pro' | 'social' | 'custom';
 export type PaidPlan = 'pro' | 'social';
@@ -57,8 +58,14 @@ async function callBillingFunction(name: string, body: Record<string, unknown>):
 /** Checkout URL for a new subscription, or null when an existing one simply switched plan. */
 export async function startUpgrade(couponCode: string, plan: PaidPlan = 'pro'): Promise<string | null> {
   const data = await postBillingFunction('upgrade-subscription', { coupon_code: couponCode, plan });
-  if (data.switched) return null;
+  const valueEuros = PRICE_CENTS[plan] / 100;
+  if (data.switched) {
+    queueOwnerEvent('Purchase', { value: valueEuros, currency: 'EUR', content_name: plan });
+    return null;
+  }
   if (!data.url) throw new Error('Checkout could not be started.');
+  // Reported as a Purchase only when Stripe sends the owner back with ?upgrade=success.
+  rememberPendingPlan(plan, valueEuros);
   return data.url as string;
 }
 export const buyPack = (pack: PackKey) => callBillingFunction('buy-ai-credits', { pack });
