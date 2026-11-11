@@ -8,7 +8,8 @@ import type { HostKind } from './tenantHost';
  */
 
 export type Consent = 'granted' | 'denied';
-export type OwnerEventName = 'CompleteRegistration' | 'Purchase';
+export type OwnerEventName = 'CompleteRegistration' | 'StartTrial' | 'Purchase';
+const OWNER_EVENT_NAMES: readonly OwnerEventName[] = ['CompleteRegistration', 'StartTrial', 'Purchase'];
 
 export interface OwnerEvent {
   name: OwnerEventName;
@@ -61,7 +62,7 @@ export function readQueue(storage: Storage = window.sessionStorage): OwnerEvent[
 function isOwnerEvent(value: unknown): value is OwnerEvent {
   if (!value || typeof value !== 'object') return false;
   const event = value as Partial<OwnerEvent>;
-  return (event.name === 'CompleteRegistration' || event.name === 'Purchase') && typeof event.eventId === 'string';
+  return OWNER_EVENT_NAMES.includes(event.name as OwnerEventName) && typeof event.eventId === 'string';
 }
 
 function writeQueue(events: OwnerEvent[], storage: Storage = window.sessionStorage): void {
@@ -93,24 +94,30 @@ export function takeQueuedEvents(storage?: Storage): OwnerEvent[] {
   return events;
 }
 
-/** Called just before Stripe checkout: which plan the owner is buying, and its price. */
-export function rememberPendingPlan(plan: string, valueEuros: number, storage: Storage = window.sessionStorage): void {
+/** Called just before Stripe checkout: which plan the owner is buying, its price, and whether it starts as a free trial. */
+export function rememberPendingPlan(
+  plan: string,
+  valueEuros: number,
+  { isTrial = false, storage = window.sessionStorage }: { isTrial?: boolean; storage?: Storage } = {},
+): void {
   try {
-    storage.setItem(PENDING_PLAN_KEY, JSON.stringify({ plan, value: valueEuros }));
+    storage.setItem(PENDING_PLAN_KEY, JSON.stringify({ plan, value: valueEuros, isTrial }));
   } catch {
     // Without storage the Purchase is not reported; checkout itself is unaffected.
   }
 }
 
-/** On ?upgrade=success: turns the remembered plan into one Purchase event. */
-export function confirmPendingPlan(storage: Storage = window.sessionStorage): void {
-  let pending: { plan?: unknown; value?: unknown } | null = null;
+/** On ?upgrade=success: turns the remembered plan into one StartTrial (free trial) or Purchase event. */
+export function confirmPendingPlan(storage: Storage = window.sessionStorage): OwnerEventName | null {
+  let pending: { plan?: unknown; value?: unknown; isTrial?: unknown } | null = null;
   try {
     pending = JSON.parse(storage.getItem(PENDING_PLAN_KEY) ?? 'null');
     storage.removeItem(PENDING_PLAN_KEY);
   } catch {
     pending = null;
   }
-  if (!pending || typeof pending.plan !== 'string' || typeof pending.value !== 'number') return;
-  queueOwnerEvent('Purchase', { value: pending.value, currency: 'EUR', content_name: pending.plan }, storage);
+  if (!pending || typeof pending.plan !== 'string' || typeof pending.value !== 'number') return null;
+  const name: OwnerEventName = pending.isTrial === true ? 'StartTrial' : 'Purchase';
+  queueOwnerEvent(name, { value: pending.value, currency: 'EUR', content_name: pending.plan }, storage);
+  return name;
 }

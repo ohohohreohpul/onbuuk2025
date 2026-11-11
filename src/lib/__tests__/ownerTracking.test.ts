@@ -79,6 +79,19 @@ describe('plan purchase', () => {
     expect(events[0]).toMatchObject({ name: 'Purchase', params: { value: 69, currency: 'EUR', content_name: 'social' } });
   });
 
+  test('reports a free trial as one StartTrial, not a Purchase', () => {
+    rememberPendingPlan('pro', 49, { isTrial: true });
+    confirmPendingPlan();
+    const events = takeQueuedEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ name: 'StartTrial', params: { value: 49, currency: 'EUR', content_name: 'pro' } });
+  });
+
+  test('keeps a queued StartTrial across a reload of the queue', () => {
+    queueOwnerEvent('StartTrial', { value: 49, currency: 'EUR' });
+    expect(readQueue()).toMatchObject([{ name: 'StartTrial' }]);
+  });
+
   test('reports nothing when no plan was remembered', () => {
     confirmPendingPlan();
     expect(takeQueuedEvents()).toEqual([]);

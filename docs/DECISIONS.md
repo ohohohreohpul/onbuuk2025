@@ -127,3 +127,12 @@
 | selection_mechanism | **header** | 1.00 | header 100%, db_active_store 0%, jwt_claim 0% |
 | billing | **per_store_plan** | 0.55 | per_store_plan 70%, custom_only 29%, group_plan 1% |
 | group_overview | **later** | 0.78 | later 89%, simple_cards 11% |
+
+## 2026-11-11 — 7-day free trial so ad sign-ups become paying shops (jev-1.14.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| trial_model | **card_upfront_stripe_trial** | 0.97 | card_upfront_stripe_trial 98%, no_card_then_lock 2%, no_card_then_free 0% |
+| free_plan_for_new_signups | **no_free_for_new** | 0.64 | no_free_for_new 82%, keep_free_option 18% |
+| trial_plan | **zenno_49** | 0.76 | zenno_49 88%, owner_picks 12% |
+| existing_free_shops | **grandfather** | 0.68 | grandfather 84%, move_to_trial_prompt 16% |

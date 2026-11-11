@@ -7,6 +7,9 @@ import { returnBase, shopCustomer, socialPriceId, stripeClient } from "../_share
 // Zenno Social (69 €/month, see socialPriceId). New subscribers go
 // through Stripe Checkout on the shop's own customer; a shop already paying for
 // Zenno moves to Social by swapping the price on its subscription (prorated).
+// A shop's first subscription starts with a free trial (card required).
+
+const TRIAL_DAYS = 7;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,18 +58,25 @@ Deno.serve(async (req: Request) => {
     const customer = await shopCustomer(supabase, stripe, admin.businessId);
     const base = returnBase(req);
     const coupon = typeof coupon_code === "string" ? coupon_code.trim().slice(0, 100) : "";
+    // Only a shop that never had a subscription gets the trial, so cancelling
+    // and starting again does not give a second one. The card is collected
+    // either way and charged when the trial ends unless the owner cancels.
+    const previous = await stripe.subscriptions.list({ customer, status: "all", limit: 1 });
+    const isTrial = previous.data.length === 0;
+    const metadata = { kind: "zenno_plan", business_id: admin.businessId, plan_type: plan };
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer,
       client_reference_id: admin.businessId,
       line_items: [{ price: priceId, quantity: 1 }],
       ...(coupon ? { discounts: [{ coupon }] } : { allow_promotion_codes: true }),
-      metadata: { kind: "zenno_plan", business_id: admin.businessId, plan_type: plan },
-      subscription_data: { metadata: { kind: "zenno_plan", business_id: admin.businessId, plan_type: plan } },
+      payment_method_collection: "always",
+      metadata,
+      subscription_data: { metadata, ...(isTrial ? { trial_period_days: TRIAL_DAYS } : {}) },
       success_url: `${base}/admin?view=settings&tab=subscription&upgrade=success`,
       cancel_url: `${base}/admin?view=settings&tab=subscription&upgrade=cancelled`,
     });
-    return json({ url: session.url });
+    return json({ url: session.url, trial: isTrial });
   } catch (error) {
     const authResponse = authorizationErrorResponse(error, corsHeaders);
     if (authResponse) return authResponse;
