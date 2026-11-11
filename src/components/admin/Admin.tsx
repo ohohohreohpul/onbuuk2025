@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import AdminLayout from './AdminLayout';
+import PlanGate from './billing/PlanGate';
 import { queueOwnerEvent } from '../../lib/ownerTracking';
 import BookingsView from './BookingsView';
 import CustomersView from './CustomersView';
@@ -440,13 +441,15 @@ function AdminPanel() {
   };
 
   return (
-    <AdminLayout
-      currentView={currentView}
-      onViewChange={navigate}
-      onLogout={handleLogout}
-    >
-      {renderView()}
-      <WhatsNewModal />
-    </AdminLayout>
+    <PlanGate onLogout={handleLogout}>
+      <AdminLayout
+        currentView={currentView}
+        onViewChange={navigate}
+        onLogout={handleLogout}
+      >
+        {renderView()}
+        <WhatsNewModal />
+      </AdminLayout>
+    </PlanGate>
   );
 }

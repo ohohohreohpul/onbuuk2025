@@ -11,10 +11,18 @@ type Keys =
   | 'aiTitle' | 'aiHint' | 'aiUsed' | 'aiExtra' | 'aiLeft' | 'aiEmpty' | 'aiFree' | 'buy' | 'buying' | 'replies'
   | 'packHint' | 'creditsSuccess' | 'creditsCancelled'
   | 'socialPlan' | 'onSocial' | 'socialLine' | 'chooseSocial' | 'switchedSocial' | 'switchedZenno'
-  | 'fSocialAll' | 'fSocialDm' | 'fSocialComments' | 'fSocialAccounts';
+  | 'fSocialAll' | 'fSocialDm' | 'fSocialComments' | 'fSocialAccounts'
+  | 'trialTitle' | 'trialLead' | 'trialPoint1' | 'trialPoint2' | 'trialPoint3' | 'trialCta' | 'trialFinePrint'
+  | 'subscribeTitle' | 'subscribeLead' | 'subscribeCta' | 'trialActivating' | 'trialStarted' | 'trialUntil' | 'chooseTrial' | 'logOut';
 
 export const BILLING_TEXT: Translations<Record<Keys, string>> = {
   en: {
+    trialTitle: 'Try Zenno free for 7 days', trialLead: 'Everything in the Zenno plan, from today. Your booking software books itself while you work.',
+    trialPoint1: 'Unlimited therapists and treatments', trialPoint2: 'AI receptionist on WhatsApp, email and your website', trialPoint3: 'Cancel any time in the first 7 days and pay nothing',
+    trialCta: 'Start 7-day free trial', trialFinePrint: '0 € today. Then {price} / month incl. VAT, unless you cancel before the trial ends.',
+    subscribeTitle: 'Choose Zenno to continue', subscribeLead: 'Your free trial has ended. Pick up right where you left off.', subscribeCta: 'Continue with Zenno',
+    trialActivating: 'Starting your trial…', trialStarted: 'Your 7-day free trial has started. Enjoy Zenno!', trialUntil: 'Free trial until {date}',
+    chooseTrial: 'Start 7-day free trial', logOut: 'Log out',
     socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'Your Instagram and Facebook book for you too.', chooseSocial: 'Upgrade to Zenno Social',
     switchedSocial: 'Done! Your shop is on Zenno Social. Connect Instagram and Facebook under Social.', switchedZenno: 'Done! Your shop is on the Zenno plan.',
     fSocialAll: 'Everything in Zenno', fSocialDm: 'Instagram and Facebook messages answered by your AI receptionist', fSocialComments: 'Comment-to-DM: a keyword in the comments sends the booking link', fSocialAccounts: '2 social accounts included',
@@ -40,6 +48,12 @@ export const BILLING_TEXT: Translations<Record<Keys, string>> = {
     creditsSuccess: 'Thank you! Your replies are added in a moment.', creditsCancelled: 'Purchase cancelled. Nothing was charged.',
   },
   de: {
+    trialTitle: 'Zenno 7 Tage kostenlos testen', trialLead: 'Alles aus dem Zenno-Tarif, ab heute. Ihre Buchungssoftware bucht für Sie, während Sie arbeiten.',
+    trialPoint1: 'Unbegrenzt Therapeut:innen und Behandlungen', trialPoint2: 'KI-Rezeption auf WhatsApp, per E-Mail und auf Ihrer Website', trialPoint3: 'In den ersten 7 Tagen jederzeit kündbar, ohne Kosten',
+    trialCta: '7 Tage kostenlos testen', trialFinePrint: 'Heute 0 €. Danach {price} / Monat inkl. MwSt., wenn Sie nicht vor Ende des Tests kündigen.',
+    subscribeTitle: 'Mit Zenno weitermachen', subscribeLead: 'Ihr kostenloser Test ist vorbei. Machen Sie genau dort weiter, wo Sie aufgehört haben.', subscribeCta: 'Mit Zenno weitermachen',
+    trialActivating: 'Ihr Test wird gestartet…', trialStarted: 'Ihr 7-tägiger kostenloser Test läuft. Viel Freude mit Zenno!', trialUntil: 'Kostenloser Test bis {date}',
+    chooseTrial: '7 Tage kostenlos testen', logOut: 'Abmelden',
     socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'Auch Instagram und Facebook buchen für Sie.', chooseSocial: 'Zu Zenno Social wechseln',
     switchedSocial: 'Fertig! Ihr Shop ist jetzt auf Zenno Social. Verbinden Sie Instagram und Facebook unter Social.', switchedZenno: 'Fertig! Ihr Shop ist jetzt im Zenno-Tarif.',
     fSocialAll: 'Alles aus Zenno', fSocialDm: 'Instagram- und Facebook-Nachrichten beantwortet Ihre KI-Rezeption', fSocialComments: 'Kommentar-zu-DM: Ein Stichwort im Kommentar schickt den Buchungslink', fSocialAccounts: '2 Social-Konten inklusive',
@@ -65,6 +79,12 @@ export const BILLING_TEXT: Translations<Record<Keys, string>> = {
     creditsSuccess: 'Danke! Ihre Antworten werden gleich gutgeschrieben.', creditsCancelled: 'Kauf abgebrochen. Es wurde nichts berechnet.',
   },
   th: {
+    trialTitle: 'ทดลองใช้ Zenno ฟรี 7 วัน', trialLead: 'ใช้ทุกอย่างในแพ็กเกจ Zenno ได้ตั้งแต่วันนี้ ระบบจองคิวที่จองให้คุณเองระหว่างที่คุณทำงาน',
+    trialPoint1: 'พนักงานและบริการไม่จำกัด', trialPoint2: 'พนักงานต้อนรับ AI บน WhatsApp อีเมล และเว็บไซต์', trialPoint3: 'ยกเลิกได้ทุกเมื่อภายใน 7 วันแรกโดยไม่เสียค่าใช้จ่าย',
+    trialCta: 'เริ่มทดลองใช้ฟรี 7 วัน', trialFinePrint: 'วันนี้ 0 € จากนั้น {price} / เดือน รวม VAT หากไม่ยกเลิกก่อนหมดช่วงทดลอง',
+    subscribeTitle: 'เลือก Zenno เพื่อใช้งานต่อ', subscribeLead: 'ช่วงทดลองใช้ฟรีสิ้นสุดแล้ว ใช้งานต่อจากที่ค้างไว้ได้ทันที', subscribeCta: 'ใช้งาน Zenno ต่อ',
+    trialActivating: 'กำลังเริ่มช่วงทดลอง…', trialStarted: 'เริ่มทดลองใช้ฟรี 7 วันแล้ว ขอให้สนุกกับ Zenno!', trialUntil: 'ทดลองใช้ฟรีถึง {date}',
+    chooseTrial: 'เริ่มทดลองใช้ฟรี 7 วัน', logOut: 'ออกจากระบบ',
     socialPlan: 'Zenno Social', onSocial: 'Zenno Social', socialLine: 'ให้ Instagram และ Facebook จองคิวให้คุณด้วย', chooseSocial: 'อัปเกรดเป็น Zenno Social',
     switchedSocial: 'เรียบร้อย! ร้านของคุณใช้ Zenno Social แล้ว เชื่อมต่อ Instagram และ Facebook ได้ที่เมนู Social', switchedZenno: 'เรียบร้อย! ร้านของคุณใช้แพ็กเกจ Zenno แล้ว',
     fSocialAll: 'ทุกอย่างใน Zenno', fSocialDm: 'พนักงานต้อนรับ AI ตอบข้อความ Instagram และ Facebook', fSocialComments: 'คอมเมนต์เป็น DM: พิมพ์คำสำคัญในคอมเมนต์แล้วได้ลิงก์จองทันที', fSocialAccounts: 'รวมบัญชีโซเชียล 2 บัญชี',

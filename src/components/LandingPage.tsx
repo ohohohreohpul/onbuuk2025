@@ -177,7 +177,7 @@ export function LandingPage({ onSignIn, onSignUp }: LandingPageProps) {
                     </div>
                     <Badge className="bg-white/20 border-white/40 text-white backdrop-blur-sm rounded-full px-3">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      Start Free
+                      7 days free
                     </Badge>
                   </div>
                   <CardTitle className="text-xl text-white">Become bookable through AI</CardTitle>

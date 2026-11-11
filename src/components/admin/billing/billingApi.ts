@@ -13,7 +13,15 @@ export interface BillingOverview {
   allowance: number;
   used: number;
   purchased: number;
+  /** A new shop that has not started its trial (or a plan) yet: it sees the trial screen. */
+  needs_plan: boolean;
+  /** Whether choosing a plan starts with the free trial (display hint; checkout decides). */
+  trial_available: boolean;
+  /** When a running trial ends (ISO date), otherwise null. */
+  trial_end: string | null;
 }
+
+export const TRIAL_DAYS = 7;
 
 /** Packs as sold (prices mirror supabase/functions/_shared/billing/stripeBilling.ts). */
 export const PACKS: { key: PackKey; replies: number; priceCents: number }[] = [
@@ -64,8 +72,8 @@ export async function startUpgrade(couponCode: string, plan: PaidPlan = 'pro'): 
     return null;
   }
   if (!data.url) throw new Error('Checkout could not be started.');
-  // Reported as a Purchase only when Stripe sends the owner back with ?upgrade=success.
-  rememberPendingPlan(plan, valueEuros);
+  // Reported (as StartTrial or Purchase) only when Stripe sends the owner back with ?upgrade=success.
+  rememberPendingPlan(plan, valueEuros, { isTrial: data.trial === true });
   return data.url as string;
 }
 export const buyPack = (pack: PackKey) => callBillingFunction('buy-ai-credits', { pack });

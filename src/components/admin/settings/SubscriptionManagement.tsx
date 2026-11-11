@@ -8,6 +8,7 @@ import { euro, openBillingPortal, PRICE_CENTS, startUpgrade, SUPPORT_EMAIL, type
 import { BILLING_TEXT, type BillingText } from '../billing/billingText';
 import { useBilling } from '../billing/useBilling';
 import { confirmPendingPlan } from '../../../lib/ownerTracking';
+import { fillText } from '../../../lib/bookingLanguage';
 
 type Notice = { kind: 'success' | 'info' | 'error'; text: string } | null;
 
@@ -18,8 +19,8 @@ function readReturnNotice(t: BillingText): Notice {
   if (!upgrade) return null;
   url.searchParams.delete('upgrade');
   window.history.replaceState(window.history.state, '', url);
-  if (upgrade === 'success') confirmPendingPlan();
-  return upgrade === 'success' ? { kind: 'success', text: t.upgradeSuccess } : { kind: 'info', text: t.upgradeCancelled };
+  if (upgrade !== 'success') return { kind: 'info', text: t.upgradeCancelled };
+  return { kind: 'success', text: confirmPendingPlan() === 'StartTrial' ? t.trialStarted : t.upgradeSuccess };
 }
 
 const PLANS: { key: PlanKey; features: (keyof BillingText)[] }[] = [
@@ -86,6 +87,11 @@ export default function SubscriptionManagement() {
 
       {notice && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${noticeStyle[notice.kind]}`}>{notice.text}</p>}
       {overview.subscription_status === 'past_due' && <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.paymentIssue}</p>}
+      {overview.trial_end && (
+        <p role="status" className="rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700">
+          {fillText(t.trialUntil, { date: new Date(overview.trial_end).toLocaleDateString(locale, { day: 'numeric', month: 'long' }) })}
+        </p>
+      )}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {PLANS.map(({ key, features }) => {
@@ -123,7 +129,7 @@ export default function SubscriptionManagement() {
                     onClick={() => go(() => startUpgrade(coupon.trim(), key), key === 'social' ? t.switchedSocial : t.switchedZenno)}
                     className={`${key === 'social' ? ADMIN_PRIMARY_BUTTON : ADMIN_SECONDARY_BUTTON} w-full`}
                   >
-                    {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}{isBusy ? t.starting : key === 'social' ? t.chooseSocial : t.choose}
+                    {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}{isBusy ? t.starting : overview.plan === 'free' && overview.trial_available ? t.chooseTrial : key === 'social' ? t.chooseSocial : t.choose}
                   </button>
                 </div>
               )}

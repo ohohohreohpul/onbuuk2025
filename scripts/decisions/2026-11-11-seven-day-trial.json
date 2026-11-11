@@ -1,0 +1,49 @@
+{
+  "title": "7-day free trial so ad sign-ups become paying shops",
+  "state": {
+    "goal": "Meta ads are bringing sign-ups, but every sign-up lands on the permanent Free plan and nobody pays. The founder wants Zenno free for 7 days and then paid, so ads produce paid sign-ups.",
+    "today": {
+      "plans": "free (1 therapist, 5 treatments, no AI receptionist; permanent), pro = Zenno plan 49 EUR/month, social = Zenno Social 69 EUR/month, custom (set by hand). Paid via Stripe Checkout (upgrade-subscription edge function), owner clicks Upgrade in Settings > Subscription.",
+      "access_check": "public.business_is_paid() already treats a Stripe subscription with status 'trialing' as paid, and the webhook already stores subscription status and downgrades to free when a subscription is deleted. So a Stripe-managed trial needs almost no new access logic.",
+      "signup_flow": "Email or Google sign-up creates a Free shop instantly and lands the owner in the dashboard with a 'Complete setup' banner. No payment step anywhere in onboarding.",
+      "traffic": "Last 30 days: 5 sign-ups total, 3 of them on Nov 11 from the ads. 0 paying sign-ups from ads. Ad tracking sends Meta 'CompleteRegistration' on sign-up and 'Purchase' after Stripe checkout success.",
+      "audience": "Small bookable businesses (massage, beauty, hair, nails) in Germany and Thailand; owners on phones; price-sensitive but used to paying for Treatwell/Planity.",
+      "risk": "Production is live with real shops. Existing Free shops (a handful) should not suddenly lose access."
+    }
+  },
+  "decisions": {
+    "trial_model": {
+      "instructions": "How should the 7-day trial work so the ads produce paying customers, given state.today?",
+      "criteria": {
+        "card_upfront_stripe_trial": "Card required at sign-up via Stripe Checkout with a 7-day trial; Stripe charges automatically on day 8 unless cancelled. Uses the existing trialing=paid logic. Fewer sign-ups, but each one is a real paid conversion.",
+        "no_card_then_lock": "No card at sign-up: full Zenno plan features for 7 days, then the dashboard locks until the owner pays. More sign-ups, more manual follow-up, lower conversion.",
+        "no_card_then_free": "No card: full features for 7 days, then the shop drops to the permanent Free plan. Keeps the current free tier."
+      },
+      "fallback": "card_upfront_stripe_trial"
+    },
+    "free_plan_for_new_signups": {
+      "instructions": "Should brand-new sign-ups still be able to stay on the permanent Free plan?",
+      "criteria": {
+        "no_free_for_new": "New sign-ups must start the trial (or pay) to use Zenno; the Free plan stays only for shops that already have it.",
+        "keep_free_option": "New sign-ups can choose Free or the trial."
+      },
+      "fallback": "no_free_for_new"
+    },
+    "trial_plan": {
+      "instructions": "Which plan should the trial be on?",
+      "criteria": {
+        "zenno_49": "The 49 EUR Zenno plan; owners can switch to Social later.",
+        "owner_picks": "Owner picks Zenno 49 or Social 69 before the trial starts."
+      },
+      "fallback": "zenno_49"
+    },
+    "existing_free_shops": {
+      "instructions": "What happens to shops already on the Free plan?",
+      "criteria": {
+        "grandfather": "They keep Free as it is; they can start a trial from Settings.",
+        "move_to_trial_prompt": "Show them a prompt to start the 7-day trial, but don't lock them."
+      },
+      "fallback": "grandfather"
+    }
+  }
+}
