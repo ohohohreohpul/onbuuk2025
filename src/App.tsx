@@ -276,14 +276,10 @@ function AppContent() {
     return <SignupSuccess />;
   }
 
-  // Redirect /admin to /login when no business is found
+  // No business yet on /admin: Admin sends signed-out visitors to /login and
+  // creates the shop for a first Google sign-in, so it must still render.
   if (!tenant.businessId && appMode === 'admin') {
-    window.location.href = '/login';
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="text-stone-600">Redirecting to login...</div>
-      </div>
-    );
+    return <Admin />;
   }
 
   // Merchant approval links carry their own token; no tenant is needed.

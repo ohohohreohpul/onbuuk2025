@@ -252,39 +252,23 @@ function AdminPanel() {
 
           const business = businessResult.data;
 
-          const [adminInsertResult, colorResult] = await Promise.all([
-            executeWithTimeout(
-              supabase
-                .from('admin_users')
-                .insert({
-                  business_id: business.id,
-                  email: session.user.email,
-                  password_hash: null,
-                  full_name: fullName,
-                  role: 'owner',
-                  is_owner: true,
-                  is_active: true,
-                  user_id: session.user.id,
-                })
-                .select()
-                .single(),
-              { timeout: 12000, retries: 3 }
-            ),
-            executeWithTimeout(
-              supabase.from('booking_form_colors').insert([
-                { business_id: business.id, color_key: 'primary', color_value: '#1c1917' },
-                { business_id: business.id, color_key: 'primary_hover', color_value: '#44403c' },
-                { business_id: business.id, color_key: 'secondary', color_value: '#78716c' },
-                { business_id: business.id, color_key: 'text_primary', color_value: '#1c1917' },
-                { business_id: business.id, color_key: 'text_secondary', color_value: '#57534e' },
-                { business_id: business.id, color_key: 'background', color_value: '#ffffff' },
-                { business_id: business.id, color_key: 'background_secondary', color_value: '#fafaf9' },
-                { business_id: business.id, color_key: 'border', color_value: '#e7e5e4' },
-                { business_id: business.id, color_key: 'accent', color_value: '#1c1917' },
-              ]),
-              { timeout: 10000, retries: 2 }
-            ),
-          ]);
+          const adminInsertResult = await executeWithTimeout(
+            supabase
+              .from('admin_users')
+              .insert({
+                business_id: business.id,
+                email: session.user.email,
+                password_hash: null,
+                full_name: fullName,
+                role: 'owner',
+                is_owner: true,
+                is_active: true,
+                user_id: session.user.id,
+              })
+              .select()
+              .single(),
+            { timeout: 12000, retries: 3 }
+          );
 
           if (adminInsertResult.error) {
             if (adminInsertResult.error.message?.includes('23505')) {
@@ -293,10 +277,8 @@ function AdminPanel() {
             throw adminInsertResult.error;
           }
 
-          if (colorResult.error) {
-            console.error('Failed to insert default colors:', colorResult.error);
-            throw new Error('Failed to initialize booking colors. Please try again.');
-          }
+          // Default booking colours are seeded by the database when the
+          // business row is created (initialize_business_defaults).
 
           queueOwnerEvent('CompleteRegistration', { content_name: 'google' });
 
@@ -320,9 +302,10 @@ function AdminPanel() {
             authCheckTimeoutRef.current = null;
           }
 
+          // The tenant context was resolved before this shop existed; reload so
+          // every admin screen picks it up.
           if (mounted) {
-            setIsAuthenticated(true);
-            setLoading(false);
+            window.location.replace('/admin');
           }
         }
       } catch (err: any) {
