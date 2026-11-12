@@ -70,9 +70,6 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
 
   return (
     <div className="bg-gradient-to-r from-[#1A1714] via-[#3D3833] to-[#1A1714] text-white shadow-lg shadow-[#1A1714]/20 relative overflow-hidden">
-      {/* Animated background effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 animate-shimmer" />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1">
@@ -80,7 +77,7 @@ export default function ProfileCompletionBanner({ onSetupClick }: ProfileComplet
               <Sparkles className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg">{t.title}</h3>
+              <h3 className="font-semibold text-lg text-white">{t.title}</h3>
               <p className="text-white/80 text-sm">
                 {t.body}
               </p>

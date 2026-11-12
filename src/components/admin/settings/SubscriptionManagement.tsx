@@ -76,6 +76,7 @@ export default function SubscriptionManagement() {
 
   const planName: Record<PlanKey, string> = { free: t.freePlan, pro: t.zennoPlan, social: t.socialPlan, custom: t.customPlan };
   const planLine: Record<PlanKey, string> = { free: t.freeLine, pro: t.zennoLine, social: t.socialLine, custom: t.customLine };
+  const canManage = isPaidPlan(overview.plan) && overview.has_subscription && !!businessId;
   const noticeStyle = { success: 'bg-emerald-50 text-emerald-900', info: 'bg-stone-100 text-stone-700', error: 'bg-red-50 text-red-700' };
 
   return (
@@ -87,10 +88,17 @@ export default function SubscriptionManagement() {
 
       {notice && <p role="status" className={`rounded-xl px-4 py-3 text-sm ${noticeStyle[notice.kind]}`}>{notice.text}</p>}
       {overview.subscription_status === 'past_due' && <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{t.paymentIssue}</p>}
-      {overview.trial_end && (
-        <p role="status" className="rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-700">
-          {fillText(t.trialUntil, { date: new Date(overview.trial_end).toLocaleDateString(locale, { day: 'numeric', month: 'long' }) })}
-        </p>
+      {(overview.trial_end || canManage) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-stone-100 px-4 py-3">
+          <p role="status" className="text-sm text-stone-700">
+            {overview.trial_end && fillText(t.trialUntil, { date: new Date(overview.trial_end).toLocaleDateString(locale, { day: 'numeric', month: 'long' }) })}
+          </p>
+          {canManage && (
+            <button type="button" disabled={isBusy} onClick={() => go(() => openBillingPortal(businessId))} className="text-sm font-medium text-[#1A1714] underline underline-offset-4 hover:text-stone-600 disabled:opacity-50">
+              {t.manage}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -132,9 +140,6 @@ export default function SubscriptionManagement() {
                     {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}{isBusy ? t.starting : overview.plan === 'free' && overview.trial_available ? t.chooseTrial : key === 'social' ? t.chooseSocial : t.choose}
                   </button>
                 </div>
-              )}
-              {isPaidPlan(key) && isCurrent && overview.has_subscription && businessId && (
-                <button type="button" disabled={isBusy} onClick={() => go(() => openBillingPortal(businessId))} className={`${ADMIN_SECONDARY_BUTTON} w-full`}>{t.manage}</button>
               )}
               {key === 'custom' && !isCurrent && (
                 <div className="space-y-1">
