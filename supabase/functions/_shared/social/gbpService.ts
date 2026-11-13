@@ -7,7 +7,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { complete, isLlmConfigured } from "../receptionist/llm.ts";
 import { loadMarketingShop, loadShopVouchers } from "../marketingData.ts";
-import { zernio } from "./zernioClient.ts";
+import { zernioFor } from "./zernioClient.ts";
 import {
   buildPostMessages, buildReplyMessages, cleanAiText, isAutoReplyEligible, MAX_POST_LENGTH, MAX_REPLY_LENGTH,
   parseGbpReview, toGbpHours, toGbpServices, type GbpReview, type PostTopic, type ShopVoice, type WorkingHourRow,
@@ -66,6 +66,7 @@ const httpsOrNull = (value: unknown): string | null =>
 
 /** Reads the listing's review link, Maps link and category into social_accounts. */
 export async function refreshLocation(supabase: SupabaseClient, businessId: string, accountId: string): Promise<void> {
+  const zernio = await zernioFor(supabase, businessId);
   const details = await zernio<{
     location?: { reviewUrl?: string | null; mapsUri?: string | null };
     categories?: { primaryCategory?: { name?: string } };
@@ -127,6 +128,7 @@ export async function upsertReview(supabase: SupabaseClient, businessId: string,
 
 /** Pulls the newest reviews (up to 100) from Google into gbp_reviews. Returns the rows that are unanswered. */
 export async function syncReviews(supabase: SupabaseClient, businessId: string, accountId: string): Promise<ReviewRow[]> {
+  const zernio = await zernioFor(supabase, businessId);
   const unanswered: ReviewRow[] = [];
   let pageToken: string | null = null;
   for (let page = 0; page < REVIEW_PAGES; page++) {
@@ -194,6 +196,7 @@ export async function draftReply(supabase: SupabaseClient, businessId: string, r
 
 /** Publishes the reply on Google (overwrites an earlier one) and records it. */
 export async function publishReply(supabase: SupabaseClient, businessId: string, review: ReviewRow, text: string, source: "owner" | "auto"): Promise<void> {
+  const zernio = await zernioFor(supabase, businessId);
   try {
     await zernio(`/accounts/${encodeURIComponent(review.account_id)}/gmb-reviews/${encodeURIComponent(review.review_id)}/reply`, {
       method: "POST", body: { comment: text },
@@ -273,6 +276,7 @@ export async function draftPostText(supabase: SupabaseClient, businessId: string
 /** Pushes opening hours and/or the service list to Google. */
 export async function pushProfile(supabase: SupabaseClient, businessId: string, settings: GbpSettingsRow): Promise<void> {
   const account = await requireGbpAccount(supabase, businessId);
+  const zernio = await zernioFor(supabase, businessId);
   const path = `/accounts/${encodeURIComponent(account.accountId)}`;
 
   if (settings.sync_hours) {

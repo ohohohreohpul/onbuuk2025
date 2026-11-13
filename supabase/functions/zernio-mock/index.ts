@@ -6,11 +6,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 //   ZERNIO_BASE_URL=https://<staging>.supabase.co/functions/v1/zernio-mock/api/v1
 //   RECEPTIONIST_AI_BASE_URL=https://<staging>.supabase.co/functions/v1/zernio-mock/llm
 // It answers only on the zenno-staging project, and only to the staging
-// ZERNIO_API_KEY / RECEPTIONIST_AI_API_KEY. Responses follow docs.zernio.com
+// ZERNIO_API_KEY / RECEPTIONIST_AI_API_KEY, or (as a shop's "own Zernio" account) to a key
+// starting with OWN_KEY_PREFIX. Responses follow docs.zernio.com
 // (platforms/google-business); nothing is stored, every call returns fixtures.
 
 const STAGING_REF = "jylzbzbbjzpdbqxyezjw";
 const GOOGLE_ACCOUNT = "mock-gbp-1";
+/** Stands for a shop's own Zernio account in "bring your own Zernio" tests. */
+const OWN_KEY_PREFIX = "zernio_mock_own_";
+const MIN_KEY_LENGTH = 32;
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -72,6 +76,11 @@ function zernioRoute(method: string, path: string, url: URL, body: Record<string
     }, 201);
   }
   if (method === "DELETE" && path.startsWith("/posts/")) return json({ success: true });
+  if (method === "POST" && path === "/webhooks/settings") {
+    if (typeof body.url !== "string" || !Array.isArray(body.events)) return json({ error: "name, url and events required" }, 400);
+    return json({ success: true, webhook: { _id: `mock-webhook-${crypto.randomUUID().slice(0, 8)}`, url: body.url, events: body.events, isActive: true } });
+  }
+  if (method === "DELETE" && path === "/webhooks/settings") return json({ success: true });
   if (method === "GET" && path === "/comment-automations") return json({ automations: [] });
   return json({ error: `zernio-mock: ${method} ${path} is not mocked` }, 404);
 }
@@ -94,7 +103,8 @@ Deno.serve(async (req) => {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const isLlm = path.startsWith("/llm/");
   const expected = Deno.env.get(isLlm ? "RECEPTIONIST_AI_API_KEY" : "ZERNIO_API_KEY") ?? "";
-  if (expected.length < 32 || token !== expected) return json({ error: "Unauthorized" }, 401);
+  const isOwnAccount = !isLlm && token.startsWith(OWN_KEY_PREFIX) && token.length >= MIN_KEY_LENGTH;
+  if (!isOwnAccount && (expected.length < MIN_KEY_LENGTH || token !== expected)) return json({ error: "Unauthorized" }, 401);
   const body = req.method === "GET" || req.method === "DELETE" ? {} : await req.json().catch(() => ({}));
   if (isLlm) return path === "/llm/chat/completions" ? llmRoute(body) : json({ error: "not mocked" }, 404);
   if (!path.startsWith("/api/v1/")) return json({ error: "not mocked" }, 404);

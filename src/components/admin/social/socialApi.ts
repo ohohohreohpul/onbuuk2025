@@ -44,7 +44,10 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}): P
   return data as T;
 }
 
-export const loadStatus = () => call<{ hasSocial: boolean; hasLocalSeo: boolean; accounts: SocialAccount[] }>('status');
+export const loadStatus = () => call<{ hasSocial: boolean; hasLocalSeo: boolean; ownZernio: boolean; accounts: SocialAccount[] }>('status');
+/** Owner only: use the shop's own Zernio account (its own bill) instead of Zenno's. */
+export const connectOwnZernio = (apiKey: string) => call<{ ownZernio: boolean; accounts: SocialAccount[] }>('connect_zernio', { apiKey });
+export const disconnectOwnZernio = () => call<{ ownZernio: boolean; accounts: SocialAccount[] }>('disconnect_zernio');
 export const syncAccounts = () => call<{ accounts: SocialAccount[] }>('sync');
 export const disconnectAccount = (accountId: string) => call<{ accounts: SocialAccount[] }>('disconnect', { accountId });
 export const loadAutomations = () => call<{ automations: Automation[] }>('automations');

@@ -8,7 +8,7 @@ import {
   AUTO_REPLY_BATCH, autoReplyIfEligible, draftPostText, draftReply, GbpActionError, gbpAccount, loadGbpSettings, postTopics, publishReply,
   pushProfile, requireGbpAccount, syncReviews, type ReviewRow,
 } from "../_shared/social/gbpService.ts";
-import { zernio, ZernioError } from "../_shared/social/zernioClient.ts";
+import { zernioFor, ZernioError } from "../_shared/social/zernioClient.ts";
 
 // Admin API for local SEO (Google Business Profile, Zenno Social): POST { action, ... }.
 //   status                          plan, Google account, settings, last sync
@@ -109,6 +109,7 @@ async function recordSync(admin: Admin, error: unknown | null): Promise<void> {
 /** Sends the post to Zernio (schedule or publish now) and stores the outcome. */
 async function sendPost(admin: Admin, postId: string, accountId: string, draft: PostDraft): Promise<void> {
   try {
+    const zernio = await zernioFor(admin.supabaseAdmin, admin.businessId);
     const result = await zernio<{ post?: { _id?: string; status?: string; platforms?: { platformPostUrl?: string }[] } }>("/posts", {
       method: "POST", body: buildPostRequest(accountId, draft),
     });
@@ -129,10 +130,10 @@ async function sendPost(admin: Admin, postId: string, accountId: string, draft: 
   }
 }
 
-async function cancelScheduled(post: { status: string; zernio_post_id: string | null }): Promise<void> {
+async function cancelScheduled(admin: Admin, post: { status: string; zernio_post_id: string | null }): Promise<void> {
   if (post.status !== "scheduled" || !post.zernio_post_id) return;
   try {
-    await zernio(`/posts/${encodeURIComponent(post.zernio_post_id)}`, { method: "DELETE" });
+    await (await zernioFor(admin.supabaseAdmin, admin.businessId))(`/posts/${encodeURIComponent(post.zernio_post_id)}`, { method: "DELETE" });
   } catch (error) {
     if (!(error instanceof ZernioError && error.status === 404)) throw error; // already gone in Zernio
   }
@@ -236,7 +237,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
       if (body.id) {
         const existing = await ownPost(admin, body.id);
         if (isPostLive(existing, new Date())) throw new InputError("A published post can't be changed. Create a new one.");
-        await cancelScheduled(existing);
+        await cancelScheduled(admin, existing);
         const { error } = await admin.supabaseAdmin.from("gbp_posts").update({ ...fields, zernio_post_id: null, last_error: null }).eq("id", existing.id);
         if (error) throw new Error(error.message);
         postId = existing.id;
@@ -263,7 +264,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
     run: async (admin, body) => {
       const post = await ownPost(admin, body.id);
       if (isPostLive(post, new Date())) throw new InputError("Published posts stay on Google for about 7 days and then fade out.");
-      await cancelScheduled(post);
+      await cancelScheduled(admin, post);
       await admin.supabaseAdmin.from("gbp_posts").delete().eq("id", post.id).eq("business_id", admin.businessId);
       return { posts: await listPosts(admin) };
     },

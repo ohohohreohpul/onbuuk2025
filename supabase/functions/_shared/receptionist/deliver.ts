@@ -11,7 +11,7 @@ import { replySubject, safeMessageId, textToHtml } from "./emailParse.ts";
 import type { ReceptionistSettings } from "./shopContext.ts";
 import { cloudSendText, gatewaySendText, WhatsappError } from "./whatsapp.ts";
 import { splitIntoMessages, typingDelayMs } from "./humanize.ts";
-import { sendSocialMessage } from "../social/zernioClient.ts";
+import { sendSocialMessage, zernioFor } from "../social/zernioClient.ts";
 
 export async function getSecret(supabase: SupabaseClient, businessId: string, kind: string): Promise<string | null> {
   const { data, error } = await supabase.rpc("receptionist_get_secret", { p_business_id: businessId, p_kind: kind });
@@ -74,10 +74,11 @@ export function makeDeliver(supabase: SupabaseClient, settings: ReceptionistSett
 
     if (conversation.channel === "instagram" || conversation.channel === "facebook") {
       if (!conversation.external_account_id) throw new Error("Social account unknown for this conversation");
+      const zernio = await zernioFor(supabase, settings.business_id);
       let lastSocialId: string | null = null;
       for (const [index, part] of splitIntoMessages(body).entries()) {
         if (index > 0) await new Promise((resolve) => setTimeout(resolve, typingDelayMs(part)));
-        lastSocialId = await sendSocialMessage(conversation.external_id, conversation.external_account_id, part);
+        lastSocialId = await sendSocialMessage(zernio, conversation.external_id, conversation.external_account_id, part);
       }
       return { externalId: lastSocialId ? `zernio:${lastSocialId}` : null };
     }
