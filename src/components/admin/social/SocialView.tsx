@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Facebook, Instagram, Loader2, MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { Facebook, Instagram, Loader2, MapPin, MessageCircle, Plus, Sparkles } from 'lucide-react';
 import { useTenant } from '../../../lib/tenantContext';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
@@ -8,12 +8,14 @@ import { ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_
 import { SOCIAL_TEXT } from './socialText';
 import {
   disconnectAccount, loadAutomations, loadStatus, PlanRequiredError, startConnect, syncAccounts,
-  type Automation, type SocialAccount, type SocialPlatform,
+  type Automation, type ConnectPlatform, type SocialAccount,
 } from './socialApi';
 import AutomationModal from './AutomationModal';
+import LocalSeoSection from './LocalSeoSection';
 
 const NEW_AUTOMATION = 'new';
-const PLATFORM_ICON = { instagram: Instagram, facebook: Facebook } as const;
+const PLATFORM_ICON = { instagram: Instagram, facebook: Facebook, googlebusiness: MapPin } as const;
+const PLATFORM_NAME = { instagram: 'Instagram', facebook: 'Facebook', googlebusiness: 'Google' } as const;
 
 /** Reads ?connected=… once after the Instagram/Facebook consent page, then cleans the address. */
 function consumeConnectedFlag(): boolean {
@@ -33,19 +35,23 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
   const { subdomain, customDomain } = useTenant();
   const { t } = useAdminText(SOCIAL_TEXT);
   const [hasSocial, setHasSocial] = useState<boolean | null>(null);
+  const [hasLocalSeo, setHasLocalSeo] = useState(false);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const bookingUrl = customDomain ? hostUrl(customDomain) : subdomain ? shopUrl(subdomain) : '';
-  const activeAccounts = accounts.filter((a) => a.isActive);
+  // Comment-to-DM runs on Instagram/Facebook only; Google has its own section.
+  const activeAccounts = accounts.filter((a) => a.isActive && a.platform !== 'googlebusiness');
+  const hasGoogle = accounts.some((a) => a.isActive && a.platform === 'googlebusiness');
 
   const load = useCallback(async () => {
     try {
       const isReturning = consumeConnectedFlag();
       const status = await loadStatus();
       setHasSocial(status.hasSocial);
+      setHasLocalSeo(status.hasLocalSeo === true);
       if (!status.hasSocial) return;
       // Coming back from the consent page: pull the new account from Zernio first.
       const synced = isReturning ? (await syncAccounts()).accounts : status.accounts;
@@ -64,7 +70,7 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
 
   useEffect(() => { load(); }, [load]);
 
-  const connect = async (platform: SocialPlatform) => {
+  const connect = async (platform: ConnectPlatform) => {
     setBusy(platform);
     setNotice(null);
     try {
@@ -117,7 +123,7 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
   const openAutomation = openId === NEW_AUTOMATION ? null : automations.find((a) => a.id === openId) ?? null;
   const accountName = (id: string) => {
     const account = accounts.find((a) => a.id === id);
-    return account ? `${account.platform === 'instagram' ? 'Instagram' : 'Facebook'} · ${account.username ?? account.displayName ?? ''}` : '';
+    return account ? `${PLATFORM_NAME[account.platform]} · ${account.username ?? account.displayName ?? ''}` : '';
   };
 
   return (
@@ -173,6 +179,10 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
         </div>
         <button type="button" onClick={() => onNavigate?.('receptionist')} className={ADMIN_SECONDARY_BUTTON}>{t.openInbox}</button>
       </section>
+
+      {hasLocalSeo && (
+        <LocalSeoSection isConnected={hasGoogle} isConnecting={busy === 'googlebusiness'} bookingUrl={bookingUrl} onConnect={() => connect('googlebusiness')} />
+      )}
 
       <section className="space-y-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">

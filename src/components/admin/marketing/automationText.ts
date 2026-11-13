@@ -4,6 +4,7 @@ import type { StarterText } from './marketingApi';
 type AutomationText = {
   sectionTitle: string; sectionHint: string;
   birthdayTitle: string; birthdayHint: string; winbackTitle: string; winbackHint: string;
+  reviewTitle: string; reviewHint: string; reviewAfter: string; reviewSameDay: string; reviewAfterOption: string; reviewScheduleHint: string;
   specialTitle: string; specialHint: string; newSpecialDay: string; noSpecialDays: string;
   on: string; off: string; edit: string; setUp: string; birthdaysKnown: string; pendingOptIns: string;
   promotionsTitle: string;
@@ -18,6 +19,9 @@ export const AUTOMATION_TEXT: Translations<AutomationText> = {
     sectionTitle: 'Automatic emails', sectionHint: 'Switch on once; Zenno checks every morning who should get them.',
     birthdayTitle: 'Birthday', birthdayHint: 'A greeting (and a little gift) on the customer\'s birthday.',
     winbackTitle: 'We miss you', winbackHint: 'For customers who haven\'t been back for a while and have nothing booked.',
+    reviewTitle: 'Google review request', reviewHint: 'After a visit, guests get a short thank-you with the link to review you on Google.',
+    reviewAfter: 'Send', reviewSameDay: 'On the day of the visit', reviewAfterOption: '{days} day(s) after the visit',
+    reviewScheduleHint: 'Each guest is asked once. Only newsletter subscribers get it (in Germany a review request counts as advertising).',
     specialTitle: 'Special days', specialHint: 'Valentine\'s Day, Mother\'s Day, Christmas: one email on the date you pick.',
     newSpecialDay: 'New special day', noSpecialDays: 'No special day planned yet.',
     on: 'On', off: 'Off', edit: 'Edit', setUp: 'Set up', birthdaysKnown: '{count} customers with a birthday on file',
@@ -35,6 +39,9 @@ export const AUTOMATION_TEXT: Translations<AutomationText> = {
     sectionTitle: 'Automatische E-Mails', sectionHint: 'Einmal einschalten; Zenno prüft jeden Morgen, wer sie bekommen soll.',
     birthdayTitle: 'Geburtstag', birthdayHint: 'Ein Gruß (und ein kleines Geschenk) am Geburtstag Ihrer Kunden.',
     winbackTitle: 'Wir vermissen Sie', winbackHint: 'Für Kunden, die länger nicht da waren und nichts gebucht haben.',
+    reviewTitle: 'Google-Bewertung erbitten', reviewHint: 'Nach dem Besuch bekommen Gäste ein kurzes Dankeschön mit dem Link zur Google-Bewertung.',
+    reviewAfter: 'Senden', reviewSameDay: 'Am Tag des Besuchs', reviewAfterOption: '{days} Tag(e) nach dem Besuch',
+    reviewScheduleHint: 'Jeder Gast wird einmal gefragt. Nur Newsletter-Abonnenten bekommen sie (eine Bewertungsbitte gilt in Deutschland als Werbung).',
     specialTitle: 'Besondere Tage', specialHint: 'Valentinstag, Muttertag, Weihnachten: eine E-Mail am Tag Ihrer Wahl.',
     newSpecialDay: 'Neuer besonderer Tag', noSpecialDays: 'Noch kein besonderer Tag geplant.',
     on: 'An', off: 'Aus', edit: 'Bearbeiten', setUp: 'Einrichten', birthdaysKnown: '{count} Kunden mit hinterlegtem Geburtstag',
@@ -52,6 +59,9 @@ export const AUTOMATION_TEXT: Translations<AutomationText> = {
     sectionTitle: 'อีเมลอัตโนมัติ', sectionHint: 'เปิดครั้งเดียว Zenno จะตรวจทุกเช้าว่าควรส่งถึงใคร',
     birthdayTitle: 'วันเกิด', birthdayHint: 'ส่งคำอวยพร (และของขวัญเล็ก ๆ) ในวันเกิดลูกค้า',
     winbackTitle: 'คิดถึงคุณ', winbackHint: 'สำหรับลูกค้าที่ไม่ได้มานานและยังไม่มีนัด',
+    reviewTitle: 'ขอรีวิว Google', reviewHint: 'หลังการเข้ารับบริการ ลูกค้าจะได้รับคำขอบคุณสั้น ๆ พร้อมลิงก์รีวิวบน Google',
+    reviewAfter: 'ส่ง', reviewSameDay: 'ในวันที่มารับบริการ', reviewAfterOption: '{days} วันหลังมารับบริการ',
+    reviewScheduleHint: 'ลูกค้าแต่ละคนจะได้รับครั้งเดียว และส่งเฉพาะผู้สมัครรับจดหมายข่าว (ในเยอรมนี การขอรีวิวถือเป็นการโฆษณา)',
     specialTitle: 'วันพิเศษ', specialHint: 'วาเลนไทน์ วันแม่ คริสต์มาส: ส่งอีเมลหนึ่งฉบับในวันที่คุณเลือก',
     newSpecialDay: 'วันพิเศษใหม่', noSpecialDays: 'ยังไม่มีวันพิเศษ',
     on: 'เปิด', off: 'ปิด', edit: 'แก้ไข', setUp: 'ตั้งค่า', birthdaysKnown: 'ลูกค้า {count} คนมีข้อมูลวันเกิด',
@@ -67,7 +77,7 @@ export const AUTOMATION_TEXT: Translations<AutomationText> = {
   },
 };
 
-export type StarterKind = 'birthday' | 'winback' | 'special_day';
+export type StarterKind = 'birthday' | 'winback' | 'special_day' | 'review_request';
 
 /** Ready-to-edit first version of each automatic email, in the admin's language. */
 export const AUTOMATION_STARTERS: Record<'en' | 'de' | 'th', Record<StarterKind, StarterText>> = {
@@ -75,15 +85,18 @@ export const AUTOMATION_STARTERS: Record<'en' | 'de' | 'th', Record<StarterKind,
     birthday: { subject: 'Happy birthday, {vorname}!', headline: 'Happy birthday!', text: 'Hello {vorname},\n\nall the best for your birthday! Treat yourself to some time out with us. As a little gift, mention this email at your next visit.', button: 'Book now' },
     winback: { subject: 'We miss you, {vorname}', headline: 'Time for a break?', text: 'Hello {vorname},\n\nit\'s been a while since your last visit. We\'d love to see you again. Book your next appointment in just a few clicks.', button: 'Book an appointment' },
     special_day: { subject: 'A special gift idea', headline: 'Give some relaxation', text: 'Hello {vorname},\n\nlooking for a gift? A voucher from us is always a good idea.', button: 'Buy a voucher' },
+    review_request: { subject: 'Thank you for your visit, {vorname}', headline: 'How was your visit?', text: 'Hello {vorname},\n\nthank you for visiting us! If you enjoyed it, a short review on Google would mean a lot to us and helps others find us.', button: 'Write a review' },
   },
   de: {
     birthday: { subject: 'Alles Gute zum Geburtstag, {vorname}!', headline: 'Alles Gute zum Geburtstag!', text: 'Hallo {vorname},\n\nwir wünschen Ihnen alles Liebe zum Geburtstag! Gönnen Sie sich eine Auszeit bei uns. Als kleines Geschenk: Zeigen Sie diese E-Mail bei Ihrem nächsten Besuch.', button: 'Jetzt buchen' },
     winback: { subject: 'Wir vermissen Sie, {vorname}', headline: 'Zeit für eine Auszeit?', text: 'Hallo {vorname},\n\nIhr letzter Besuch ist schon eine Weile her. Wir würden uns freuen, Sie wiederzusehen. Ihren nächsten Termin buchen Sie mit wenigen Klicks.', button: 'Termin buchen' },
     special_day: { subject: 'Eine besondere Geschenkidee', headline: 'Entspannung verschenken', text: 'Hallo {vorname},\n\nSie suchen noch ein Geschenk? Ein Gutschein von uns kommt immer gut an.', button: 'Gutschein kaufen' },
+    review_request: { subject: 'Danke für Ihren Besuch, {vorname}', headline: 'Wie war Ihr Besuch?', text: 'Hallo {vorname},\n\nvielen Dank, dass Sie bei uns waren! Wenn es Ihnen gefallen hat, freuen wir uns sehr über eine kurze Bewertung bei Google. Sie hilft anderen, uns zu finden.', button: 'Bewertung schreiben' },
   },
   th: {
     birthday: { subject: 'Alles Gute zum Geburtstag, {vorname}!', headline: 'Alles Gute zum Geburtstag!', text: 'Hallo {vorname},\n\nwir wünschen Ihnen alles Liebe zum Geburtstag! Gönnen Sie sich eine Auszeit bei uns.', button: 'Jetzt buchen' },
     winback: { subject: 'Wir vermissen Sie, {vorname}', headline: 'Zeit für eine Auszeit?', text: 'Hallo {vorname},\n\nIhr letzter Besuch ist schon eine Weile her. Wir würden uns freuen, Sie wiederzusehen.', button: 'Termin buchen' },
     special_day: { subject: 'Eine besondere Geschenkidee', headline: 'Entspannung verschenken', text: 'Hallo {vorname},\n\nSie suchen noch ein Geschenk? Ein Gutschein von uns kommt immer gut an.', button: 'Gutschein kaufen' },
+    review_request: { subject: 'Danke für Ihren Besuch, {vorname}', headline: 'Wie war Ihr Besuch?', text: 'Hallo {vorname},\n\nvielen Dank, dass Sie bei uns waren! Wenn es Ihnen gefallen hat, freuen wir uns sehr über eine kurze Bewertung bei Google.', button: 'Bewertung schreiben' },
   },
 };

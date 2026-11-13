@@ -1,10 +1,12 @@
 import { adminAccessToken } from '../../../lib/functionAuth';
 
 export type SocialPlatform = 'instagram' | 'facebook';
+/** Accounts a shop can connect: Instagram/Facebook (DMs, comments) and Google Business Profile (local SEO). */
+export type ConnectPlatform = SocialPlatform | 'googlebusiness';
 
 export interface SocialAccount {
   id: string;
-  platform: SocialPlatform;
+  platform: ConnectPlatform;
   username: string | null;
   displayName: string | null;
   pictureUrl: string | null;
@@ -42,7 +44,7 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}): P
   return data as T;
 }
 
-export const loadStatus = () => call<{ hasSocial: boolean; accounts: SocialAccount[] }>('status');
+export const loadStatus = () => call<{ hasSocial: boolean; hasLocalSeo: boolean; accounts: SocialAccount[] }>('status');
 export const syncAccounts = () => call<{ accounts: SocialAccount[] }>('sync');
 export const disconnectAccount = (accountId: string) => call<{ accounts: SocialAccount[] }>('disconnect', { accountId });
 export const loadAutomations = () => call<{ automations: Automation[] }>('automations');
@@ -50,8 +52,8 @@ export const saveAutomation = (id: string | null, draft: AutomationDraft) =>
   call<{ automation: Automation }>('save_automation', { ...(id ? { id } : {}), ...draft });
 export const deleteAutomation = (id: string) => call<{ deleted: boolean }>('delete_automation', { id });
 
-/** Opens Instagram's or Facebook's own consent page; it returns to ?view=social&connected=… */
-export async function startConnect(platform: SocialPlatform): Promise<void> {
+/** Opens Instagram's, Facebook's or Google's own consent page; it returns to ?view=social&connected=… */
+export async function startConnect(platform: ConnectPlatform): Promise<void> {
   const { url } = await call<{ url: string }>('connect', { platform });
   window.location.href = url;
 }

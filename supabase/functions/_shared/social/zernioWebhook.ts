@@ -12,6 +12,12 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = ["instagram", "facebook"];
 export const isSocialPlatform = (value: unknown): value is SocialPlatform =>
   typeof value === "string" && (SOCIAL_PLATFORMS as string[]).includes(value);
 
+/** Accounts a shop can connect: the DM platforms plus Google Business Profile (reviews, posts, listing). */
+export type ConnectPlatform = SocialPlatform | "googlebusiness";
+export const CONNECT_PLATFORMS: ConnectPlatform[] = [...SOCIAL_PLATFORMS, "googlebusiness"];
+export const isConnectPlatform = (value: unknown): value is ConnectPlatform =>
+  typeof value === "string" && (CONNECT_PLATFORMS as string[]).includes(value);
+
 const toHex = (buffer: ArrayBuffer) => [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -41,7 +47,7 @@ export interface SocialAccountEvent {
   businessId: string | null;
   profileId: string | null;
   accountId: string;
-  platform: SocialPlatform;
+  platform: ConnectPlatform;
   username: string | null;
   displayName: string | null;
 }
@@ -80,7 +86,7 @@ export function parseZernioEvent(payload: unknown): SocialEvent {
   const event = str(body.event) ?? "";
   const account = obj(body.account);
   const platform = str(account.platform) ?? str(obj(body.message).platform);
-  if (!isSocialPlatform(platform)) return { kind: "ignore", reason: `platform ${platform ?? "none"}` };
+  if (!isConnectPlatform(platform)) return { kind: "ignore", reason: `platform ${platform ?? "none"}` };
   const accountId = str(account.accountId) ?? str(account.id);
   if (!accountId) return { kind: "ignore", reason: "no account id" };
 
@@ -98,6 +104,7 @@ export function parseZernioEvent(payload: unknown): SocialEvent {
   }
 
   if (event !== "message.received") return { kind: "ignore", reason: `event ${event || "none"}` };
+  if (!isSocialPlatform(platform)) return { kind: "ignore", reason: `no DMs on ${platform}` };
   const message = obj(body.message);
   if (str(message.direction) && str(message.direction) !== "incoming" && str(message.direction) !== "inbound") {
     return { kind: "ignore", reason: "outgoing message" };

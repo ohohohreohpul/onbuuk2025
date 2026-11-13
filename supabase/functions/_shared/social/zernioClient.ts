@@ -1,12 +1,13 @@
 /**
  * Zernio REST client (https://zernio.com/api/v1). One platform API key
  * (ZERNIO_API_KEY) for all shops; each shop is a Zernio profile whose externalId
- * is the Zenno business id.
+ * is the Zenno business id. ZERNIO_BASE_URL overrides the endpoint (staging
+ * points it at the zernio-mock function).
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import type { SocialPlatform } from "./zernioWebhook.ts";
+import { isConnectPlatform, type ConnectPlatform } from "./zernioWebhook.ts";
 
-const BASE_URL = "https://zernio.com/api/v1";
+const DEFAULT_BASE_URL = "https://zernio.com/api/v1";
 const TIMEOUT_MS = 15_000;
 
 export class ZernioError extends Error {
@@ -18,7 +19,8 @@ export class ZernioError extends Error {
 export async function zernio<T>(path: string, init: { method?: string; body?: unknown; query?: Record<string, string> } = {}): Promise<T> {
   const key = Deno.env.get("ZERNIO_API_KEY") ?? "";
   if (!key) throw new ZernioError("Social is not set up yet (ZERNIO_API_KEY missing)", 503);
-  const url = new URL(`${BASE_URL}${path}`);
+  const baseUrl = (Deno.env.get("ZERNIO_BASE_URL") || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const url = new URL(`${baseUrl}${path}`);
   for (const [name, value] of Object.entries(init.query ?? {})) url.searchParams.set(name, value);
   const response = await fetch(url, {
     method: init.method ?? "GET",
@@ -70,16 +72,16 @@ interface ZernioAccount {
   isActive?: boolean;
 }
 
-/** Mirror the profile's Instagram/Facebook accounts into social_accounts. */
+/** Mirror the profile's Instagram, Facebook and Google Business Profile accounts into social_accounts. */
 export async function syncAccounts(supabase: SupabaseClient, businessId: string, profileId: string): Promise<void> {
   const { accounts } = await zernio<{ accounts: ZernioAccount[] }>("/accounts", { query: { profileId } });
-  const social = (accounts ?? []).filter((a) => a.platform === "instagram" || a.platform === "facebook");
+  const social = (accounts ?? []).filter((a) => isConnectPlatform(a.platform));
   const ids = social.map((a) => a._id);
   if (social.length) {
     const { error } = await supabase.from("social_accounts").upsert(social.map((a) => ({
       business_id: businessId,
       zernio_account_id: a._id,
-      platform: a.platform as SocialPlatform,
+      platform: a.platform as ConnectPlatform,
       username: a.username?.slice(0, 200) ?? null,
       display_name: a.displayName?.slice(0, 200) ?? null,
       picture_url: a.profilePicture?.slice(0, 2000) ?? null,

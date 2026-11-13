@@ -4,6 +4,8 @@ import { handleInbound } from "../_shared/receptionist/agent.ts";
 import { upsertConversation, updateConversation } from "../_shared/receptionist/conversations.ts";
 import { makeDeliver } from "../_shared/receptionist/deliver.ts";
 import type { ReceptionistSettings } from "../_shared/receptionist/shopContext.ts";
+import { parseReviewWebhook, type ReviewWebhookEvent } from "../_shared/social/gbp.ts";
+import { autoReplyIfEligible, loadGbpSettings, upsertReview } from "../_shared/social/gbpService.ts";
 import {
   parseZernioEvent, verifyZernioSignature, type SocialAccountEvent, type SocialMessageEvent,
 } from "../_shared/social/zernioWebhook.ts";
@@ -13,6 +15,9 @@ import {
 //                         (only while the shop has the Social plan)
 //   account.connected     mirror the account into social_accounts
 //   account.disconnected  mark it inactive
+//   review.new / review.updated / review.restored
+//                         Google review -> gbp_reviews, auto-reply 4–5 stars if the shop
+//                         switched it on (only with local SEO)
 // Answers 200 right away; the agent runs in the background (Zernio retries slow webhooks).
 
 type Client = ReturnType<typeof publicServiceClient>;
@@ -83,6 +88,22 @@ async function handleMessage(supabase: Client, event: SocialMessageEvent): Promi
   }, makeDeliver(supabase, settings));
 }
 
+async function handleReview(supabase: Client, event: ReviewWebhookEvent): Promise<void> {
+  const { data: account } = await supabase.from("social_accounts").select("business_id")
+    .eq("zernio_account_id", event.accountId).eq("platform", "googlebusiness").maybeSingle();
+  const businessId = account?.business_id as string | undefined;
+  if (!businessId) {
+    console.warn(`social-webhook: review for account ${event.accountId} belongs to no Zenno shop`);
+    return;
+  }
+  const { data: allowed, error } = await supabase.rpc("business_has_local_seo", { p_business_id: businessId });
+  if (error) throw new Error(`plan check failed: ${error.message}`);
+  if (allowed !== true) return;
+  const row = await upsertReview(supabase, businessId, event.accountId, event.review);
+  const settings = await loadGbpSettings(supabase, businessId);
+  await autoReplyIfEligible(supabase, businessId, row, settings);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const raw = await req.text();
@@ -99,6 +120,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabase = publicServiceClient();
+  const review = parseReviewWebhook(payload);
+  if (review) {
+    EdgeRuntime.waitUntil(handleReview(supabase, review).catch((error) => console.error("social-webhook: review failed", error)));
+    return ok();
+  }
   const event = parseZernioEvent(payload);
   if (event.kind === "ignore") return ok();
   const work = event.kind === "account" ? handleAccount(supabase, event) : handleMessage(supabase, event);
