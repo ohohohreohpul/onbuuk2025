@@ -9,6 +9,7 @@ const DAYS = Array.from({ length: 28 }, (_, index) => index + 1);
 const HOURS = Array.from({ length: 16 }, (_, index) => index + 6);
 const DAYS_BEFORE_OPTIONS = [0, 1, 3, 7, 14];
 const WINBACK_OPTIONS = [30, 45, 60, 90, 120, 180, 365];
+const REVIEW_AFTER_OPTIONS = [0, 1, 2, 3, 7];
 
 interface ScheduleFieldsProps {
   draft: CampaignDraft;
@@ -56,10 +57,19 @@ export default function ScheduleFields({ draft, nextSend, update }: ScheduleFiel
         </select>
       </label>
     ),
+    review_request: (
+      <label><span className="mb-1 block text-xs text-stone-500">{a.reviewAfter}</span>
+        <select value={draft.days_after} onChange={(e) => update({ days_after: Number(e.target.value) })} className={ADMIN_SELECT}>
+          {REVIEW_AFTER_OPTIONS.map((days) => <option key={days} value={days}>{days === 0 ? a.reviewSameDay : fillText(a.reviewAfterOption, { days })}</option>)}
+        </select>
+      </label>
+    ),
   }[draft.kind];
 
-  const toggleLabel = { monthly: t.monthlyOn, special_day: a.specialOn, birthday: a.automationOn, winback: a.automationOn }[draft.kind];
-  const hint = { monthly: t.monthlyHint, special_day: a.specialScheduleHint, birthday: a.birthdayScheduleHint, winback: a.winbackScheduleHint }[draft.kind];
+  const toggleLabel = { monthly: t.monthlyOn, special_day: a.specialOn, birthday: a.automationOn, winback: a.automationOn, review_request: a.automationOn }[draft.kind];
+  const hint = {
+    monthly: t.monthlyHint, special_day: a.specialScheduleHint, birthday: a.birthdayScheduleHint, winback: a.winbackScheduleHint, review_request: a.reviewScheduleHint,
+  }[draft.kind];
 
   return (
     <fieldset className="space-y-3">

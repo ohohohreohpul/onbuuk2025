@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Facebook, Instagram, Loader2, MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { Facebook, Instagram, KeyRound, Loader2, MapPin, MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { adminAuth } from '../../../lib/adminAuth';
 import { useTenant } from '../../../lib/tenantContext';
 import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
@@ -8,12 +9,16 @@ import { ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_
 import { SOCIAL_TEXT } from './socialText';
 import {
   disconnectAccount, loadAutomations, loadStatus, PlanRequiredError, startConnect, syncAccounts,
-  type Automation, type SocialAccount, type SocialPlatform,
+  type Automation, type ConnectPlatform, type SocialAccount,
 } from './socialApi';
 import AutomationModal from './AutomationModal';
+import LocalSeoSection from './LocalSeoSection';
+import OwnZernioModal from './OwnZernioModal';
+import { OWN_ZERNIO_TEXT } from './ownZernioText';
 
 const NEW_AUTOMATION = 'new';
-const PLATFORM_ICON = { instagram: Instagram, facebook: Facebook } as const;
+const PLATFORM_ICON = { instagram: Instagram, facebook: Facebook, googlebusiness: MapPin } as const;
+const PLATFORM_NAME = { instagram: 'Instagram', facebook: 'Facebook', googlebusiness: 'Google' } as const;
 
 /** Reads ?connected=… once after the Instagram/Facebook consent page, then cleans the address. */
 function consumeConnectedFlag(): boolean {
@@ -33,19 +38,28 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
   const { subdomain, customDomain } = useTenant();
   const { t } = useAdminText(SOCIAL_TEXT);
   const [hasSocial, setHasSocial] = useState<boolean | null>(null);
+  const [hasLocalSeo, setHasLocalSeo] = useState(false);
+  const [ownZernio, setOwnZernio] = useState(false);
+  const [isZernioOpen, setIsZernioOpen] = useState(false);
+  const { t: z } = useAdminText(OWN_ZERNIO_TEXT);
+  const isOwner = adminAuth.getCurrentUser()?.role === 'owner';
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const bookingUrl = customDomain ? hostUrl(customDomain) : subdomain ? shopUrl(subdomain) : '';
-  const activeAccounts = accounts.filter((a) => a.isActive);
+  // Comment-to-DM runs on Instagram/Facebook only; Google has its own section.
+  const activeAccounts = accounts.filter((a) => a.isActive && a.platform !== 'googlebusiness');
+  const hasGoogle = accounts.some((a) => a.isActive && a.platform === 'googlebusiness');
 
   const load = useCallback(async () => {
     try {
       const isReturning = consumeConnectedFlag();
       const status = await loadStatus();
       setHasSocial(status.hasSocial);
+      setHasLocalSeo(status.hasLocalSeo === true);
+      setOwnZernio(status.ownZernio === true);
       if (!status.hasSocial) return;
       // Coming back from the consent page: pull the new account from Zernio first.
       const synced = isReturning ? (await syncAccounts()).accounts : status.accounts;
@@ -64,7 +78,7 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
 
   useEffect(() => { load(); }, [load]);
 
-  const connect = async (platform: SocialPlatform) => {
+  const connect = async (platform: ConnectPlatform) => {
     setBusy(platform);
     setNotice(null);
     try {
@@ -117,7 +131,7 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
   const openAutomation = openId === NEW_AUTOMATION ? null : automations.find((a) => a.id === openId) ?? null;
   const accountName = (id: string) => {
     const account = accounts.find((a) => a.id === id);
-    return account ? `${account.platform === 'instagram' ? 'Instagram' : 'Facebook'} · ${account.username ?? account.displayName ?? ''}` : '';
+    return account ? `${PLATFORM_NAME[account.platform]} · ${account.username ?? account.displayName ?? ''}` : '';
   };
 
   return (
@@ -131,7 +145,12 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
             <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{t.accounts}</h2>
             <p className="mt-0.5 text-sm text-stone-500">{t.accountsHint}</p>
           </div>
-          <span className="flex gap-2">
+          <span className="flex flex-wrap gap-2">
+            {isOwner && (
+              <button type="button" onClick={() => setIsZernioOpen(true)} className={ADMIN_TERTIARY_BUTTON}>
+                <KeyRound className="h-4 w-4" /> {z.button}{ownZernio ? ' ✓' : ''}
+              </button>
+            )}
             {(['instagram', 'facebook'] as const).map((platform) => {
               const Icon = PLATFORM_ICON[platform];
               return (
@@ -174,6 +193,10 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
         <button type="button" onClick={() => onNavigate?.('receptionist')} className={ADMIN_SECONDARY_BUTTON}>{t.openInbox}</button>
       </section>
 
+      {hasLocalSeo && (
+        <LocalSeoSection isConnected={hasGoogle} isConnecting={busy === 'googlebusiness'} bookingUrl={bookingUrl} onConnect={() => connect('googlebusiness')} />
+      )}
+
       <section className="space-y-3">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
@@ -207,6 +230,15 @@ export default function SocialView({ onNavigate }: SocialViewProps) {
           ))}
         </ul>
       </section>
+
+      {isZernioOpen && (
+        <OwnZernioModal
+          ownZernio={ownZernio}
+          hasActiveAccounts={accounts.some((a) => a.isActive)}
+          onClose={() => setIsZernioOpen(false)}
+          onChanged={(isOwn, next) => { setOwnZernio(isOwn); setAccounts(next); }}
+        />
+      )}
 
       {openId && (
         <AutomationModal

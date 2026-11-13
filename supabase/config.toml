@@ -343,3 +343,15 @@ verify_jwt = false
 
 [functions.social-webhook]
 verify_jwt = false
+
+[functions.local-seo-admin]
+# Checks the admin JWT in code (requireActiveAdmin), like social-admin.
+verify_jwt = false
+
+[functions.local-seo-sync]
+# Cron calls it with x-cron-secret.
+verify_jwt = false
+
+[functions.zernio-mock]
+# STAGING ONLY: answers only on zenno-staging, to the staging Zernio/AI keys.
+verify_jwt = false
