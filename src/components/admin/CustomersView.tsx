@@ -10,7 +10,7 @@ import { fillText, Translations } from '../../lib/bookingLanguage';
 import { ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE } from './adminUi';
 import TidyUpPanel from './customers/tidyUp/TidyUpPanel';
 import { findDuplicateGroups } from './customers/tidyUp/duplicateGroups';
-import { loadDismissedPairs } from './customers/tidyUp/tidyUpApi';
+import { loadCustomerAliases, loadDismissedPairs } from './customers/tidyUp/tidyUpApi';
 import { TIDY_UP_TEXT } from './customers/tidyUp/tidyUpText';
 
 interface CustomerRow {
@@ -21,7 +21,7 @@ interface CustomerRow {
   blocked_at: string | null;
 }
 
-type Customer = CustomerRow & Omit<CustomerStats, 'customer_id'>;
+type Customer = CustomerRow & Omit<CustomerStats, 'customer_id'> & { extraEmails: string[]; extraPhones: string[] };
 
 const TEXT: Translations<{
   title: string; subtitle: string; totalCustomers: string; spentOnVisits: string; loadError: string;
@@ -101,16 +101,24 @@ export default function CustomersView() {
     if (!businessId) return;
 
     try {
-      const [{ data, error }, statsById, dismissed] = await Promise.all([
+      const [{ data, error }, statsById, dismissed, aliasesById] = await Promise.all([
         supabase.from('customers').select('id, email, name, phone, blocked_at').eq('business_id', businessId),
         fetchCustomerStatsForBusiness(businessId),
         loadDismissedPairs(businessId),
+        loadCustomerAliases(businessId),
       ]);
       if (error) throw error;
       setDismissedPairs(dismissed);
 
       const merged = ((data || []) as CustomerRow[])
-        .map((row) => ({ ...row, ...EMPTY_CUSTOMER_STATS, ...statsById.get(row.id) }))
+        .map((row) => {
+          const aliases = aliasesById.get(row.id) ?? [];
+          return {
+            ...row, ...EMPTY_CUSTOMER_STATS, ...statsById.get(row.id),
+            extraEmails: aliases.filter((alias) => alias.kind === 'email').map((alias) => alias.value),
+            extraPhones: aliases.filter((alias) => alias.kind === 'phone').map((alias) => alias.value),
+          };
+        })
         .sort((a, b) => b.visits_count - a.visits_count || b.total_count - a.total_count);
       setCustomers(merged);
       setHasLoadError(false);
@@ -132,7 +140,10 @@ export default function CustomersView() {
       (c) =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.phone && c.phone.includes(searchTerm))
+        (c.phone && c.phone.includes(searchTerm)) ||
+        // "Also known as": earlier emails and numbers find the customer too.
+        c.extraEmails.some((email) => email.includes(searchTerm.toLowerCase())) ||
+        c.extraPhones.some((phone) => phone.includes(searchTerm))
     );
 
     setFilteredCustomers(filtered);

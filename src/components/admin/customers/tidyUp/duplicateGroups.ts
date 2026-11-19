@@ -10,6 +10,9 @@ export interface TidyCustomer {
   email: string;
   phone: string | null;
   blocked_at?: string | null;
+  /** "Also known as": emails and phone numbers remembered from earlier merges. */
+  extraEmails?: string[];
+  extraPhones?: string[];
 }
 
 export type DuplicateReason = 'email' | 'phone' | 'name';
@@ -61,16 +64,17 @@ export function findDuplicateGroups(customers: TidyCustomer[], dismissedPairs: S
   };
   const edgeReasons = new Map<string, Set<DuplicateReason>>();
 
-  const signals: [DuplicateReason, (customer: TidyCustomer) => string | null][] = [
-    ['email', (customer) => emailKey(customer.email)],
-    ['phone', (customer) => phoneKey(customer.phone)],
-    ['name', (customer) => nameKey(customer.name)],
+  const keys = (values: (string | null | undefined)[], keyOf: (value: string | null | undefined) => string | null) =>
+    [...new Set(values.map(keyOf).filter((key): key is string => Boolean(key)))];
+  const signals: [DuplicateReason, (customer: TidyCustomer) => string[]][] = [
+    ['email', (customer) => keys([customer.email, ...(customer.extraEmails ?? [])], emailKey)],
+    ['phone', (customer) => keys([customer.phone, ...(customer.extraPhones ?? [])], phoneKey)],
+    ['name', (customer) => keys([customer.name], nameKey)],
   ];
   for (const [reason, keyOf] of signals) {
     const buckets = new Map<string, string[]>();
     for (const customer of customers) {
-      const key = keyOf(customer);
-      if (key) buckets.set(key, [...(buckets.get(key) ?? []), customer.id]);
+      for (const key of keyOf(customer)) buckets.set(key, [...(buckets.get(key) ?? []), customer.id]);
     }
     for (const ids of buckets.values()) {
       if (ids.length < 2 || ids.length > MAX_BUCKET) continue;

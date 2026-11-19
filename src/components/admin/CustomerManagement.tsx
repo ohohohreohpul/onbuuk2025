@@ -6,6 +6,7 @@ import { EMPTY_CUSTOMER_STATS, fetchCustomerStats, type CustomerStats } from '..
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 import CustomerBlockSection from './customers/CustomerBlockSection';
+import AlsoKnownAs from './customers/AlsoKnownAs';
 
 interface Customer {
   id: string;
@@ -289,6 +290,7 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
         </div>
 
         <CustomerBlockSection customer={customer} onChanged={fetchCustomerData} />
+        <AlsoKnownAs businessId={customer.business_id} customerId={customer.id} onChanged={fetchCustomerData} />
 
         <div className="flex-1 flex overflow-hidden">
           <div className="w-64 border-r border-stone-200 p-4 space-y-2">

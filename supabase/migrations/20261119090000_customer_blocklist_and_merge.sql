@@ -10,7 +10,8 @@
   Merge ("aliases, no rewrite")
   - merge_customers() keeps one customer, moves everything that points at the
     others (notes, loyalty, gift cards, consents, ...) and remembers their
-    emails in customer_email_aliases. Old bookings keep the email they were
+    emails and phone numbers in customer_email_aliases / customer_phone_aliases
+    ("also known as"). Old bookings keep the email they were
     made with (GoBD); stats and new bookings find the kept customer via the
     aliases, so the duplicate does not come back.
   - customer_duplicate_dismissals: groups the shop marked "not the same person".
@@ -36,6 +37,18 @@ CREATE TABLE IF NOT EXISTS public.customer_email_aliases (
 );
 CREATE INDEX IF NOT EXISTS idx_customer_email_aliases_customer ON public.customer_email_aliases(customer_id);
 
+-- Other phone numbers of a merged customer ("also known as"). Not unique per shop:
+-- family members may share a number.
+CREATE TABLE IF NOT EXISTS public.customer_phone_aliases (
+  customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+  business_id uuid NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  phone_key text NOT NULL,
+  phone text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (customer_id, phone_key)
+);
+CREATE INDEX IF NOT EXISTS idx_customer_phone_aliases_lookup ON public.customer_phone_aliases(business_id, phone_key);
+
 CREATE TABLE IF NOT EXISTS public.customer_duplicate_dismissals (
   business_id uuid NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
   customer_a uuid NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
@@ -47,12 +60,16 @@ CREATE TABLE IF NOT EXISTS public.customer_duplicate_dismissals (
 );
 
 ALTER TABLE public.customer_email_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_phone_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_duplicate_dismissals ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.customer_email_aliases, public.customer_duplicate_dismissals FROM anon;
-REVOKE INSERT, UPDATE, DELETE ON public.customer_email_aliases, public.customer_duplicate_dismissals FROM authenticated;
+REVOKE ALL ON public.customer_email_aliases, public.customer_phone_aliases, public.customer_duplicate_dismissals FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON public.customer_email_aliases, public.customer_phone_aliases, public.customer_duplicate_dismissals FROM authenticated;
 
 DROP POLICY IF EXISTS "Admins read own customer aliases" ON public.customer_email_aliases;
 CREATE POLICY "Admins read own customer aliases" ON public.customer_email_aliases
+  FOR SELECT TO authenticated USING (business_id = get_admin_business_id());
+DROP POLICY IF EXISTS "Admins read own customer phone aliases" ON public.customer_phone_aliases;
+CREATE POLICY "Admins read own customer phone aliases" ON public.customer_phone_aliases
   FOR SELECT TO authenticated USING (business_id = get_admin_business_id());
 DROP POLICY IF EXISTS "Admins read own duplicate dismissals" ON public.customer_duplicate_dismissals;
 CREATE POLICY "Admins read own duplicate dismissals" ON public.customer_duplicate_dismissals
@@ -98,7 +115,10 @@ AS $$
     SELECT 1 FROM public.customers c
      WHERE c.business_id = p_business_id AND c.blocked_at IS NOT NULL
        AND (c.id = private.customer_id_for_email(p_business_id, p_email)
-            OR (private.phone_key(p_phone) IS NOT NULL AND private.phone_key(c.phone) = private.phone_key(p_phone)))
+            OR (private.phone_key(p_phone) IS NOT NULL AND (
+                  private.phone_key(c.phone) = private.phone_key(p_phone)
+                  OR EXISTS (SELECT 1 FROM public.customer_phone_aliases pa
+                              WHERE pa.customer_id = c.id AND pa.phone_key = private.phone_key(p_phone)))))
   )
 $$;
 
@@ -339,6 +359,31 @@ $function$;
 REVOKE ALL ON FUNCTION public.dismiss_customer_duplicates(uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.dismiss_customer_duplicates(uuid[]) TO authenticated;
 
+-- "Also known as": the shop removes an email or phone that does not belong to this customer.
+-- A removed email no longer finds this customer; its next booking creates its own customer.
+CREATE OR REPLACE FUNCTION public.remove_customer_alias(p_customer_id uuid, p_kind text, p_key text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $function$
+DECLARE
+  v_business_id uuid;
+BEGIN
+  SELECT business_id INTO v_business_id FROM public.customers WHERE id = p_customer_id;
+  IF v_business_id IS NULL OR NOT private.is_business_admin(v_business_id) THEN
+    RAISE EXCEPTION 'Customer not found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_kind = 'email' THEN
+    DELETE FROM public.customer_email_aliases WHERE customer_id = p_customer_id AND email_key = p_key;
+  ELSIF p_kind = 'phone' THEN
+    DELETE FROM public.customer_phone_aliases WHERE customer_id = p_customer_id AND phone_key = p_key;
+  ELSE
+    RAISE EXCEPTION 'Kind must be email or phone' USING ERRCODE = '22023';
+  END IF;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.remove_customer_alias(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.remove_customer_alias(uuid, text, text) TO authenticated;
+
 -- 10. Merge ------------------------------------------------------------------------------------
 /*
   Keeps p_keep_id, folds p_other_ids into it and deletes them.
@@ -366,6 +411,7 @@ DECLARE
   v_main_email text;
   v_fk record;
   v_left boolean;
+  v_keep_old_phone text;
 BEGIN
   IF p_other_ids IS NULL OR cardinality(p_other_ids) NOT BETWEEN 1 AND 19 OR p_keep_id = ANY(p_other_ids) THEN
     RAISE EXCEPTION 'Choose the customer to keep and 1 to 19 others' USING ERRCODE = '22023';
@@ -391,6 +437,8 @@ BEGIN
   IF (SELECT count(DISTINCT user_id) FROM public.customers WHERE id = ANY(v_all) AND user_id IS NOT NULL) > 1 THEN
     RAISE EXCEPTION 'Two of these customers have their own login and cannot be merged' USING ERRCODE = 'P0001';
   END IF;
+
+  SELECT phone INTO v_keep_old_phone FROM public.customers WHERE id = p_keep_id;
 
   -- Fields of the kept customer: picked by the shop, else the stricter / known value.
   UPDATE public.customers k SET
@@ -466,6 +514,21 @@ BEGIN
   SELECT v_business_id, private.email_key(c.email), p_keep_id FROM public.customers c
    WHERE c.id = ANY(p_other_ids) AND private.email_key(c.email) IS NOT NULL
   ON CONFLICT (business_id, email_key) DO UPDATE SET customer_id = EXCLUDED.customer_id;
+
+  -- Remember the other phone numbers; the one the shop picked stays the main one.
+  INSERT INTO public.customer_phone_aliases (customer_id, business_id, phone_key, phone)
+  SELECT DISTINCT ON (private.phone_key(p.phone)) p_keep_id, v_business_id, private.phone_key(p.phone), btrim(p.phone)
+    FROM (
+      SELECT c.phone FROM public.customers c WHERE c.id = ANY(p_other_ids)
+      UNION ALL SELECT v_keep_old_phone
+      UNION ALL SELECT pa.phone FROM public.customer_phone_aliases pa WHERE pa.customer_id = ANY(p_other_ids)
+    ) p
+   WHERE private.phone_key(p.phone) IS NOT NULL
+     AND private.phone_key(p.phone) IS DISTINCT FROM private.phone_key(p_phone)
+  ON CONFLICT (customer_id, phone_key) DO NOTHING;
+  DELETE FROM public.customer_phone_aliases
+   WHERE customer_id = ANY(p_other_ids)
+      OR (customer_id = p_keep_id AND phone_key = private.phone_key(p_phone));
 
   -- Every other table that points at a customer moves to the kept one.
   FOR v_fk IN
