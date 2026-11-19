@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Receipt, Save } from 'lucide-react';
+import { Compass, Receipt, Save } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../lib/tenantContext';
-import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SELECT } from '../adminUi';
+import { ADMIN_INPUT, ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_SELECT } from '../adminUi';
+import { openInvoiceGuide } from '../invoiceGuide/invoiceSetup';
 import { useAdminText } from '../../../lib/adminLanguage';
 import type { Translations } from '../../../lib/bookingLanguage';
 
 const TEXT: Translations<{
   loadFailed: string; prefixInvalid: string; taxIdRequired: string; saveFailed: string; saved: string; title: string;
   intro: string; legalName: string; prefix: string; taxNumber: string; vatId: string; smallBusiness: string;
-  smallBusinessHelp: string; vatRate: string; vatStandard: string; vatReduced: string; footer: string; saving: string; save: string;
+  smallBusinessHelp: string; guide: string; vatRate: string; vatStandard: string; vatReduced: string; footer: string; saving: string; save: string;
 }> = {
   en: {
     loadFailed: 'Could not load the invoice settings.', prefixInvalid: 'Prefix: 1–10 letters, digits or dashes.',
     taxIdRequired: 'German invoices need a Steuernummer or a USt-IdNr.', saveFailed: 'Could not save. Please try again.',
     saved: 'Invoice settings saved.', title: 'Invoices',
-    intro: 'Printed on every invoice (Bookings › ⋯ › Invoice). Numbers run per year without gaps, e.g. RE-2026-0001; an issued invoice never changes.',
+    intro: 'Printed on every invoice (Bookings › ⋯ › Invoice). Numbers run per year without gaps, e.g. RE-2026-0001; an issued invoice never changes. Every invoice is a ZUGFeRD PDF with the E-Rechnung inside; for it, write your address in Store profile as “Street 1, 12345 City”.',
     legalName: 'Legal business name', prefix: 'Invoice number prefix', taxNumber: 'Steuernummer', vatId: 'USt-IdNr. (if you have one)',
-    smallBusiness: 'Kleinunternehmer (§ 19 UStG)', smallBusinessHelp: 'No VAT on invoices; the § 19 note is printed instead.',
+    smallBusiness: 'Kleinunternehmer (§ 19 UStG)', smallBusinessHelp: 'No VAT on invoices; the § 19 note is printed instead.', guide: 'E-invoice setup guide',
     vatRate: 'VAT rate on treatments', vatStandard: '19 % (standard)', vatReduced: '7 % (reduced)',
     footer: 'Footer (bank details, owner, register)', saving: 'Saving…', save: 'Save',
   },
@@ -25,9 +26,9 @@ const TEXT: Translations<{
     loadFailed: 'Rechnungseinstellungen konnten nicht geladen werden.', prefixInvalid: 'Präfix: 1–10 Buchstaben, Ziffern oder Bindestriche.',
     taxIdRequired: 'Deutsche Rechnungen brauchen eine Steuernummer oder eine USt-IdNr.', saveFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
     saved: 'Rechnungseinstellungen gespeichert.', title: 'Rechnungen',
-    intro: 'Steht auf jeder Rechnung (Buchungen › ⋯ › Rechnung). Die Nummern laufen pro Jahr lückenlos, z. B. RE-2026-0001; eine ausgestellte Rechnung wird nie geändert.',
+    intro: 'Steht auf jeder Rechnung (Buchungen › ⋯ › Rechnung). Die Nummern laufen pro Jahr lückenlos, z. B. RE-2026-0001; eine ausgestellte Rechnung wird nie geändert. Jede Rechnung ist ein ZUGFeRD-PDF mit der E-Rechnung darin; dafür die Adresse im Geschäftsprofil als „Straße 1, 12345 Ort“ eintragen.',
     legalName: 'Offizieller Firmenname', prefix: 'Präfix der Rechnungsnummer', taxNumber: 'Steuernummer', vatId: 'USt-IdNr. (falls vorhanden)',
-    smallBusiness: 'Kleinunternehmer (§ 19 UStG)', smallBusinessHelp: 'Keine Umsatzsteuer auf Rechnungen; stattdessen wird der Hinweis nach § 19 gedruckt.',
+    smallBusiness: 'Kleinunternehmer (§ 19 UStG)', smallBusinessHelp: 'Keine Umsatzsteuer auf Rechnungen; stattdessen wird der Hinweis nach § 19 gedruckt.', guide: 'Einrichtungshilfe E-Rechnung',
     vatRate: 'Umsatzsteuersatz auf Behandlungen', vatStandard: '19 % (Regelsatz)', vatReduced: '7 % (ermäßigt)',
     footer: 'Fußzeile (Bankverbindung, Inhaber, Register)', saving: 'Wird gespeichert…', save: 'Speichern',
   },
@@ -35,9 +36,9 @@ const TEXT: Translations<{
     loadFailed: 'โหลดการตั้งค่าใบแจ้งหนี้ไม่สำเร็จ', prefixInvalid: 'คำนำหน้า: ตัวอักษร ตัวเลข หรือขีด 1–10 ตัว',
     taxIdRequired: 'ใบแจ้งหนี้ในเยอรมนีต้องมีเลขประจำตัวผู้เสียภาษี (Steuernummer) หรือเลขภาษีมูลค่าเพิ่ม (USt-IdNr.)', saveFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง',
     saved: 'บันทึกการตั้งค่าใบแจ้งหนี้แล้ว', title: 'ใบแจ้งหนี้',
-    intro: 'พิมพ์บนใบแจ้งหนี้ทุกใบ (การจอง › ⋯ › ใบแจ้งหนี้) เลขที่เรียงต่อเนื่องรายปีไม่มีช่องว่าง เช่น RE-2026-0001 และใบแจ้งหนี้ที่ออกแล้วจะไม่ถูกแก้ไข',
+    intro: 'พิมพ์บนใบแจ้งหนี้ทุกใบ (การจอง › ⋯ › ใบแจ้งหนี้) เลขที่เรียงต่อเนื่องรายปีไม่มีช่องว่าง เช่น RE-2026-0001 และใบแจ้งหนี้ที่ออกแล้วจะไม่ถูกแก้ไข ใบแจ้งหนี้ทุกใบเป็น PDF แบบ ZUGFeRD ที่มี E-Rechnung อยู่ข้างใน กรุณากรอกที่อยู่ในโปรไฟล์ร้านเป็น “Straße 1, 12345 Ort”',
     legalName: 'ชื่อธุรกิจตามกฎหมาย', prefix: 'คำนำหน้าเลขที่ใบแจ้งหนี้', taxNumber: 'เลขประจำตัวผู้เสียภาษี (Steuernummer)', vatId: 'เลขภาษีมูลค่าเพิ่ม (USt-IdNr.) (ถ้ามี)',
-    smallBusiness: 'ผู้ประกอบการรายย่อย (Kleinunternehmer, § 19 UStG)', smallBusinessHelp: 'ไม่มีภาษีมูลค่าเพิ่มในใบแจ้งหนี้ จะพิมพ์หมายเหตุตาม § 19 แทน',
+    smallBusiness: 'ผู้ประกอบการรายย่อย (Kleinunternehmer, § 19 UStG)', smallBusinessHelp: 'ไม่มีภาษีมูลค่าเพิ่มในใบแจ้งหนี้ จะพิมพ์หมายเหตุตาม § 19 แทน', guide: 'คู่มือตั้งค่าใบแจ้งหนี้อิเล็กทรอนิกส์',
     vatRate: 'อัตราภาษีมูลค่าเพิ่มสำหรับบริการ', vatStandard: '19 % (อัตรามาตรฐาน)', vatReduced: '7 % (อัตราลดหย่อน)',
     footer: 'ท้ายกระดาษ (บัญชีธนาคาร, เจ้าของ, ทะเบียน)', saving: 'กำลังบันทึก…', save: 'บันทึก',
   },
@@ -125,7 +126,7 @@ export default function InvoiceSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <Receipt className="mt-0.5 h-5 w-5 text-stone-600" aria-hidden="true" />
         <div>
           <h3 className="text-lg font-medium text-stone-900">{t.title}</h3>
@@ -133,6 +134,9 @@ export default function InvoiceSettings() {
             {t.intro}
           </p>
         </div>
+        <button type="button" className={`${ADMIN_SECONDARY_BUTTON} sm:ml-auto`} onClick={openInvoiceGuide}>
+          <Compass className="h-4 w-4" aria-hidden="true" /> {t.guide}
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

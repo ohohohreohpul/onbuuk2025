@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
+import { RELEASE_120 } from './whatsNew/release120';
+import InvoiceSetupGuide, { type GuideDestination } from './invoiceGuide/InvoiceSetupGuide';
+import { INVOICE_GUIDE_EVENT, openInvoiceGuide } from './invoiceGuide/invoiceSetup';
+import { requestSettingsTab } from '../../lib/settingsNavigation';
 import AdminLayout from './AdminLayout';
 import PlanGate from './billing/PlanGate';
 import { queueOwnerEvent } from '../../lib/ownerTracking';
@@ -106,6 +110,17 @@ function AdminPanel() {
     if (url.searchParams.get('view') === view) return;
     url.searchParams.set('view', view);
     window.history.pushState({ view }, '', url);
+  };
+
+  const [isInvoiceGuideOpen, setIsInvoiceGuideOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setIsInvoiceGuideOpen(true);
+    window.addEventListener(INVOICE_GUIDE_EVENT, open);
+    return () => window.removeEventListener(INVOICE_GUIDE_EVENT, open);
+  }, []);
+  const navigateFromGuide = ({ view, settingsTab }: GuideDestination) => {
+    if (settingsTab) requestSettingsTab(settingsTab);
+    navigate(view);
   };
 
   useEffect(() => {
@@ -448,7 +463,10 @@ function AdminPanel() {
         onLogout={handleLogout}
       >
         {renderView()}
-        <WhatsNewModal />
+        <WhatsNewModal announcement={RELEASE_120} onFinalAction={openInvoiceGuide} />
+        {isInvoiceGuideOpen && (
+          <InvoiceSetupGuide onClose={() => setIsInvoiceGuideOpen(false)} onNavigate={navigateFromGuide} />
+        )}
       </AdminLayout>
     </PlanGate>
   );
