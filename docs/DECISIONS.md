@@ -136,3 +136,13 @@
 | free_plan_for_new_signups | **no_free_for_new** | 0.64 | no_free_for_new 82%, keep_free_option 18% |
 | trial_plan | **zenno_49** | 0.76 | zenno_49 88%, owner_picks 12% |
 | existing_free_shops | **grandfather** | 0.68 | grandfather 84%, move_to_trial_prompt 16% |
+
+## 2026-11-19 — Customer blacklist + tidy-up duplicates (Planity-style) (jev-1.14.0)
+
+| Decision | Outcome | Confidence | Distribution |
+|---|---|---|---|
+| block_effect | **refuse_online** | 0.86 | refuse_online 91%, warn_only 5%, require_approval 4% |
+| block_match | **email_or_phone** (low confidence → fallback; Jev said email_only) | 0.28 | email_only 64%, email_or_phone 36% |
+| merge_model | **aliases_no_rewrite** | 1.00 | aliases_no_rewrite 100%, rewrite_bookings 0%, link_only 0% |
+| duplicate_rules | **three_signals_ranked** | 0.94 | three_signals_ranked 97%, strong_only 3% |
+| ui_place | **customers_tab_with_popup** | 0.98 | customers_tab_with_popup 99%, separate_settings_tool 1%, auto_merge 0% |

@@ -1,27 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Search, Mail, Phone, User, TrendingUp } from 'lucide-react';
+import { Ban, ChevronRight, Search, Mail, Phone, TrendingUp } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import CustomerManagement from './CustomerManagement';
 import { useCurrency } from '../../lib/currencyContext';
 import { EMPTY_CUSTOMER_STATS, REGULAR_MIN_VISITS, fetchCustomerStatsForBusiness, type CustomerStats } from '../../lib/customerStats';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
+import { ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE } from './adminUi';
+import CustomerAvatar from './customers/CustomerAvatar';
+import TidyUpPanel from './customers/tidyUp/TidyUpPanel';
+import { findDuplicateGroups } from './customers/tidyUp/duplicateGroups';
+import { loadCustomerAliases, loadDismissedPairs } from './customers/tidyUp/tidyUpApi';
+import { TIDY_UP_TEXT } from './customers/tidyUp/tidyUpText';
 
 interface CustomerRow {
   id: string;
   email: string;
   name: string;
   phone: string | null;
+  blocked_at: string | null;
 }
 
-type Customer = CustomerRow & Omit<CustomerStats, 'customer_id'>;
+type Customer = CustomerRow & Omit<CustomerStats, 'customer_id'> & { extraEmails: string[]; extraPhones: string[] };
 
 const TEXT: Translations<{
   title: string; subtitle: string; totalCustomers: string; spentOnVisits: string; loadError: string;
   searchPlaceholder: string; customer: string; contact: string; visits: string; noShows: string;
   totalSpent: string; firstVisit: string; lastVisit: string; noResults: string; empty: string;
-  regular: string; bookingOne: string; bookingMany: string; upcoming: string; showing: string;
+  regular: string; blocked: string; bookingOne: string; bookingMany: string; upcoming: string; showing: string;
 }> = {
   en: {
     title: 'Customers', subtitle: 'View customer profiles and booking history',
@@ -32,7 +39,7 @@ const TEXT: Translations<{
     totalSpent: 'Total Spent', firstVisit: 'First Visit', lastVisit: 'Last Visit',
     noResults: 'No customers found',
     empty: 'No customers yet. Customers are automatically added when bookings are created.',
-    regular: 'Regular', bookingOne: '{count} booking', bookingMany: '{count} bookings',
+    regular: 'Regular', blocked: 'Blocked', bookingOne: '{count} booking', bookingMany: '{count} bookings',
     upcoming: '{count} upcoming', showing: 'Showing {shown} of {total} customers',
   },
   de: {
@@ -44,7 +51,7 @@ const TEXT: Translations<{
     totalSpent: 'Umsatz gesamt', firstVisit: 'Erster Besuch', lastVisit: 'Letzter Besuch',
     noResults: 'Keine Kunden gefunden',
     empty: 'Noch keine Kunden. Kunden werden automatisch angelegt, sobald Buchungen eingehen.',
-    regular: 'Stammkunde', bookingOne: '{count} Buchung', bookingMany: '{count} Buchungen',
+    regular: 'Stammkunde', blocked: 'Gesperrt', bookingOne: '{count} Buchung', bookingMany: '{count} Buchungen',
     upcoming: '{count} anstehend', showing: '{shown} von {total} Kunden',
   },
   th: {
@@ -56,7 +63,7 @@ const TEXT: Translations<{
     totalSpent: 'ยอดใช้จ่ายรวม', firstVisit: 'เข้าใช้บริการครั้งแรก', lastVisit: 'เข้าใช้บริการล่าสุด',
     noResults: 'ไม่พบลูกค้า',
     empty: 'ยังไม่มีลูกค้า ระบบจะเพิ่มลูกค้าให้อัตโนมัติเมื่อมีการจอง',
-    regular: 'ลูกค้าประจำ', bookingOne: '{count} การจอง', bookingMany: '{count} การจอง',
+    regular: 'ลูกค้าประจำ', blocked: 'ถูกระงับ', bookingOne: '{count} การจอง', bookingMany: '{count} การจอง',
     upcoming: 'กำลังจะมาถึง {count}', showing: 'แสดง {shown} จาก {total} ราย',
   },
 };
@@ -78,6 +85,10 @@ export default function CustomersView() {
   const [hasLoadError, setHasLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [dismissedPairs, setDismissedPairs] = useState<Set<string>>(new Set());
+  const [tab, setTab] = useState<'all' | 'tidy'>('all');
+  const { t: tidyText } = useAdminText(TIDY_UP_TEXT);
+  const duplicateGroups = useMemo(() => findDuplicateGroups(customers, dismissedPairs), [customers, dismissedPairs]);
 
   useEffect(() => {
     fetchCustomers();
@@ -91,14 +102,24 @@ export default function CustomersView() {
     if (!businessId) return;
 
     try {
-      const [{ data, error }, statsById] = await Promise.all([
-        supabase.from('customers').select('id, email, name, phone').eq('business_id', businessId),
+      const [{ data, error }, statsById, dismissed, aliasesById] = await Promise.all([
+        supabase.from('customers').select('id, email, name, phone, blocked_at').eq('business_id', businessId),
         fetchCustomerStatsForBusiness(businessId),
+        loadDismissedPairs(businessId),
+        loadCustomerAliases(businessId),
       ]);
       if (error) throw error;
+      setDismissedPairs(dismissed);
 
       const merged = ((data || []) as CustomerRow[])
-        .map((row) => ({ ...row, ...EMPTY_CUSTOMER_STATS, ...statsById.get(row.id) }))
+        .map((row) => {
+          const aliases = aliasesById.get(row.id) ?? [];
+          return {
+            ...row, ...EMPTY_CUSTOMER_STATS, ...statsById.get(row.id),
+            extraEmails: aliases.filter((alias) => alias.kind === 'email').map((alias) => alias.value),
+            extraPhones: aliases.filter((alias) => alias.kind === 'phone').map((alias) => alias.value),
+          };
+        })
         .sort((a, b) => b.visits_count - a.visits_count || b.total_count - a.total_count);
       setCustomers(merged);
       setHasLoadError(false);
@@ -120,7 +141,10 @@ export default function CustomersView() {
       (c) =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.phone && c.phone.includes(searchTerm))
+        (c.phone && c.phone.includes(searchTerm)) ||
+        // "Also known as": earlier emails and numbers find the customer too.
+        c.extraEmails.some((email) => email.includes(searchTerm.toLowerCase())) ||
+        c.extraPhones.some((phone) => phone.includes(searchTerm))
     );
 
     setFilteredCustomers(filtered);
@@ -142,12 +166,12 @@ export default function CustomersView() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
           <p className="text-gray-600">{t.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-center px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
+        <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+          <div className="text-center px-4 sm:px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
             <div className="text-2xl font-semibold text-gray-900">{customers.length}</div>
             <div className="text-xs text-gray-600 uppercase tracking-wider font-medium">{t.totalCustomers}</div>
           </div>
-          <div className="text-center px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
+          <div className="text-center px-4 sm:px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
             <div className="text-2xl font-semibold text-gray-900">
               {formatPrice(customers.reduce((sum, c) => sum + c.spent_cents, 0))}
             </div>
@@ -160,6 +184,18 @@ export default function CustomersView() {
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{t.loadError}</div>
       )}
 
+      <div className={ADMIN_SEGMENTED_CONTROL} role="tablist">
+        {([['all', tidyText.allCustomers], ['tidy', fillText(tidyText.tidyUp, { count: duplicateGroups.length })]] as const).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${tab === id ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'tidy' && <TidyUpPanel groups={duplicateGroups} onChanged={fetchCustomers} />}
+
+      {tab === 'all' && (<>
       <div className="relative">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
@@ -171,7 +207,41 @@ export default function CustomersView() {
         />
       </div>
 
-      <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)] overflow-hidden">
+      {/* Phones: one card per customer. Wide screens: the full table below. */}
+      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/70 bg-white/70 shadow-[0_2px_16px_rgba(26,23,20,0.05)] md:hidden">
+        {filteredCustomers.length === 0 ? (
+          <li className="px-5 py-10 text-center text-sm text-gray-500">{searchTerm ? t.noResults : t.empty}</li>
+        ) : filteredCustomers.map((customer) => (
+          <li key={customer.id}>
+            <button type="button" onClick={() => setSelectedCustomer(customer)}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-stone-50">
+              <CustomerAvatar name={customer.name} isBlocked={Boolean(customer.blocked_at)} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-[15px] font-semibold text-[#1A1714]">{customer.name}</span>
+                  {customer.visits_count >= REGULAR_MIN_VISITS && <TrendingUp className="h-3.5 w-3.5 shrink-0 text-green-600" aria-label={t.regular} />}
+                </span>
+                <span className="block truncate text-[13px] text-stone-500">{customer.phone || customer.email}</span>
+                {customer.blocked_at && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                    <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-sm font-semibold tabular-nums text-[#1A1714]">{formatPrice(customer.spent_cents)}</span>
+                <span className="block text-[12px] text-stone-500">
+                  {customer.visits_count} {t.visits}
+                  {customer.no_show_count > 0 && <span className="ml-1.5 font-medium text-red-700">· {customer.no_show_count} {t.noShows}</span>}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)] overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F9F7F4]/80 border-b border-stone-200/70">
@@ -214,11 +284,16 @@ export default function CustomersView() {
                     className="hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-[#1A1714] to-[#2E2926] rounded-full flex items-center justify-center shadow-sm">
-                          <User className="w-5 h-5 text-white" />
+                      <div className="flex items-center gap-3">
+                        <CustomerAvatar name={customer.name} isBlocked={Boolean(customer.blocked_at)} />
+                        <div className="min-w-0">
+                          <div className="whitespace-nowrap text-sm font-semibold text-gray-900">{customer.name}</div>
+                          {customer.blocked_at && (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                              <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -276,11 +351,12 @@ export default function CustomersView() {
       <div className="text-sm text-stone-600">
         {fillText(t.showing, { shown: filteredCustomers.length, total: customers.length })}
       </div>
+      </>)}
 
       {selectedCustomer && (
         <CustomerManagement
           customerId={selectedCustomer.id}
-          onClose={() => setSelectedCustomer(null)}
+          onClose={() => { setSelectedCustomer(null); fetchCustomers(); }}
         />
       )}
     </div>

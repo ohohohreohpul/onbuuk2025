@@ -80,6 +80,14 @@ export interface HoldRecord {
   held_until: string;
 }
 
+/** The shop blocked this customer from booking online: a clean 403, same neutral words the database uses. */
+const BLOCKED_MESSAGE = "Online booking is not possible. Please contact the shop directly.";
+
+function insertError(context: string, error: { message?: string } | null): Error {
+  if (error?.message?.includes("BOOKING_BLOCKED")) return Object.assign(new Error(BLOCKED_MESSAGE), { status: 403 });
+  return new Error(`${context}: ${error?.message ?? "unknown"}`);
+}
+
 export async function createHold(
   supabase: SupabaseClient,
   args: {
@@ -133,7 +141,7 @@ export async function createHold(
     .single();
 
   if (error || !data) {
-    throw new Error(`Failed to create hold: ${error?.message ?? "unknown"}`);
+    throw insertError("Failed to create hold", error);
   }
   return data as HoldRecord;
 }
@@ -200,7 +208,7 @@ export async function createBookingFromHold(
     .single();
 
   if (error || !booking) {
-    throw new Error(`Failed to create booking: ${error?.message ?? "unknown"}`);
+    throw insertError("Failed to create booking", error);
   }
 
   await supabase

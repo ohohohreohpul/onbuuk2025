@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Loader2, Phone, X } from 'lucide-react';
+import { Ban, Check, Loader2, Phone, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useCurrency } from '../../../lib/currencyContext';
 import { useAdminText } from '../../../lib/adminLanguage';
@@ -16,7 +16,7 @@ import { openCentsOf, stepOf } from './bookingSteps';
 import type { BookingPayment, PaymentMethod } from './paymentMethods';
 
 const TEXT: Translations<{
-  more: string; close: string; loadFailed: string; actionFailed: string; cancelled: string;
+  more: string; close: string; blocked: string; loadFailed: string; actionFailed: string; cancelled: string;
   confirmation: string; attendance: string; payment: string;
   confirmOpen: string; confirm: string; decline: string; confirmedDone: string;
   attendanceWait: string; attendanceOpen: string; showedUp: string; noShow: string; showedDone: string;
@@ -24,7 +24,7 @@ const TEXT: Translations<{
   declineConfirm: string; noShowConfirm: string; noShowFee: string; noShowCharged: string; cancelConfirm: string; cancelBooking: string;
 }> = {
   en: {
-    more: 'More', close: 'Close', loadFailed: 'Could not load the booking.', actionFailed: 'Could not save. Please try again.', cancelled: 'This booking is cancelled.',
+    more: 'More', close: 'Close', blocked: 'Blocked from online booking', loadFailed: 'Could not load the booking.', actionFailed: 'Could not save. Please try again.', cancelled: 'This booking is cancelled.',
     confirmation: '1 · Confirmation', attendance: '2 · Did the customer come?', payment: '3 · Payment',
     confirmOpen: 'The customer is waiting for your confirmation.', confirm: 'Confirm booking', decline: 'Decline', confirmedDone: 'Confirmed',
     attendanceWait: 'Can be entered on the day of the appointment.', attendanceOpen: 'Please enter whether the customer came.', showedUp: 'Yes, came', noShow: 'No, did not come', showedDone: 'Customer came',
@@ -33,7 +33,7 @@ const TEXT: Translations<{
     cancelConfirm: 'Cancel the booking of {name}? The customer is informed by email.', cancelBooking: 'Cancel booking',
   },
   de: {
-    more: 'Weitere Aktionen', close: 'Schließen', loadFailed: 'Buchung konnte nicht geladen werden.', actionFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', cancelled: 'Diese Buchung ist storniert.',
+    more: 'Weitere Aktionen', close: 'Schließen', blocked: 'Für Online-Buchungen gesperrt', loadFailed: 'Buchung konnte nicht geladen werden.', actionFailed: 'Speichern fehlgeschlagen. Bitte erneut versuchen.', cancelled: 'Diese Buchung ist storniert.',
     confirmation: '1 · Bestätigung', attendance: '2 · Ist die Kundin / der Kunde gekommen?', payment: '3 · Zahlung',
     confirmOpen: 'Die Kundin / der Kunde wartet auf Ihre Bestätigung.', confirm: 'Buchung bestätigen', decline: 'Ablehnen', confirmedDone: 'Bestätigt',
     attendanceWait: 'Kann am Tag des Termins eingetragen werden.', attendanceOpen: 'Bitte eintragen, ob die Kundin / der Kunde gekommen ist.', showedUp: 'Ja, gekommen', noShow: 'Nein, nicht gekommen', showedDone: 'Gekommen',
@@ -42,7 +42,7 @@ const TEXT: Translations<{
     cancelConfirm: 'Buchung von {name} absagen? Die Kundin bzw. der Kunde wird per E-Mail informiert.', cancelBooking: 'Buchung absagen',
   },
   th: {
-    more: 'การดำเนินการเพิ่มเติม', close: 'ปิด', loadFailed: 'โหลดการจองไม่สำเร็จ', actionFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', cancelled: 'การจองนี้ถูกยกเลิกแล้ว',
+    more: 'การดำเนินการเพิ่มเติม', close: 'ปิด', blocked: 'ถูกระงับการจองออนไลน์', loadFailed: 'โหลดการจองไม่สำเร็จ', actionFailed: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง', cancelled: 'การจองนี้ถูกยกเลิกแล้ว',
     confirmation: '1 · การยืนยัน', attendance: '2 · ลูกค้ามาหรือไม่?', payment: '3 · การชำระเงิน',
     confirmOpen: 'ลูกค้ากำลังรอการยืนยันจากคุณ', confirm: 'ยืนยันการจอง', decline: 'ปฏิเสธ', confirmedDone: 'ยืนยันแล้ว',
     attendanceWait: 'บันทึกได้ในวันนัดหมาย', attendanceOpen: 'กรุณาบันทึกว่าลูกค้ามาหรือไม่', showedUp: 'ใช่ ลูกค้ามา', noShow: 'ไม่ ลูกค้าไม่มา', showedDone: 'ลูกค้ามาแล้ว',
@@ -87,6 +87,7 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [paymentWindow, setPaymentWindow] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error: loadError } = await supabase
@@ -100,6 +101,9 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
       return;
     }
     setBooking(data as unknown as TaskBooking);
+    const { data: blocked, error: blockedError } = await supabase.rpc('booking_contact_blocked', { p_booking_id: bookingId });
+    if (blockedError) console.error('Could not check block:', blockedError);
+    setIsBlocked(blocked === true);
   }, [bookingId, t.loadFailed]);
 
   useEffect(() => { load(); }, [load]);
@@ -147,6 +151,11 @@ export default function BookingTaskModal({ bookingId, onClose, onChanged, moreAc
           {booking ? (
             <div>
               <h2 id="booking-task-title" className="text-xl font-semibold text-[#1A1714]">{booking.customer_name}</h2>
+              {isBlocked && (
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                  <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
+                </span>
+              )}
               <p className="mt-1 text-sm text-stone-500">
                 {new Date(`${booking.booking_date}T00:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })} · {booking.start_time.slice(0, 5)}
               </p>

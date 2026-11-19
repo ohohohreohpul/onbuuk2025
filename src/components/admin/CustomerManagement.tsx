@@ -5,6 +5,8 @@ import { useCurrency } from '../../lib/currencyContext';
 import { EMPTY_CUSTOMER_STATS, fetchCustomerStats, type CustomerStats } from '../../lib/customerStats';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
+import CustomerBlockSection from './customers/CustomerBlockSection';
+import AlsoKnownAs from './customers/AlsoKnownAs';
 
 interface Customer {
   id: string;
@@ -13,6 +15,8 @@ interface Customer {
   phone: string;
   business_id: string;
   created_at: string;
+  blocked_at: string | null;
+  blocked_reason: string | null;
 }
 
 interface Booking {
@@ -123,6 +127,15 @@ function formatDay(value: string | null, locale: string): string {
   return new Date(year, month - 1, day).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/**
+ * An exact, case-insensitive ILIKE value inside a PostgREST or() filter:
+ * %, _ and \ are escaped for LIKE, then the value is quoted (which unescapes once).
+ */
+function quotedLikeValue(email: string): string {
+  const literal = email.trim().replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  return `"${literal.replace(/[\\"]/g, (ch) => `\\${ch}`)}"`;
+}
+
 interface CustomerManagementProps {
   customerId: string;
   onClose: () => void;
@@ -166,8 +179,14 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
       console.error(err);
     }
 
-    // Same matching rule as the customer_stats view: this business, case-insensitive email.
-    const escapedEmail = customerData.email.trim().replace(/[\\%_]/g, (ch: string) => `\\${ch}`);
+    // Same matching rule as the customer_stats view: this business, case-insensitive email,
+    // including emails of customers that were merged into this one.
+    const { data: aliasRows, error: aliasError } = await supabase
+      .from('customer_email_aliases').select('email_key').eq('customer_id', customerId);
+    if (aliasError) console.error('Error loading merged emails:', aliasError);
+    const emailFilter = [customerData.email, ...((aliasRows ?? []) as { email_key: string }[]).map((row) => row.email_key)]
+      .map((email) => `customer_email.ilike.${quotedLikeValue(email)}`)
+      .join(',');
     const { data: bookingsData, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
@@ -176,7 +195,7 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
         duration:service_durations(duration_minutes, price_cents)
       `)
       .eq('business_id', customerData.business_id)
-      .ilike('customer_email', escapedEmail)
+      .or(emailFilter)
       .order('booking_date', { ascending: false });
 
     if (bookingsError) {
@@ -269,6 +288,9 @@ export default function CustomerManagement({ customerId, onClose }: CustomerMana
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        <CustomerBlockSection customer={customer} onChanged={fetchCustomerData} />
+        <AlsoKnownAs businessId={customer.business_id} customerId={customer.id} onChanged={fetchCustomerData} />
 
         <div className="flex-1 flex overflow-hidden">
           <div className="w-64 border-r border-stone-200 p-4 space-y-2">
