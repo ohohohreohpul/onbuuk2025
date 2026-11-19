@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Ban, Search, Mail, Phone, User, TrendingUp } from 'lucide-react';
+import { Ban, ChevronRight, Search, Mail, Phone, TrendingUp } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import CustomerManagement from './CustomerManagement';
 import { useCurrency } from '../../lib/currencyContext';
@@ -8,6 +8,7 @@ import { EMPTY_CUSTOMER_STATS, REGULAR_MIN_VISITS, fetchCustomerStatsForBusiness
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
 import { ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE } from './adminUi';
+import CustomerAvatar from './customers/CustomerAvatar';
 import TidyUpPanel from './customers/tidyUp/TidyUpPanel';
 import { findDuplicateGroups } from './customers/tidyUp/duplicateGroups';
 import { loadCustomerAliases, loadDismissedPairs } from './customers/tidyUp/tidyUpApi';
@@ -165,12 +166,12 @@ export default function CustomersView() {
           <h1 className="text-2xl font-semibold tracking-tight text-[#1A1714] mb-1">{t.title}</h1>
           <p className="text-gray-600">{t.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-center px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
+        <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+          <div className="text-center px-4 sm:px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
             <div className="text-2xl font-semibold text-gray-900">{customers.length}</div>
             <div className="text-xs text-gray-600 uppercase tracking-wider font-medium">{t.totalCustomers}</div>
           </div>
-          <div className="text-center px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
+          <div className="text-center px-4 sm:px-6 py-3 bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)]">
             <div className="text-2xl font-semibold text-gray-900">
               {formatPrice(customers.reduce((sum, c) => sum + c.spent_cents, 0))}
             </div>
@@ -206,7 +207,41 @@ export default function CustomersView() {
         />
       </div>
 
-      <div className="bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)] overflow-hidden">
+      {/* Phones: one card per customer. Wide screens: the full table below. */}
+      <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/70 bg-white/70 shadow-[0_2px_16px_rgba(26,23,20,0.05)] md:hidden">
+        {filteredCustomers.length === 0 ? (
+          <li className="px-5 py-10 text-center text-sm text-gray-500">{searchTerm ? t.noResults : t.empty}</li>
+        ) : filteredCustomers.map((customer) => (
+          <li key={customer.id}>
+            <button type="button" onClick={() => setSelectedCustomer(customer)}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-stone-50">
+              <CustomerAvatar name={customer.name} isBlocked={Boolean(customer.blocked_at)} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-[15px] font-semibold text-[#1A1714]">{customer.name}</span>
+                  {customer.visits_count >= REGULAR_MIN_VISITS && <TrendingUp className="h-3.5 w-3.5 shrink-0 text-green-600" aria-label={t.regular} />}
+                </span>
+                <span className="block truncate text-[13px] text-stone-500">{customer.phone || customer.email}</span>
+                {customer.blocked_at && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                    <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-sm font-semibold tabular-nums text-[#1A1714]">{formatPrice(customer.spent_cents)}</span>
+                <span className="block text-[12px] text-stone-500">
+                  {customer.visits_count} {t.visits}
+                  {customer.no_show_count > 0 && <span className="ml-1.5 font-medium text-red-700">· {customer.no_show_count} {t.noShows}</span>}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-stone-300" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden bg-white/70 backdrop-blur-xl border border-stone-200/70 rounded-2xl shadow-[0_2px_16px_rgba(26,23,20,0.05)] overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F9F7F4]/80 border-b border-stone-200/70">
@@ -249,12 +284,10 @@ export default function CustomersView() {
                     className="hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-[#1A1714] to-[#2E2926] rounded-full flex items-center justify-center shadow-sm">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
+                      <div className="flex items-center gap-3">
+                        <CustomerAvatar name={customer.name} isBlocked={Boolean(customer.blocked_at)} />
+                        <div className="min-w-0">
+                          <div className="whitespace-nowrap text-sm font-semibold text-gray-900">{customer.name}</div>
                           {customer.blocked_at && (
                             <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
                               <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
