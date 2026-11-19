@@ -31,6 +31,7 @@ const TEXT: Translations<{
   businessNotFound: string;
   createBookingFailed: string;
   slotTaken: string;
+  bookingBlocked: string;
   checkoutFailed: string;
   unknownError: string;
   bookingFailedAlert: string;
@@ -121,6 +122,7 @@ const TEXT: Translations<{
     businessNotFound: 'Business not found',
     createBookingFailed: 'Failed to create booking: {message}',
     slotTaken: 'Sorry, this time was just booked by someone else. Please go back and choose another time.',
+    bookingBlocked: 'Online booking is not possible. Please contact the shop directly.',
     checkoutFailed: 'Failed to create checkout session',
     unknownError: 'Unknown error occurred',
     bookingFailedAlert: 'Failed to create booking: {message}\n\nPlease check the console for more details.',
@@ -211,6 +213,7 @@ const TEXT: Translations<{
     businessNotFound: 'Unternehmen nicht gefunden',
     createBookingFailed: 'Buchung konnte nicht erstellt werden: {message}',
     slotTaken: 'Dieser Termin wurde soeben vergeben. Bitte gehen Sie zurück und wählen Sie eine andere Uhrzeit.',
+    bookingBlocked: 'Eine Online-Buchung ist nicht möglich. Bitte wenden Sie sich direkt an das Geschäft.',
     checkoutFailed: 'Bezahlvorgang konnte nicht gestartet werden',
     unknownError: 'Unbekannter Fehler',
     bookingFailedAlert: 'Buchung konnte nicht erstellt werden: {message}\n\nWeitere Details sind in der Browser-Konsole zu finden.',
@@ -301,6 +304,7 @@ const TEXT: Translations<{
     businessNotFound: 'ไม่พบร้าน',
     createBookingFailed: 'สร้างการจองไม่สำเร็จ: {message}',
     slotTaken: 'ขออภัย เวลานี้เพิ่งมีผู้อื่นจองไปแล้ว กรุณาย้อนกลับและเลือกเวลาอื่น',
+    bookingBlocked: 'ไม่สามารถจองออนไลน์ได้ กรุณาติดต่อร้านโดยตรง',
     checkoutFailed: 'สร้างรายการชำระเงินไม่สำเร็จ',
     unknownError: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ',
     bookingFailedAlert: 'สร้างการจองไม่สำเร็จ: {message}\n\nกรุณาตรวจสอบรายละเอียดเพิ่มเติมในคอนโซล',
@@ -417,9 +421,13 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
   const { currency, formatPrice } = useCurrency();
   const { t, locale } = useBookingText(TEXT);
 
-  // The database rejects double bookings with SLOT_UNAVAILABLE (another customer was faster).
-  const describeBookingError = (message: string) =>
-    message.includes('SLOT_UNAVAILABLE') ? t.slotTaken : fillText(t.createBookingFailed, { message });
+  // The database rejects double bookings with SLOT_UNAVAILABLE (another customer was faster)
+  // and customers the shop blocked with BOOKING_BLOCKED (neutral wording, no reason shown).
+  const describeBookingError = (message: string) => {
+    if (message.includes('SLOT_UNAVAILABLE')) return t.slotTaken;
+    if (message.includes('BOOKING_BLOCKED')) return t.bookingBlocked;
+    return fillText(t.createBookingFailed, { message });
+  };
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -722,41 +730,6 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
     });
   };
 
-  const createOrUpdateCustomer = async () => {
-    if (!tenant.businessId) return null;
-
-    const { data: existingCustomer } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('business_id', tenant.businessId)
-      .eq('email', bookingData.customerDetails.email)
-      .maybeSingle();
-
-    if (existingCustomer) {
-      return existingCustomer.id;
-    }
-
-    const { data: newCustomer, error } = await supabase
-      .from('customers')
-      .insert({
-        business_id: tenant.businessId,
-        name: bookingData.customerDetails.name,
-        email: bookingData.customerDetails.email,
-        phone: bookingData.customerDetails.phone,
-        total_bookings: 0,
-        total_spent_cents: 0,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating customer:', error);
-      return null;
-    }
-
-    return newCustomer?.id;
-  };
-
   const redeemGiftCardsForBooking = async (targetBookingId: string) => {
     const orderedCards = [...appliedGiftCards].sort((left, right) => (
       left.cardType === right.cardType ? 0 : left.cardType === 'service_pass' ? -1 : 1
@@ -810,8 +783,6 @@ export default function PaymentStep({ bookingData, onBack }: PaymentStepProps) {
         date: bookingData.date,
         time: bookingData.time
       });
-
-      await createOrUpdateCustomer();
 
       const shouldUseStripe = selectedPaymentMethod === 'stripe' && stripeEnabled && finalPrice > 0;
       const shouldUsePayPal = selectedPaymentMethod === 'paypal' && paypalEnabled && finalPrice > 0;

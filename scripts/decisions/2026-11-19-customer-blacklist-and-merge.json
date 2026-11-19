@@ -1,0 +1,58 @@
+{
+  "title": "Customer blacklist + tidy-up duplicates (Planity-style)",
+  "state": {
+    "goal": "Founder asks: (1) can a shop mark a customer as blacklisted, (2) a Planity-like 'tidy up customers' screen that shows likely duplicates (same name with different emails/phones, different names with the same email, different emails with the same phone) so the shop can group/merge them.",
+    "today": {
+      "blacklist": "Does not exist. No flag on customers, nothing stops a booking.",
+      "customer_model": "public.customers is one row per (business_id, email), created by a trigger on every booking insert (ON CONFLICT on exact email). Bookings carry customer_name/email/phone and are linked to customers ONLY by email. 10 tables reference customers.id (notes, loyalty_points UNIQUE(customer_id), loyalty_transactions, customer_gift_cards, gift_cards.purchased_by, no_show_fees, email logs, marketing_sends, receptionist_conversations, consents, outreach_recipients). customer_stats view computes visits/spend live from bookings by lower(email).",
+      "booking_paths": "Public booking widget, AI receptionist/chat, agent API (/agent/v1), and admin-created bookings. Admin bookings must always work.",
+      "design_rule": "Admin lists show status + ONE button that opens a popup; no inline dropdowns or button rows. Owners are often older, use phones, DE/EN/TH.",
+      "legal": "Germany: GDPR. A blocklist is legitimate interest (repeat no-shows, abuse) but must be internal, factual, not shown to the customer, and deletable. Booking history and invoices must never be rewritten (GoBD)."
+    }
+  },
+  "decisions": {
+    "block_effect": {
+      "instructions": "What should happen when a blacklisted customer tries to book?",
+      "criteria": {
+        "refuse_online": "Online booking (widget, chat, agent API) is refused with a neutral message 'Online booking is not possible, please contact the shop directly'. Staff can still book them by hand in admin. Staff see a red 'Blocked' badge everywhere.",
+        "require_approval": "Online booking goes through but lands as 'needs approval'; shop decides. Customer is not told.",
+        "warn_only": "Nothing is stopped; staff only see a warning badge on the customer and their bookings."
+      },
+      "fallback": "refuse_online"
+    },
+    "block_match": {
+      "instructions": "How is a blocked customer recognised on a new online booking?",
+      "criteria": {
+        "email_or_phone": "Blocked if the email (or any email merged into that customer) OR the normalised phone number matches. Harder to dodge with a new email.",
+        "email_only": "Only the email matches. Simple but dodged by typing another email."
+      },
+      "fallback": "email_or_phone"
+    },
+    "merge_model": {
+      "instructions": "When the shop merges duplicate customers into one, how should bookings and history follow?",
+      "criteria": {
+        "aliases_no_rewrite": "Keep one customer; the other emails are remembered as aliases of it. All linked rows (notes, loyalty, gift cards, consents…) move over; loyalty points add up. Old bookings keep the email they were made with; stats and future bookings match via aliases. Nothing historical is rewritten.",
+        "rewrite_bookings": "Rewrite the email on all old bookings to the kept email, then delete the other customer. Simpler queries, but changes historical booking records.",
+        "link_only": "Do not merge; only show the customers as a linked group. Stats stay split."
+      },
+      "fallback": "aliases_no_rewrite"
+    },
+    "duplicate_rules": {
+      "instructions": "Which customers should the tidy-up screen suggest as possibly the same person?",
+      "criteria": {
+        "three_signals_ranked": "Group when they share an email (case/space-insensitive), a phone number (normalised: +49/0, spaces), or a normalised full name. Show WHY (same phone / same email / same name) and rank email/phone matches as 'very likely', name-only as 'check'. Shop can dismiss a group as 'not the same person'.",
+        "strong_only": "Only same email or same phone; ignore names (fewer false matches, misses typo-emails)."
+      },
+      "fallback": "three_signals_ranked"
+    },
+    "ui_place": {
+      "instructions": "Where does the tidy-up live?",
+      "criteria": {
+        "customers_tab_with_popup": "Customers screen gets a 'Tidy up (N)' button/tab listing suggested groups as rows (names, emails, phones, reason, one 'Review' button). The popup shows the customers side by side, shop picks which name/email/phone to keep, then 'Merge'.",
+        "auto_merge": "Merge obvious ones (same email after normalising) automatically, show the rest.",
+        "separate_settings_tool": "Put it in Settings › Data tools."
+      },
+      "fallback": "customers_tab_with_popup"
+    }
+  }
+}

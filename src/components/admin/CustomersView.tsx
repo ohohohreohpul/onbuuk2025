@@ -1,18 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Search, Mail, Phone, User, TrendingUp } from 'lucide-react';
+import { Ban, Search, Mail, Phone, User, TrendingUp } from 'lucide-react';
 import { useTenant } from '../../lib/tenantContext';
 import CustomerManagement from './CustomerManagement';
 import { useCurrency } from '../../lib/currencyContext';
 import { EMPTY_CUSTOMER_STATS, REGULAR_MIN_VISITS, fetchCustomerStatsForBusiness, type CustomerStats } from '../../lib/customerStats';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, Translations } from '../../lib/bookingLanguage';
+import { ADMIN_SEGMENTED_CONTROL, ADMIN_SEGMENT_ACTIVE, ADMIN_SEGMENT_INACTIVE } from './adminUi';
+import TidyUpPanel from './customers/tidyUp/TidyUpPanel';
+import { findDuplicateGroups } from './customers/tidyUp/duplicateGroups';
+import { loadDismissedPairs } from './customers/tidyUp/tidyUpApi';
+import { TIDY_UP_TEXT } from './customers/tidyUp/tidyUpText';
 
 interface CustomerRow {
   id: string;
   email: string;
   name: string;
   phone: string | null;
+  blocked_at: string | null;
 }
 
 type Customer = CustomerRow & Omit<CustomerStats, 'customer_id'>;
@@ -21,7 +27,7 @@ const TEXT: Translations<{
   title: string; subtitle: string; totalCustomers: string; spentOnVisits: string; loadError: string;
   searchPlaceholder: string; customer: string; contact: string; visits: string; noShows: string;
   totalSpent: string; firstVisit: string; lastVisit: string; noResults: string; empty: string;
-  regular: string; bookingOne: string; bookingMany: string; upcoming: string; showing: string;
+  regular: string; blocked: string; bookingOne: string; bookingMany: string; upcoming: string; showing: string;
 }> = {
   en: {
     title: 'Customers', subtitle: 'View customer profiles and booking history',
@@ -32,7 +38,7 @@ const TEXT: Translations<{
     totalSpent: 'Total Spent', firstVisit: 'First Visit', lastVisit: 'Last Visit',
     noResults: 'No customers found',
     empty: 'No customers yet. Customers are automatically added when bookings are created.',
-    regular: 'Regular', bookingOne: '{count} booking', bookingMany: '{count} bookings',
+    regular: 'Regular', blocked: 'Blocked', bookingOne: '{count} booking', bookingMany: '{count} bookings',
     upcoming: '{count} upcoming', showing: 'Showing {shown} of {total} customers',
   },
   de: {
@@ -44,7 +50,7 @@ const TEXT: Translations<{
     totalSpent: 'Umsatz gesamt', firstVisit: 'Erster Besuch', lastVisit: 'Letzter Besuch',
     noResults: 'Keine Kunden gefunden',
     empty: 'Noch keine Kunden. Kunden werden automatisch angelegt, sobald Buchungen eingehen.',
-    regular: 'Stammkunde', bookingOne: '{count} Buchung', bookingMany: '{count} Buchungen',
+    regular: 'Stammkunde', blocked: 'Gesperrt', bookingOne: '{count} Buchung', bookingMany: '{count} Buchungen',
     upcoming: '{count} anstehend', showing: '{shown} von {total} Kunden',
   },
   th: {
@@ -56,7 +62,7 @@ const TEXT: Translations<{
     totalSpent: 'ยอดใช้จ่ายรวม', firstVisit: 'เข้าใช้บริการครั้งแรก', lastVisit: 'เข้าใช้บริการล่าสุด',
     noResults: 'ไม่พบลูกค้า',
     empty: 'ยังไม่มีลูกค้า ระบบจะเพิ่มลูกค้าให้อัตโนมัติเมื่อมีการจอง',
-    regular: 'ลูกค้าประจำ', bookingOne: '{count} การจอง', bookingMany: '{count} การจอง',
+    regular: 'ลูกค้าประจำ', blocked: 'ถูกระงับ', bookingOne: '{count} การจอง', bookingMany: '{count} การจอง',
     upcoming: 'กำลังจะมาถึง {count}', showing: 'แสดง {shown} จาก {total} ราย',
   },
 };
@@ -78,6 +84,10 @@ export default function CustomersView() {
   const [hasLoadError, setHasLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [dismissedPairs, setDismissedPairs] = useState<Set<string>>(new Set());
+  const [tab, setTab] = useState<'all' | 'tidy'>('all');
+  const { t: tidyText } = useAdminText(TIDY_UP_TEXT);
+  const duplicateGroups = useMemo(() => findDuplicateGroups(customers, dismissedPairs), [customers, dismissedPairs]);
 
   useEffect(() => {
     fetchCustomers();
@@ -91,11 +101,13 @@ export default function CustomersView() {
     if (!businessId) return;
 
     try {
-      const [{ data, error }, statsById] = await Promise.all([
-        supabase.from('customers').select('id, email, name, phone').eq('business_id', businessId),
+      const [{ data, error }, statsById, dismissed] = await Promise.all([
+        supabase.from('customers').select('id, email, name, phone, blocked_at').eq('business_id', businessId),
         fetchCustomerStatsForBusiness(businessId),
+        loadDismissedPairs(businessId),
       ]);
       if (error) throw error;
+      setDismissedPairs(dismissed);
 
       const merged = ((data || []) as CustomerRow[])
         .map((row) => ({ ...row, ...EMPTY_CUSTOMER_STATS, ...statsById.get(row.id) }))
@@ -160,6 +172,18 @@ export default function CustomersView() {
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{t.loadError}</div>
       )}
 
+      <div className={ADMIN_SEGMENTED_CONTROL} role="tablist">
+        {([['all', tidyText.allCustomers], ['tidy', fillText(tidyText.tidyUp, { count: duplicateGroups.length })]] as const).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${tab === id ? ADMIN_SEGMENT_ACTIVE : ADMIN_SEGMENT_INACTIVE}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'tidy' && <TidyUpPanel groups={duplicateGroups} onChanged={fetchCustomers} />}
+
+      {tab === 'all' && (<>
       <div className="relative">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
@@ -218,7 +242,14 @@ export default function CustomersView() {
                         <div className="w-10 h-10 bg-gradient-to-br from-[#1A1714] to-[#2E2926] rounded-full flex items-center justify-center shadow-sm">
                           <User className="w-5 h-5 text-white" />
                         </div>
-                        <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
+                          {customer.blocked_at && (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                              <Ban className="h-3 w-3" aria-hidden="true" />{t.blocked}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -276,11 +307,12 @@ export default function CustomersView() {
       <div className="text-sm text-stone-600">
         {fillText(t.showing, { shown: filteredCustomers.length, total: customers.length })}
       </div>
+      </>)}
 
       {selectedCustomer && (
         <CustomerManagement
           customerId={selectedCustomer.id}
-          onClose={() => setSelectedCustomer(null)}
+          onClose={() => { setSelectedCustomer(null); fetchCustomers(); }}
         />
       )}
     </div>

@@ -135,6 +135,8 @@ Deno.serve(async (req: Request) => {
     return agentError('action must be "availability" or "book"', 400);
   } catch (err) {
     if (err instanceof DirectBookingError) return agentError(err.message, err.status);
+    // The shop blocked this customer (see insertError in agentBooking.ts).
+    if ((err as { status?: number }).status === 403) return agentError((err as Error).message, 403);
     console.error("agent-direct failed", err);
     return agentError("Something went wrong. Please try again.", 500);
   }
