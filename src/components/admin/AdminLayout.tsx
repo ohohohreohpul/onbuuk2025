@@ -401,7 +401,7 @@ export default function AdminLayout({ children, currentView, onViewChange, onLog
                 className="flex items-center gap-1.5 text-[11px] text-white/35 transition-colors hover:text-white/60"
               >
                 <span className="font-semibold">{BRAND_NAME}</span>
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">v1.0</span>
+                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px]">v{__APP_VERSION__}</span>
               </a>
             </div>
           </div>

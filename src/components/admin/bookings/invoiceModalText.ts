@@ -2,7 +2,7 @@ import type { Translations } from '../../../lib/bookingLanguage';
 
 export const INVOICE_MODAL_TEXT: Translations<{
   title: string; close: string; checking: string; issuedAlready: string; reprintHint: string; download: string;
-  whoPays: string; privateCustomer: string; company: string; einvoiceHint: string;
+  whoPays: string; privateCustomer: string; privateHint: string; company: string; companyHint: string; einvoiceHint: string;
   address: string; addressRequired: string; addressOptional: string; companyName: string; street: string;
   postcode: string; city: string; country: string; vatId: string; reference: string; referenceHelp: string;
   immutable: string; cancel: string; create: string; creating: string;
@@ -11,7 +11,7 @@ export const INVOICE_MODAL_TEXT: Translations<{
   en: {
     title: 'Invoice', close: 'Close', checking: 'Checking for an existing invoice…',
     issuedAlready: 'Invoice {number} was issued on {date}.', reprintHint: 'An issued invoice never changes; you can download it again.',
-    download: 'Download PDF', whoPays: 'Who gets the invoice?', privateCustomer: 'Private customer', company: 'Company',
+    download: 'Download PDF', whoPays: 'Who gets the invoice?', privateCustomer: 'Private customer', privateHint: 'Name, and address if needed', company: 'Company', companyHint: 'Company details for their accounting',
     einvoiceHint: 'Every invoice is a ZUGFeRD PDF: a normal PDF with the e-invoice (E-Rechnung) inside. Companies can import it straight into their accounting.',
     address: 'Customer address', addressRequired: 'Needed above 250 €.', addressOptional: 'Optional up to 250 €.',
     companyName: 'Company name', street: 'Street and number', postcode: 'Postcode', city: 'City', country: 'Country',
@@ -28,7 +28,7 @@ export const INVOICE_MODAL_TEXT: Translations<{
   de: {
     title: 'Rechnung', close: 'Schließen', checking: 'Prüfe, ob es schon eine Rechnung gibt…',
     issuedAlready: 'Rechnung {number} wurde am {date} ausgestellt.', reprintHint: 'Eine ausgestellte Rechnung ändert sich nie; Sie können sie erneut herunterladen.',
-    download: 'PDF herunterladen', whoPays: 'Wer bekommt die Rechnung?', privateCustomer: 'Privatkunde', company: 'Firma',
+    download: 'PDF herunterladen', whoPays: 'Wer bekommt die Rechnung?', privateCustomer: 'Privatkunde', privateHint: 'Name, bei Bedarf Adresse', company: 'Firma', companyHint: 'Firmenangaben für die Buchhaltung',
     einvoiceHint: 'Jede Rechnung ist ein ZUGFeRD-PDF: ein normales PDF mit der E-Rechnung darin. Firmen können sie direkt in ihre Buchhaltung übernehmen.',
     address: 'Adresse des Kunden', addressRequired: 'Über 250 € vorgeschrieben.', addressOptional: 'Bis 250 € freiwillig.',
     companyName: 'Firmenname', street: 'Straße und Hausnummer', postcode: 'PLZ', city: 'Ort', country: 'Land',
@@ -45,7 +45,7 @@ export const INVOICE_MODAL_TEXT: Translations<{
   th: {
     title: 'ใบแจ้งหนี้', close: 'ปิด', checking: 'กำลังตรวจสอบว่ามีใบแจ้งหนี้แล้วหรือไม่…',
     issuedAlready: 'ออกใบแจ้งหนี้ {number} แล้วเมื่อ {date}', reprintHint: 'ใบแจ้งหนี้ที่ออกแล้วจะไม่เปลี่ยนแปลง ดาวน์โหลดซ้ำได้',
-    download: 'ดาวน์โหลด PDF', whoPays: 'ออกใบแจ้งหนี้ให้ใคร?', privateCustomer: 'ลูกค้าทั่วไป', company: 'บริษัท',
+    download: 'ดาวน์โหลด PDF', whoPays: 'ออกใบแจ้งหนี้ให้ใคร?', privateCustomer: 'ลูกค้าทั่วไป', privateHint: 'ชื่อ และที่อยู่ถ้าจำเป็น', company: 'บริษัท', companyHint: 'ข้อมูลบริษัทสำหรับฝ่ายบัญชี',
     einvoiceHint: 'ใบแจ้งหนี้ทุกใบเป็น PDF แบบ ZUGFeRD คือ PDF ปกติที่มีใบแจ้งหนี้อิเล็กทรอนิกส์ (E-Rechnung) อยู่ข้างใน บริษัทนำเข้าระบบบัญชีได้ทันที',
     address: 'ที่อยู่ลูกค้า', addressRequired: 'จำเป็นเมื่อเกิน 250 €', addressOptional: 'ไม่บังคับเมื่อไม่เกิน 250 €',
     companyName: 'ชื่อบริษัท', street: 'ถนนและเลขที่', postcode: 'รหัสไปรษณีย์', city: 'เมือง', country: 'ประเทศ',
