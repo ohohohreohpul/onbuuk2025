@@ -20,6 +20,17 @@ export interface InvoiceSeller {
   footer: string | null;
 }
 
+/** Company customer (B2B), snapshot from issue_booking_invoice(); null for private customers. */
+export interface InvoiceBuyer {
+  company: string;
+  vat_id?: string;
+  reference?: string;
+  street?: string;
+  postcode?: string;
+  city?: string;
+  country: string;
+}
+
 export interface Invoice {
   invoice_number: string;
   issued_at: string;
@@ -28,6 +39,7 @@ export interface Invoice {
   customer_name: string;
   customer_email: string | null;
   customer_address: string | null;
+  buyer?: InvoiceBuyer | null;
   items: InvoiceItem[];
   vat_bps: number;
   is_small_business: boolean;
@@ -58,6 +70,29 @@ const germanDate = (value: string) => {
   return `${day}.${month}.${year}`;
 };
 
+/**
+ * Invoice date in German time: the number year is taken in Europe/Berlin, so an
+ * invoice issued on 31.12. at 23:30 must also be dated 31.12., not by UTC.
+ */
+export function issueDate(invoice: Pick<Invoice, 'issued_at'>): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(invoice.issued_at));
+}
+
+const present = (line: string | null | undefined): line is string => Boolean(line);
+
+function customerLines(invoice: Invoice): string[] {
+  const buyer = invoice.buyer;
+  if (!buyer) return [invoice.customer_name, invoice.customer_address].filter(present);
+  return [
+    buyer.company,
+    `z. Hd. ${invoice.customer_name}`,
+    invoice.customer_address,
+    buyer.vat_id && `USt-IdNr.: ${buyer.vat_id}`,
+    buyer.reference && `Ihre Referenz: ${buyer.reference}`,
+  ].filter(present);
+}
+
 export function invoiceText(invoice: Invoice): InvoiceText {
   const format = (cents: number) => money(cents, invoice.currency || 'EUR');
   const seller = invoice.seller;
@@ -80,12 +115,12 @@ export function invoiceText(invoice: Invoice): InvoiceText {
   return {
     title: `Rechnung Nr. ${invoice.invoice_number}`,
     meta: [
-      `Rechnungsdatum: ${germanDate(invoice.issued_at)}`,
+      `Rechnungsdatum: ${germanDate(issueDate(invoice))}`,
       ...(invoice.service_date ? [`Leistungsdatum: ${germanDate(invoice.service_date)}`] : []),
     ],
-    seller: [seller.name, seller.address, seller.phone].filter((line): line is string => Boolean(line)),
+    seller: [seller.name, seller.address, seller.phone].filter(present),
     sellerTax,
-    customer: [invoice.customer_name, invoice.customer_address].filter((line): line is string => Boolean(line)),
+    customer: customerLines(invoice),
     lines: invoice.items.map((item) => ({
       description: item.description,
       quantity: String(item.quantity),

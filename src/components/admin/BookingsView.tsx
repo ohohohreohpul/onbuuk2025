@@ -15,11 +15,9 @@ import { ADMIN_INPUT, ADMIN_SECONDARY_BUTTON, ADMIN_SEGMENTED_CONTROL, ADMIN_SEG
 import RescheduleModal from './bookings/RescheduleModal';
 import { useSpecialistNames } from '../../hooks/useSpecialistNames';
 import { therapistLabel } from '../../lib/therapistLabel';
-import { downloadBookingInvoice } from '../../lib/invoice/invoiceApi';
+import InvoiceModal from './bookings/InvoiceModal';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, type Translations } from '../../lib/bookingLanguage';
-
-const SMALL_INVOICE_LIMIT_CENTS = 25000;
 
 interface Booking {
   id: string;
@@ -42,6 +40,7 @@ interface Booking {
   fees: { resolution_status: FeeResolution } | { resolution_status: FeeResolution }[] | null;
   payment_status: string | null;
   final_amount_cents: number | null;
+  total_price_cents: number | null;
   payments: { method: PaymentMethod; amount_cents: number; voided_at: string | null; gift_card_id: string | null }[] | null;
 }
 
@@ -64,7 +63,7 @@ const TEXT: Translations<{
   filterLabel: string; searchPlaceholder: string;
   colCustomer: string; colAppointment: string; colPrice: string; colStatus: string; colNextStep: string;
   allCaughtUp: string; noBookings: string; couples: string; minutes: string; edit: string; notPaid: string; showing: string;
-  updateFailed: string; cancelConfirm: string; invoiceAddressPrompt: string; invoiceFailed: string;
+  updateFailed: string; cancelConfirm: string;
   deleteConfirm: string; noShowConfirm: string; noShowFeeNote: string; noShowFailed: string; noShowCharged: string;
 }> = {
   en: {
@@ -80,8 +79,6 @@ const TEXT: Translations<{
     couples: 'Couples', minutes: '{count} min', edit: 'Open', notPaid: 'Not paid yet', showing: 'Showing {shown} of {total} bookings',
     updateFailed: 'Could not update this booking. Please try again.',
     cancelConfirm: 'Cancel {name}’s booking on {date}?',
-    invoiceAddressPrompt: 'Customer address for the invoice of {name}:',
-    invoiceFailed: 'Could not create the invoice. Check Settings › Invoices and try again.',
     deleteConfirm: 'Delete this booking permanently? It will disappear from reports and history. To keep a record, cancel it instead.',
     noShowConfirm: 'Mark {name} as a no-show?',
     noShowFeeNote: 'We’ll try to charge the {fee} fee to their saved card. If there isn’t one, the fee goes to No-Show Fees for you to resolve.',
@@ -101,8 +98,6 @@ const TEXT: Translations<{
     couples: 'Paar', minutes: '{count} Min.', edit: 'Bearbeiten', notPaid: 'Noch nicht bezahlt', showing: '{shown} von {total} Buchungen',
     updateFailed: 'Die Buchung konnte nicht aktualisiert werden. Bitte erneut versuchen.',
     cancelConfirm: 'Buchung von {name} am {date} stornieren?',
-    invoiceAddressPrompt: 'Kundenadresse für die Rechnung von {name}:',
-    invoiceFailed: 'Die Rechnung konnte nicht erstellt werden. Bitte Einstellungen › Rechnungen prüfen und erneut versuchen.',
     deleteConfirm: 'Buchung endgültig löschen? Sie verschwindet aus Berichten und Verlauf. Um sie zu behalten, stattdessen stornieren.',
     noShowConfirm: '{name} als No-Show markieren?',
     noShowFeeNote: 'Die Gebühr von {fee} wird von der hinterlegten Karte eingezogen. Ist keine hinterlegt, landet die Gebühr unter No-Show-Gebühren zur Klärung.',
@@ -122,8 +117,6 @@ const TEXT: Translations<{
     couples: 'คู่', minutes: '{count} นาที', edit: 'แก้ไข', notPaid: 'ยังไม่ชำระ', showing: 'แสดง {shown} จาก {total} การจอง',
     updateFailed: 'อัปเดตการจองไม่สำเร็จ กรุณาลองอีกครั้ง',
     cancelConfirm: 'ยกเลิกการจองของ {name} วันที่ {date} ใช่หรือไม่?',
-    invoiceAddressPrompt: 'ที่อยู่ลูกค้าสำหรับใบแจ้งหนี้ของ {name}:',
-    invoiceFailed: 'สร้างใบแจ้งหนี้ไม่สำเร็จ กรุณาตรวจสอบ การตั้งค่า › ใบแจ้งหนี้ แล้วลองอีกครั้ง',
     deleteConfirm: 'ลบการจองนี้ถาวรหรือไม่? การจองจะหายไปจากรายงานและประวัติ หากต้องการเก็บบันทึกไว้ ให้ยกเลิกการจองแทน',
     noShowConfirm: 'ทำเครื่องหมาย {name} ว่าไม่มาตามนัดหรือไม่?',
     noShowFeeNote: 'ระบบจะพยายามเรียกเก็บค่าธรรมเนียม {fee} จากบัตรที่บันทึกไว้ หากไม่มีบัตร ค่าธรรมเนียมจะไปอยู่ที่ ค่าธรรมเนียมไม่มาตามนัด เพื่อให้คุณจัดการ',
@@ -195,6 +188,7 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
   const [hasChosenFilter, setHasChosenFilter] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [movingBooking, setMovingBooking] = useState<Booking | null>(null);
+  const [invoicingBooking, setInvoicingBooking] = useState<Booking | null>(null);
   const [openBookingId, setOpenBookingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -267,26 +261,6 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
       alert(t.updateFailed);
     }
     setBusyId(null);
-  };
-
-  // Above 250 € (Kleinbetragsrechnung limit) a German invoice needs the customer's address.
-  const downloadInvoice = async (booking: Booking) => {
-    let address: string | undefined;
-    if ((booking.final_amount_cents ?? booking.duration?.price_cents ?? 0) > SMALL_INVOICE_LIMIT_CENTS) {
-      address = window.prompt(fillText(t.invoiceAddressPrompt, { name: booking.customer_name })) ?? undefined;
-      if (address === undefined) return;
-    }
-    setBusyId(booking.id);
-    try {
-      await downloadBookingInvoice(booking.id, address);
-    } catch (invoiceError) {
-      console.error('Invoice failed:', invoiceError);
-      alert(invoiceError instanceof Error && invoiceError.message.includes('Steuernummer')
-        ? invoiceError.message
-        : t.invoiceFailed);
-    } finally {
-      setBusyId(null);
-    }
   };
 
   const deleteBooking = async (bookingId: string) => {
@@ -482,10 +456,21 @@ export default function BookingsView({ onNavigate }: BookingsViewProps) {
               onAddFee={() => addFee(openBooking)}
               onRestore={() => updateBookingStatus(openBooking.id, 'confirmed')}
               onMove={() => { setOpenBookingId(null); setMovingBooking(openBooking); }}
-              onInvoice={() => downloadInvoice(openBooking)}
+              onInvoice={() => { setOpenBookingId(null); setInvoicingBooking(openBooking); }}
               onDelete={() => deleteBooking(openBooking.id)}
             />
           )}
+        />
+      )}
+
+      {invoicingBooking && (
+        <InvoiceModal
+          booking={{
+            id: invoicingBooking.id,
+            customer_name: invoicingBooking.customer_name,
+            priceCents: invoicingBooking.total_price_cents ?? invoicingBooking.final_amount_cents ?? invoicingBooking.duration.price_cents,
+          }}
+          onClose={() => setInvoicingBooking(null)}
         />
       )}
 
