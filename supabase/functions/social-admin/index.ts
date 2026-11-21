@@ -4,15 +4,25 @@ import { returnBase } from "../_shared/billing/stripeBilling.ts";
 import {
   AutomationInputError, fromZernioAutomation, readAutomationDraft, toZernioAutomation,
 } from "../_shared/social/commentAutomation.ts";
-import { ensureProfile, syncAccounts, zernio, ZernioError } from "../_shared/social/zernioClient.ts";
-import { isSocialPlatform } from "../_shared/social/zernioWebhook.ts";
+import { refreshLocation } from "../_shared/social/gbpService.ts";
+import {
+  ensureProfile, syncAccounts, zernioConnectionOf, zernioFor, zernioWithKey, ZernioError, type Zernio,
+} from "../_shared/social/zernioClient.ts";
+import {
+  buildWebhookSettings, ConnectionInputError, ownWebhookUrl, readZernioApiKey,
+} from "../_shared/social/zernioConnection.ts";
+import { isConnectPlatform, type ConnectPlatform } from "../_shared/social/zernioWebhook.ts";
 
 // Admin API for Zenno Social: POST { action, ... } with the admin's JWT.
 //   status                 plan + connected accounts (no Zernio call)
-//   connect   {platform}   OAuth link for Instagram / Facebook (Zernio hosts the consent)
+//   connect   {platform}   OAuth link for Instagram / Facebook / Google Business Profile
+//                          (Zernio hosts the consent and the Google location picker)
 //   sync                   refresh the account list after the OAuth redirect
 //   disconnect {accountId}
 //   automations / save_automation {id?, ...} / delete_automation {id}
+//   connect_zernio {apiKey}  owner only: use the shop's own Zernio account (its bill) instead
+//                            of Zenno's; creates the webhook there. Needs no connected accounts.
+//   disconnect_zernio        owner only: back to Zenno's Zernio account
 // Everything except status needs the Social plan. Zernio is only ever called
 // with this shop's own profile, and ids from the client are checked against it.
 
@@ -22,9 +32,13 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const MANAGER_ROLES = ["owner", "admin", "manager"];
+const OWNER_ROLES = ["owner"];
+const WEBHOOK_SECRET_BYTES = 32;
 const OBJECT_ID = /^[a-zA-Z0-9_-]{1,64}$/;
-/** Zenno Social includes 2 connected accounts (each costs a Zernio seat); custom plans have no limit. */
+/** Zenno Social includes 2 Instagram/Facebook accounts (each costs a Zernio seat); custom plans have no limit. */
 const SOCIAL_ACCOUNT_LIMIT = 2;
+/** Plus one Google location (local SEO). */
+const GOOGLE_ACCOUNT_LIMIT = 1;
 
 type Body = Record<string, unknown>;
 type Admin = Awaited<ReturnType<typeof requireActiveAdmin>>;
@@ -44,6 +58,35 @@ async function requireSocial(admin: Admin): Promise<void> {
   if (!(await hasSocial(admin))) throw new PlanError("Instagram and Facebook are part of the Zenno Social plan.");
 }
 
+/** Local SEO: Social plan and the shop is on the rollout list. */
+async function hasLocalSeo({ supabaseAdmin, businessId }: Admin): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc("business_has_local_seo", { p_business_id: businessId });
+  if (error) throw new Error(`plan check failed: ${error.message}`);
+  return data === true;
+}
+
+const zernioOf = (admin: Admin): Promise<Zernio> => zernioFor(admin.supabaseAdmin, admin.businessId);
+
+async function hasOwnZernio(admin: Admin): Promise<boolean> {
+  return (await zernioConnectionOf(admin.supabaseAdmin, admin.businessId)) !== null;
+}
+
+/** Switching Zernio accounts orphans every connection, so it is only allowed with none active. */
+async function requireNoActiveAccounts({ supabaseAdmin, businessId }: Admin): Promise<void> {
+  const { count, error } = await supabaseAdmin.from("social_accounts").select("id", { count: "exact", head: true })
+    .eq("business_id", businessId).eq("is_active", true);
+  if (error) throw new Error(error.message);
+  if ((count ?? 0) > 0) throw new InputError("Disconnect all Instagram, Facebook and Google accounts first, then switch the Zernio account.");
+}
+
+/** The shop's Zernio profile lives in the old account; the next connect creates one in the new account. */
+async function forgetProfile({ supabaseAdmin, businessId }: Admin): Promise<void> {
+  const { error } = await supabaseAdmin.from("social_profiles").delete().eq("business_id", businessId);
+  if (error) throw new Error(`could not reset social profile: ${error.message}`);
+}
+
+const randomSecret = () => [...crypto.getRandomValues(new Uint8Array(WEBHOOK_SECRET_BYTES))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
 async function profileOf(admin: Admin): Promise<string> {
   const { data: shop } = await admin.supabaseAdmin.from("businesses").select("name").eq("id", admin.businessId).single();
   return ensureProfile(admin.supabaseAdmin, admin.businessId, shop?.name ?? "Shop");
@@ -60,14 +103,29 @@ async function accounts(admin: Admin) {
   }));
 }
 
-async function requireAccountSlot({ supabaseAdmin, businessId }: Admin): Promise<void> {
+async function requireAccountSlot({ supabaseAdmin, businessId }: Admin, platform: ConnectPlatform): Promise<void> {
+  const isGoogle = platform === "googlebusiness";
   const { data: shop } = await supabaseAdmin.from("businesses").select("plan_type").eq("id", businessId).single();
-  if (shop?.plan_type === "custom") return;
-  const { count, error } = await supabaseAdmin.from("social_accounts").select("id", { count: "exact", head: true })
+  if (shop?.plan_type === "custom" && !isGoogle) return;
+  let query = supabaseAdmin.from("social_accounts").select("id", { count: "exact", head: true })
     .eq("business_id", businessId).eq("is_active", true);
+  query = isGoogle ? query.eq("platform", "googlebusiness") : query.neq("platform", "googlebusiness");
+  const { count, error } = await query;
   if (error) throw new Error(error.message);
-  if ((count ?? 0) >= SOCIAL_ACCOUNT_LIMIT) {
+  if (isGoogle && (count ?? 0) >= GOOGLE_ACCOUNT_LIMIT) {
+    throw new InputError("A Google Business Profile is already connected. Disconnect it first to connect another location.");
+  }
+  if (!isGoogle && (count ?? 0) >= SOCIAL_ACCOUNT_LIMIT) {
     throw new InputError(`Zenno Social includes ${SOCIAL_ACCOUNT_LIMIT} accounts. Disconnect one first, or write to support@zennohq.com for more.`);
+  }
+}
+
+/** After a Google connect: store the listing's review link and category (best effort). */
+async function refreshGoogleLocations(admin: Admin): Promise<void> {
+  const { data } = await admin.supabaseAdmin.from("social_accounts").select("zernio_account_id")
+    .eq("business_id", admin.businessId).eq("platform", "googlebusiness").eq("is_active", true);
+  for (const row of data ?? []) {
+    await refreshLocation(admin.supabaseAdmin, admin.businessId, row.zernio_account_id).catch((error) => console.error("google location refresh failed:", error));
   }
 }
 
@@ -85,23 +143,30 @@ async function ownAccount(admin: Admin, accountId: unknown): Promise<string> {
 async function ownAutomation(admin: Admin, profileId: string, automationId: unknown): Promise<string> {
   const id = typeof automationId === "string" ? automationId : "";
   if (!OBJECT_ID.test(id)) throw new InputError("Unknown automation.");
+  const zernio = await zernioOf(admin);
   const { automations } = await zernio<{ automations: Record<string, unknown>[] }>("/comment-automations", { query: { profileId } });
   if (!(automations ?? []).some((a) => String(a.id ?? a._id) === id)) throw new InputError("Unknown automation.");
   return id;
 }
 
-const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body: Body, req: Request) => Promise<unknown> }> = {
+const ACTIONS: Record<string, { managerOnly?: boolean; roles?: string[]; run: (admin: Admin, body: Body, req: Request) => Promise<unknown> }> = {
   status: {
-    run: async (admin) => ({ hasSocial: await hasSocial(admin), accounts: await accounts(admin) }),
+    run: async (admin) => ({
+      hasSocial: await hasSocial(admin), hasLocalSeo: await hasLocalSeo(admin), ownZernio: await hasOwnZernio(admin), accounts: await accounts(admin),
+    }),
   },
   connect: {
     managerOnly: true,
     run: async (admin, body, req) => {
       await requireSocial(admin);
-      if (!isSocialPlatform(body.platform)) throw new InputError("Choose Instagram or Facebook.");
-      await requireAccountSlot(admin);
+      if (!isConnectPlatform(body.platform)) throw new InputError("Choose Instagram, Facebook or Google.");
+      if (body.platform === "googlebusiness" && !(await hasLocalSeo(admin))) {
+        throw new PlanError("Google Business Profile is part of the Zenno Social plan.");
+      }
+      await requireAccountSlot(admin, body.platform);
       const profileId = await profileOf(admin);
       const redirect = `${returnBase(req)}/admin?view=social&connected=${body.platform}`;
+      const zernio = await zernioOf(admin);
       const result = await zernio<{ authUrl?: string }>(`/connect/${body.platform}`, { query: { profileId, redirect_url: redirect } });
       if (!result.authUrl) throw new Error("Zernio returned no authUrl");
       return { url: result.authUrl };
@@ -111,6 +176,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
     run: async (admin) => {
       await requireSocial(admin);
       await syncAccounts(admin.supabaseAdmin, admin.businessId, await profileOf(admin));
+      await refreshGoogleLocations(admin);
       return { accounts: await accounts(admin) };
     },
   },
@@ -118,7 +184,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
     managerOnly: true,
     run: async (admin, body) => {
       const accountId = await ownAccount(admin, body.accountId);
-      await zernio(`/accounts/${encodeURIComponent(accountId)}`, { method: "DELETE" });
+      await (await zernioOf(admin))(`/accounts/${encodeURIComponent(accountId)}`, { method: "DELETE" });
       await admin.supabaseAdmin.from("social_accounts").update({ is_active: false, updated_at: new Date().toISOString() })
         .eq("business_id", admin.businessId).eq("zernio_account_id", accountId);
       return { accounts: await accounts(admin) };
@@ -127,6 +193,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
   automations: {
     run: async (admin) => {
       await requireSocial(admin);
+      const zernio = await zernioOf(admin);
       const { automations } = await zernio<{ automations: Record<string, unknown>[] }>("/comment-automations", { query: { profileId: await profileOf(admin) } });
       return { automations: (automations ?? []).map(fromZernioAutomation) };
     },
@@ -138,6 +205,7 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
       const draft = readAutomationDraft(body);
       await ownAccount(admin, draft.accountId);
       const profileId = await profileOf(admin);
+      const zernio = await zernioOf(admin);
       if (body.id) {
         const id = await ownAutomation(admin, profileId, body.id);
         const { automation } = await zernio<{ automation: Record<string, unknown> }>(`/comment-automations/${id}`, {
@@ -156,8 +224,55 @@ const ACTIONS: Record<string, { managerOnly?: boolean; run: (admin: Admin, body:
     run: async (admin, body) => {
       await requireSocial(admin);
       const id = await ownAutomation(admin, await profileOf(admin), body.id);
-      await zernio(`/comment-automations/${id}`, { method: "DELETE" });
+      await (await zernioOf(admin))(`/comment-automations/${id}`, { method: "DELETE" });
       return { deleted: true };
+    },
+  },
+  connect_zernio: {
+    roles: OWNER_ROLES,
+    run: async (admin, body) => {
+      await requireSocial(admin);
+      const apiKey = readZernioApiKey(body.apiKey);
+      await requireNoActiveAccounts(admin);
+      const own = zernioWithKey(apiKey);
+      try {
+        await own("/profiles");
+      } catch (error) {
+        if (error instanceof ZernioError && (error.status === 401 || error.status === 403)) throw new InputError("Zernio did not accept this API key.");
+        throw error;
+      }
+      const secret = randomSecret();
+      const { data: connectionId, error } = await admin.supabaseAdmin.rpc("save_zernio_connection", {
+        p_business_id: admin.businessId, p_api_key: apiKey, p_webhook_secret: secret,
+      });
+      if (error || !connectionId) throw new Error(`could not store Zernio connection: ${error?.message}`);
+      try {
+        const url = ownWebhookUrl(Deno.env.get("SUPABASE_URL") ?? "", String(connectionId));
+        const created = await own<{ webhook?: { _id?: string } }>("/webhooks/settings", { method: "POST", body: buildWebhookSettings(url, secret) });
+        await admin.supabaseAdmin.rpc("set_zernio_webhook_id", { p_connection_id: connectionId, p_webhook_id: created.webhook?._id ?? null });
+      } catch (webhookError) {
+        // Without the webhook no message or review would arrive: undo instead of half-connecting.
+        await admin.supabaseAdmin.rpc("delete_zernio_connection", { p_business_id: admin.businessId });
+        throw webhookError;
+      }
+      await forgetProfile(admin);
+      return { ownZernio: true, accounts: await accounts(admin) };
+    },
+  },
+  disconnect_zernio: {
+    roles: OWNER_ROLES,
+    run: async (admin) => {
+      await requireNoActiveAccounts(admin);
+      const own = await zernioConnectionOf(admin.supabaseAdmin, admin.businessId);
+      if (!own) return { ownZernio: false, accounts: await accounts(admin) };
+      const { data: webhookId, error } = await admin.supabaseAdmin.rpc("delete_zernio_connection", { p_business_id: admin.businessId });
+      if (error) throw new Error(`could not remove Zernio connection: ${error.message}`);
+      if (webhookId) {
+        await zernioWithKey(own.apiKey)("/webhooks/settings", { method: "DELETE", query: { webhookId: String(webhookId) } })
+          .catch((deleteError) => console.error("could not delete webhook in own Zernio:", deleteError));
+      }
+      await forgetProfile(admin);
+      return { ownZernio: false, accounts: await accounts(admin) };
     },
   },
 };
@@ -169,12 +284,15 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as Body;
     const action = ACTIONS[String(body.action ?? "")];
     if (!action) return json({ error: "Unknown action" }, 400);
-    const admin = await requireActiveAdmin(req, action.managerOnly ? { roles: MANAGER_ROLES } : {});
+    const roles = action.roles ?? (action.managerOnly ? MANAGER_ROLES : null);
+    const admin = await requireActiveAdmin(req, roles ? { roles } : {});
     return json(await action.run(admin, body, req));
   } catch (error) {
     const authError = authorizationErrorResponse(error, CORS);
     if (authError) return authError;
-    if (error instanceof InputError || error instanceof AutomationInputError) return json({ error: error.message }, 400);
+    if (error instanceof InputError || error instanceof AutomationInputError || error instanceof ConnectionInputError) {
+      return json({ error: error.message }, 400);
+    }
     if (error instanceof PlanError) return json({ error: error.message, code: "plan_required" }, 402);
     if (error instanceof ZernioError) {
       // Zernio's message helps the owner (e.g. "account needs reconnecting"); never leak a 5xx body.

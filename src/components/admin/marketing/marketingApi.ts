@@ -4,9 +4,9 @@ import { campaignToContent, type CampaignRow } from '../../../../supabase/functi
 
 export type Audience = 'subscribers' | 'all';
 
-/** monthly = promotion; special_day = one date; birthday / winback = daily automations. */
-export type CampaignKind = 'monthly' | 'special_day' | 'birthday' | 'winback';
-export const AUTOMATION_KINDS: CampaignKind[] = ['birthday', 'winback'];
+/** monthly = promotion; special_day = one date; birthday / winback / review_request = daily automations. */
+export type CampaignKind = 'monthly' | 'special_day' | 'birthday' | 'winback' | 'review_request';
+export const AUTOMATION_KINDS: CampaignKind[] = ['birthday', 'winback', 'review_request'];
 export const isAutomation = (kind: CampaignKind): boolean => AUTOMATION_KINDS.includes(kind);
 
 export interface Campaign extends CampaignRow {
@@ -22,6 +22,7 @@ export interface Campaign extends CampaignRow {
   send_on: string | null;
   days_before: number;
   winback_days: number;
+  days_after: number;
   day_of_month: number;
   send_hour: number;
   is_active: boolean;
@@ -37,6 +38,8 @@ export interface CampaignDraft {
   send_on: string | null;
   days_before: number;
   winback_days: number;
+  /** review_request: days after the visit. */
+  days_after: number;
   day_of_month: number;
   send_hour: number;
   is_active: boolean;
@@ -73,6 +76,7 @@ export const EMPTY_DRAFT: CampaignDraft = {
   send_on: null,
   days_before: 0,
   winback_days: 60,
+  days_after: 1,
   day_of_month: 1,
   send_hour: 10,
   is_active: false,
@@ -92,7 +96,8 @@ export function starterDraft(kind: CampaignKind, starter: StarterText, bookingUr
     kind,
     send_on: kind === 'special_day' ? sendOn : null,
     // Birthday and win-back go to every customer who hasn't unsubscribed (existing-customer basis, §7(3) UWG).
-    audience: isAutomation(kind) ? 'all' : 'subscribers',
+    // A review request counts as advertising (BGH VI ZR 225/17), so it only goes to subscribers.
+    audience: isAutomation(kind) && kind !== 'review_request' ? 'all' : 'subscribers',
     subject: starter.subject,
     blocks: [
       { type: 'hero', logoUrl: null, imageUrl: null, headline: starter.headline, buttonText: starter.button, buttonUrl: bookingUrl, caption: '' },
@@ -109,6 +114,21 @@ export async function loadCampaigns(businessId: string): Promise<Campaign[]> {
     .order('created_at');
   if (error) throw error;
   return (data ?? []) as Campaign[];
+}
+
+/** The connected Google profile's "write a review" link, if the shop has one (local SEO). */
+export async function loadGoogleReviewUrl(businessId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('social_accounts')
+    .select('review_url')
+    .eq('business_id', businessId)
+    .eq('platform', 'googlebusiness')
+    .eq('is_active', true)
+    .not('review_url', 'is', null)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.review_url ?? null;
 }
 
 export async function loadAudienceCounts(): Promise<AudienceCounts> {
@@ -128,6 +148,7 @@ export function campaignToDraft(campaign: Campaign | null): CampaignDraft {
     send_on: campaign.send_on,
     days_before: campaign.days_before ?? 0,
     winback_days: campaign.winback_days ?? 60,
+    days_after: campaign.days_after ?? 1,
     day_of_month: campaign.day_of_month,
     send_hour: campaign.send_hour,
     is_active: campaign.is_active,

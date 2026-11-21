@@ -5,7 +5,7 @@ import { useAdminText } from '../../../lib/adminLanguage';
 import { fillText } from '../../../lib/bookingLanguage';
 import { ADMIN_PRIMARY_BUTTON, ADMIN_SECONDARY_BUTTON, ADMIN_STATUS_PILL, ADMIN_SURFACE, ADMIN_TERTIARY_BUTTON } from '../adminUi';
 import { MARKETING_TEXT } from './marketingText';
-import { AudienceCounts, Campaign, CampaignDraft, EMPTY_COUNTS, duplicateCampaign, loadAudienceCounts, loadCampaigns } from './marketingApi';
+import { AudienceCounts, Campaign, CampaignDraft, EMPTY_COUNTS, duplicateCampaign, loadAudienceCounts, loadCampaigns, loadGoogleReviewUrl } from './marketingApi';
 import { AUTOMATION_TEXT } from './automationText';
 import AutomationsSection from './AutomationsSection';
 import CampaignEditor from './CampaignEditor';
@@ -20,6 +20,7 @@ export default function MarketingView() {
   const { t: a } = useAdminText(AUTOMATION_TEXT);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [counts, setCounts] = useState<AudienceCounts>(EMPTY_COUNTS);
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null);
   const [newDraft, setNewDraft] = useState<CampaignDraft | undefined>(undefined);
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,9 +35,12 @@ export default function MarketingView() {
   const load = useCallback(async () => {
     if (!businessId) return;
     try {
-      const [list, audience] = await Promise.all([loadCampaigns(businessId), loadAudienceCounts()]);
+      const [list, audience, googleReviewUrl] = await Promise.all([loadCampaigns(businessId), loadAudienceCounts(),
+        // Optional (local SEO): the review request row simply stays hidden if this fails.
+        loadGoogleReviewUrl(businessId).catch(() => null)]);
       setCampaigns(list);
       setCounts(audience);
+      setReviewUrl(googleReviewUrl);
       setError(false);
     } catch (loadError) {
       console.error('Could not load email marketing:', loadError);
@@ -112,7 +116,7 @@ export default function MarketingView() {
         ))}
       </dl>
 
-      <AutomationsSection campaigns={campaigns} counts={counts} loading={loading} onOpen={(id) => open(id)} onCreate={(draft) => open(NEW_ID, draft)} />
+      <AutomationsSection campaigns={campaigns} counts={counts} loading={loading} reviewUrl={reviewUrl} onOpen={(id) => open(id)} onCreate={(draft) => open(NEW_ID, draft)} />
 
       <div className="flex items-end justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight text-[#1A1714]">{a.promotionsTitle}</h2>

@@ -1,4 +1,4 @@
-import { CalendarHeart, Cake, HeartHandshake, Plus } from 'lucide-react';
+import { CalendarHeart, Cake, HeartHandshake, Plus, Star } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTenant } from '../../../lib/tenantContext';
 import { useAdminText } from '../../../lib/adminLanguage';
@@ -12,16 +12,20 @@ interface AutomationsSectionProps {
   campaigns: Campaign[];
   counts: AudienceCounts;
   loading: boolean;
+  /** The shop's Google "write a review" link; the review request row shows only when Google is connected. */
+  reviewUrl: string | null;
   onOpen: (id: string) => void;
   onCreate: (draft: CampaignDraft) => void;
 }
 
-/** Birthday + win-back (one each per shop) and the list of special days; each row opens the editor. */
-export default function AutomationsSection({ campaigns, counts, loading, onOpen, onCreate }: AutomationsSectionProps) {
+/** Birthday + win-back + Google review request (one each per shop) and the list of special days; each row opens the editor. */
+export default function AutomationsSection({ campaigns, counts, loading, reviewUrl, onOpen, onCreate }: AutomationsSectionProps) {
   const { subdomain, customDomain } = useTenant();
   const { t, lang, locale } = useAdminText(AUTOMATION_TEXT);
   const bookingUrl = customDomain ? hostUrl(customDomain) : subdomain ? shopUrl(subdomain) : '';
-  const create = (kind: StarterKind) => onCreate(starterDraft(kind, AUTOMATION_STARTERS[lang][kind], bookingUrl));
+  const create = (kind: StarterKind) =>
+    onCreate(starterDraft(kind, AUTOMATION_STARTERS[lang][kind], kind === 'review_request' ? reviewUrl ?? '' : bookingUrl));
+  const hasReviewRequest = Boolean(reviewUrl) || campaigns.some((c) => c.kind === 'review_request');
   const specialDays = campaigns.filter((c) => c.kind === 'special_day').sort((x, y) => (x.send_on ?? '').localeCompare(y.send_on ?? ''));
   const formatDate = (value: string) => new Date(`${value}T12:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -31,7 +35,7 @@ export default function AutomationsSection({ campaigns, counts, loading, onOpen,
     </span>
   );
 
-  const automationRow = (kind: 'birthday' | 'winback', icon: ReactNode, title: string, hint: string, extra?: string) => {
+  const automationRow = (kind: 'birthday' | 'winback' | 'review_request', icon: ReactNode, title: string, hint: string, extra?: string) => {
     const campaign = campaigns.find((c) => c.kind === kind);
     return (
       <li key={kind} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -63,6 +67,7 @@ export default function AutomationsSection({ campaigns, counts, loading, onOpen,
         {automationRow('birthday', <Cake className="h-5 w-5" strokeWidth={1.5} />, t.birthdayTitle, t.birthdayHint,
           loading ? undefined : fillText(t.birthdaysKnown, { count: counts.with_birthday }))}
         {automationRow('winback', <HeartHandshake className="h-5 w-5" strokeWidth={1.5} />, t.winbackTitle, t.winbackHint)}
+        {hasReviewRequest && automationRow('review_request', <Star className="h-5 w-5" strokeWidth={1.5} />, t.reviewTitle, t.reviewHint)}
         <li className="p-5">
           <span className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="flex min-w-0 gap-3">

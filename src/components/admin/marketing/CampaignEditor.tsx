@@ -138,7 +138,10 @@ export default function CampaignEditor({ businessId, campaign, initialDraft, cou
       <section className={`${ADMIN_SURFACE} grid gap-6 p-6 md:grid-cols-2`}>
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-stone-700">{t.audience}</legend>
-          {([['subscribers', t.audienceSubscribers, t.audienceSubscribersHint, counts.subscribers], ['all', t.audienceAll, t.audienceAllHint, counts.all]] as const).map(([value, label, hint, count]) => (
+          {([['subscribers', t.audienceSubscribers, t.audienceSubscribersHint, counts.subscribers], ['all', t.audienceAll, t.audienceAllHint, counts.all]] as const)
+            // A review request is advertising, so it never goes beyond subscribers.
+            .filter(([value]) => draft.kind !== 'review_request' || value === 'subscribers')
+            .map(([value, label, hint, count]) => (
             <label key={value} className={`mb-2 flex cursor-pointer gap-3 rounded-xl p-3 ring-1 transition ${draft.audience === value ? 'bg-white ring-stone-900/30' : 'ring-stone-200/80 hover:bg-white/70'}`}>
               <input type="radio" name="audience" checked={draft.audience === value} onChange={() => update({ audience: value })} className="mt-1 accent-[#1A1714]" />
               <span>
