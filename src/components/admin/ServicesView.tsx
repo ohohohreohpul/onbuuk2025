@@ -8,6 +8,7 @@ import { useCurrency } from '../../lib/currencyContext';
 import { useAdminText } from '../../lib/adminLanguage';
 import { fillText, type Translations } from '../../lib/bookingLanguage';
 import { duplicateMinutes, planDurationChanges, type EditedDuration } from './services/durationChanges';
+import WeekdayPicker from './services/WeekdayPicker';
 
 const TEXT: Translations<{
   title: string; subtitle: string; allCategories: string; listView: string; gridView: string; importTitle: string;
@@ -107,6 +108,7 @@ interface Service {
   description: string;
   is_pair_massage: boolean;
   is_hidden?: boolean;
+  available_weekdays?: number[] | null;
   image_url: string | null;
   category: string;
   display_order: number;
@@ -141,6 +143,7 @@ export default function ServicesView() {
     description: '',
     is_pair_massage: false,
     is_hidden: false,
+    available_weekdays: [] as number[],
     image_url: '',
     category: '',
     display_order: 0,
@@ -231,6 +234,7 @@ export default function ServicesView() {
       description: '',
       is_pair_massage: false,
       is_hidden: false,
+      available_weekdays: [],
       image_url: '',
       category: '',
       display_order: 0,
@@ -253,6 +257,7 @@ export default function ServicesView() {
       description: service.description,
       is_pair_massage: service.is_pair_massage,
       is_hidden: service.is_hidden ?? false,
+      available_weekdays: service.available_weekdays ?? [],
       image_url: service.image_url || '',
       category: service.category || '',
       display_order: service.display_order || 0,
@@ -342,6 +347,7 @@ export default function ServicesView() {
             description: formData.description,
             is_pair_massage: formData.is_pair_massage,
             is_hidden: formData.is_hidden,
+            available_weekdays: formData.available_weekdays.length ? formData.available_weekdays : null,
             image_url: formData.image_url || null,
             category: categoryToSave,
             display_order: formData.display_order,
@@ -373,6 +379,7 @@ export default function ServicesView() {
             description: formData.description,
             is_pair_massage: formData.is_pair_massage,
             is_hidden: formData.is_hidden,
+            available_weekdays: formData.available_weekdays.length ? formData.available_weekdays : null,
             image_url: formData.image_url || null,
             category: categoryToSave,
             display_order: formData.display_order,
@@ -1068,6 +1075,8 @@ export default function ServicesView() {
                   </span>
                 </label>
               </div>
+
+              <WeekdayPicker value={formData.available_weekdays} onChange={(days) => setFormData({ ...formData, available_weekdays: days })} />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
