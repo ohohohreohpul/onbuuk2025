@@ -132,8 +132,9 @@ export async function loadShopContext(supabase: SupabaseClient, settings: Recept
   const [businessRes, servicesRes, staffRes, giftRes, shop] = await Promise.all([
     supabase.from("businesses").select("name, address, phone, agent_consent_policy, agent_lead_time_minutes, agent_slot_hold_seconds")
       .eq("id", businessId).single(),
+    // Hidden services ("Auf der Buchungsseite ausblenden") are not offered in the chat either.
     supabase.from("services").select("id, name, description, is_pair_massage, service_durations(id, duration_minutes, price_cents)")
-      .eq("business_id", businessId).order("display_order"),
+      .eq("business_id", businessId).or("is_hidden.is.null,is_hidden.eq.false").order("display_order"),
     supabase.from("specialists").select("id, name, specialist_services(service_id), working_hours(day_of_week, start_time, end_time, is_available)").eq("business_id", businessId).eq("is_active", true).order("name"),
     supabase.from("gift_card_settings").select("*").eq("business_id", businessId).maybeSingle(),
     loadMarketingShop(supabase, businessId),
